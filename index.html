@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VetBook — Carnet de Santé Animal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-left">
+      <a href="#" class="logo" id="logo-home" aria-label="Retour à l'accueil">Vet<span>Book</span></a>
+      <button type="button" class="btn-accueil" id="btn-accueil" hidden>← Accueil</button>
+    </div>
+    <div class="header-actions">
+      <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel"></select>
+      <button type="button" class="btn-add" id="btn-add-animal">+ Animal</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Page d'accueil : liste des animaux avec actions rapides -->
+    <div id="view-home" class="view">
+      <h1 class="home-title">Mes animaux</h1>
+      <div id="home-pet-grid" class="home-pet-grid"></div>
+      <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
+    </div>
+
+    <!-- Vue détail : carnet d'un animal -->
+    <div id="view-detail" class="view" hidden>
+    <nav class="tabs" role="tablist" aria-label="Sections du carnet">
+      <button type="button" class="tab active" data-tab="profil" role="tab" aria-selected="true">🐶 Profil</button>
+      <button type="button" class="tab" data-tab="photos" role="tab">📷 Photos</button>
+      <button type="button" class="tab" data-tab="vaccins" role="tab">💉 Vaccins</button>
+      <button type="button" class="tab" data-tab="deworming" role="tab">🪱 Déparasitage</button>
+      <button type="button" class="tab" data-tab="alertes" role="tab">🔔 Alertes</button>
+      <button type="button" class="tab" data-tab="historique" role="tab">📋 Historique</button>
+    </nav>
+
+    <!-- Section Profil -->
+    <section id="section-profil" class="section active" role="tabpanel" aria-labelledby="tab-profil">
+      <article class="animal-hero">
+        <div class="avatar-wrapper">
+          <div class="animal-avatar" id="hero-avatar" role="img" aria-label="Photo de l'animal">🐕</div>
+          <button type="button" class="avatar-edit-btn" onclick="app.openModal('editAnimal')" title="Modifier la photo">✏️</button>
+        </div>
+        <div class="hero-content">
+          <h1 class="animal-name" id="hero-name">Bolt</h1>
+          <p class="animal-breed" id="hero-breed">Coton de Tuléar · Mâle</p>
+          <div class="animal-badges">
+            <span class="badge" id="hero-dob">🎂 —</span>
+            <span class="badge" id="hero-weight">⚖️ — kg</span>
+            <span class="badge" id="hero-species">🔬 —</span>
+          </div>
+        </div>
+        <button type="button" class="hero-edit-btn" onclick="app.openModal('editAnimal')">✏️ <span>Modifier la fiche</span></button>
+      </article>
+
+      <div class="info-grid" aria-label="Informations de l'animal">
+        <div class="info-card"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
+        <div class="info-card"><span class="info-label">Race</span><span class="info-value" id="info-race">—</span></div>
+        <div class="info-card"><span class="info-label">Poids</span><span class="info-value" id="info-weight">—</span></div>
+        <div class="info-card"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
+        <div class="info-card"><span class="info-label">Microchip</span><span class="info-value" id="info-chip">Non renseigné</span></div>
+        <div class="info-card"><span class="info-label">Stérilisé(e)</span><span class="info-value" id="info-sterilise">—</span></div>
+      </div>
+
+      <article class="owner-card">
+        <div class="card-header">
+          <h2 class="section-title">👤 Propriétaire</h2>
+          <button type="button" class="btn-icon" onclick="app.openModal('editOwner')">✏️ Modifier</button>
+        </div>
+        <div class="info-grid">
+          <div><span class="info-label">Nom</span><span class="info-value" id="owner-name">—</span></div>
+          <div><span class="info-label">Téléphone</span><span class="info-value" id="owner-phone">—</span></div>
+          <div><span class="info-label">Email</span><span class="info-value" id="owner-email">—</span></div>
+          <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
+        </div>
+      </article>
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-number" id="stat-vax">0</span><span class="stat-label">Vaccins reçus</span></div>
+        <div class="stat-card"><span class="stat-number" id="stat-dew">0</span><span class="stat-label">Déparasitages</span></div>
+        <div class="stat-card"><span class="stat-number stat-accent" id="stat-photos">0</span><span class="stat-label">Photos</span></div>
+        <div class="stat-card"><span class="stat-number stat-accent" id="stat-next">0</span><span class="stat-label">Rappel à venir</span></div>
+      </div>
+    </section>
+
+    <!-- Section Photos -->
+    <section id="section-photos" class="section" role="tabpanel" hidden>
+      <div class="gallery-section">
+        <div class="gallery-header">
+          <h2 class="section-title">📷 Album Photo</h2>
+          <button type="button" class="btn-icon" id="btn-add-photo">📷 Ajouter des photos</button>
+        </div>
+        <div class="gallery-grid" id="gallery-grid">
+          <div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0">
+            <span class="gallery-add-icon" aria-hidden="true">📷</span>
+            <span>Ajouter une photo</span>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" multiple hidden aria-label="Choisir des photos">
+    </section>
+
+    <!-- Section Vaccins -->
+    <section id="section-vaccins" class="section" role="tabpanel" hidden>
+      <div id="vaccine-alerts" class="alerts-container"></div>
+      <div class="data-table">
+        <div class="table-header">
+          <h2 class="section-title">💉 Mes Vaccins</h2>
+          <button type="button" class="btn-icon" onclick="app.openModal('addVaccin')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Vaccin</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="vaccine-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Déparasitage -->
+    <section id="section-deworming" class="section" role="tabpanel" hidden>
+      <div class="data-table">
+        <div class="table-header">
+          <h2 class="section-title">🪱 Déparasitage</h2>
+          <button type="button" class="btn-icon" onclick="app.openModal('addDeworming')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Traitement</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="deworming-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Alertes -->
+    <section id="section-alertes" class="section" role="tabpanel" hidden>
+      <div class="alert-banner alert-info" role="status">
+        <span aria-hidden="true">💡</span>
+        Activez les rappels pour ne manquer aucun soin important.
+      </div>
+      <div class="notif-card">
+        <h2 class="section-title">🔔 Préférences de Notification</h2>
+        <div class="notif-list" id="notif-list"></div>
+      </div>
+      <div class="data-table">
+        <div class="table-header"><h2 class="section-title">⚡ Prochains Rappels</h2></div>
+        <div id="upcoming-alerts" class="upcoming-alerts-body"></div>
+      </div>
+    </section>
+
+    <!-- Section Historique -->
+    <section id="section-historique" class="section" role="tabpanel" hidden>
+      <h2 class="section-title">📋 Historique Complet</h2>
+      <div class="timeline" id="history-timeline"></div>
+    </section>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <div class="modal-overlay" id="modal-editAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-editAnimal-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editAnimal-title">✏️ Modifier la Fiche Animal</h2>
+      <div class="avatar-preview-area">
+        <div class="avatar-preview" id="edit-avatar-preview">🐕</div>
+        <button type="button" class="btn-icon" id="btn-avatar-upload">📷 Changer la photo</button>
+        <input type="file" id="avatar-input" accept="image/*" hidden>
+      </div>
+      <form id="form-edit-animal" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ea-name">Nom</label><input class="form-input" id="ea-name" required></div>
+          <div class="form-group"><label class="form-label" for="ea-species">Espèce</label><select class="form-input" id="ea-species"><option value="Canine">Canine (Chien)</option><option value="Féline">Féline (Chat)</option><option value="Autre">Autre</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ea-race">Race</label><input class="form-input" id="ea-race"></div>
+          <div class="form-group"><label class="form-label" for="ea-sex">Sexe</label><select class="form-input" id="ea-sex"><option value="Mâle">Mâle</option><option value="Femelle">Femelle</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ea-dob">Date de naissance</label><input class="form-input" id="ea-dob" type="date"></div>
+          <div class="form-group"><label class="form-label" for="ea-weight">Poids (kg)</label><input class="form-input" id="ea-weight" type="number" step="0.1" min="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ea-color">Couleur</label><input class="form-input" id="ea-color" placeholder="ex: Blanc"></div>
+          <div class="form-group"><label class="form-label" for="ea-chip">Microchip</label><input class="form-input" id="ea-chip" placeholder="Numéro de puce"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ea-sterilise">Stérilisé(e)</label>
+          <select class="form-input" id="ea-sterilise"><option value="Non">Non</option><option value="Oui">Oui</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ea-notes">Notes / Observations</label>
+          <textarea class="form-input" id="ea-notes" rows="3" placeholder="Allergies, particularités..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editAnimal">Annuler</button>
+          <button type="submit" class="btn-primary">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editOwner" aria-hidden="true" role="dialog" aria-labelledby="modal-editOwner-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editOwner-title">👤 Modifier le Propriétaire</h2>
+      <form id="form-edit-owner" class="modal-form">
+        <div class="form-group"><label class="form-label" for="eo-name">Nom complet</label><input class="form-input" id="eo-name"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="eo-phone">Téléphone</label><input class="form-input" id="eo-phone" type="tel"></div>
+          <div class="form-group"><label class="form-label" for="eo-email">Email</label><input class="form-input" id="eo-email" type="email"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="eo-clinic">Clinique vétérinaire</label><input class="form-input" id="eo-clinic"></div>
+        <div class="form-group"><label class="form-label" for="eo-address">Adresse</label><input class="form-input" id="eo-address" placeholder="Adresse complète"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editOwner">Annuler</button>
+          <button type="submit" class="btn-primary">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-addVaccin" aria-hidden="true" role="dialog" aria-labelledby="modal-addVaccin-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addVaccin-title">💉 Ajouter un Vaccin</h2>
+      <form id="form-add-vaccin" class="modal-form">
+        <div class="form-group"><label class="form-label" for="v-name">Nom du vaccin</label><input class="form-input" id="v-name" placeholder="ex: Nobivac Rabies" required></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="v-date">Date</label><input class="form-input" id="v-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="v-next">Rappel</label><input class="form-input" id="v-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="v-vet">Vétérinaire</label><input class="form-input" id="v-vet" placeholder="Nom du vétérinaire"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addVaccin">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-addDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-addDeworming-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addDeworming-title">🪱 Ajouter un Déparasitage</h2>
+      <form id="form-add-deworming" class="modal-form">
+        <div class="form-group"><label class="form-label" for="d-name">Traitement</label><input class="form-input" id="d-name" placeholder="ex: Milpro 1cp" required></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="d-date">Date</label><input class="form-input" id="d-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="d-next">Rappel</label><input class="form-input" id="d-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="d-type">Type</label><select class="form-input" id="d-type"><option value="interne">Interne</option><option value="externe">Externe</option></select></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addDeworming">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-addAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-addAnimal-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addAnimal-title">🐾 Ajouter un Animal</h2>
+      <form id="form-add-animal" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="aa-name">Nom</label><input class="form-input" id="aa-name" placeholder="Nom" required></div>
+          <div class="form-group"><label class="form-label" for="aa-species">Espèce</label><select class="form-input" id="aa-species"><option value="Canine">Canine</option><option value="Féline">Féline</option><option value="Autre">Autre</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="aa-race">Race</label><input class="form-input" id="aa-race" placeholder="Race"></div>
+          <div class="form-group"><label class="form-label" for="aa-sex">Sexe</label><select class="form-input" id="aa-sex"><option value="Mâle">Mâle</option><option value="Femelle">Femelle</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="aa-dob">Date de naissance</label><input class="form-input" id="aa-dob" type="date"></div>
+          <div class="form-group"><label class="form-label" for="aa-weight">Poids (kg)</label><input class="form-input" id="aa-weight" type="number" step="0.1" min="0" placeholder="0"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addAnimal">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Agrandir la photo">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Fermer">✕</button>
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
