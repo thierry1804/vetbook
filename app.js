@@ -688,10 +688,21 @@
     renderGallery();
   }
 
+  // ——— PWA : enregistrement du Service Worker ———————————————————
+  function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
+      if (reg.installing) console.log('VetBook: SW en cours d\'installation');
+      else if (reg.waiting) console.log('VetBook: SW en attente');
+      else if (reg.active) console.log('VetBook: SW actif');
+    }).catch(function (err) { console.warn('VetBook: SW non enregistré', err); });
+  }
+
   // ——— Init & bindings ————————————————————————————————————————
   function init() {
     loadState();
     showHome();
+    registerSW();
 
     document.getElementById('logo-home').addEventListener('click', function (e) {
       e.preventDefault();
