@@ -7,45 +7,99 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'vetbook_data';
-  const DEFAULT_ANIMAL = {
+  // ——— i18n ———————————————————————————————————————————————————
+  var locales = {};
+  locales.fr = {
+    appName: 'VetBook',
+    home: 'Mes animaux',
+    profile: 'Profil',
+    vaccines: 'Vaccins',
+    deworming: 'Déparasitage',
+    photos: 'Photos',
+    alerts: 'Alertes',
+    history: 'Historique',
+    consultations: 'Consultations',
+    journal: 'Journal',
+    medications: 'Médicaments',
+    calendar: 'Calendrier',
+    save: 'Enregistrer',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    edit: 'Modifier',
+    add: 'Ajouter',
+    search: 'Recherche',
+    noData: 'Aucune donnée',
+    overdue: 'En retard',
+    soon: 'Bientôt',
+    upToDate: 'À jour',
+    today: "Aujourd'hui",
+    daysAgo: 'il y a {0} jour(s)',
+    daysFromNow: 'dans {0} jour(s)',
+    weeksFromNow: 'dans {0} semaine(s)',
+    monthsFromNow: 'dans {0} mois',
+    birthday: 'Joyeux anniversaire {0} !',
+    confirmDelete: 'Êtes-vous sûr de vouloir supprimer ?',
+    lastAnimal: 'Impossible de supprimer le dernier animal.',
+    welcome: 'Bienvenue sur VetBook !',
+    onboardingDesc: 'VetBook est votre carnet de santé animal numérique.',
+    printTitle: 'Carnet de santé — {0}',
+    shareTitle: 'Carnet de santé de {0}',
+    noVaccines: 'Aucun vaccin enregistré pour {0}',
+    noDewormings: 'Aucun déparasitage enregistré pour {0}',
+    noPhotos: 'Aucune photo enregistrée pour {0}',
+    noConsultations: 'Aucune consultation enregistrée pour {0}',
+    noNotes: 'Aucune note enregistrée pour {0}',
+    noMedications: 'Aucun médicament enregistré pour {0}',
+    profileComplete: '{0}% complété',
+    completeFiche: 'Complétez votre fiche !'
+  };
+
+  var currentLocale = 'fr';
+
+  function t(key) {
+    var str = (locales[currentLocale] && locales[currentLocale][key]) || key;
+    for (var i = 1; i < arguments.length; i++) {
+      str = str.replace('{' + (i - 1) + '}', arguments[i]);
+    }
+    return str;
+  }
+
+  // ——— Constants ——————————————————————————————————————————————
+  var STORAGE_KEY = 'vetbook_data';
+  var THEME_KEY = 'vetbook_theme';
+  var NOTIF_CHECK_KEY = 'vetbook_notif_last_check';
+  var ONBOARDING_KEY = 'vetbook_onboarding_done';
+
+  var DEFAULT_ANIMAL = {
     id: 1,
     animal: {
-      name: 'Bolt',
+      name: '',
       species: 'Canine',
-      race: 'Coton de Tuléar',
+      race: '',
       sex: 'Mâle',
-      dob: '2024-11-27',
-      weight: 5.7,
+      dob: '',
+      weight: null,
+      weightHistory: [],
       color: '',
       chip: '',
       sterilise: 'Non',
       notes: '',
-      avatar: null
+      avatar: null,
+      themeColor: ''
     },
     owner: {
-      name: 'Randriamananjara Onjaniaine',
-      phone: '038 427 M68',
-      email: 'onjaniaine.randriamananjara@outlook.com',
-      clinic: 'VetCare Madagascar',
+      name: '',
+      phone: '',
+      email: '',
+      clinic: '',
       address: ''
     },
     photos: [],
-    vaccines: [
-      { id: 1, date: '2025-01-25', name: 'Nobivac 1-Pv', next: '2025-02-15', vet: 'Dr Andrianarivo Herivalisoa' },
-      { id: 2, date: '2025-02-22', name: 'Nobivac 1-DAPPv', next: '2025-03-15', vet: 'Dr Andrianarivo Herivalisoa' },
-      { id: 3, date: '2025-03-15', name: 'Nobivac 1-DAPPvL2', next: '2025-04-15', vet: 'Dr Andrianarivo Herivalisoa' },
-      { id: 4, date: '2025-04-15', name: 'Nobivac Rabies', next: '2026-03-15', vet: 'Dr Rakotomanatovo' }
-    ],
-    dewormings: [
-      { id: 1, date: '2025-01-13', name: 'Antcycle liq', next: '2025-02-13', type: 'interne' },
-      { id: 2, date: '2025-02-12', name: 'Milpro 1cp', next: '', type: 'interne' },
-      { id: 3, date: '2025-03-22', name: 'Quantel 3,1 Ess', next: '', type: 'interne' },
-      { id: 4, date: '2025-04-22', name: 'Zerokrim', next: '', type: 'interne' },
-      { id: 5, date: '2025-05-30', name: 'Ivermachin 1cp', next: '', type: 'interne' },
-      { id: 6, date: '2025-09-14', name: 'Deworm Plus', next: '', type: 'interne' },
-      { id: 7, date: '2026-01-07', name: 'Pyrantel liq', next: '2026-03-07', type: 'interne' }
-    ],
+    vaccines: [],
+    dewormings: [],
+    consultations: [],
+    medications: [],
+    notes: [],
     notifications: {
       vaccineReminder: true,
       dewormingReminder: true,
@@ -54,47 +108,151 @@
     }
   };
 
-  let state = {
+  // Vaccine suggestions by species
+  var VACCINE_DB = {
+    Canine: [
+      'Nobivac DHPPi', 'Nobivac Rabies', 'Nobivac L4', 'Nobivac KC',
+      'Eurican DHPPi2-LR', 'Eurican DHPPi2-L', 'Eurican Herpes',
+      'Canigen DHPPi/L', 'Canigen R', 'Vanguard Plus 5',
+      'Rabisin', 'Versican Plus DHPPi/L4R'
+    ],
+    'Féline': [
+      'Purevax RCPCh', 'Purevax RCP', 'Purevax FeLV',
+      'Nobivac Tricat Trio', 'Nobivac Rabies',
+      'Felocell CVR', 'Leucofeligen FeLV/RCP',
+      'Rabisin', 'Versifel CVR'
+    ],
+    Autre: []
+  };
+
+  var state = {
     animals: [],
     nextId: 20,
     currentAnimalId: null,
-    viewMode: 'home'  // 'home' | 'detail'
+    viewMode: 'home'
+  };
+
+  var uiState = {
+    editVaccineId: null,
+    editDewormingId: null,
+    editWeightEntryId: null,
+    editConsultId: null,
+    editMedicationId: null,
+    editNoteId: null,
+    editCaptionPhotoId: null,
+    calendarYear: new Date().getFullYear(),
+    calendarMonth: new Date().getMonth()
   };
 
   // ——— Helpers —————————————————————————————————————————————
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function fmtDate(d) {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  function getStatus(nextDate) {
-    if (!nextDate) return null;
-    const diff = (new Date(nextDate) - new Date()) / 864e5;
-    if (diff < 0) return { cls: 'status-overdue', lbl: 'En retard' };
-    if (diff <= 30) return { cls: 'status-soon', lbl: 'Bientôt' };
-    return { cls: 'status-ok', lbl: 'À jour' };
+  function relativeDate(isoDate) {
+    if (!isoDate) return '';
+    var dt = isoToLocalDate(isoDate);
+    if (!dt) return '';
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var diff = Math.round((dt - todayMid) / 864e5);
+    if (diff === 0) return "aujourd'hui";
+    if (diff === 1) return 'demain';
+    if (diff === -1) return 'hier';
+    if (diff > 0 && diff <= 7) return 'dans ' + diff + 'j';
+    if (diff > 7 && diff <= 30) return 'dans ' + Math.round(diff / 7) + ' sem.';
+    if (diff > 30) return 'dans ' + Math.round(diff / 30) + ' mois';
+    if (diff < 0 && diff >= -30) return 'il y a ' + Math.abs(diff) + 'j';
+    if (diff < -30) return 'il y a ' + Math.round(Math.abs(diff) / 30) + ' mois';
+    return '';
   }
 
+  function addDaysISO(dateStr, days) {
+    if (!dateStr) return '';
+    var n = parseInt(days, 10);
+    if (isNaN(n)) return '';
+    var d = new Date(dateStr);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().split('T')[0];
+  }
+
+  function todayISO() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function getStatus(nextDate) {
+    if (!nextDate) return null;
+    var dt = isoToLocalDate(nextDate);
+    if (!dt) return null;
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var diff = (dt - todayMid) / 864e5;
+    if (diff < 0) return { cls: 'status-overdue', lbl: t('overdue') };
+    if (diff <= 30) return { cls: 'status-soon', lbl: t('soon') };
+    return { cls: 'status-ok', lbl: t('upToDate') };
+  }
+
+  function isoToLocalDate(isoDate) {
+    if (!isoDate || typeof isoDate !== 'string') return null;
+    var parts = isoDate.split('-').map(function (x) { return parseInt(x, 10); });
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  // ——— Toast system ————————————————————————————————————————
+  function showToast(message, type, duration) {
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'info');
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(function () {
+      toast.classList.add('toast-out');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, duration || 3500);
+  }
+
+  // ——— State management ————————————————————————————————————
   function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
+        var parsed = JSON.parse(raw);
         state.animals = parsed.animals || [];
         state.nextId = Math.max(state.nextId, parsed.nextId || 20);
         state.currentAnimalId = parsed.currentAnimalId != null ? parsed.currentAnimalId : (state.animals[0]?.id ?? null);
       }
       if (state.animals.length === 0) {
-        state.animals = [JSON.parse(JSON.stringify(DEFAULT_ANIMAL))];
+        return false; // Signal that we need onboarding
+      }
+      if (!state.animals.some(function (a) { return a.id === state.currentAnimalId; })) {
         state.currentAnimalId = state.animals[0].id;
       }
-      if (!state.animals.some(a => a.id === state.currentAnimalId)) {
-        state.currentAnimalId = state.animals[0].id;
-      }
+      // Backward compatibility
+      state.animals.forEach(function (a) {
+        if (!a || !a.animal) return;
+        if (!Array.isArray(a.animal.weightHistory)) a.animal.weightHistory = [];
+        if (!Array.isArray(a.consultations)) a.consultations = [];
+        if (!Array.isArray(a.medications)) a.medications = [];
+        if (!Array.isArray(a.notes)) a.notes = [];
+        if (!a.animal.themeColor) a.animal.themeColor = '';
+      });
+      return true;
     } catch (e) {
       console.warn('VetBook: erreur lecture localStorage', e);
-      state.animals = [JSON.parse(JSON.stringify(DEFAULT_ANIMAL))];
-      state.currentAnimalId = state.animals[0].id;
+      return false;
     }
   }
 
@@ -111,38 +269,290 @@
   }
 
   function getCurrent() {
-    return state.animals.find(a => a.id === state.currentAnimalId) || state.animals[0];
+    return state.animals.find(function (a) { return a.id === state.currentAnimalId; }) || state.animals[0];
   }
 
   function getUpcomingCount(data) {
-    const today = new Date();
-    const v = (data.vaccines.filter(x => x.next && new Date(x.next) >= today)).length;
-    const d = (data.dewormings.filter(x => x.next && new Date(x.next) >= today)).length;
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var v = (data.vaccines.filter(function (x) {
+      var dt = isoToLocalDate(x.next);
+      return x.next && dt && dt >= todayMid;
+    })).length;
+    var d = (data.dewormings.filter(function (x) {
+      var dt = isoToLocalDate(x.next);
+      return x.next && dt && dt >= todayMid;
+    })).length;
     return v + d;
   }
 
-  // ——— Page d'accueil —————————————————————————————————────────—
+  // ——— Photos : IndexedDB ——————————————————————————————
+  var PHOTO_DB_NAME = 'vetbook_photo_db_v1';
+  var PHOTO_STORE_NAME = 'photos';
+  var photoDbOpenPromise = null;
+  var photoUrlCache = new Map();
+
+  function openPhotoDb() {
+    if (photoDbOpenPromise) return photoDbOpenPromise;
+    photoDbOpenPromise = new Promise(function (resolve, reject) {
+      if (!('indexedDB' in window)) { reject(new Error('IndexedDB indisponible')); return; }
+      var req = indexedDB.open(PHOTO_DB_NAME, 1);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+          db.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error('Erreur IndexedDB')); };
+    });
+    return photoDbOpenPromise;
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    return fetch(dataUrl).then(function (res) { return res.blob(); });
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(reader.error || new Error('blobToDataUrl')); };
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function resizeImageToBlob(file, maxDim, mimeType, quality) {
+    return new Promise(function (resolve, reject) {
+      try {
+        var objectUrl = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            var scale = Math.min(1, maxDim / Math.max(w, h));
+            var tw = Math.max(1, Math.round(w * scale));
+            var th = Math.max(1, Math.round(h * scale));
+            var canvas = document.createElement('canvas');
+            canvas.width = tw; canvas.height = th;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, tw, th);
+            canvas.toBlob(function (blob) {
+              URL.revokeObjectURL(objectUrl);
+              resolve(blob || file);
+            }, mimeType, quality);
+          } catch (err) { URL.revokeObjectURL(objectUrl); reject(err); }
+        };
+        img.onerror = function () { URL.revokeObjectURL(objectUrl); reject(new Error('Image invalide')); };
+        img.src = objectUrl;
+      } catch (err) { reject(err); }
+    });
+  }
+
+  async function putPhotoBlob(photoId, blob, mimeType) {
+    var db = await openPhotoDb();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error || new Error('putPhotoBlob')); };
+      tx.objectStore(PHOTO_STORE_NAME).put({ id: photoId, blob: blob, mimeType: mimeType || blob.type || '' });
+    });
+  }
+
+  async function getPhotoRecord(photoId) {
+    var db = await openPhotoDb();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
+      var req = tx.objectStore(PHOTO_STORE_NAME).get(photoId);
+      req.onsuccess = function () { resolve(req.result || null); };
+      req.onerror = function () { reject(req.error || new Error('getPhotoRecord')); };
+    });
+  }
+
+  async function deletePhotoBlob(photoId) {
+    var db = await openPhotoDb();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error || new Error('deletePhotoBlob')); };
+      tx.objectStore(PHOTO_STORE_NAME).delete(photoId);
+    });
+  }
+
+  async function clearPhotoStore() {
+    var db = await openPhotoDb();
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error || new Error('clearPhotoStore')); };
+      tx.objectStore(PHOTO_STORE_NAME).clear();
+    });
+  }
+
+  async function getPhotoObjectUrl(photoId) {
+    if (photoUrlCache.has(photoId)) return photoUrlCache.get(photoId);
+    var rec = await getPhotoRecord(photoId);
+    if (!rec || !rec.blob) return '';
+    var url = URL.createObjectURL(rec.blob);
+    photoUrlCache.set(photoId, url);
+    return url;
+  }
+
+  async function getPhotoDataUrl(photoId) {
+    var rec = await getPhotoRecord(photoId);
+    if (!rec || !rec.blob) return '';
+    return blobToDataUrl(rec.blob);
+  }
+
+  async function migrateLegacyImagesToIndexedDB() {
+    var needsMigration = false;
+    state.animals.forEach(function (wrap) {
+      var a = wrap?.animal;
+      if (!a) return;
+      if (typeof a.avatar === 'string' && a.avatar.startsWith('data:')) needsMigration = true;
+      if (Array.isArray(wrap.photos)) {
+        wrap.photos.forEach(function (p) {
+          if (p && typeof p.src === 'string' && p.src.startsWith('data:')) needsMigration = true;
+        });
+      }
+    });
+    if (!needsMigration) return;
+
+    for (var wrap of state.animals) {
+      var a = wrap?.animal;
+      if (!a) continue;
+      if (typeof a.avatar === 'string' && a.avatar.startsWith('data:')) {
+        try {
+          var blob = await dataUrlToBlob(a.avatar);
+          var avatarKey = state.nextId++;
+          await putPhotoBlob(avatarKey, blob, blob.type);
+          a.avatar = avatarKey;
+        } catch (err) { console.warn('VetBook: migration avatar échouée', err); }
+      }
+      if (Array.isArray(wrap.photos)) {
+        for (var p of wrap.photos) {
+          if (!p || typeof p.src !== 'string' || !p.src.startsWith('data:')) continue;
+          try {
+            var blob2 = await dataUrlToBlob(p.src);
+            var key = p.id != null ? p.id : (state.nextId++);
+            p.id = key;
+            await putPhotoBlob(key, blob2, blob2.type);
+            delete p.src;
+          } catch (err) { console.warn('VetBook: migration photo échouée', err); }
+        }
+      }
+    }
+    saveState();
+  }
+
+  // ——— Delete animal ————————————————————————————————————————
+  async function deleteAnimal(id) {
+    if (state.animals.length <= 1) {
+      showToast(t('lastAnimal'), 'error');
+      return;
+    }
+    if (!confirm('Supprimer cet animal et toutes ses données ?')) return;
+    var animal = state.animals.find(function (a) { return a.id === id; });
+    if (!animal) return;
+
+    // Clean up IndexedDB photos
+    if (Array.isArray(animal.photos)) {
+      for (var p of animal.photos) {
+        if (p && p.id != null) {
+          deletePhotoBlob(p.id).catch(function () {});
+        }
+      }
+    }
+    if (animal.animal && typeof animal.animal.avatar === 'number') {
+      deletePhotoBlob(animal.animal.avatar).catch(function () {});
+    }
+
+    state.animals = state.animals.filter(function (a) { return a.id !== id; });
+    if (state.currentAnimalId === id) {
+      state.currentAnimalId = state.animals[0]?.id ?? null;
+    }
+    saveState();
+    showToast('Animal supprimé', 'success');
+    if (state.viewMode === 'home') renderHome();
+    else showHome();
+  }
+
+  // ——— Dashboard ———————————————————————————————————————
+  function renderDashboard() {
+    var dashEl = document.getElementById('home-dashboard');
+    if (!dashEl) return;
+    if (state.animals.length === 0) { dashEl.hidden = true; return; }
+    dashEl.hidden = false;
+
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var weekLater = new Date(todayMid);
+    weekLater.setDate(weekLater.getDate() + 7);
+
+    var overdueCount = 0;
+    var upcomingCount = 0;
+    var totalVaccines = 0;
+    var totalPhotos = 0;
+
+    state.animals.forEach(function (data) {
+      totalVaccines += data.vaccines.length;
+      totalPhotos += data.photos.length;
+      data.vaccines.forEach(function (v) {
+        if (!v.next) return;
+        var dt = isoToLocalDate(v.next);
+        if (!dt) return;
+        if (dt < todayMid) overdueCount++;
+        else if (dt <= weekLater) upcomingCount++;
+      });
+      data.dewormings.forEach(function (d) {
+        if (!d.next) return;
+        var dt = isoToLocalDate(d.next);
+        if (!dt) return;
+        if (dt < todayMid) overdueCount++;
+        else if (dt <= weekLater) upcomingCount++;
+      });
+    });
+
+    document.getElementById('dash-overdue-count').textContent = overdueCount;
+    document.getElementById('dash-upcoming-count').textContent = upcomingCount;
+    document.getElementById('dash-animals-count').textContent = state.animals.length;
+    document.getElementById('dash-vaccines-count').textContent = totalVaccines;
+    document.getElementById('dash-photos-count').textContent = totalPhotos;
+  }
+
+  // ——— Home ————————————————————————————————————————————
   function renderHome() {
-    const grid = document.getElementById('home-pet-grid');
-    const emptyEl = document.getElementById('home-empty');
+    var grid = document.getElementById('home-pet-grid');
+    var emptyEl = document.getElementById('home-empty');
     if (!grid) return;
+
+    renderDashboard();
 
     if (state.animals.length === 0) {
       grid.innerHTML = '';
-      if (emptyEl) { emptyEl.hidden = false; }
+      if (emptyEl) emptyEl.hidden = false;
       return;
     }
     if (emptyEl) emptyEl.hidden = true;
 
-    grid.innerHTML = state.animals.map(function (data) {
-      const a = data.animal;
-      const name = a.name || 'Sans nom';
-      const meta = [a.race, a.sex].filter(Boolean).join(' · ') || a.species || '—';
-      const avatarHtml = a.avatar
-        ? '<img src="' + a.avatar + '" alt="">'
+    grid.innerHTML = state.animals.map(function (data, idx) {
+      var a = data.animal;
+      var name = escapeHtml(a.name || 'Sans nom');
+      var meta = escapeHtml([a.race, a.sex].filter(Boolean).join(' · ') || a.species || '—');
+      var avatarHtml = a.avatar
+        ? (typeof a.avatar === 'number'
+            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="" />'
+            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
         : (a.species === 'Féline' ? '🐱' : '🐕');
-      const upcoming = getUpcomingCount(data);
-      return '<article class="pet-card" data-animal-id="' + data.id + '">' +
+      var upcoming = getUpcomingCount(data);
+      var activeMeds = Array.isArray(data.medications) ? data.medications.filter(function (m) {
+        return m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= new Date());
+      }) : [];
+      var medBadge = activeMeds.length ? '<div class="pet-card-med-badge">💊 ' + activeMeds.length + ' en cours</div>' : '';
+      return '<article class="pet-card" data-animal-id="' + data.id + '" style="animation-delay:' + (idx * 0.05) + 's">' +
+        medBadge +
+        '<button type="button" class="pet-card-delete" data-delete-animal="' + data.id + '" aria-label="Supprimer" title="Supprimer">🗑️</button>' +
         '<div class="pet-card-header">' +
         '<div class="pet-card-avatar">' + avatarHtml + '</div>' +
         '<div class="pet-card-info">' +
@@ -163,47 +573,84 @@
         '</div></article>';
     }).join('');
 
+    // Delete buttons on cards
+    grid.querySelectorAll('.pet-card-delete').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = parseInt(btn.getAttribute('data-delete-animal'), 10);
+        deleteAnimal(id);
+      });
+    });
+
     grid.querySelectorAll('.btn-card').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        const id = parseInt(btn.getAttribute('data-animal-id'), 10);
-        const action = btn.getAttribute('data-action');
+        var id = parseInt(btn.getAttribute('data-animal-id'), 10);
+        var action = btn.getAttribute('data-action');
         if (!state.animals.some(function (x) { return x.id === id; })) return;
         state.currentAnimalId = id;
         saveState();
         showDetail();
-        if (action === 'vaccin') { openModal('addVaccin'); }
-        if (action === 'deworming') { openModal('addDeworming'); }
-        if (action === 'photos') { switchTab('photos'); }
+        if (action === 'vaccin') openModal('addVaccin');
+        if (action === 'deworming') openModal('addDeworming');
+        if (action === 'photos') switchTab('photos');
       });
+    });
+
+    grid.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
+      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
+      if (isNaN(key)) return;
+      getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
     });
   }
 
   function showHome() {
     state.viewMode = 'home';
-    document.getElementById('view-home').hidden = false;
-    document.getElementById('view-detail').hidden = true;
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    viewDetail.hidden = true;
+    viewHome.hidden = false;
+    viewHome.classList.remove('view-enter');
+    void viewHome.offsetWidth;
+    viewHome.classList.add('view-enter');
     document.getElementById('animal-select').style.display = 'none';
     document.getElementById('btn-accueil').hidden = true;
+    document.getElementById('fab-container').hidden = true;
     renderHome();
   }
 
   function showDetail() {
     state.viewMode = 'detail';
-    document.getElementById('view-home').hidden = true;
-    document.getElementById('view-detail').hidden = false;
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    viewHome.hidden = true;
+    viewDetail.hidden = false;
+    viewDetail.classList.remove('view-enter');
+    void viewDetail.offsetWidth;
+    viewDetail.classList.add('view-enter');
     document.getElementById('animal-select').style.display = '';
     document.getElementById('btn-accueil').hidden = false;
+    document.getElementById('fab-container').hidden = false;
     renderAnimalSelect();
     refreshAll();
     switchTab('profil');
   }
 
-  // ——— Profil ———————————————————————————————————————————————
+  // ——— Profile ———————————————————————————————————————————
   function renderProfile() {
-    const data = getCurrent();
+    var data = getCurrent();
     if (!data) return;
-    const a = data.animal;
-    const o = data.owner;
+    var a = data.animal;
+    var o = data.owner;
+
+    // Apply animal theme color
+    var hero = document.getElementById('animal-hero');
+    if (hero && a.themeColor) {
+      hero.style.setProperty('--animal-color', a.themeColor);
+      hero.style.background = 'linear-gradient(135deg, ' + a.themeColor + ' 0%, var(--teal-light) 100%)';
+    } else if (hero) {
+      hero.style.removeProperty('--animal-color');
+      hero.style.background = '';
+    }
 
     document.getElementById('hero-name').textContent = a.name || '—';
     document.getElementById('hero-breed').textContent = [a.race, a.sex].filter(Boolean).join(' · ') || '—';
@@ -217,19 +664,27 @@
     document.getElementById('info-color').textContent = a.color || '—';
     document.getElementById('info-sterilise').textContent = a.sterilise || 'Non';
 
-    const ageEl = document.getElementById('age-display');
+    var ageEl = document.getElementById('age-display');
     if (a.dob) {
-      const months = Math.floor((new Date() - new Date(a.dob)) / (864e5 * 30.44));
+      var months = Math.floor((new Date() - new Date(a.dob)) / (864e5 * 30.44));
       ageEl.textContent = months < 24 ? months + ' mois' : Math.floor(months / 12) + ' ans';
     } else {
       ageEl.textContent = '—';
     }
 
-    const av = document.getElementById('hero-avatar');
-    if (a.avatar) {
-      av.innerHTML = '<img src="' + a.avatar + '" alt="' + (a.name || 'Animal') + '">';
+    var av = document.getElementById('hero-avatar');
+    av.innerHTML = '';
+    av.style.fontSize = '';
+
+    if (a.avatar && typeof a.avatar === 'number') {
+      av.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
+      getPhotoObjectUrl(a.avatar).then(function (url) {
+        var img = av.querySelector('img[data-avatar-key]');
+        if (img && url) img.src = url;
+      }).catch(function () {});
+    } else if (a.avatar && typeof a.avatar === 'string') {
+      av.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
     } else {
-      av.innerHTML = '';
       av.textContent = a.species === 'Féline' ? '🐱' : '🐕';
       av.style.fontSize = '48px';
     }
@@ -239,21 +694,220 @@
     document.getElementById('owner-email').textContent = o.email || '—';
     document.getElementById('owner-clinic').textContent = o.clinic || '—';
 
-    document.getElementById('stat-vax').textContent = data.vaccines.length;
-    document.getElementById('stat-dew').textContent = data.dewormings.length;
-    document.getElementById('stat-photos').textContent = data.photos.length;
+    // Stats with animated counters
+    animateCounter(document.getElementById('stat-vax'), data.vaccines.length, 400);
+    animateCounter(document.getElementById('stat-dew'), data.dewormings.length, 400);
+    animateCounter(document.getElementById('stat-photos'), data.photos.length, 400);
 
-    const upcoming = [...data.vaccines.filter(v => v.next), ...data.dewormings.filter(d => d.next)]
-      .filter(e => new Date(e.next) >= new Date());
-    document.getElementById('stat-next').textContent = upcoming.length;
+    var upcoming = [].concat(data.vaccines.filter(function (v) { return v.next; }))
+      .concat(data.dewormings.filter(function (d) { return d.next; }))
+      .filter(function (e) {
+        var dt = isoToLocalDate(e.next);
+        if (!dt) return false;
+        var today = new Date();
+        var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return dt >= todayMid;
+      });
+    animateCounter(document.getElementById('stat-next'), upcoming.length, 400);
+
+    // Profile completeness
+    renderProfileCompleteness(data);
+
+    // Active medications summary
+    renderActiveMedsSummary(data);
+
+    // Birthday check
+    checkBirthday(data);
+
+    // QR Code
+    renderQRCode(data);
   }
 
-  // ——— Sélecteur d'animal ————————————————————————————————————
+  function animateCounter(el, target, duration) {
+    if (!el) return;
+    var start = parseInt(el.textContent, 10) || 0;
+    if (start === target) { el.textContent = target; return; }
+    var startTime = null;
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / duration, 1);
+      el.textContent = Math.round(start + (target - start) * progress);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderProfileCompleteness(data) {
+    var el = document.getElementById('profile-completeness');
+    var fill = document.getElementById('completeness-fill');
+    var text = document.getElementById('completeness-text');
+    if (!el || !data) return;
+
+    var a = data.animal;
+    var o = data.owner;
+    var fields = [a.name, a.dob, a.weight, a.race, a.color, a.chip, a.sterilise !== 'Non' ? a.sterilise : '', o.name, a.avatar];
+    var filled = fields.filter(function (f) { return f != null && f !== '' && f !== false; }).length;
+    var pct = Math.round((filled / fields.length) * 100);
+
+    if (pct >= 100) {
+      el.hidden = true;
+    } else {
+      el.hidden = false;
+      fill.style.width = pct + '%';
+      text.textContent = pct + '% — ' + t('completeFiche');
+    }
+  }
+
+  function renderActiveMedsSummary(data) {
+    var el = document.getElementById('active-meds-summary');
+    var list = document.getElementById('active-meds-list');
+    if (!el || !list) return;
+    var meds = Array.isArray(data.medications) ? data.medications.filter(function (m) {
+      return m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= new Date());
+    }) : [];
+    if (meds.length === 0) { el.hidden = true; return; }
+    el.hidden = false;
+    list.innerHTML = meds.map(function (m) {
+      return '<span class="med-badge">' + escapeHtml(m.name) + (m.dosage ? ' — ' + escapeHtml(m.dosage) : '') + '</span>';
+    }).join('');
+  }
+
+  function checkBirthday(data) {
+    var banner = document.getElementById('birthday-banner');
+    var textEl = document.getElementById('birthday-text');
+    if (!banner || !data || !data.animal.dob) { if (banner) banner.hidden = true; return; }
+
+    var today = new Date();
+    var dob = isoToLocalDate(data.animal.dob);
+    if (!dob) { banner.hidden = true; return; }
+
+    if (today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
+      var age = today.getFullYear() - dob.getFullYear();
+      textEl.textContent = t('birthday', escapeHtml(data.animal.name || 'votre animal')) + ' (' + age + ' an' + (age > 1 ? 's' : '') + ')';
+      banner.hidden = false;
+      startConfetti();
+    } else {
+      banner.hidden = true;
+    }
+  }
+
+  function startConfetti() {
+    var canvas = document.getElementById('confetti-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    canvas.width = canvas.parentElement.offsetWidth;
+    canvas.height = canvas.parentElement.offsetHeight;
+    var particles = [];
+    var colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff6eb4'];
+    for (var i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 4 + 2,
+        d: Math.random() * 40,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt: Math.random() * 10 - 5,
+        speed: Math.random() * 2 + 1
+      });
+    }
+    var frames = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(function (p) {
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, 1 - frames / 120);
+        ctx.fillRect(p.x + p.tilt, p.y, p.r, p.r * 2);
+        p.y += p.speed;
+        p.tilt += 0.1;
+      });
+      frames++;
+      if (frames < 120) requestAnimationFrame(draw);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    draw();
+  }
+
+  // ——— QR Code (simple SVG-based) ————————————————————————
+  function renderQRCode(data) {
+    var section = document.getElementById('qr-section');
+    var canvas = document.getElementById('qr-canvas');
+    if (!section || !canvas || !data) { if (section) section.hidden = true; return; }
+
+    var a = data.animal;
+    var o = data.owner;
+    if (!a.name && !a.chip) { section.hidden = true; return; }
+
+    section.hidden = false;
+    var text = [
+      a.name ? 'Nom: ' + a.name : '',
+      a.species ? 'Espèce: ' + a.species : '',
+      a.race ? 'Race: ' + a.race : '',
+      a.chip ? 'Puce: ' + a.chip : '',
+      o.phone ? 'Tel: ' + o.phone : ''
+    ].filter(Boolean).join('\n');
+
+    // Simple text-to-visual encoding (not a real QR, but a visual pattern)
+    var ctx = canvas.getContext('2d');
+    var size = 200;
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+
+    // Generate deterministic pattern from text hash
+    var hash = 0;
+    for (var i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    }
+
+    var modules = 21;
+    var cellSize = Math.floor(size / modules);
+    var offset = Math.floor((size - modules * cellSize) / 2);
+    ctx.fillStyle = '#000000';
+
+    // Draw finder patterns
+    function drawFinder(ox, oy) {
+      for (var r = 0; r < 7; r++) {
+        for (var c = 0; c < 7; c++) {
+          var fill = (r === 0 || r === 6 || c === 0 || c === 6 ||
+                     (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+          if (fill) {
+            ctx.fillRect(offset + (ox + c) * cellSize, offset + (oy + r) * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+    }
+    drawFinder(0, 0);
+    drawFinder(modules - 7, 0);
+    drawFinder(0, modules - 7);
+
+    // Fill data area with pseudo-random pattern based on text
+    var seed = Math.abs(hash);
+    for (var row = 0; row < modules; row++) {
+      for (var col = 0; col < modules; col++) {
+        // Skip finder areas
+        if ((row < 8 && col < 8) || (row < 8 && col >= modules - 8) || (row >= modules - 8 && col < 8)) continue;
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        if (seed % 3 === 0) {
+          ctx.fillRect(offset + col * cellSize, offset + row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    // Add text label below
+    ctx.fillStyle = '#666';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(a.name || 'VetBook', size / 2, size - 4);
+  }
+
+  // ——— Animal select ——————————————————————————————————————
   function renderAnimalSelect() {
-    const sel = document.getElementById('animal-select');
+    var sel = document.getElementById('animal-select');
     if (!sel) return;
-    sel.innerHTML = state.animals.map(an => {
-      const name = an.animal.name || 'Sans nom';
+    sel.innerHTML = state.animals.map(function (an) {
+      var name = escapeHtml(an.animal.name || 'Sans nom');
       return '<option value="' + an.id + '"' + (an.id === state.currentAnimalId ? ' selected' : '') + '>' + name + '</option>';
     }).join('');
     if (state.animals.length <= 1) sel.style.display = 'none';
@@ -261,37 +915,63 @@
   }
 
   function onAnimalSelectChange() {
-    const sel = document.getElementById('animal-select');
+    var sel = document.getElementById('animal-select');
     if (!sel) return;
-    const id = parseInt(sel.value, 10);
-    if (!isNaN(id) && state.animals.some(a => a.id === id)) {
+    var id = parseInt(sel.value, 10);
+    if (!isNaN(id) && state.animals.some(function (a) { return a.id === id; })) {
       state.currentAnimalId = id;
       saveState();
       refreshAll();
     }
   }
 
-  // ——— Modals —————————————————————————————————————————————————
+  // ——— Vaccine suggestions ——————————————————————————————
+  function updateVaccineSuggestions() {
+    var data = getCurrent();
+    var datalist = document.getElementById('vaccine-suggestions');
+    if (!datalist || !data) return;
+    var species = data.animal.species || 'Canine';
+    var suggestions = VACCINE_DB[species] || VACCINE_DB.Canine;
+    datalist.innerHTML = suggestions.map(function (s) {
+      return '<option value="' + escapeHtml(s) + '">';
+    }).join('');
+  }
+
+  // ——— Modals —————————————————————————————————————————
   function openModal(name) {
-    const data = getCurrent();
-    if (!data) return;
+    var data = getCurrent();
+    if (!data && name !== 'addAnimal' && name !== 'onboarding') return;
 
     if (name === 'editAnimal') {
-      const a = data.animal;
-      const fields = ['name', 'species', 'race', 'sex', 'dob', 'weight', 'color', 'chip', 'sterilise', 'notes'];
-      fields.forEach(f => {
-        const el = document.getElementById('ea-' + f);
+      var a = data.animal;
+      var fields = ['name', 'species', 'race', 'sex', 'dob', 'weight', 'color', 'chip', 'sterilise', 'notes'];
+      fields.forEach(function (f) {
+        var el = document.getElementById('ea-' + f);
         if (el) el.value = a[f] != null && a[f] !== '' ? a[f] : '';
       });
-      const prev = document.getElementById('edit-avatar-preview');
-      if (a.avatar) prev.innerHTML = '<img src="' + a.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
-      else { prev.innerHTML = ''; prev.textContent = a.species === 'Féline' ? '🐱' : '🐕'; }
+      var colorEl = document.getElementById('ea-themeColor');
+      if (colorEl) colorEl.value = a.themeColor || '#0f766e';
+      var prev = document.getElementById('edit-avatar-preview');
+      if (prev) {
+        prev.innerHTML = '';
+        if (a.avatar && typeof a.avatar === 'number') {
+          prev.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
+          getPhotoObjectUrl(a.avatar).then(function (url) {
+            var img = prev.querySelector('img[data-avatar-key]');
+            if (img && url) img.src = url;
+          }).catch(function () {});
+        } else if (a.avatar && typeof a.avatar === 'string') {
+          prev.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
+        } else {
+          prev.textContent = a.species === 'Féline' ? '🐱' : '🐕';
+        }
+      }
     }
 
     if (name === 'editOwner') {
-      const o = data.owner;
-      ['name', 'phone', 'email', 'clinic', 'address'].forEach(f => {
-        const el = document.getElementById('eo-' + f);
+      var o = data.owner;
+      ['name', 'phone', 'email', 'clinic', 'address'].forEach(function (f) {
+        var el = document.getElementById('eo-' + f);
         if (el) el.value = o[f] || '';
       });
     }
@@ -300,17 +980,142 @@
       document.getElementById('v-name').value = '';
       document.getElementById('v-date').value = '';
       document.getElementById('v-next').value = '';
+      document.getElementById('v-frequency').value = '';
       document.getElementById('v-vet').value = '';
+      updateVaccineSuggestions();
     }
 
     if (name === 'addDeworming') {
       document.getElementById('d-name').value = '';
       document.getElementById('d-date').value = '';
       document.getElementById('d-next').value = '';
+      document.getElementById('d-frequency').value = '';
       document.getElementById('d-type').value = 'interne';
     }
 
-    const overlay = document.getElementById('modal-' + name);
+    if (name === 'addWeight') {
+      var todayStr = todayISO();
+      var aw = data.animal || {};
+      var dateEl = document.getElementById('wh-date');
+      var wEl = document.getElementById('wh-weight');
+      if (dateEl) dateEl.value = todayStr;
+      if (wEl) wEl.value = aw.weight != null ? aw.weight : '';
+    }
+
+    if (name === 'addConsult') {
+      document.getElementById('c-date').value = todayISO();
+      document.getElementById('c-vet').value = '';
+      document.getElementById('c-reason').value = '';
+      document.getElementById('c-diagnosis').value = '';
+      document.getElementById('c-treatment').value = '';
+      document.getElementById('c-cost').value = '';
+      document.getElementById('c-notes').value = '';
+    }
+
+    if (name === 'editConsult') {
+      var cid = uiState.editConsultId;
+      var c = Array.isArray(data.consultations) ? data.consultations.find(function (x) { return x.id === cid; }) : null;
+      if (!c) return;
+      document.getElementById('ec-id').value = String(c.id);
+      document.getElementById('ec-date').value = c.date || '';
+      document.getElementById('ec-vet').value = c.vet || '';
+      document.getElementById('ec-reason').value = c.reason || '';
+      document.getElementById('ec-diagnosis').value = c.diagnosis || '';
+      document.getElementById('ec-treatment').value = c.treatment || '';
+      document.getElementById('ec-cost').value = c.cost != null ? String(c.cost) : '';
+      document.getElementById('ec-notes').value = c.notes || '';
+    }
+
+    if (name === 'addMedication') {
+      document.getElementById('m-name').value = '';
+      document.getElementById('m-dosage').value = '';
+      document.getElementById('m-frequency').value = '';
+      document.getElementById('m-start').value = todayISO();
+      document.getElementById('m-end').value = '';
+      document.getElementById('m-notes').value = '';
+    }
+
+    if (name === 'editMedication') {
+      var mid = uiState.editMedicationId;
+      var m = Array.isArray(data.medications) ? data.medications.find(function (x) { return x.id === mid; }) : null;
+      if (!m) return;
+      document.getElementById('em-id').value = String(m.id);
+      document.getElementById('em-name').value = m.name || '';
+      document.getElementById('em-dosage').value = m.dosage || '';
+      document.getElementById('em-frequency').value = m.frequency || '';
+      document.getElementById('em-start').value = m.startDate || '';
+      document.getElementById('em-end').value = m.endDate || '';
+      document.getElementById('em-notes').value = m.notes || '';
+    }
+
+    if (name === 'addNote') {
+      document.getElementById('n-date').value = todayISO();
+      document.getElementById('n-category').value = 'sante';
+      document.getElementById('n-title').value = '';
+      document.getElementById('n-content').value = '';
+    }
+
+    if (name === 'editNote') {
+      var nid = uiState.editNoteId;
+      var n = Array.isArray(data.notes) ? data.notes.find(function (x) { return x.id === nid; }) : null;
+      if (!n) return;
+      document.getElementById('en-id').value = String(n.id);
+      document.getElementById('en-date').value = n.date || '';
+      document.getElementById('en-category').value = n.category || 'autre';
+      document.getElementById('en-title').value = n.title || '';
+      document.getElementById('en-content').value = n.content || '';
+    }
+
+    if (name === 'editCaption') {
+      var photoId = uiState.editCaptionPhotoId;
+      var photo = data.photos.find(function (p) { return p.id === photoId; });
+      document.getElementById('cap-photo-id').value = photoId;
+      document.getElementById('cap-text').value = (photo && photo.caption) || '';
+    }
+
+    if (name === 'backup') {
+      var input = document.getElementById('backup-import-file');
+      if (input) input.value = '';
+      var fileNameEl = document.getElementById('backup-file-name');
+      if (fileNameEl) fileNameEl.textContent = 'Aucun fichier sélectionné';
+    }
+
+    if (name === 'editVaccin') {
+      var vid = uiState.editVaccineId;
+      var v = Array.isArray(data.vaccines) ? data.vaccines.find(function (x) { return x.id === vid; }) : null;
+      if (!v) return;
+      document.getElementById('ev-id').value = String(v.id);
+      document.getElementById('ev-name').value = v.name || '';
+      document.getElementById('ev-date').value = v.date || '';
+      document.getElementById('ev-next').value = v.next || '';
+      document.getElementById('ev-frequency').value = v.frequencyDays != null ? String(v.frequencyDays) : '';
+      document.getElementById('ev-vet').value = v.vet || '';
+      updateVaccineSuggestions();
+    }
+
+    if (name === 'editDeworming') {
+      var did = uiState.editDewormingId;
+      var d = Array.isArray(data.dewormings) ? data.dewormings.find(function (x) { return x.id === did; }) : null;
+      if (!d) return;
+      document.getElementById('ed-id').value = String(d.id);
+      document.getElementById('ed-name').value = d.name || '';
+      document.getElementById('ed-date').value = d.date || '';
+      document.getElementById('ed-next').value = d.next || '';
+      document.getElementById('ed-frequency').value = d.frequencyDays != null ? String(d.frequencyDays) : '';
+      document.getElementById('ed-type').value = d.type || 'interne';
+    }
+
+    if (name === 'editWeight') {
+      var wid = uiState.editWeightEntryId;
+      var entries = Array.isArray(data.animal?.weightHistory) ? data.animal.weightHistory : [];
+      var wEntry = entries.find(function (x) { return x.id === wid; }) || null;
+      if (!wEntry) return;
+      document.getElementById('ew-id').value = String(wEntry.id);
+      document.getElementById('ew-date').value = wEntry.date || '';
+      document.getElementById('ew-weight').value = wEntry.weight != null ? String(wEntry.weight) : '';
+    }
+
+    var overlay = document.getElementById('modal-' + name);
     if (overlay) {
       overlay.classList.add('open');
       overlay.setAttribute('aria-hidden', 'false');
@@ -318,52 +1123,116 @@
   }
 
   function closeModal(name) {
-    const overlay = document.getElementById('modal-' + name);
+    var overlay = document.getElementById('modal-' + name);
     if (overlay) {
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden', 'true');
     }
   }
 
-  // ——— Sauvegarde formulaire animal —————————————————────────———
+  // ——— Save forms ———————————————————————————————————————
   function saveAnimal() {
-    const data = getCurrent();
+    var data = getCurrent();
     if (!data) return;
-    const a = data.animal;
-    const fields = ['name', 'species', 'race', 'sex', 'dob', 'color', 'chip', 'sterilise', 'notes'];
-    fields.forEach(f => {
-      const el = document.getElementById('ea-' + f);
+    var a = data.animal;
+    var fields = ['name', 'species', 'race', 'sex', 'dob', 'color', 'chip', 'sterilise', 'notes'];
+    fields.forEach(function (f) {
+      var el = document.getElementById('ea-' + f);
       if (el) a[f] = el.value.trim();
     });
-    const w = parseFloat(document.getElementById('ea-weight').value, 10);
+    var w = parseFloat(document.getElementById('ea-weight').value, 10);
     a.weight = isNaN(w) ? a.weight : w;
+    var colorEl = document.getElementById('ea-themeColor');
+    if (colorEl) a.themeColor = colorEl.value === '#0f766e' ? '' : colorEl.value;
     closeModal('editAnimal');
     saveState();
     renderProfile();
     renderAnimalSelect();
+    showToast('Fiche modifiée', 'success');
   }
 
   function saveOwner() {
-    const data = getCurrent();
+    var data = getCurrent();
     if (!data) return;
-    const o = data.owner;
-    ['name', 'phone', 'email', 'clinic', 'address'].forEach(f => {
-      const el = document.getElementById('eo-' + f);
+    var o = data.owner;
+    ['name', 'phone', 'email', 'clinic', 'address'].forEach(function (f) {
+      var el = document.getElementById('eo-' + f);
       if (el) o[f] = el.value.trim();
     });
     closeModal('editOwner');
     saveState();
     renderProfile();
+    showToast('Propriétaire modifié', 'success');
   }
 
-  // ——— Ajouter un animal ——————————————————————————————————————
+  // ——— Weight ————————————————————————————————————————
+  function addWeightEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    if (!data.animal) data.animal = {};
+    if (!Array.isArray(data.animal.weightHistory)) data.animal.weightHistory = [];
+
+    var date = document.getElementById('wh-date')?.value;
+    var w = parseFloat(document.getElementById('wh-weight')?.value, 10);
+
+    if (!date) { showToast('Veuillez choisir une date.', 'error'); return; }
+    if (isNaN(w) || w <= 0) { showToast('Veuillez saisir un poids valide (kg).', 'error'); return; }
+
+    data.animal.weightHistory.push({ id: state.nextId++, date: date, weight: w });
+    data.animal.weight = w;
+    closeModal('addWeight');
+    saveState();
+    refreshAll();
+    showToast('Pesée ajoutée', 'success');
+  }
+
+  function syncAnimalWeightFromHistory(wrap) {
+    if (!wrap || !wrap.animal) return;
+    var entries = Array.isArray(wrap.animal.weightHistory) ? wrap.animal.weightHistory : [];
+    if (entries.length === 0) { wrap.animal.weight = null; return; }
+    var latest = entries.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); })[0];
+    wrap.animal.weight = latest && latest.weight != null ? Number(latest.weight) : null;
+  }
+
+  function updateWeightEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editWeightEntryId;
+    var entries = Array.isArray(data.animal?.weightHistory) ? data.animal.weightHistory : [];
+    var entry = entries.find(function (x) { return x.id === id; }) || null;
+    if (!entry) return;
+
+    var date = document.getElementById('ew-date').value;
+    var weight = parseFloat(document.getElementById('ew-weight').value, 10);
+    if (!date) { showToast('Veuillez choisir une date.', 'error'); return; }
+    if (isNaN(weight) || weight <= 0) { showToast('Veuillez saisir un poids valide (kg).', 'error'); return; }
+
+    entry.date = date;
+    entry.weight = weight;
+    syncAnimalWeightFromHistory(data);
+    closeModal('editWeight');
+    uiState.editWeightEntryId = null;
+    saveState();
+    refreshAll();
+    showToast('Pesée modifiée', 'success');
+  }
+
+  function deleteWeightEntry(entryId) {
+    var data = getCurrent();
+    if (!data || !data.animal || !Array.isArray(data.animal.weightHistory)) return;
+    if (!confirm('Supprimer cette pesée ?')) return;
+    data.animal.weightHistory = data.animal.weightHistory.filter(function (w) { return w.id !== entryId; });
+    syncAnimalWeightFromHistory(data);
+    saveState();
+    refreshAll();
+    showToast('Pesée supprimée', 'success');
+  }
+
+  // ——— Add animal ———————————————————————————————————————
   function addAnimal() {
-    const name = document.getElementById('aa-name').value.trim();
-    if (!name) {
-      alert('Veuillez saisir le nom de l\'animal.');
-      return;
-    }
-    const newAnimal = {
+    var name = document.getElementById('aa-name').value.trim();
+    if (!name) { showToast("Veuillez saisir le nom de l'animal.", 'error'); return; }
+    var newAnimal = {
       id: state.nextId++,
       animal: {
         name: name,
@@ -372,16 +1241,10 @@
         sex: document.getElementById('aa-sex').value || 'Mâle',
         dob: document.getElementById('aa-dob').value || '',
         weight: parseFloat(document.getElementById('aa-weight').value, 10) || null,
-        color: '',
-        chip: '',
-        sterilise: 'Non',
-        notes: '',
-        avatar: null
+        weightHistory: [], color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
       },
       owner: JSON.parse(JSON.stringify((getCurrent() || {}).owner || { name: '', phone: '', email: '', clinic: '', address: '' })),
-      photos: [],
-      vaccines: [],
-      dewormings: [],
+      photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
       notifications: { vaccineReminder: true, dewormingReminder: true, birthdayReminder: true, monthlySummary: false }
     };
     state.animals.push(newAnimal);
@@ -391,103 +1254,189 @@
     saveState();
     renderAnimalSelect();
     refreshAll();
-    if (state.viewMode === 'home') {
-      showDetail();
-    }
+    showToast('Animal ajouté', 'success');
+    if (state.viewMode === 'home') showDetail();
   }
 
-  // ——— Avatar —————————————————————————————————────────────────—
+  // ——— Avatar ————————————————————————————————————————
   function handleAvatarUpload(e) {
-    const file = e.target.files[0];
+    var file = e.target.files[0];
     if (!file) return;
-    const data = getCurrent();
+    var data = getCurrent();
     if (!data) return;
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-      data.animal.avatar = ev.target.result;
-      const prev = document.getElementById('edit-avatar-preview');
-      prev.innerHTML = '<img src="' + data.animal.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
+
+    var oldKey = typeof data.animal.avatar === 'number' ? data.animal.avatar : null;
+    var inputKey = state.nextId++;
+
+    resizeImageToBlob(file, 320, 'image/jpeg', 0.85).then(function (blob) {
+      return putPhotoBlob(inputKey, blob, blob.type);
+    }).then(function () {
+      data.animal.avatar = inputKey;
+      var prev = document.getElementById('edit-avatar-preview');
+      if (prev) {
+        prev.innerHTML = '';
+        getPhotoObjectUrl(inputKey).then(function (url) {
+          if (!prev) return;
+          prev.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
+        }).catch(function () {});
+      }
+      if (oldKey != null && oldKey !== inputKey) deletePhotoBlob(oldKey).catch(function () {});
       saveState();
-    };
-    reader.readAsDataURL(file);
+      renderProfile();
+    }).catch(function (err) { console.warn('VetBook: avatar upload échoué', err); })
+    .finally(function () { e.target.value = ''; });
   }
 
-  // ——— Photos —————————————————————————————————────────────────—
-  function triggerPhotoUpload() {
-    document.getElementById('photo-input').click();
-  }
+  // ——— Photos ————————————————————————————————————————
+  function triggerPhotoUpload() { document.getElementById('photo-input').click(); }
 
   function handlePhotoUpload(e) {
-    const files = e.target.files;
+    var files = e.target.files;
     if (!files || files.length === 0) return;
-    const data = getCurrent();
-    if (!data) return;
-    let loaded = 0;
-    const total = files.length;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        data.photos.push({
-          id: state.nextId++,
-          src: ev.target.result,
-          date: new Date().toISOString().split('T')[0]
-        });
-        loaded++;
-        if (loaded === total) {
-          saveState();
-          renderGallery();
-          renderProfile();
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    processPhotoFiles(Array.from(files));
     e.target.value = '';
   }
 
-  function renderGallery() {
-    const data = getCurrent();
-    const grid = document.getElementById('gallery-grid');
-    if (!data || !grid) return;
-    const addBtn = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">📷</span><span>Ajouter une photo</span></div>';
-    const items = data.photos.map(p => {
-      const srcEsc = p.src.replace(/'/g, "\\'");
-      return '<div class="gallery-item" data-photo-id="' + p.id + '">' +
-        '<img src="' + p.src + '" alt="Photo">' +
-        '<div class="photo-date">' + fmtDate(p.date) + '</div>' +
-        '<button type="button" class="photo-delete" aria-label="Supprimer">✕</button></div>';
-    }).join('');
-    grid.innerHTML = addBtn + items;
-    grid.querySelectorAll('.gallery-item').forEach(el => {
-      const id = parseInt(el.getAttribute('data-photo-id'), 10);
-      if (isNaN(id)) return;
-      const img = el.querySelector('img');
-      el.addEventListener('click', function (e) {
-        if (e.target.classList.contains('photo-delete')) return;
-        openLightbox(img.src);
+  function processPhotoFiles(fileArr) {
+    var data = getCurrent();
+    if (!data) return;
+    var todayStr = todayISO();
+
+    Promise.all(fileArr.map(function (file) {
+      if (!file || !file.type || !file.type.startsWith('image/')) return Promise.resolve(null);
+      var key = state.nextId++;
+      return resizeImageToBlob(file, 1600, 'image/jpeg', 0.85).then(function (blob) {
+        return putPhotoBlob(key, blob, blob.type).then(function () {
+          return { id: key, date: todayStr, caption: '' };
+        });
       });
-      el.querySelector('.photo-delete').addEventListener('click', function (e) {
-        e.stopPropagation();
-        deletePhoto(id);
+    })).then(function (results) {
+      results.filter(Boolean).forEach(function (p) { data.photos.push(p); });
+      saveState();
+      renderGallery();
+      renderProfile();
+      showToast(results.filter(Boolean).length + ' photo(s) ajoutée(s)', 'success');
+    }).catch(function (err) { console.warn('VetBook: upload photos échoué', err); });
+  }
+
+  function renderGallery() {
+    var data = getCurrent();
+    var grid = document.getElementById('gallery-grid');
+    if (!data || !grid) return;
+
+    if (data.photos.length === 0) {
+      grid.innerHTML = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">📷</span><span>Ajouter une photo</span></div>' +
+        '<div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">📷</text></svg><p>' + t('noPhotos', escapeHtml(data.animal.name || '')) + '</p></div>';
+    } else {
+      var addBtn = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">📷</span><span>Ajouter une photo</span></div>';
+      var items = data.photos.map(function (p) {
+        var photoId = p.id;
+        var legacySrc = (p && typeof p.src === 'string') ? escapeHtml(p.src) : '';
+        var captionHtml = p.caption ? '<div class="photo-caption">' + escapeHtml(p.caption) + '</div>' : '';
+        return '<div class="gallery-item" data-photo-id="' + p.id + '">' +
+          '<img src="' + legacySrc + '" data-photo-key="' + photoId + '" alt="Photo">' +
+          '<div class="photo-date">' + fmtDate(p.date) + captionHtml + '</div>' +
+          '<div class="photo-actions-overlay">' +
+          '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">✏️</button>' +
+          '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer">✕</button>' +
+          '</div></div>';
+      }).join('');
+      grid.innerHTML = addBtn + items;
+    }
+
+    grid.querySelectorAll('.gallery-item').forEach(function (el) {
+      var id = parseInt(el.getAttribute('data-photo-id'), 10);
+      if (isNaN(id)) return;
+      var img = el.querySelector('img');
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.photo-actions-overlay')) return;
+        openLightbox(id, img?.src || '');
       });
     });
-    const addTrigger = document.getElementById('gallery-add-trigger');
+
+    grid.querySelectorAll('[data-delete-photo]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        deletePhoto(parseInt(btn.getAttribute('data-delete-photo'), 10));
+      });
+    });
+
+    grid.querySelectorAll('[data-caption-id]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        uiState.editCaptionPhotoId = parseInt(btn.getAttribute('data-caption-id'), 10);
+        openModal('editCaption');
+      });
+    });
+
+    grid.querySelectorAll('img[data-photo-key]').forEach(function (imgEl) {
+      var photoId = parseInt(imgEl.getAttribute('data-photo-key'), 10);
+      if (isNaN(photoId)) return;
+      getPhotoObjectUrl(photoId).then(function (url) { if (url) imgEl.src = url; }).catch(function () {});
+    });
+
+    var addTrigger = document.getElementById('gallery-add-trigger');
     if (addTrigger) addTrigger.addEventListener('click', triggerPhotoUpload);
+
+    // Drag & drop
+    setupGalleryDragDrop(grid);
+  }
+
+  function setupGalleryDragDrop(grid) {
+    grid.addEventListener('dragover', function (e) { e.preventDefault(); grid.classList.add('drag-over'); });
+    grid.addEventListener('dragenter', function (e) { e.preventDefault(); grid.classList.add('drag-over'); });
+    grid.addEventListener('dragleave', function () { grid.classList.remove('drag-over'); });
+    grid.addEventListener('drop', function (e) {
+      e.preventDefault();
+      grid.classList.remove('drag-over');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        processPhotoFiles(Array.from(e.dataTransfer.files));
+      }
+    });
+  }
+
+  function saveCaption() {
+    var data = getCurrent();
+    if (!data) return;
+    var photoId = parseInt(document.getElementById('cap-photo-id').value, 10);
+    var caption = document.getElementById('cap-text').value.trim();
+    var photo = data.photos.find(function (p) { return p.id === photoId; });
+    if (photo) {
+      photo.caption = caption;
+      saveState();
+      renderGallery();
+      showToast('Légende modifiée', 'success');
+    }
+    closeModal('editCaption');
   }
 
   function deletePhoto(id) {
     if (!confirm('Supprimer cette photo ?')) return;
-    const data = getCurrent();
+    var data = getCurrent();
     if (!data) return;
-    data.photos = data.photos.filter(p => p.id !== id);
+    data.photos = data.photos.filter(function (p) { return p.id !== id; });
+    deletePhotoBlob(id).catch(function () {});
     saveState();
     renderGallery();
     renderProfile();
+    showToast('Photo supprimée', 'success');
   }
 
-  function openLightbox(src) {
-    document.getElementById('lightbox-img').src = src;
-    document.getElementById('lightbox').classList.add('open');
-    document.getElementById('lightbox').setAttribute('aria-hidden', 'false');
+  function openLightbox(photoId, fallbackSrc) {
+    var data = getCurrent();
+    var photo = data ? data.photos.find(function (p) { return p.id === photoId; }) : null;
+    var captionEl = document.getElementById('lightbox-caption');
+    if (captionEl) captionEl.textContent = (photo && photo.caption) || '';
+
+    getPhotoObjectUrl(photoId).then(function (url) {
+      document.getElementById('lightbox-img').src = url || fallbackSrc || '';
+      document.getElementById('lightbox').classList.add('open');
+      document.getElementById('lightbox').setAttribute('aria-hidden', 'false');
+    }).catch(function () {
+      document.getElementById('lightbox-img').src = fallbackSrc || '';
+      document.getElementById('lightbox').classList.add('open');
+      document.getElementById('lightbox').setAttribute('aria-hidden', 'false');
+    });
   }
 
   function closeLightbox() {
@@ -495,187 +1444,945 @@
     document.getElementById('lightbox').setAttribute('aria-hidden', 'true');
   }
 
-  // ——— Vaccins —————————————————————————————————────────────────—
+  // ——— Vaccines ————————————————————————————————————————
   function renderVaccines() {
-    const data = getCurrent();
-    const tbody = document.getElementById('vaccine-table');
-    const alertsEl = document.getElementById('vaccine-alerts');
+    var data = getCurrent();
+    var tbody = document.getElementById('vaccine-table');
+    var alertsEl = document.getElementById('vaccine-alerts');
     if (!data || !tbody) return;
 
-    tbody.innerHTML = data.vaccines.map(v => {
-      const st = getStatus(v.next);
-      const stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + st.lbl + '</span>' : '—';
-      return '<tr><td>' + fmtDate(v.date) + '</td><td><strong>' + (v.name || '') + '</strong><br><span class="table-muted">' + (v.vet || '') + '</span></td><td>' + fmtDate(v.next) + '</td><td>' + stHtml + '</td><td><button type="button" class="btn-delete" data-vaccine-id="' + v.id + '" aria-label="Supprimer">✕</button></td></tr>';
-    }).join('');
+    var searchQ = (document.getElementById('vaccine-search')?.value || '').toLowerCase().trim();
+    var statusFilter = document.getElementById('vaccine-status-filter')?.value || 'all';
+    var sortBy = document.getElementById('vaccine-sort')?.value || 'dateDesc';
 
-    tbody.querySelectorAll('.btn-delete').forEach(btn => {
+    var list = Array.isArray(data.vaccines) ? data.vaccines.slice() : [];
+
+    if (searchQ) {
+      list = list.filter(function (v) {
+        return (v.name || '').toLowerCase().includes(searchQ) || (v.vet || '').toLowerCase().includes(searchQ) || (v.date || '').includes(searchQ);
+      });
+    }
+
+    if (statusFilter !== 'all') {
+      list = list.filter(function (v) {
+        var st = getStatus(v.next);
+        if (!st) return false;
+        if (statusFilter === 'ok') return st.cls === 'status-ok';
+        if (statusFilter === 'soon') return st.cls === 'status-soon';
+        if (statusFilter === 'overdue') return st.cls === 'status-overdue';
+        return true;
+      });
+    }
+
+    list.sort(function (a, b) {
+      var nextA = a.next ? (isoToLocalDate(a.next) ? isoToLocalDate(a.next).getTime() : Infinity) : Infinity;
+      var nextB = b.next ? (isoToLocalDate(b.next) ? isoToLocalDate(b.next).getTime() : Infinity) : Infinity;
+      var dateA = a.date ? (isoToLocalDate(a.date) ? isoToLocalDate(a.date).getTime() : Infinity) : Infinity;
+      var dateB = b.date ? (isoToLocalDate(b.date) ? isoToLocalDate(b.date).getTime() : Infinity) : Infinity;
+      if (sortBy === 'nextAsc') return nextA - nextB;
+      if (sortBy === 'nextDesc') return nextB - nextA;
+      if (sortBy === 'dateAsc') return dateA - dateB;
+      return dateB - dateA;
+    });
+
+    if (list.length === 0 && !searchQ && statusFilter === 'all') {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">💉</text></svg><p>' + t('noVaccines', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = list.map(function (v) {
+        var st = getStatus(v.next);
+        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
+        var rel = v.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(v.next)) + '</span>' : '';
+        return '<tr><td>' + fmtDate(v.date) + '</td>' +
+          '<td><strong>' + escapeHtml(v.name || '') + '</strong><br><span class="table-muted">' + escapeHtml(v.vet || '') + '</span></td>' +
+          '<td>' + fmtDate(v.next) + rel + '</td>' +
+          '<td>' + stHtml + '</td>' +
+          '<td><button type="button" class="btn-edit" data-vaccine-id="' + v.id + '">Modifier</button> <button type="button" class="btn-delete" data-vaccine-id="' + v.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (!confirm('Supprimer ce vaccin ?')) return;
-        const id = parseInt(btn.getAttribute('data-vaccine-id'), 10);
-        data.vaccines = data.vaccines.filter(v => v.id !== id);
-        saveState();
-        renderVaccines();
-        renderProfile();
+        var id = parseInt(btn.getAttribute('data-vaccine-id'), 10);
+        data.vaccines = data.vaccines.filter(function (v) { return v.id !== id; });
+        saveState(); renderVaccines(); renderProfile();
+        showToast('Vaccin supprimé', 'success');
       });
     });
 
-    const overdue = data.vaccines.filter(v => v.next && getStatus(v.next)?.cls === 'status-overdue');
-    const soon = data.vaccines.filter(v => v.next && getStatus(v.next)?.cls === 'status-soon');
-    let html = '';
-    if (overdue.length) html += '<div class="alert-banner alert-warning"><span>⚠️</span> En retard : ' + overdue.map(v => v.name).join(', ') + '</div>';
-    if (soon.length) html += '<div class="alert-banner alert-info"><span>⏰</span> Bientôt : ' + soon.map(v => v.name).join(', ') + '</div>';
-    alertsEl.innerHTML = html;
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editVaccineId = parseInt(btn.getAttribute('data-vaccine-id'), 10);
+        openModal('editVaccin');
+      });
+    });
+
+    if (alertsEl) {
+      var overdue = data.vaccines.filter(function (v) { return v.next && getStatus(v.next)?.cls === 'status-overdue'; });
+      var soon = data.vaccines.filter(function (v) { return v.next && getStatus(v.next)?.cls === 'status-soon'; });
+      var html = '';
+      if (overdue.length) html += '<div class="alert-banner alert-warning"><span>⚠️</span> En retard : ' + overdue.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
+      if (soon.length) html += '<div class="alert-banner alert-info"><span>⏰</span> Bientôt : ' + soon.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
+      alertsEl.innerHTML = html;
+    }
   }
 
   function addVaccine() {
-    const name = document.getElementById('v-name').value.trim();
-    const date = document.getElementById('v-date').value;
-    if (!name || !date) {
-      alert('Nom et date du vaccin sont requis.');
-      return;
-    }
-    const data = getCurrent();
+    var name = document.getElementById('v-name').value.trim();
+    var date = document.getElementById('v-date').value;
+    if (!name || !date) { showToast('Nom et date du vaccin sont requis.', 'error'); return; }
+    var data = getCurrent();
     if (!data) return;
+
+    var freqVal = document.getElementById('v-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('v-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+    var next = computedNext || manualNext;
+
     data.vaccines.push({
-      id: state.nextId++,
-      date: date,
-      name: name,
-      next: document.getElementById('v-next').value || '',
+      id: state.nextId++, date: date, name: name, next: next,
+      frequencyDays: !isNaN(freqDays) && freqDays > 0 ? freqDays : '',
       vet: document.getElementById('v-vet').value.trim()
     });
     closeModal('addVaccin');
-    saveState();
-    renderVaccines();
-    renderProfile();
+    saveState(); renderVaccines(); renderProfile();
+    showToast('Vaccin ajouté', 'success');
   }
 
-  // ——— Déparasitage —————————————————————————————————────────——
+  function updateVaccineEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editVaccineId;
+    var v = Array.isArray(data.vaccines) ? data.vaccines.find(function (x) { return x.id === id; }) : null;
+    if (!v) return;
+
+    var name = document.getElementById('ev-name').value.trim();
+    var date = document.getElementById('ev-date').value;
+    if (!name || !date) { showToast('Nom et date du vaccin sont requis.', 'error'); return; }
+
+    var freqVal = document.getElementById('ev-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('ev-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+
+    v.name = name; v.date = date; v.next = computedNext || manualNext;
+    v.vet = document.getElementById('ev-vet').value.trim();
+    v.frequencyDays = !isNaN(freqDays) && freqDays > 0 ? freqDays : '';
+
+    closeModal('editVaccin');
+    uiState.editVaccineId = null;
+    saveState(); refreshAll();
+    showToast('Vaccin modifié', 'success');
+  }
+
+  // ——— Dewormings ————————————————————————————————————
   function renderDewormings() {
-    const data = getCurrent();
-    const tbody = document.getElementById('deworming-table');
+    var data = getCurrent();
+    var tbody = document.getElementById('deworming-table');
     if (!data || !tbody) return;
 
-    tbody.innerHTML = data.dewormings.map(d => {
-      const st = d.next ? getStatus(d.next) : null;
-      const stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + st.lbl + '</span>' : '—';
-      return '<tr><td>' + fmtDate(d.date) + '</td><td><strong>' + (d.name || '') + '</strong><br><span class="table-muted">' + d.type + '</span></td><td>' + fmtDate(d.next) + '</td><td>' + stHtml + '</td><td><button type="button" class="btn-delete" data-deworming-id="' + d.id + '" aria-label="Supprimer">✕</button></td></tr>';
-    }).join('');
+    var searchQ = (document.getElementById('deworming-search')?.value || '').toLowerCase().trim();
+    var statusFilter = document.getElementById('deworming-status-filter')?.value || 'all';
+    var sortBy = document.getElementById('deworming-sort')?.value || 'dateDesc';
 
-    tbody.querySelectorAll('.btn-delete').forEach(btn => {
+    var list = Array.isArray(data.dewormings) ? data.dewormings.slice() : [];
+
+    if (searchQ) {
+      list = list.filter(function (d) {
+        return (d.name || '').toLowerCase().includes(searchQ) || (d.type || '').toLowerCase().includes(searchQ) || (d.date || '').includes(searchQ);
+      });
+    }
+
+    if (statusFilter !== 'all') {
+      list = list.filter(function (d) {
+        var st = d.next ? getStatus(d.next) : null;
+        if (!st) return false;
+        if (statusFilter === 'ok') return st.cls === 'status-ok';
+        if (statusFilter === 'soon') return st.cls === 'status-soon';
+        if (statusFilter === 'overdue') return st.cls === 'status-overdue';
+        return true;
+      });
+    }
+
+    list.sort(function (a, b) {
+      var nextA = a.next ? (isoToLocalDate(a.next) ? isoToLocalDate(a.next).getTime() : Infinity) : Infinity;
+      var nextB = b.next ? (isoToLocalDate(b.next) ? isoToLocalDate(b.next).getTime() : Infinity) : Infinity;
+      var dateA = a.date ? (isoToLocalDate(a.date) ? isoToLocalDate(a.date).getTime() : Infinity) : Infinity;
+      var dateB = b.date ? (isoToLocalDate(b.date) ? isoToLocalDate(b.date).getTime() : Infinity) : Infinity;
+      if (sortBy === 'nextAsc') return nextA - nextB;
+      if (sortBy === 'nextDesc') return nextB - nextA;
+      if (sortBy === 'dateAsc') return dateA - dateB;
+      return dateB - dateA;
+    });
+
+    if (list.length === 0 && !searchQ && statusFilter === 'all') {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🪱</text></svg><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = list.map(function (d) {
+        var st = d.next ? getStatus(d.next) : null;
+        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
+        var rel = d.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(d.next)) + '</span>' : '';
+        return '<tr><td>' + fmtDate(d.date) + '</td>' +
+          '<td><strong>' + escapeHtml(d.name || '') + '</strong><br><span class="table-muted">' + escapeHtml(d.type || '') + '</span></td>' +
+          '<td>' + fmtDate(d.next) + rel + '</td>' +
+          '<td>' + stHtml + '</td>' +
+          '<td><button type="button" class="btn-edit" data-deworming-id="' + d.id + '">Modifier</button> <button type="button" class="btn-delete" data-deworming-id="' + d.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (!confirm('Supprimer ce déparasitage ?')) return;
-        const id = parseInt(btn.getAttribute('data-deworming-id'), 10);
-        data.dewormings = data.dewormings.filter(d => d.id !== id);
-        saveState();
-        renderDewormings();
-        renderProfile();
+        var id = parseInt(btn.getAttribute('data-deworming-id'), 10);
+        data.dewormings = data.dewormings.filter(function (d) { return d.id !== id; });
+        saveState(); renderDewormings(); renderProfile();
+        showToast('Déparasitage supprimé', 'success');
+      });
+    });
+
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editDewormingId = parseInt(btn.getAttribute('data-deworming-id'), 10);
+        openModal('editDeworming');
       });
     });
   }
 
   function addDeworming() {
-    const name = document.getElementById('d-name').value.trim();
-    const date = document.getElementById('d-date').value;
-    if (!name || !date) {
-      alert('Traitement et date sont requis.');
-      return;
-    }
-    const data = getCurrent();
+    var name = document.getElementById('d-name').value.trim();
+    var date = document.getElementById('d-date').value;
+    if (!name || !date) { showToast('Traitement et date sont requis.', 'error'); return; }
+    var data = getCurrent();
     if (!data) return;
+
+    var freqVal = document.getElementById('d-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('d-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+
     data.dewormings.push({
-      id: state.nextId++,
-      date: date,
-      name: name,
-      next: document.getElementById('d-next').value || '',
+      id: state.nextId++, date: date, name: name, next: computedNext || manualNext,
+      frequencyDays: !isNaN(freqDays) && freqDays > 0 ? freqDays : '',
       type: document.getElementById('d-type').value || 'interne'
     });
     closeModal('addDeworming');
-    saveState();
-    renderDewormings();
-    renderProfile();
+    saveState(); renderDewormings(); renderProfile();
+    showToast('Déparasitage ajouté', 'success');
   }
 
-  // ——— Alertes & notifications ———————————————————————————————
-  function renderAlerts() {
-    const data = getCurrent();
-    const cont = document.getElementById('upcoming-alerts');
-    const notifList = document.getElementById('notif-list');
-    if (!data || !cont) return;
+  function updateDewormingEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editDewormingId;
+    var d = Array.isArray(data.dewormings) ? data.dewormings.find(function (x) { return x.id === id; }) : null;
+    if (!d) return;
 
-    const today = new Date();
-    const all = [
-      ...data.vaccines.filter(v => v.next).map(v => ({ date: v.next, label: 'Vaccin : ' + v.name, icon: '💉' })),
-      ...data.dewormings.filter(d => d.next).map(d => ({ date: d.next, label: 'Déparasitage : ' + d.name, icon: '🪱' }))
-    ].filter(e => new Date(e.date) >= today).sort((a, b) => new Date(a.date) - new Date(b.date));
+    var name = document.getElementById('ed-name').value.trim();
+    var date = document.getElementById('ed-date').value;
+    if (!name || !date) { showToast('Traitement et date sont requis.', 'error'); return; }
 
-    if (all.length === 0) {
-      cont.innerHTML = '<p class="empty-state">Aucun rappel à venir. 🎉</p>';
+    var freqVal = document.getElementById('ed-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('ed-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+
+    d.name = name; d.date = date; d.next = computedNext || manualNext;
+    d.type = document.getElementById('ed-type').value || 'interne';
+    d.frequencyDays = !isNaN(freqDays) && freqDays > 0 ? freqDays : '';
+
+    closeModal('editDeworming');
+    uiState.editDewormingId = null;
+    saveState(); refreshAll();
+    showToast('Déparasitage modifié', 'success');
+  }
+
+  // ——— Consultations ————————————————————————————————————
+  function renderConsultations() {
+    var data = getCurrent();
+    var tbody = document.getElementById('consult-table');
+    var emptyEl = document.getElementById('consult-empty');
+    if (!data || !tbody) return;
+
+    var list = Array.isArray(data.consultations) ? data.consultations.slice() : [];
+    var searchQ = (document.getElementById('consult-search')?.value || '').toLowerCase().trim();
+
+    if (searchQ) {
+      list = list.filter(function (c) {
+        return (c.reason || '').toLowerCase().includes(searchQ) || (c.vet || '').toLowerCase().includes(searchQ) || (c.diagnosis || '').toLowerCase().includes(searchQ);
+      });
+    }
+
+    list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    if (list.length === 0 && !searchQ) {
+      tbody.innerHTML = '';
+      if (emptyEl) {
+        emptyEl.hidden = false;
+        var emptyText = document.getElementById('consult-empty-text');
+        if (emptyText) emptyText.textContent = t('noConsultations', escapeHtml(data.animal.name || ''));
+      }
     } else {
-      cont.innerHTML = all.map(e => {
-        const diff = Math.round((new Date(e.date) - today) / 864e5);
-        const color = diff <= 7 ? '#dc2626' : diff <= 30 ? '#ca8a04' : '#16a34a';
-        return '<div class="alert-row"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:18px">' + e.icon + '</span><div><div style="font-weight:600;font-size:14px">' + e.label + '</div><div style="font-size:12px;color:var(--text-muted)">' + fmtDate(e.date) + '</div></div></div><div style="font-weight:700;font-size:13px;color:' + color + '">J-' + diff + '</div></div>';
+      if (emptyEl) emptyEl.hidden = true;
+      tbody.innerHTML = list.map(function (c) {
+        return '<tr><td>' + fmtDate(c.date) + '</td>' +
+          '<td><strong>' + escapeHtml(c.reason || '') + '</strong>' + (c.diagnosis ? '<br><span class="table-muted">' + escapeHtml(c.diagnosis) + '</span>' : '') + '</td>' +
+          '<td>' + escapeHtml(c.vet || '—') + '</td>' +
+          '<td>' + (c.cost != null && c.cost !== '' ? escapeHtml(c.cost) + ' €' : '—') + '</td>' +
+          '<td><button type="button" class="btn-edit" data-consult-id="' + c.id + '">Modifier</button> <button type="button" class="btn-delete" data-consult-id="' + c.id + '">✕</button></td></tr>';
       }).join('');
     }
 
-    const n = data.notifications;
-    const animalName = data.animal.name || 'l\'animal';
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer cette consultation ?')) return;
+        var id = parseInt(btn.getAttribute('data-consult-id'), 10);
+        data.consultations = data.consultations.filter(function (c) { return c.id !== id; });
+        saveState(); renderConsultations();
+        showToast('Consultation supprimée', 'success');
+      });
+    });
+
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editConsultId = parseInt(btn.getAttribute('data-consult-id'), 10);
+        openModal('editConsult');
+      });
+    });
+  }
+
+  function addConsultation() {
+    var date = document.getElementById('c-date').value;
+    var reason = document.getElementById('c-reason').value.trim();
+    if (!date || !reason) { showToast('Date et motif sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.consultations)) data.consultations = [];
+
+    data.consultations.push({
+      id: state.nextId++, date: date, vet: document.getElementById('c-vet').value.trim(),
+      reason: reason, diagnosis: document.getElementById('c-diagnosis').value.trim(),
+      treatment: document.getElementById('c-treatment').value.trim(),
+      cost: parseFloat(document.getElementById('c-cost').value) || null,
+      notes: document.getElementById('c-notes').value.trim()
+    });
+    closeModal('addConsult');
+    saveState(); renderConsultations();
+    showToast('Consultation ajoutée', 'success');
+  }
+
+  function updateConsultation() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editConsultId;
+    var c = Array.isArray(data.consultations) ? data.consultations.find(function (x) { return x.id === id; }) : null;
+    if (!c) return;
+
+    var date = document.getElementById('ec-date').value;
+    var reason = document.getElementById('ec-reason').value.trim();
+    if (!date || !reason) { showToast('Date et motif sont requis.', 'error'); return; }
+
+    c.date = date; c.vet = document.getElementById('ec-vet').value.trim();
+    c.reason = reason; c.diagnosis = document.getElementById('ec-diagnosis').value.trim();
+    c.treatment = document.getElementById('ec-treatment').value.trim();
+    c.cost = parseFloat(document.getElementById('ec-cost').value) || null;
+    c.notes = document.getElementById('ec-notes').value.trim();
+
+    closeModal('editConsult');
+    uiState.editConsultId = null;
+    saveState(); renderConsultations();
+    showToast('Consultation modifiée', 'success');
+  }
+
+  // ——— Medications ———————————————————————————————————————
+  function renderMedications() {
+    var data = getCurrent();
+    var tbody = document.getElementById('medication-table');
+    var emptyEl = document.getElementById('medication-empty');
+    if (!data || !tbody) return;
+
+    var list = Array.isArray(data.medications) ? data.medications.slice() : [];
+    list.sort(function (a, b) { return new Date(b.startDate || 0) - new Date(a.startDate || 0); });
+
+    if (list.length === 0) {
+      tbody.innerHTML = '';
+      if (emptyEl) emptyEl.hidden = false;
+    } else {
+      if (emptyEl) emptyEl.hidden = true;
+      var todayDt = new Date();
+      tbody.innerHTML = list.map(function (m) {
+        var isActive = m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= todayDt);
+        var statusHtml = isActive
+          ? '<span class="status status-ok"><span class="status-dot"></span>En cours</span>'
+          : '<span class="status"><span class="status-dot"></span>Terminé</span>';
+        return '<tr><td><strong>' + escapeHtml(m.name || '') + '</strong></td>' +
+          '<td>' + escapeHtml(m.dosage || '—') + '<br><span class="table-muted">' + escapeHtml(m.frequency || '') + '</span></td>' +
+          '<td>' + fmtDate(m.startDate) + '</td>' +
+          '<td>' + fmtDate(m.endDate) + '</td>' +
+          '<td>' + statusHtml + '</td>' +
+          '<td><button type="button" class="btn-edit" data-med-id="' + m.id + '">Modifier</button> <button type="button" class="btn-delete" data-med-id="' + m.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer ce médicament ?')) return;
+        var id = parseInt(btn.getAttribute('data-med-id'), 10);
+        data.medications = data.medications.filter(function (m) { return m.id !== id; });
+        saveState(); renderMedications(); renderProfile();
+        showToast('Médicament supprimé', 'success');
+      });
+    });
+
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editMedicationId = parseInt(btn.getAttribute('data-med-id'), 10);
+        openModal('editMedication');
+      });
+    });
+  }
+
+  function addMedication() {
+    var name = document.getElementById('m-name').value.trim();
+    var startDate = document.getElementById('m-start').value;
+    if (!name || !startDate) { showToast('Nom et date de début sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.medications)) data.medications = [];
+
+    data.medications.push({
+      id: state.nextId++, name: name, dosage: document.getElementById('m-dosage').value.trim(),
+      frequency: document.getElementById('m-frequency').value.trim(),
+      startDate: startDate, endDate: document.getElementById('m-end').value || '',
+      notes: document.getElementById('m-notes').value.trim(), active: true
+    });
+    closeModal('addMedication');
+    saveState(); renderMedications(); renderProfile();
+    showToast('Médicament ajouté', 'success');
+  }
+
+  function updateMedication() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editMedicationId;
+    var m = Array.isArray(data.medications) ? data.medications.find(function (x) { return x.id === id; }) : null;
+    if (!m) return;
+
+    m.name = document.getElementById('em-name').value.trim();
+    m.dosage = document.getElementById('em-dosage').value.trim();
+    m.frequency = document.getElementById('em-frequency').value.trim();
+    m.startDate = document.getElementById('em-start').value;
+    m.endDate = document.getElementById('em-end').value || '';
+    m.notes = document.getElementById('em-notes').value.trim();
+
+    closeModal('editMedication');
+    uiState.editMedicationId = null;
+    saveState(); renderMedications(); renderProfile();
+    showToast('Médicament modifié', 'success');
+  }
+
+  // ——— Journal / Notes ———————————————————————————————————
+  function renderJournal() {
+    var data = getCurrent();
+    var container = document.getElementById('journal-cards');
+    var emptyEl = document.getElementById('journal-empty');
+    if (!data || !container) return;
+
+    var catFilter = document.getElementById('journal-cat-filter')?.value || 'all';
+    var list = Array.isArray(data.notes) ? data.notes.slice() : [];
+
+    if (catFilter !== 'all') {
+      list = list.filter(function (n) { return n.category === catFilter; });
+    }
+
+    list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    if (list.length === 0) {
+      container.innerHTML = '';
+      if (emptyEl) emptyEl.hidden = false;
+    } else {
+      if (emptyEl) emptyEl.hidden = true;
+      var catLabels = { sante: 'Santé', comportement: 'Comportement', alimentation: 'Alimentation', autre: 'Autre' };
+      container.innerHTML = list.map(function (n) {
+        return '<div class="journal-card">' +
+          '<div class="journal-card-header">' +
+          '<div class="journal-card-title">' + escapeHtml(n.title || 'Sans titre') + '</div>' +
+          '<span class="journal-card-cat">' + escapeHtml(catLabels[n.category] || n.category || 'Autre') + '</span>' +
+          '</div>' +
+          '<div class="journal-card-date">' + fmtDate(n.date) + ' · ' + escapeHtml(relativeDate(n.date)) + '</div>' +
+          '<div class="journal-card-content">' + escapeHtml(n.content || '') + '</div>' +
+          '<div class="journal-card-actions">' +
+          '<button type="button" class="btn-edit" data-note-id="' + n.id + '">Modifier</button> ' +
+          '<button type="button" class="btn-delete" data-note-id="' + n.id + '">✕</button>' +
+          '</div></div>';
+      }).join('');
+    }
+
+    container.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer cette note ?')) return;
+        var id = parseInt(btn.getAttribute('data-note-id'), 10);
+        data.notes = data.notes.filter(function (n) { return n.id !== id; });
+        saveState(); renderJournal();
+        showToast('Note supprimée', 'success');
+      });
+    });
+
+    container.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editNoteId = parseInt(btn.getAttribute('data-note-id'), 10);
+        openModal('editNote');
+      });
+    });
+  }
+
+  function addNote() {
+    var date = document.getElementById('n-date').value;
+    var title = document.getElementById('n-title').value.trim();
+    if (!date || !title) { showToast('Date et titre sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.notes)) data.notes = [];
+
+    data.notes.push({
+      id: state.nextId++, date: date, title: title,
+      content: document.getElementById('n-content').value.trim(),
+      category: document.getElementById('n-category').value || 'autre'
+    });
+    closeModal('addNote');
+    saveState(); renderJournal();
+    showToast('Note ajoutée', 'success');
+  }
+
+  function updateNote() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editNoteId;
+    var n = Array.isArray(data.notes) ? data.notes.find(function (x) { return x.id === id; }) : null;
+    if (!n) return;
+
+    n.date = document.getElementById('en-date').value;
+    n.title = document.getElementById('en-title').value.trim();
+    n.content = document.getElementById('en-content').value.trim();
+    n.category = document.getElementById('en-category').value || 'autre';
+
+    closeModal('editNote');
+    uiState.editNoteId = null;
+    saveState(); renderJournal();
+    showToast('Note modifiée', 'success');
+  }
+
+  // ——— Alerts & notifications ————————————————————————————
+  function renderAlerts() {
+    var data = getCurrent();
+    var cont = document.getElementById('upcoming-alerts');
+    var notifList = document.getElementById('notif-list');
+    if (!data || !cont) return;
+
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var rangeDays = parseInt(document.getElementById('alerts-range')?.value || '60', 10);
+    var from = new Date(todayMid); from.setDate(from.getDate() - 30);
+    var to = new Date(todayMid); to.setDate(to.getDate() + rangeDays);
+
+    var events = []
+      .concat((data.vaccines || []).filter(function (v) { return v.next; }).map(function (v) {
+        return { type: 'vaccin', date: v.next, icon: '💉', title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
+      }))
+      .concat((data.dewormings || []).filter(function (d) { return d.next; }).map(function (d) {
+        return { type: 'deworming', date: d.next, icon: '🪱', title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
+      }));
+
+    var upcoming = events.map(function (e) {
+      var dt = isoToLocalDate(e.date);
+      if (!dt) return null;
+      var diffDays = Math.round((dt - todayMid) / 864e5);
+      return Object.assign({}, e, { dt: dt, diffDays: diffDays, dayKey: e.date, cls: diffDays < 0 ? 'j-overdue' : (diffDays <= 7 ? 'j-soon' : 'j-ok') });
+    }).filter(Boolean).filter(function (e) { return e.dt >= from && e.dt <= to; }).sort(function (a, b) { return a.dt - b.dt; });
+
+    if (upcoming.length === 0) {
+      cont.innerHTML = '<p class="empty-state">Aucun rappel dans la période.</p>';
+    } else {
+      var groups = {};
+      upcoming.forEach(function (e) { if (!groups[e.dayKey]) groups[e.dayKey] = []; groups[e.dayKey].push(e); });
+      var dayKeys = Object.keys(groups).sort();
+
+      cont.innerHTML = dayKeys.map(function (dayKey) {
+        var dayEvents = groups[dayKey];
+        var diffs = dayEvents.map(function (x) { return x.diffDays; });
+        var dayClass = diffs.some(function (d) { return d < 0; }) ? 'j-overdue' : (diffs.some(function (d) { return d <= 7; }) ? 'j-soon' : 'j-ok');
+        var minDiff = Math.min.apply(null, diffs);
+        var headingTxt = minDiff < 0 ? 'Retard ' + Math.abs(minDiff) + ' j' : (minDiff === 0 ? "Aujourd'hui" : 'J-' + minDiff);
+
+        var evHtml = dayEvents.map(function (e) {
+          var counterTxt = e.diffDays < 0 ? 'Retard ' + Math.abs(e.diffDays) + ' j' : (e.diffDays === 0 ? "Aujourd'hui" : 'J-' + e.diffDays);
+          return '<div class="agenda-event"><div class="agenda-event-left"><span class="agenda-event-icon">' + e.icon + '</span><div><div class="agenda-event-title">' + e.title + '</div><div class="agenda-event-sub">' + e.sub + '</div></div></div><div class="j-counter ' + e.cls + '">' + counterTxt + '</div></div>';
+        }).join('');
+
+        return '<div class="agenda-day"><div class="agenda-day-heading"><div><div class="agenda-day-date">' + fmtDate(dayKey) + '</div><div class="agenda-day-sub">' + dayEvents.length + ' rappel(s)</div></div><div class="j-counter ' + dayClass + '">' + headingTxt + '</div></div><div class="agenda-events">' + evHtml + '</div></div>';
+      }).join('');
+    }
+
+    var n = data.notifications;
+    var animalName = escapeHtml(data.animal.name || "l'animal");
     notifList.innerHTML = [
       { key: 'vaccineReminder', label: 'Rappels vaccins', desc: '30 jours avant la date de rappel' },
       { key: 'dewormingReminder', label: 'Rappels déparasitage', desc: '7 jours avant la date de rappel' },
       { key: 'birthdayReminder', label: 'Anniversaire de ' + animalName, desc: data.animal.dob ? 'Le ' + fmtDate(data.animal.dob) + ' chaque année' : 'Date de naissance à renseigner' },
       { key: 'monthlySummary', label: 'Résumé mensuel', desc: 'Récapitulatif de santé chaque mois' }
-    ].map(item => {
-      const isOn = n[item.key];
-      return '<div class="notif-row"><div><div class="notif-label">' + item.label + '</div><div class="notif-desc">' + item.desc + '</div></div><button type="button" class="toggle' + (isOn ? ' on' : '') + '" data-notif="' + item.key + '" aria-pressed="' + isOn + '" aria-label="' + item.label + '"></button></div>';
+    ].map(function (item) {
+      var isOn = n[item.key];
+      return '<div class="notif-row"><div><div class="notif-label">' + item.label + '</div><div class="notif-desc">' + item.desc + '</div></div><button type="button" class="toggle' + (isOn ? ' on' : '') + '" data-notif="' + item.key + '" aria-pressed="' + isOn + '"></button></div>';
     }).join('');
 
-    notifList.querySelectorAll('.toggle').forEach(btn => {
+    notifList.querySelectorAll('.toggle').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        const key = this.getAttribute('data-notif');
+        var key = this.getAttribute('data-notif');
         data.notifications[key] = !data.notifications[key];
         this.classList.toggle('on', data.notifications[key]);
         this.setAttribute('aria-pressed', data.notifications[key]);
+        // Request notification permission when enabling
+        if (data.notifications[key] && 'Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
         saveState();
       });
     });
   }
 
-  // ——— Historique —————————————————————————————————────────—————
-  function renderHistory() {
-    const data = getCurrent();
-    const timeline = document.getElementById('history-timeline');
-    if (!data || !timeline) return;
+  // ——— Browser Notifications ————————————————————————————
+  function checkBrowserNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var lastCheck = localStorage.getItem(NOTIF_CHECK_KEY);
+    var todayStr = todayISO();
+    if (lastCheck === todayStr) return;
+    localStorage.setItem(NOTIF_CHECK_KEY, todayStr);
 
-    const all = [
-      ...data.vaccines.map(v => ({ date: v.date, title: v.name, sub: 'Vaccin · ' + (v.vet || ''), icon: '💉' })),
-      ...data.dewormings.map(d => ({ date: d.date, title: d.name, sub: 'Déparasitage ' + d.type, icon: '🪱' }))
-    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    timeline.innerHTML = all.map(e => '<div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-date">' + fmtDate(e.date) + '</div><div class="timeline-content"><div class="timeline-title">' + e.icon + ' ' + e.title + '</div><div class="timeline-sub">' + e.sub + '</div></div></div>').join('');
+    state.animals.forEach(function (data) {
+      var n = data.notifications || {};
+
+      if (n.vaccineReminder) {
+        data.vaccines.forEach(function (v) {
+          if (!v.next) return;
+          var dt = isoToLocalDate(v.next);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff < 0) {
+            new Notification('VetBook — Vaccin en retard', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' (' + Math.abs(diff) + 'j de retard)', icon: 'icons/icon-192.png' });
+          } else if (diff <= 7) {
+            new Notification('VetBook — Rappel vaccin', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
+      if (n.dewormingReminder) {
+        data.dewormings.forEach(function (d) {
+          if (!d.next) return;
+          var dt = isoToLocalDate(d.next);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff >= 0 && diff <= 7) {
+            new Notification('VetBook — Rappel déparasitage', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(d.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
+      if (n.birthdayReminder && data.animal.dob) {
+        var dob = isoToLocalDate(data.animal.dob);
+        if (dob && today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
+          new Notification('VetBook — Anniversaire !', { body: 'Joyeux anniversaire ' + escapeHtml(data.animal.name) + ' !', icon: 'icons/icon-192.png' });
+        }
+      }
+    });
   }
 
-  // ——— Tabs ————————————————————————————————————————————————————
-  function switchTab(tabName) {
-    document.querySelectorAll('.section').forEach(s => {
-      s.classList.remove('active');
-      s.hidden = true;
+  // ——— Calendar view ————————————————————————————————————
+  function renderCalendar() {
+    var data = getCurrent();
+    var grid = document.getElementById('calendar-grid');
+    var titleEl = document.getElementById('cal-month-title');
+    var detailEl = document.getElementById('calendar-day-detail');
+    if (!data || !grid) return;
+
+    var year = uiState.calendarYear;
+    var month = uiState.calendarMonth;
+    var monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    titleEl.textContent = monthNames[month] + ' ' + year;
+    if (detailEl) detailEl.hidden = true;
+
+    var firstDay = new Date(year, month, 1);
+    var lastDay = new Date(year, month + 1, 0);
+    var startDow = (firstDay.getDay() + 6) % 7; // Monday = 0
+    var daysInMonth = lastDay.getDate();
+
+    // Collect events for this month
+    var eventsMap = {};
+    function addEvent(isoDate, type) {
+      if (!isoDate) return;
+      var dt = isoToLocalDate(isoDate);
+      if (!dt || dt.getFullYear() !== year || dt.getMonth() !== month) return;
+      var day = dt.getDate();
+      if (!eventsMap[day]) eventsMap[day] = [];
+      eventsMap[day].push(type);
+    }
+
+    data.vaccines.forEach(function (v) { addEvent(v.next, 'vaccine'); addEvent(v.date, 'vaccine'); });
+    data.dewormings.forEach(function (d) { addEvent(d.next, 'deworming'); addEvent(d.date, 'deworming'); });
+    if (Array.isArray(data.consultations)) data.consultations.forEach(function (c) { addEvent(c.date, 'consult'); });
+
+    // Birthday
+    if (data.animal.dob) {
+      var dob = isoToLocalDate(data.animal.dob);
+      if (dob && dob.getMonth() === month) {
+        var day = dob.getDate();
+        if (!eventsMap[day]) eventsMap[day] = [];
+        eventsMap[day].push('birthday');
+      }
+    }
+
+    var dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    var html = dayNames.map(function (d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
+
+    var todayObj = new Date();
+    var isCurrentMonth = todayObj.getFullYear() === year && todayObj.getMonth() === month;
+    var todayDate = todayObj.getDate();
+
+    // Empty cells before first day
+    for (var i = 0; i < startDow; i++) {
+      html += '<div class="cal-day cal-other"></div>';
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var isToday = isCurrentMonth && d === todayDate;
+      var dayEvents = eventsMap[d] || [];
+      var dotsHtml = '';
+      if (dayEvents.length) {
+        var unique = [];
+        dayEvents.forEach(function (t) { if (unique.indexOf(t) === -1) unique.push(t); });
+        dotsHtml = '<div class="cal-dots">' + unique.map(function (t) { return '<span class="cal-event-dot cal-dot-' + t + '"></span>'; }).join('') + '</div>';
+      }
+      html += '<div class="cal-day' + (isToday ? ' cal-today' : '') + '" data-cal-day="' + d + '">' + d + dotsHtml + '</div>';
+    }
+
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.cal-day[data-cal-day]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var day = parseInt(el.getAttribute('data-cal-day'), 10);
+        showCalendarDayDetail(data, year, month, day);
+      });
     });
-    document.querySelectorAll('.tab').forEach(t => {
-      t.classList.remove('active');
-      t.setAttribute('aria-selected', 'false');
+  }
+
+  function showCalendarDayDetail(data, year, month, day) {
+    var detailEl = document.getElementById('calendar-day-detail');
+    if (!detailEl) return;
+
+    var isoDate = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    var events = [];
+
+    data.vaccines.forEach(function (v) {
+      if (v.date === isoDate) events.push({ icon: '💉', text: 'Vaccin : ' + escapeHtml(v.name) });
+      if (v.next === isoDate) events.push({ icon: '💉', text: 'Rappel vaccin : ' + escapeHtml(v.name) });
+    });
+    data.dewormings.forEach(function (d) {
+      if (d.date === isoDate) events.push({ icon: '🪱', text: 'Déparasitage : ' + escapeHtml(d.name) });
+      if (d.next === isoDate) events.push({ icon: '🪱', text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
+    });
+    if (Array.isArray(data.consultations)) {
+      data.consultations.forEach(function (c) {
+        if (c.date === isoDate) events.push({ icon: '🩺', text: 'Consultation : ' + escapeHtml(c.reason) });
+      });
+    }
+    if (data.animal.dob) {
+      var dob = isoToLocalDate(data.animal.dob);
+      if (dob && dob.getMonth() === month && dob.getDate() === day) {
+        events.push({ icon: '🎂', text: 'Anniversaire de ' + escapeHtml(data.animal.name || '') });
+      }
+    }
+
+    if (events.length === 0) {
+      detailEl.hidden = true;
+      return;
+    }
+
+    detailEl.hidden = false;
+    detailEl.innerHTML = '<h3>' + fmtDate(isoDate) + '</h3>' +
+      events.map(function (e) { return '<div class="cal-detail-item"><span>' + e.icon + '</span> ' + e.text + '</div>'; }).join('');
+  }
+
+  // ——— History ——————————————————————————————————————
+  function renderWeightEvolution(data) {
+    var container = document.getElementById('weight-evolution');
+    if (!container) return;
+    if (!data || !data.animal) { container.innerHTML = ''; return; }
+
+    var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
+    var entries = entriesRaw.filter(function (e) { return e && e.date && e.weight != null && !isNaN(Number(e.weight)); })
+      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+
+    if (entries.length === 0) { container.innerHTML = ''; return; }
+
+    var weights = entries.map(function (e) { return Number(e.weight); });
+    var minW = Math.min.apply(null, weights);
+    var maxW = Math.max.apply(null, weights);
+    if (minW === maxW) { minW -= 0.5; maxW += 0.5; }
+
+    var range = maxW - minW;
+    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
+
+    var xFor = function (i, n) {
+      if (n === 1) return W / 2;
+      return padL + ((W - padL - padR) * i) / (n - 1);
+    };
+    var yFor = function (w) { return padT + (1 - (w - minW) / range) * (H - padT - padB); };
+
+    var n = entries.length;
+
+    // Area fill
+    var areaPoints = entries.map(function (e, i) {
+      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
+    });
+    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
+
+    var points = entries.map(function (e, i) {
+      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
+    }).join(' ');
+
+    var circles = entries.map(function (e, i) {
+      var x = xFor(i, n), y = yFor(Number(e.weight));
+      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="var(--teal)" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.weight).toFixed(1) + ' kg"></circle>';
+    }).join('');
+
+    // Grid lines
+    var gridLines = '';
+    var steps = 4;
+    for (var i = 0; i <= steps; i++) {
+      var wVal = minW + (range * i / steps);
+      var yVal = yFor(wVal);
+      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + wVal.toFixed(1) + '</text>';
+    }
+
+    var first = Number(entries[0].weight);
+    var last = Number(entries[entries.length - 1].weight);
+    var delta = last - first;
+    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' kg';
+    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+
+    // Trend
+    var trendHtml = '';
+    if (entries.length > 2) {
+      trendHtml = ' · Tendance : ' + (delta > 0 ? '📈 hausse' : (delta < 0 ? '📉 baisse' : '→ stable'));
+    }
+
+    var listEntries = entries.slice(-6).reverse();
+    var list = listEntries.map(function (e) {
+      var wTxt = Number(e.weight).toFixed(1).replace(/\.0$/, '');
+      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' kg</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-weight" data-weight-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-weight" data-weight-entry-id="' + e.id + '">✕</button></div></div></div>';
+    }).join('');
+
+    container.innerHTML =
+      '<div style="position:relative">' +
+      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+      gridLines +
+      '<path d="' + areaPath + '" fill="var(--teal)" opacity="0.1"/>' +
+      '<polyline fill="none" stroke="var(--teal-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
+      circles +
+      '</svg></div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' kg · Variation: ' + deltaTxt + trendHtml + '</div>' +
+      '<div class="weight-evolution-list">' + list + '</div>';
+
+    container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editWeightEntryId = parseInt(btn.getAttribute('data-weight-entry-id'), 10);
+        openModal('editWeight');
+      });
+    });
+    container.querySelectorAll('[data-action="delete-weight"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        deleteWeightEntry(parseInt(btn.getAttribute('data-weight-entry-id'), 10));
+      });
     });
 
-    const section = document.getElementById('section-' + tabName);
-    const tab = document.querySelector('.tab[data-tab="' + tabName + '"]');
+    // SVG tooltips
+    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
+      circle.style.cursor = 'pointer';
+      circle.addEventListener('mouseenter', function (e) {
+        var tooltip = document.createElement('div');
+        tooltip.className = 'weight-tooltip';
+        tooltip.textContent = circle.getAttribute('data-tooltip');
+        tooltip.style.left = e.pageX + 'px';
+        tooltip.style.top = (e.pageY - 30) + 'px';
+        tooltip.id = 'weight-tip';
+        document.body.appendChild(tooltip);
+      });
+      circle.addEventListener('mouseleave', function () {
+        var tip = document.getElementById('weight-tip');
+        if (tip) tip.remove();
+      });
+    });
+  }
+
+  function renderHistory() {
+    var data = getCurrent();
+    var timeline = document.getElementById('history-timeline');
+    if (!data || !timeline) return;
+
+    var historyType = document.getElementById('history-type-filter')?.value || 'all';
+    var weightContainer = document.getElementById('weight-evolution');
+    if (weightContainer) weightContainer.hidden = !(historyType === 'all' || historyType === 'weight');
+    if (weightContainer && !weightContainer.hidden) renderWeightEvolution(data);
+
+    var all = []
+      .concat((historyType === 'all' || historyType === 'vaccins') ? data.vaccines.map(function (v) {
+        return { date: v.date, title: escapeHtml(v.name), sub: 'Vaccin · ' + escapeHtml(v.vet || ''), icon: '💉' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'deworming') ? data.dewormings.map(function (d) {
+        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: '🪱' };
+      }) : [])
+      .concat(((historyType === 'all' || historyType === 'weight') && data.animal && Array.isArray(data.animal.weightHistory)) ? data.animal.weightHistory.map(function (w) {
+        return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: '⚖️' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'consultations') ? (Array.isArray(data.consultations) ? data.consultations : []).map(function (c) {
+        return { date: c.date, title: escapeHtml(c.reason || ''), sub: 'Consultation · ' + escapeHtml(c.vet || ''), icon: '🩺' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'journal') ? (Array.isArray(data.notes) ? data.notes : []).map(function (n) {
+        return { date: n.date, title: escapeHtml(n.title || ''), sub: 'Note · ' + escapeHtml(n.category || ''), icon: '📝' };
+      }) : [])
+      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    timeline.innerHTML = all.map(function (e, idx) {
+      var rel = relativeDate(e.date);
+      var relHtml = rel ? '<span class="timeline-relative">' + escapeHtml(rel) + '</span>' : '';
+      return '<div class="timeline-item" style="animation-delay:' + (idx * 0.03) + 's"><div class="timeline-dot"></div><div class="timeline-date">' + fmtDate(e.date) + relHtml + '</div><div class="timeline-content"><div class="timeline-title">' + e.icon + ' ' + e.title + '</div><div class="timeline-sub">' + e.sub + '</div></div></div>';
+    }).join('');
+  }
+
+  // ——— Tabs ————————————————————————————————————————
+  function switchTab(tabName) {
+    document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); s.hidden = true; });
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+
+    var section = document.getElementById('section-' + tabName);
+    var tab = document.querySelector('.tab[data-tab="' + tabName + '"]');
     if (section) { section.classList.add('active'); section.hidden = false; }
-    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); }
+    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
 
     if (tabName === 'vaccins') renderVaccines();
     if (tabName === 'deworming') renderDewormings();
     if (tabName === 'alertes') renderAlerts();
     if (tabName === 'historique') renderHistory();
     if (tabName === 'photos') renderGallery();
+    if (tabName === 'consultations') renderConsultations();
+    if (tabName === 'medications') renderMedications();
+    if (tabName === 'journal') renderJournal();
+    if (tabName === 'calendrier') renderCalendar();
+
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function refreshAll() {
@@ -686,9 +2393,259 @@
     renderAlerts();
     renderHistory();
     renderGallery();
+    renderConsultations();
+    renderMedications();
+    renderJournal();
+    renderCalendar();
   }
 
-  // ——— PWA : enregistrement du Service Worker ———————————————————
+  // ——— Print / Share ————————————————————————————————————
+  function printAnimalRecord() {
+    // Show all sections for print
+    document.querySelectorAll('.section').forEach(function (s) { s.hidden = false; s.classList.add('active'); });
+    window.print();
+    // Restore after print
+    setTimeout(function () {
+      var activeTab = document.querySelector('.tab.active');
+      var tabName = activeTab ? activeTab.getAttribute('data-tab') : 'profil';
+      switchTab(tabName);
+    }, 500);
+  }
+
+  function shareRecord() {
+    var data = getCurrent();
+    if (!data) return;
+    var animalName = data.animal.name || 'Animal';
+
+    if (navigator.share) {
+      var summary = animalName + '\n' +
+        'Espèce: ' + (data.animal.species || '—') + '\n' +
+        'Race: ' + (data.animal.race || '—') + '\n' +
+        'Vaccins: ' + data.vaccines.length + '\n' +
+        'Déparasitages: ' + data.dewormings.length;
+      navigator.share({
+        title: 'Carnet de santé — ' + animalName,
+        text: summary
+      }).catch(function () {});
+    } else {
+      // Fallback: copy summary to clipboard
+      var text = animalName + ' — ' + data.vaccines.length + ' vaccins, ' + data.dewormings.length + ' déparasitages';
+      navigator.clipboard.writeText(text).then(function () {
+        showToast('Résumé copié dans le presse-papiers', 'info');
+      }).catch(function () {
+        showToast('Partage non disponible', 'warning');
+      });
+    }
+  }
+
+  // ——— Dark mode ————————————————————————————————————————
+  function initTheme() {
+    var saved = localStorage.getItem(THEME_KEY);
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var dark = saved ? saved === 'dark' : prefersDark;
+    applyTheme(dark);
+  }
+
+  function applyTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    var btn = document.getElementById('btn-theme-toggle');
+    if (btn) btn.textContent = dark ? '🌙' : '☀️';
+    localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current !== 'dark');
+  }
+
+  // ——— FAB ——————————————————————————————————————————
+  function setupFAB() {
+    var fabBtn = document.getElementById('fab-btn');
+    var fabMenu = document.getElementById('fab-menu');
+    if (!fabBtn || !fabMenu) return;
+
+    fabBtn.addEventListener('click', function () {
+      var isOpen = !fabMenu.hidden;
+      fabMenu.hidden = isOpen;
+      fabBtn.classList.toggle('fab-open', !isOpen);
+    });
+
+    fabMenu.querySelectorAll('.fab-action').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var action = btn.getAttribute('data-fab');
+        fabMenu.hidden = true;
+        fabBtn.classList.remove('fab-open');
+        if (action === 'vaccin') openModal('addVaccin');
+        if (action === 'deworming') openModal('addDeworming');
+        if (action === 'photo') triggerPhotoUpload();
+        if (action === 'weight') openModal('addWeight');
+        if (action === 'consult') openModal('addConsult');
+        if (action === 'note') openModal('addNote');
+      });
+    });
+
+    // Close FAB on outside click
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.fab-container') && !fabMenu.hidden) {
+        fabMenu.hidden = true;
+        fabBtn.classList.remove('fab-open');
+      }
+    });
+  }
+
+  // ——— Quick date buttons ————————————————————————————————
+  function setupQuickDateButtons() {
+    document.querySelectorAll('.quick-date-btns').forEach(function (container) {
+      var targetId = container.getAttribute('data-target');
+      var sourceId = container.getAttribute('data-source');
+      container.querySelectorAll('.btn-quick-date').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var days = parseInt(btn.getAttribute('data-days'), 10);
+          var sourceEl = document.getElementById(sourceId);
+          var targetEl = document.getElementById(targetId);
+          if (!targetEl) return;
+          if (days === 0) {
+            targetEl.value = todayISO();
+          } else {
+            var base = (sourceEl && sourceEl.value) || todayISO();
+            targetEl.value = addDaysISO(base, days);
+          }
+        });
+      });
+    });
+  }
+
+  // ——— Sortable table headers ————————————————————————————
+  function setupSortableHeaders() {
+    document.querySelectorAll('.sortable-th').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var section = th.closest('.section');
+        if (!section) return;
+        var key = th.getAttribute('data-sort-key');
+        var sortSelect;
+        if (section.id === 'section-vaccins') sortSelect = document.getElementById('vaccine-sort');
+        if (section.id === 'section-deworming') sortSelect = document.getElementById('deworming-sort');
+        if (!sortSelect) return;
+
+        var current = sortSelect.value;
+        if (key === 'date') {
+          sortSelect.value = current === 'dateDesc' ? 'dateAsc' : 'dateDesc';
+        } else if (key === 'next') {
+          sortSelect.value = current === 'nextAsc' ? 'nextDesc' : 'nextAsc';
+        }
+        sortSelect.dispatchEvent(new Event('change'));
+      });
+    });
+  }
+
+  // ——— Swipe on table rows (mobile) ————————————————————
+  function setupSwipe() {
+    // Simplified touch swipe for mobile
+    var startX = 0;
+    var threshold = 60;
+
+    document.addEventListener('touchstart', function (e) {
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+      var endX = e.changedTouches[0].clientX;
+      var diff = startX - endX;
+      if (Math.abs(diff) < threshold) return;
+      var row = e.target.closest('tr');
+      if (!row || !row.closest('tbody')) return;
+
+      var actions = row.querySelector('.swipe-actions');
+      if (!actions) {
+        // Create swipe actions
+        var editBtn = row.querySelector('.btn-edit');
+        var deleteBtn = row.querySelector('.btn-delete');
+        if (!editBtn && !deleteBtn) return;
+
+        var swipeDiv = document.createElement('div');
+        swipeDiv.className = 'swipe-actions';
+        if (editBtn) {
+          var sb = document.createElement('button');
+          sb.className = 'swipe-btn swipe-btn-edit';
+          sb.textContent = 'Modifier';
+          sb.addEventListener('click', function () { editBtn.click(); swipeDiv.classList.remove('visible'); });
+          swipeDiv.appendChild(sb);
+        }
+        if (deleteBtn) {
+          var db = document.createElement('button');
+          db.className = 'swipe-btn swipe-btn-delete';
+          db.textContent = 'Supprimer';
+          db.addEventListener('click', function () { deleteBtn.click(); swipeDiv.classList.remove('visible'); });
+          swipeDiv.appendChild(db);
+        }
+        row.style.position = 'relative';
+        row.style.overflow = 'hidden';
+        row.appendChild(swipeDiv);
+        actions = swipeDiv;
+      }
+
+      if (diff > threshold) {
+        // Swipe left -> show
+        actions.classList.add('visible');
+      } else {
+        // Swipe right -> hide
+        actions.classList.remove('visible');
+      }
+    }, { passive: true });
+  }
+
+  // ——— Onboarding ————————————————————————————————————
+  function showOnboarding() {
+    openModal('onboarding');
+
+    document.getElementById('onboarding-next-1').addEventListener('click', function () {
+      document.getElementById('onboarding-step-1').hidden = true;
+      document.getElementById('onboarding-step-2').hidden = false;
+    });
+
+    document.getElementById('onboarding-back-2').addEventListener('click', function () {
+      document.getElementById('onboarding-step-2').hidden = true;
+      document.getElementById('onboarding-step-1').hidden = false;
+    });
+
+    document.getElementById('form-onboarding-animal').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = document.getElementById('ob-name').value.trim();
+      if (!name) return;
+
+      var newAnimal = JSON.parse(JSON.stringify(DEFAULT_ANIMAL));
+      newAnimal.id = state.nextId++;
+      newAnimal.animal.name = name;
+      newAnimal.animal.species = document.getElementById('ob-species').value || 'Canine';
+      newAnimal.animal.dob = document.getElementById('ob-dob').value || '';
+
+      state.animals.push(newAnimal);
+      state.currentAnimalId = newAnimal.id;
+      saveState();
+
+      document.getElementById('onboarding-step-2').hidden = true;
+      document.getElementById('onboarding-step-3').hidden = false;
+    });
+
+    document.getElementById('onboarding-skip').addEventListener('click', function () {
+      finishOnboarding();
+    });
+
+    document.getElementById('onboarding-enable-notif').addEventListener('click', function () {
+      if ('Notification' in window) {
+        Notification.requestPermission();
+      }
+      finishOnboarding();
+    });
+  }
+
+  function finishOnboarding() {
+    localStorage.setItem(ONBOARDING_KEY, 'done');
+    closeModal('onboarding');
+    showHome();
+  }
+
+  // ——— PWA ————————————————————————————————————————
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
@@ -698,46 +2655,310 @@
     }).catch(function (err) { console.warn('VetBook: SW non enregistré', err); });
   }
 
-  // ——— Init & bindings ————————————————————————————————————————
-  function init() {
-    loadState();
-    showHome();
+  // ——— Export / Import ——————————————————————————————————
+  function downloadText(filename, text, mimeType) {
+    var blob = new Blob([text], { type: mimeType || 'application/octet-stream' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
+  }
+
+  async function exportBackupJson() {
+    var exportState = { version: 2, nextId: state.nextId, currentAnimalId: state.currentAnimalId, animals: [] };
+
+    for (var wrap of state.animals) {
+      var a = wrap?.animal;
+      var photos = Array.isArray(wrap.photos) ? wrap.photos : [];
+      var exportedPhotos = [];
+      for (var p of photos) {
+        var out = Object.assign({}, p);
+        if (out && out.id != null) {
+          try { out.src = await getPhotoDataUrl(out.id); } catch (err) { out.src = ''; }
+        }
+        exportedPhotos.push(out);
+      }
+      var avatar = a && typeof a.avatar === 'number' ? await getPhotoDataUrl(a.avatar).catch(function () { return ''; }) : a?.avatar;
+      exportState.animals.push(Object.assign({}, wrap, { photos: exportedPhotos, animal: Object.assign({}, a, { avatar: avatar }) }));
+    }
+
+    downloadText('vetbook-backup.json', JSON.stringify(exportState), 'application/json');
+    showToast('Sauvegarde téléchargée', 'success');
+  }
+
+  async function importBackupJson(file) {
+    if (!file) return;
+    var text = await file.text();
+    var parsed = JSON.parse(text || '{}');
+    if (!parsed || !Array.isArray(parsed.animals)) throw new Error('JSON invalide');
+
+    state.animals = parsed.animals || [];
+    state.nextId = parsed.nextId != null ? parsed.nextId : 20;
+    state.currentAnimalId = parsed.currentAnimalId != null ? parsed.currentAnimalId : (state.animals[0]?.id ?? null);
+
+    // Backward compat
+    state.animals.forEach(function (a) {
+      if (!a) return;
+      if (!Array.isArray(a.consultations)) a.consultations = [];
+      if (!Array.isArray(a.medications)) a.medications = [];
+      if (!Array.isArray(a.notes)) a.notes = [];
+      if (a.animal && !a.animal.themeColor) a.animal.themeColor = '';
+    });
+
+    try { await clearPhotoStore(); } catch (e) { console.warn('VetBook: clearPhotoStore échoué', e); }
+    await migrateLegacyImagesToIndexedDB();
+    saveState();
+    closeModal('backup');
+    showToast('Données importées', 'success');
+    if (state.viewMode === 'home') showHome(); else showDetail();
+    refreshAll();
+  }
+
+  // ——— ICS export ——————————————————————————————————————
+  function escapeIcsText(s) {
+    return String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  }
+
+  function formatIcsStampUTC() {
+    return new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  }
+
+  function icsDateFromISO(isoDate) {
+    if (!isoDate || typeof isoDate !== 'string') return '';
+    var m = isoDate.split('-');
+    if (m.length !== 3) return '';
+    return m[0] + m[1] + m[2];
+  }
+
+  async function exportUpcomingRemindersIcs() {
+    var wrap = getCurrent();
+    if (!wrap) throw new Error('Aucun animal');
+
+    var rangeDays = parseInt(document.getElementById('alerts-range')?.value || '60', 10);
+    var today = new Date();
+    var from = new Date(today); from.setDate(from.getDate() - 30);
+    var to = new Date(today); to.setDate(to.getDate() + rangeDays);
+
+    var events = [];
+    (wrap.vaccines || []).forEach(function (v) {
+      if (!v.next) return;
+      var dt = isoToLocalDate(v.next);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-vaccine-' + v.id, summary: 'Vaccin : ' + (v.name || ''), desc: v.vet ? 'Vétérinaire : ' + v.vet : '', isoDate: v.next });
+    });
+    (wrap.dewormings || []).forEach(function (d) {
+      if (!d.next) return;
+      var dt = isoToLocalDate(d.next);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-deworm-' + d.id, summary: 'Déparasitage : ' + (d.name || ''), desc: 'Type : ' + (d.type || ''), isoDate: d.next });
+    });
+
+    var dob = wrap?.animal?.dob;
+    if (wrap?.notifications?.birthdayReminder && dob) {
+      var dobParts = dob.split('-');
+      if (dobParts.length === 3) {
+        var month = parseInt(dobParts[1], 10);
+        var day = parseInt(dobParts[2], 10);
+        for (var y = from.getFullYear() - 1; y <= to.getFullYear() + 1; y++) {
+          var dt = new Date(y, month - 1, day);
+          if (dt < from || dt > to) continue;
+          events.push({ uid: 'vetbook-birthday-' + y, summary: 'Anniversaire de ' + (wrap.animal.name || "l'animal"), desc: '', isoDate: y + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0') });
+        }
+      }
+    }
+
+    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//VetBook//FR', 'CALSCALE:GREGORIAN'];
+    var stamp = formatIcsStampUTC();
+    events.forEach(function (e) {
+      var dt = icsDateFromISO(e.isoDate);
+      if (!dt) return;
+      lines.push('BEGIN:VEVENT', 'UID:' + e.uid, 'DTSTAMP:' + stamp, 'SUMMARY:' + escapeIcsText(e.summary));
+      if (e.desc) lines.push('DESCRIPTION:' + escapeIcsText(e.desc));
+      lines.push('DTSTART;VALUE=DATE:' + dt, 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    downloadText('vetbook-rappels.ics', lines.join('\r\n'), 'text/calendar');
+    showToast('Calendrier exporté', 'success');
+  }
+
+  // ——— Init ————————————————————————————————————————————
+  async function init() {
+    initTheme();
+    var hasData = loadState();
+
+    try {
+      await openPhotoDb();
+      await migrateLegacyImagesToIndexedDB();
+    } catch (e) { console.warn('VetBook: IndexedDB indisponible', e); }
+
+    // Onboarding
+    if (!hasData && !localStorage.getItem(ONBOARDING_KEY)) {
+      showOnboarding();
+    } else {
+      if (!hasData) {
+        // No onboarding but no data either — create default empty
+        var def = JSON.parse(JSON.stringify(DEFAULT_ANIMAL));
+        def.id = state.nextId++;
+        state.animals = [def];
+        state.currentAnimalId = def.id;
+        saveState();
+      }
+      showHome();
+    }
+
     registerSW();
 
-    document.getElementById('logo-home').addEventListener('click', function (e) {
-      e.preventDefault();
-      showHome();
-    });
+    // Check browser notifications
+    checkBrowserNotifications();
+
+    // Bindings
+    document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });
     document.getElementById('btn-accueil').addEventListener('click', showHome);
     var btnAddHome = document.getElementById('btn-add-animal-home');
     if (btnAddHome) btnAddHome.addEventListener('click', function () { openModal('addAnimal'); });
+    document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
 
-    document.querySelectorAll('.tab').forEach(t => {
-      t.addEventListener('click', function () {
-        switchTab(this.getAttribute('data-tab'));
-      });
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.addEventListener('click', function () { switchTab(this.getAttribute('data-tab')); });
     });
 
     document.getElementById('animal-select').addEventListener('change', onAnimalSelectChange);
     document.getElementById('btn-add-animal').addEventListener('click', function () { openModal('addAnimal'); });
+    document.getElementById('btn-backup').addEventListener('click', function () { openModal('backup'); });
     document.getElementById('btn-add-photo').addEventListener('click', triggerPhotoUpload);
-    document.getElementById('gallery-add-trigger') && document.getElementById('gallery-add-trigger').addEventListener('click', triggerPhotoUpload);
 
     document.getElementById('photo-input').addEventListener('change', handlePhotoUpload);
     document.getElementById('btn-avatar-upload').addEventListener('click', function () { document.getElementById('avatar-input').click(); });
     document.getElementById('avatar-input').addEventListener('change', handleAvatarUpload);
 
+    // Profile buttons
+    document.getElementById('btn-delete-animal').addEventListener('click', function () {
+      var data = getCurrent();
+      if (data) deleteAnimal(data.id);
+    });
+    document.getElementById('btn-print-record').addEventListener('click', printAnimalRecord);
+    document.getElementById('btn-share-record').addEventListener('click', shareRecord);
+
+    var birthdayDismiss = document.getElementById('birthday-dismiss');
+    if (birthdayDismiss) birthdayDismiss.addEventListener('click', function () {
+      document.getElementById('birthday-banner').hidden = true;
+    });
+
+    // Forms
     document.getElementById('form-edit-animal').addEventListener('submit', function (e) { e.preventDefault(); saveAnimal(); });
     document.getElementById('form-edit-owner').addEventListener('submit', function (e) { e.preventDefault(); saveOwner(); });
+
+    var formEditVaccin = document.getElementById('form-edit-vaccin');
+    if (formEditVaccin) formEditVaccin.addEventListener('submit', function (e) { e.preventDefault(); updateVaccineEntry(); });
+    var formEditDeworming = document.getElementById('form-edit-deworming');
+    if (formEditDeworming) formEditDeworming.addEventListener('submit', function (e) { e.preventDefault(); updateDewormingEntry(); });
+    var formEditWeight = document.getElementById('form-edit-weight');
+    if (formEditWeight) formEditWeight.addEventListener('submit', function (e) { e.preventDefault(); updateWeightEntry(); });
+
     document.getElementById('form-add-vaccin').addEventListener('submit', function (e) { e.preventDefault(); addVaccine(); });
     document.getElementById('form-add-deworming').addEventListener('submit', function (e) { e.preventDefault(); addDeworming(); });
     document.getElementById('form-add-animal').addEventListener('submit', function (e) { e.preventDefault(); addAnimal(); });
 
-    document.querySelectorAll('[data-close]').forEach(btn => {
+    var formAddWeight = document.getElementById('form-add-weight');
+    if (formAddWeight) formAddWeight.addEventListener('submit', function (e) { e.preventDefault(); addWeightEntry(); });
+
+    document.getElementById('form-add-consult').addEventListener('submit', function (e) { e.preventDefault(); addConsultation(); });
+    document.getElementById('form-edit-consult').addEventListener('submit', function (e) { e.preventDefault(); updateConsultation(); });
+    document.getElementById('form-add-medication').addEventListener('submit', function (e) { e.preventDefault(); addMedication(); });
+    document.getElementById('form-edit-medication').addEventListener('submit', function (e) { e.preventDefault(); updateMedication(); });
+    document.getElementById('form-add-note').addEventListener('submit', function (e) { e.preventDefault(); addNote(); });
+    document.getElementById('form-edit-note').addEventListener('submit', function (e) { e.preventDefault(); updateNote(); });
+    document.getElementById('form-edit-caption').addEventListener('submit', function (e) { e.preventDefault(); saveCaption(); });
+
+    // Filters & sorts
+    ['vaccine-search', 'vaccine-status-filter', 'vaccine-sort'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function () { renderVaccines(); });
+      el.addEventListener('change', function () { renderVaccines(); });
+    });
+
+    ['deworming-search', 'deworming-status-filter', 'deworming-sort'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function () { renderDewormings(); });
+      el.addEventListener('change', function () { renderDewormings(); });
+    });
+
+    var consultSearch = document.getElementById('consult-search');
+    if (consultSearch) {
+      consultSearch.addEventListener('input', function () { renderConsultations(); });
+    }
+
+    var journalFilter = document.getElementById('journal-cat-filter');
+    if (journalFilter) journalFilter.addEventListener('change', renderJournal);
+
+    var alertsRange = document.getElementById('alerts-range');
+    if (alertsRange) alertsRange.addEventListener('change', renderAlerts);
+
+    var historyFilter = document.getElementById('history-type-filter');
+    if (historyFilter) historyFilter.addEventListener('change', renderHistory);
+
+    // Calendar nav
+    var calPrev = document.getElementById('cal-prev');
+    var calNext = document.getElementById('cal-next');
+    if (calPrev) calPrev.addEventListener('click', function () {
+      uiState.calendarMonth--;
+      if (uiState.calendarMonth < 0) { uiState.calendarMonth = 11; uiState.calendarYear--; }
+      renderCalendar();
+    });
+    if (calNext) calNext.addEventListener('click', function () {
+      uiState.calendarMonth++;
+      if (uiState.calendarMonth > 11) { uiState.calendarMonth = 0; uiState.calendarYear++; }
+      renderCalendar();
+    });
+
+    var btnExportIcs = document.getElementById('btn-export-ics');
+    if (btnExportIcs) btnExportIcs.addEventListener('click', function () {
+      exportUpcomingRemindersIcs().catch(function (err) {
+        console.warn('VetBook: export ICS échoué', err);
+        showToast('Erreur export calendrier.', 'error');
+      });
+    });
+
+    var btnExportJson = document.getElementById('btn-export-json');
+    if (btnExportJson) btnExportJson.addEventListener('click', function () {
+      exportBackupJson().catch(function (err) {
+        console.warn('VetBook: export JSON échoué', err);
+        showToast('Erreur export JSON.', 'error');
+      });
+    });
+
+    var pickBackupFileBtn = document.getElementById('btn-pick-backup-file');
+    var backupImportFile = document.getElementById('backup-import-file');
+    var backupFileName = document.getElementById('backup-file-name');
+    var btnImportReplace = document.getElementById('btn-import-replace');
+
+    if (pickBackupFileBtn && backupImportFile) {
+      pickBackupFileBtn.addEventListener('click', function () { backupImportFile.click(); });
+      backupImportFile.addEventListener('change', function () {
+        if (backupFileName) backupFileName.textContent = (backupImportFile.files && backupImportFile.files[0]) ? backupImportFile.files[0].name : 'Aucun fichier sélectionné';
+      });
+    }
+
+    if (btnImportReplace && backupImportFile) {
+      btnImportReplace.addEventListener('click', function () {
+        var file = backupImportFile.files && backupImportFile.files[0] ? backupImportFile.files[0] : null;
+        if (!file) { showToast('Choisis un fichier JSON.', 'warning'); return; }
+        importBackupJson(file).catch(function (err) {
+          console.warn('VetBook: import JSON échoué', err);
+          showToast("Erreur d'importation.", 'error');
+        });
+      });
+    }
+
+    // Modal close buttons
+    document.querySelectorAll('[data-close]').forEach(function (btn) {
       btn.addEventListener('click', function () { closeModal(this.getAttribute('data-close')); });
     });
 
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
       overlay.addEventListener('click', function (e) {
         if (e.target === this) {
           this.classList.remove('open');
@@ -746,24 +2967,36 @@
       });
     });
 
-    document.getElementById('lightbox').addEventListener('click', function (e) {
-      if (e.target === this) closeLightbox();
+    document.getElementById('lightbox').addEventListener('click', function (e) { if (e.target === this) closeLightbox(); });
+    document.getElementById('lightbox-close').addEventListener('click', function (e) { e.stopPropagation(); closeLightbox(); });
+
+    // Keyboard
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var lb = document.getElementById('lightbox');
+      if (lb && lb.classList.contains('open')) { closeLightbox(); return; }
+      var openOverlay = document.querySelector('.modal-overlay.open');
+      if (!openOverlay) return;
+      var id = openOverlay.getAttribute('id') || '';
+      if (!id.startsWith('modal-')) return;
+      closeModal(id.slice('modal-'.length));
     });
-    document.getElementById('lightbox-close').addEventListener('click', function (e) {
-      e.stopPropagation();
-      closeLightbox();
-    });
+
+    // Setup features
+    setupFAB();
+    setupQuickDateButtons();
+    setupSortableHeaders();
+    setupSwipe();
   }
 
-  // API publique pour les appels depuis le HTML si besoin
   window.app = {
     openModal: openModal,
     closeModal: closeModal
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function () { init().catch(console.error); });
   } else {
-    init();
+    init().catch(console.error);
   }
 })();

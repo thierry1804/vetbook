@@ -22,6 +22,8 @@
     <div class="header-actions">
       <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel"></select>
       <button type="button" class="btn-add" id="btn-add-animal">+ Animal</button>
+      <button type="button" class="btn-icon" id="btn-backup" title="Sauvegarde / Importation">Sauvegarde</button>
+      <button type="button" class="btn-theme-toggle" id="btn-theme-toggle" title="Mode sombre / clair" aria-label="Basculer le thème">☀️</button>
     </div>
   </header>
 
@@ -29,6 +31,34 @@
     <!-- Page d'accueil : liste des animaux avec actions rapides -->
     <div id="view-home" class="view">
       <h1 class="home-title">Mes animaux</h1>
+      <!-- Dashboard summary -->
+      <div id="home-dashboard" class="home-dashboard" hidden>
+        <div class="dashboard-card dashboard-overdue" id="dash-overdue">
+          <span class="dashboard-icon">⚠️</span>
+          <span class="dashboard-number" id="dash-overdue-count">0</span>
+          <span class="dashboard-label">En retard</span>
+        </div>
+        <div class="dashboard-card dashboard-upcoming" id="dash-upcoming">
+          <span class="dashboard-icon">🔔</span>
+          <span class="dashboard-number" id="dash-upcoming-count">0</span>
+          <span class="dashboard-label">Rappels (7j)</span>
+        </div>
+        <div class="dashboard-card dashboard-animals">
+          <span class="dashboard-icon">🐾</span>
+          <span class="dashboard-number" id="dash-animals-count">0</span>
+          <span class="dashboard-label">Animaux</span>
+        </div>
+        <div class="dashboard-card dashboard-vaccines">
+          <span class="dashboard-icon">💉</span>
+          <span class="dashboard-number" id="dash-vaccines-count">0</span>
+          <span class="dashboard-label">Vaccins</span>
+        </div>
+        <div class="dashboard-card dashboard-photos">
+          <span class="dashboard-icon">📷</span>
+          <span class="dashboard-number" id="dash-photos-count">0</span>
+          <span class="dashboard-label">Photos</span>
+        </div>
+      </div>
       <div id="home-pet-grid" class="home-pet-grid"></div>
       <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
     </div>
@@ -36,37 +66,79 @@
     <!-- Vue détail : carnet d'un animal -->
     <div id="view-detail" class="view" hidden>
     <nav class="tabs" role="tablist" aria-label="Sections du carnet">
-      <button type="button" class="tab active" data-tab="profil" role="tab" aria-selected="true">🐶 Profil</button>
-      <button type="button" class="tab" data-tab="photos" role="tab">📷 Photos</button>
-      <button type="button" class="tab" data-tab="vaccins" role="tab">💉 Vaccins</button>
-      <button type="button" class="tab" data-tab="deworming" role="tab">🪱 Déparasitage</button>
-      <button type="button" class="tab" data-tab="alertes" role="tab">🔔 Alertes</button>
-      <button type="button" class="tab" data-tab="historique" role="tab">📋 Historique</button>
+      <button type="button" class="tab active" data-tab="profil" role="tab" aria-selected="true">🐶 <span class="tab-label">Profil</span></button>
+      <button type="button" class="tab" data-tab="photos" role="tab">📷 <span class="tab-label">Photos</span></button>
+      <button type="button" class="tab" data-tab="vaccins" role="tab">💉 <span class="tab-label">Vaccins</span></button>
+      <button type="button" class="tab" data-tab="deworming" role="tab">🪱 <span class="tab-label">Déparas.</span></button>
+      <button type="button" class="tab" data-tab="consultations" role="tab">🩺 <span class="tab-label">Consult.</span></button>
+      <button type="button" class="tab" data-tab="medications" role="tab">💊 <span class="tab-label">Médic.</span></button>
+      <button type="button" class="tab" data-tab="journal" role="tab">📝 <span class="tab-label">Journal</span></button>
+      <button type="button" class="tab" data-tab="alertes" role="tab">🔔 <span class="tab-label">Alertes</span></button>
+      <button type="button" class="tab" data-tab="calendrier" role="tab">📅 <span class="tab-label">Calendrier</span></button>
+      <button type="button" class="tab" data-tab="historique" role="tab">📋 <span class="tab-label">Historique</span></button>
     </nav>
 
     <!-- Section Profil -->
     <section id="section-profil" class="section active" role="tabpanel" aria-labelledby="tab-profil">
-      <article class="animal-hero">
+      <!-- Birthday banner -->
+      <div id="birthday-banner" class="birthday-banner" hidden>
+        <div class="birthday-content">
+          <span class="birthday-emoji">🎉🎂🎈</span>
+          <span id="birthday-text">Joyeux anniversaire !</span>
+          <button type="button" class="birthday-dismiss" id="birthday-dismiss">✕</button>
+        </div>
+        <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+      </div>
+
+      <article class="animal-hero" id="animal-hero">
         <div class="avatar-wrapper">
           <div class="animal-avatar" id="hero-avatar" role="img" aria-label="Photo de l'animal">🐕</div>
           <button type="button" class="avatar-edit-btn" onclick="app.openModal('editAnimal')" title="Modifier la photo">✏️</button>
         </div>
         <div class="hero-content">
-          <h1 class="animal-name" id="hero-name">Bolt</h1>
-          <p class="animal-breed" id="hero-breed">Coton de Tuléar · Mâle</p>
+          <h1 class="animal-name" id="hero-name">—</h1>
+          <p class="animal-breed" id="hero-breed">—</p>
           <div class="animal-badges">
             <span class="badge" id="hero-dob">🎂 —</span>
             <span class="badge" id="hero-weight">⚖️ — kg</span>
             <span class="badge" id="hero-species">🔬 —</span>
           </div>
         </div>
-        <button type="button" class="hero-edit-btn" onclick="app.openModal('editAnimal')">✏️ <span>Modifier la fiche</span></button>
+        <div class="hero-buttons">
+          <button type="button" class="hero-edit-btn" onclick="app.openModal('editAnimal')">✏️ <span>Modifier la fiche</span></button>
+          <button type="button" class="hero-edit-btn hero-print-btn" id="btn-print-record">🖨️ <span>Imprimer</span></button>
+          <button type="button" class="hero-edit-btn hero-share-btn" id="btn-share-record">📤 <span>Partager</span></button>
+          <button type="button" class="hero-edit-btn hero-delete-btn" id="btn-delete-animal">🗑️ <span>Supprimer</span></button>
+        </div>
       </article>
+
+      <!-- Profile completeness -->
+      <div class="profile-completeness" id="profile-completeness" hidden>
+        <div class="completeness-bar">
+          <div class="completeness-fill" id="completeness-fill" style="width:0%"></div>
+        </div>
+        <span class="completeness-text" id="completeness-text">0% complété</span>
+      </div>
+
+      <!-- QR Code -->
+      <div class="qr-section" id="qr-section" hidden>
+        <h3 class="section-title">🔳 QR Code Identité</h3>
+        <canvas id="qr-canvas" class="qr-canvas" width="200" height="200"></canvas>
+        <p class="qr-hint">Scannez pour accéder aux informations de l'animal</p>
+      </div>
 
       <div class="info-grid" aria-label="Informations de l'animal">
         <div class="info-card"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
         <div class="info-card"><span class="info-label">Race</span><span class="info-value" id="info-race">—</span></div>
-        <div class="info-card"><span class="info-label">Poids</span><span class="info-value" id="info-weight">—</span></div>
+        <div class="info-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div>
+              <span class="info-label">Poids</span>
+              <span class="info-value" id="info-weight">—</span>
+            </div>
+            <button type="button" class="btn-icon" onclick="app.openModal('addWeight')" title="Ajouter une pesée">+ Pesée</button>
+          </div>
+        </div>
         <div class="info-card"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
         <div class="info-card"><span class="info-label">Microchip</span><span class="info-value" id="info-chip">Non renseigné</span></div>
         <div class="info-card"><span class="info-label">Stérilisé(e)</span><span class="info-value" id="info-sterilise">—</span></div>
@@ -84,6 +156,12 @@
           <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
         </div>
       </article>
+
+      <!-- Active medications badge area -->
+      <div class="active-meds-summary" id="active-meds-summary" hidden>
+        <h3 class="section-title">💊 Médicaments en cours</h3>
+        <div id="active-meds-list" class="active-meds-list"></div>
+      </div>
 
       <div class="stats-grid">
         <div class="stat-card"><span class="stat-number" id="stat-vax">0</span><span class="stat-label">Vaccins reçus</span></div>
@@ -115,12 +193,44 @@
       <div id="vaccine-alerts" class="alerts-container"></div>
       <div class="data-table">
         <div class="table-header">
-          <h2 class="section-title">💉 Mes Vaccins</h2>
+          <div class="table-header-left">
+            <h2 class="section-title">💉 Mes Vaccins</h2>
+            <div class="table-controls" role="group" aria-label="Filtres vaccins">
+              <div class="table-control">
+                <label for="vaccine-search">Recherche</label>
+                <input id="vaccine-search" class="table-input" type="search" placeholder="nom ou vétérinaire">
+              </div>
+              <div class="table-control">
+                <label for="vaccine-status-filter">Statut</label>
+                <select id="vaccine-status-filter" class="table-select">
+                  <option value="all">Tous</option>
+                  <option value="ok">À jour</option>
+                  <option value="soon">Bientôt</option>
+                  <option value="overdue">En retard</option>
+                </select>
+              </div>
+              <div class="table-control">
+                <label for="vaccine-sort">Tri</label>
+                <select id="vaccine-sort" class="table-select">
+                  <option value="nextAsc">Prochain rappel</option>
+                  <option value="nextDesc">Prochain rappel (inverse)</option>
+                  <option value="dateDesc" selected>Date (récentes)</option>
+                  <option value="dateAsc">Date (anciennes)</option>
+                </select>
+              </div>
+            </div>
+          </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addVaccin')">+ Ajouter</button>
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Date</th><th>Vaccin</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
+            <thead><tr>
+              <th class="sortable-th" data-sort-key="date">Date <span class="sort-arrow"></span></th>
+              <th>Vaccin</th>
+              <th class="sortable-th" data-sort-key="next">Rappel <span class="sort-arrow"></span></th>
+              <th>Statut</th>
+              <th></th>
+            </tr></thead>
             <tbody id="vaccine-table"></tbody>
           </table>
         </div>
@@ -131,15 +241,122 @@
     <section id="section-deworming" class="section" role="tabpanel" hidden>
       <div class="data-table">
         <div class="table-header">
-          <h2 class="section-title">🪱 Déparasitage</h2>
+          <div class="table-header-left">
+            <h2 class="section-title">🪱 Déparasitage</h2>
+            <div class="table-controls" role="group" aria-label="Filtres déparasitage">
+              <div class="table-control">
+                <label for="deworming-search">Recherche</label>
+                <input id="deworming-search" class="table-input" type="search" placeholder="nom ou type">
+              </div>
+              <div class="table-control">
+                <label for="deworming-status-filter">Statut</label>
+                <select id="deworming-status-filter" class="table-select">
+                  <option value="all">Tous</option>
+                  <option value="ok">À jour</option>
+                  <option value="soon">Bientôt</option>
+                  <option value="overdue">En retard</option>
+                </select>
+              </div>
+              <div class="table-control">
+                <label for="deworming-sort">Tri</label>
+                <select id="deworming-sort" class="table-select">
+                  <option value="nextAsc">Prochain rappel</option>
+                  <option value="nextDesc">Prochain rappel (inverse)</option>
+                  <option value="dateDesc" selected>Date (récentes)</option>
+                  <option value="dateAsc">Date (anciennes)</option>
+                </select>
+              </div>
+            </div>
+          </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addDeworming')">+ Ajouter</button>
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Date</th><th>Traitement</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
+            <thead><tr>
+              <th class="sortable-th" data-sort-key="date">Date <span class="sort-arrow"></span></th>
+              <th>Traitement</th>
+              <th class="sortable-th" data-sort-key="next">Rappel <span class="sort-arrow"></span></th>
+              <th>Statut</th>
+              <th></th>
+            </tr></thead>
             <tbody id="deworming-table"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- Section Consultations -->
+    <section id="section-consultations" class="section" role="tabpanel" hidden>
+      <div class="data-table">
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">🩺 Consultations Vétérinaires</h2>
+            <div class="table-controls" role="group" aria-label="Filtres consultations">
+              <div class="table-control">
+                <label for="consult-search">Recherche</label>
+                <input id="consult-search" class="table-input" type="search" placeholder="motif, vétérinaire...">
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-icon" onclick="app.openModal('addConsult')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Motif</th><th>Vétérinaire</th><th>Coût</th><th></th></tr></thead>
+            <tbody id="consult-table"></tbody>
+          </table>
+        </div>
+        <div id="consult-empty" class="empty-state-illustrated" hidden>
+          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">🩺</text></svg>
+          <p id="consult-empty-text">Aucune consultation enregistrée</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Médicaments -->
+    <section id="section-medications" class="section" role="tabpanel" hidden>
+      <div class="data-table">
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">💊 Médicaments</h2>
+          </div>
+          <button type="button" class="btn-icon" onclick="app.openModal('addMedication')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Médicament</th><th>Posologie</th><th>Début</th><th>Fin</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="medication-table"></tbody>
+          </table>
+        </div>
+        <div id="medication-empty" class="empty-state-illustrated" hidden>
+          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">💊</text></svg>
+          <p>Aucun médicament enregistré</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Journal / Notes -->
+    <section id="section-journal" class="section" role="tabpanel" hidden>
+      <div class="journal-header">
+        <h2 class="section-title">📝 Journal / Notes</h2>
+        <div class="table-controls">
+          <div class="table-control">
+            <label for="journal-cat-filter">Catégorie</label>
+            <select id="journal-cat-filter" class="table-select">
+              <option value="all">Toutes</option>
+              <option value="sante">Santé</option>
+              <option value="comportement">Comportement</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" class="btn-icon" onclick="app.openModal('addNote')">+ Ajouter</button>
+      </div>
+      <div id="journal-cards" class="journal-cards"></div>
+      <div id="journal-empty" class="empty-state-illustrated" hidden>
+        <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">📝</text></svg>
+        <p>Aucune note enregistrée</p>
       </div>
     </section>
 
@@ -154,18 +371,82 @@
         <div class="notif-list" id="notif-list"></div>
       </div>
       <div class="data-table">
-        <div class="table-header"><h2 class="section-title">⚡ Prochains Rappels</h2></div>
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">Agenda des rappels</h2>
+            <div class="table-controls" role="group" aria-label="Période agenda">
+              <div class="table-control">
+                <label for="alerts-range">Période</label>
+                <select id="alerts-range" class="table-select">
+                  <option value="30">30 jours</option>
+                  <option value="60" selected>60 jours</option>
+                  <option value="90">90 jours</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-icon" id="btn-export-ics">Calendrier (.ics)</button>
+        </div>
         <div id="upcoming-alerts" class="upcoming-alerts-body"></div>
+      </div>
+    </section>
+
+    <!-- Section Calendrier -->
+    <section id="section-calendrier" class="section" role="tabpanel" hidden>
+      <div class="calendar-wrapper">
+        <div class="calendar-nav">
+          <button type="button" class="btn-icon" id="cal-prev">←</button>
+          <h2 class="section-title" id="cal-month-title">—</h2>
+          <button type="button" class="btn-icon" id="cal-next">→</button>
+        </div>
+        <div class="calendar-legend">
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-vaccine"></span> Vaccin</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-deworming"></span> Déparasitage</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-birthday"></span> Anniversaire</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-consult"></span> Consultation</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <div class="calendar-day-detail" id="calendar-day-detail" hidden></div>
       </div>
     </section>
 
     <!-- Section Historique -->
     <section id="section-historique" class="section" role="tabpanel" hidden>
       <h2 class="section-title">📋 Historique Complet</h2>
+      <div class="table-controls" role="group" aria-label="Filtres historique">
+        <div class="table-control">
+          <label for="history-type-filter">Type</label>
+          <select id="history-type-filter" class="table-select">
+            <option value="all" selected>Tout</option>
+            <option value="vaccins">Vaccins</option>
+            <option value="deworming">Déparasitage</option>
+            <option value="weight">Pesées</option>
+            <option value="consultations">Consultations</option>
+            <option value="journal">Notes</option>
+          </select>
+        </div>
+      </div>
+      <div class="weight-evolution" id="weight-evolution"></div>
       <div class="timeline" id="history-timeline"></div>
     </section>
     </div>
   </main>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- FAB (Floating Action Button) -->
+  <div class="fab-container" id="fab-container" hidden>
+    <div class="fab-menu" id="fab-menu" hidden>
+      <button type="button" class="fab-action" data-fab="vaccin" title="Vaccin">💉</button>
+      <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage">🪱</button>
+      <button type="button" class="fab-action" data-fab="photo" title="Photo">📷</button>
+      <button type="button" class="fab-action" data-fab="weight" title="Pesée">⚖️</button>
+      <button type="button" class="fab-action" data-fab="consult" title="Consultation">🩺</button>
+      <button type="button" class="fab-action" data-fab="note" title="Note">📝</button>
+    </div>
+    <button type="button" class="fab-btn" id="fab-btn" aria-label="Actions rapides">+</button>
+  </div>
 
   <!-- Modals -->
   <div class="modal-overlay" id="modal-editAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-editAnimal-title">
@@ -193,9 +474,15 @@
           <div class="form-group"><label class="form-label" for="ea-color">Couleur</label><input class="form-input" id="ea-color" placeholder="ex: Blanc"></div>
           <div class="form-group"><label class="form-label" for="ea-chip">Microchip</label><input class="form-input" id="ea-chip" placeholder="Numéro de puce"></div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="ea-sterilise">Stérilisé(e)</label>
-          <select class="form-input" id="ea-sterilise"><option value="Non">Non</option><option value="Oui">Oui</option></select>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="ea-sterilise">Stérilisé(e)</label>
+            <select class="form-input" id="ea-sterilise"><option value="Non">Non</option><option value="Oui">Oui</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ea-themeColor">Couleur du carnet</label>
+            <input class="form-input" id="ea-themeColor" type="color" value="#0f766e">
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="ea-notes">Notes / Observations</label>
@@ -203,7 +490,7 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="editAnimal">Annuler</button>
-          <button type="submit" class="btn-primary">💾 Enregistrer</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
         </div>
       </form>
     </div>
@@ -222,7 +509,7 @@
         <div class="form-group"><label class="form-label" for="eo-address">Adresse</label><input class="form-input" id="eo-address" placeholder="Adresse complète"></div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="editOwner">Annuler</button>
-          <button type="submit" class="btn-primary">💾 Enregistrer</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
         </div>
       </form>
     </div>
@@ -232,10 +519,21 @@
     <div class="modal" role="document">
       <h2 class="modal-title" id="modal-addVaccin-title">💉 Ajouter un Vaccin</h2>
       <form id="form-add-vaccin" class="modal-form">
-        <div class="form-group"><label class="form-label" for="v-name">Nom du vaccin</label><input class="form-input" id="v-name" placeholder="ex: Nobivac Rabies" required></div>
+        <div class="form-group"><label class="form-label" for="v-name">Nom du vaccin</label><input class="form-input" id="v-name" placeholder="ex: Nobivac Rabies" required list="vaccine-suggestions"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="v-date">Date</label><input class="form-input" id="v-date" type="date" required></div>
           <div class="form-group"><label class="form-label" for="v-next">Rappel</label><input class="form-input" id="v-next" type="date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="v-frequency">Fréquence (jours) (optionnel)</label>
+          <input class="form-input" id="v-frequency" type="number" min="1" step="1" placeholder="ex: 365">
+        </div>
+        <div class="quick-date-btns" data-target="v-next" data-source="v-date">
+          <button type="button" class="btn-quick-date" data-days="0">Aujourd'hui</button>
+          <button type="button" class="btn-quick-date" data-days="30">+1 mois</button>
+          <button type="button" class="btn-quick-date" data-days="90">+3 mois</button>
+          <button type="button" class="btn-quick-date" data-days="180">+6 mois</button>
+          <button type="button" class="btn-quick-date" data-days="365">+1 an</button>
         </div>
         <div class="form-group"><label class="form-label" for="v-vet">Vétérinaire</label><input class="form-input" id="v-vet" placeholder="Nom du vétérinaire"></div>
         <div class="modal-actions">
@@ -255,12 +553,271 @@
           <div class="form-group"><label class="form-label" for="d-date">Date</label><input class="form-input" id="d-date" type="date" required></div>
           <div class="form-group"><label class="form-label" for="d-next">Rappel</label><input class="form-input" id="d-next" type="date"></div>
         </div>
+        <div class="form-group"><label class="form-label" for="d-frequency">Fréquence (jours) (optionnel)</label><input class="form-input" id="d-frequency" type="number" min="1" step="1" placeholder="ex: 90"></div>
+        <div class="quick-date-btns" data-target="d-next" data-source="d-date">
+          <button type="button" class="btn-quick-date" data-days="0">Aujourd'hui</button>
+          <button type="button" class="btn-quick-date" data-days="30">+1 mois</button>
+          <button type="button" class="btn-quick-date" data-days="90">+3 mois</button>
+          <button type="button" class="btn-quick-date" data-days="180">+6 mois</button>
+          <button type="button" class="btn-quick-date" data-days="365">+1 an</button>
+        </div>
         <div class="form-group"><label class="form-label" for="d-type">Type</label><select class="form-input" id="d-type"><option value="interne">Interne</option><option value="externe">Externe</option></select></div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="addDeworming">Annuler</button>
           <button type="submit" class="btn-primary">Enregistrer</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-addWeight" aria-hidden="true" role="dialog" aria-labelledby="modal-addWeight-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addWeight-title">⚖️ Ajouter une pesée</h2>
+      <form id="form-add-weight" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="wh-date">Date</label><input class="form-input" id="wh-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="wh-weight">Poids (kg)</label><input class="form-input" id="wh-weight" type="number" step="0.1" min="0" required></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addWeight">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editVaccin" aria-hidden="true" role="dialog" aria-labelledby="modal-editVaccin-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-editVaccin-title">💉 Modifier un vaccin</h2>
+      <form id="form-edit-vaccin" class="modal-form">
+        <input type="hidden" id="ev-id">
+        <div class="form-group"><label class="form-label" for="ev-name">Nom du vaccin</label><input class="form-input" id="ev-name" placeholder="ex: Nobivac Rabies" required list="vaccine-suggestions"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ev-date">Date</label><input class="form-input" id="ev-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ev-next">Rappel</label><input class="form-input" id="ev-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ev-frequency">Fréquence (jours) (optionnel)</label><input class="form-input" id="ev-frequency" type="number" min="1" step="1" placeholder="ex: 365"></div>
+        <div class="form-group"><label class="form-label" for="ev-vet">Vétérinaire</label><input class="form-input" id="ev-vet" placeholder="Nom du vétérinaire"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editVaccin">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-editDeworming-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-editDeworming-title">🪱 Modifier un déparasitage</h2>
+      <form id="form-edit-deworming" class="modal-form">
+        <input type="hidden" id="ed-id">
+        <div class="form-group"><label class="form-label" for="ed-name">Traitement</label><input class="form-input" id="ed-name" placeholder="ex: Milpro 1cp" required></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ed-date">Date</label><input class="form-input" id="ed-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ed-next">Rappel</label><input class="form-input" id="ed-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ed-frequency">Fréquence (jours) (optionnel)</label><input class="form-input" id="ed-frequency" type="number" min="1" step="1" placeholder="ex: 90"></div>
+        <div class="form-group"><label class="form-label" for="ed-type">Type</label><select class="form-input" id="ed-type"><option value="interne">Interne</option><option value="externe">Externe</option></select></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editDeworming">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editWeight" aria-hidden="true" role="dialog" aria-labelledby="modal-editWeight-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-editWeight-title">⚖️ Modifier une pesée</h2>
+      <form id="form-edit-weight" class="modal-form">
+        <input type="hidden" id="ew-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ew-date">Date</label><input class="form-input" id="ew-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ew-weight">Poids (kg)</label><input class="form-input" id="ew-weight" type="number" step="0.1" min="0" required></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editWeight">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Consultation modal -->
+  <div class="modal-overlay" id="modal-addConsult" aria-hidden="true" role="dialog" aria-labelledby="modal-addConsult-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addConsult-title">🩺 Ajouter une Consultation</h2>
+      <form id="form-add-consult" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="c-date">Date</label><input class="form-input" id="c-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="c-vet">Vétérinaire</label><input class="form-input" id="c-vet" placeholder="Nom"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="c-reason">Motif</label><input class="form-input" id="c-reason" placeholder="Raison de la visite" required></div>
+        <div class="form-group"><label class="form-label" for="c-diagnosis">Diagnostic</label><input class="form-input" id="c-diagnosis" placeholder="Diagnostic"></div>
+        <div class="form-group"><label class="form-label" for="c-treatment">Traitement</label><input class="form-input" id="c-treatment" placeholder="Traitement prescrit"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="c-cost">Coût</label><input class="form-input" id="c-cost" type="number" step="0.01" min="0" placeholder="0.00"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="c-notes">Notes</label><textarea class="form-input" id="c-notes" rows="2" placeholder="Observations..."></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addConsult">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editConsult" aria-hidden="true" role="dialog" aria-labelledby="modal-editConsult-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editConsult-title">🩺 Modifier une Consultation</h2>
+      <form id="form-edit-consult" class="modal-form">
+        <input type="hidden" id="ec-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ec-date">Date</label><input class="form-input" id="ec-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ec-vet">Vétérinaire</label><input class="form-input" id="ec-vet"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ec-reason">Motif</label><input class="form-input" id="ec-reason" required></div>
+        <div class="form-group"><label class="form-label" for="ec-diagnosis">Diagnostic</label><input class="form-input" id="ec-diagnosis"></div>
+        <div class="form-group"><label class="form-label" for="ec-treatment">Traitement</label><input class="form-input" id="ec-treatment"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ec-cost">Coût</label><input class="form-input" id="ec-cost" type="number" step="0.01" min="0"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ec-notes">Notes</label><textarea class="form-input" id="ec-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editConsult">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Medication modal -->
+  <div class="modal-overlay" id="modal-addMedication" aria-hidden="true" role="dialog" aria-labelledby="modal-addMedication-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addMedication-title">💊 Ajouter un Médicament</h2>
+      <form id="form-add-medication" class="modal-form">
+        <div class="form-group"><label class="form-label" for="m-name">Médicament</label><input class="form-input" id="m-name" required placeholder="Nom du médicament"></div>
+        <div class="form-group"><label class="form-label" for="m-dosage">Posologie</label><input class="form-input" id="m-dosage" placeholder="ex: 1cp 2x/jour"></div>
+        <div class="form-group"><label class="form-label" for="m-frequency">Fréquence</label><input class="form-input" id="m-frequency" placeholder="ex: Quotidien, Hebdomadaire..."></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="m-start">Date début</label><input class="form-input" id="m-start" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="m-end">Date fin</label><input class="form-input" id="m-end" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="m-notes">Notes</label><textarea class="form-input" id="m-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addMedication">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editMedication" aria-hidden="true" role="dialog" aria-labelledby="modal-editMedication-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editMedication-title">💊 Modifier un Médicament</h2>
+      <form id="form-edit-medication" class="modal-form">
+        <input type="hidden" id="em-id">
+        <div class="form-group"><label class="form-label" for="em-name">Médicament</label><input class="form-input" id="em-name" required></div>
+        <div class="form-group"><label class="form-label" for="em-dosage">Posologie</label><input class="form-input" id="em-dosage"></div>
+        <div class="form-group"><label class="form-label" for="em-frequency">Fréquence</label><input class="form-input" id="em-frequency"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="em-start">Date début</label><input class="form-input" id="em-start" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="em-end">Date fin</label><input class="form-input" id="em-end" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="em-notes">Notes</label><textarea class="form-input" id="em-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editMedication">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Note / Journal modal -->
+  <div class="modal-overlay" id="modal-addNote" aria-hidden="true" role="dialog" aria-labelledby="modal-addNote-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addNote-title">📝 Ajouter une Note</h2>
+      <form id="form-add-note" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="n-date">Date</label><input class="form-input" id="n-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="n-category">Catégorie</label>
+            <select class="form-input" id="n-category">
+              <option value="sante">Santé</option>
+              <option value="comportement">Comportement</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="n-title">Titre</label><input class="form-input" id="n-title" required placeholder="Titre de la note"></div>
+        <div class="form-group"><label class="form-label" for="n-content">Contenu</label><textarea class="form-input" id="n-content" rows="4" placeholder="Détails..."></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addNote">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editNote" aria-hidden="true" role="dialog" aria-labelledby="modal-editNote-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editNote-title">📝 Modifier une Note</h2>
+      <form id="form-edit-note" class="modal-form">
+        <input type="hidden" id="en-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="en-date">Date</label><input class="form-input" id="en-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="en-category">Catégorie</label>
+            <select class="form-input" id="en-category">
+              <option value="sante">Santé</option>
+              <option value="comportement">Comportement</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="en-title">Titre</label><input class="form-input" id="en-title" required></div>
+        <div class="form-group"><label class="form-label" for="en-content">Contenu</label><textarea class="form-input" id="en-content" rows="4"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editNote">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Photo caption modal -->
+  <div class="modal-overlay" id="modal-editCaption" aria-hidden="true" role="dialog" aria-labelledby="modal-editCaption-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editCaption-title">📷 Légende de la photo</h2>
+      <form id="form-edit-caption" class="modal-form">
+        <input type="hidden" id="cap-photo-id">
+        <div class="form-group"><label class="form-label" for="cap-text">Légende</label><input class="form-input" id="cap-text" placeholder="Ajouter une légende..."></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editCaption">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-backup" aria-hidden="true" role="dialog" aria-labelledby="modal-backup-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-backup-title">Sauvegarde / Importation</h2>
+      <div class="form-group">
+        <button type="button" class="btn-primary" id="btn-export-json">Télécharger les données (JSON)</button>
+      </div>
+
+      <div class="form-group">
+        <button type="button" class="btn-icon" id="btn-pick-backup-file">Choisir un fichier</button>
+        <div id="backup-file-name" class="table-muted" style="margin-top: 8px;">Aucun fichier sélectionné</div>
+      </div>
+
+      <input type="file" id="backup-import-file" accept="application/json" hidden>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" data-close="backup">Annuler</button>
+        <button type="button" class="btn-primary" id="btn-import-replace">Importer (remplacer)</button>
+      </div>
     </div>
   </div>
 
@@ -288,11 +845,50 @@
     </div>
   </div>
 
+  <!-- Onboarding wizard -->
+  <div class="modal-overlay" id="modal-onboarding" aria-hidden="true" role="dialog" aria-labelledby="modal-onboarding-title">
+    <div class="modal modal-onboarding" role="document">
+      <div id="onboarding-step-1" class="onboarding-step">
+        <h2 class="modal-title" id="modal-onboarding-title">🐾 Bienvenue sur VetBook !</h2>
+        <p>VetBook est votre carnet de santé animal numérique. Suivez les vaccins, déparasitages, consultations et bien plus pour tous vos compagnons.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-primary" id="onboarding-next-1">Commencer →</button>
+        </div>
+      </div>
+      <div id="onboarding-step-2" class="onboarding-step" hidden>
+        <h2 class="modal-title">🐾 Ajoutez votre premier animal</h2>
+        <form id="form-onboarding-animal" class="modal-form">
+          <div class="form-group"><label class="form-label" for="ob-name">Nom</label><input class="form-input" id="ob-name" required placeholder="Nom de votre animal"></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label" for="ob-species">Espèce</label><select class="form-input" id="ob-species"><option value="Canine">Canine</option><option value="Féline">Féline</option><option value="Autre">Autre</option></select></div>
+            <div class="form-group"><label class="form-label" for="ob-dob">Date de naissance</label><input class="form-input" id="ob-dob" type="date"></div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="onboarding-back-2">← Retour</button>
+            <button type="submit" class="btn-primary">Suivant →</button>
+          </div>
+        </form>
+      </div>
+      <div id="onboarding-step-3" class="onboarding-step" hidden>
+        <h2 class="modal-title">🔔 Notifications</h2>
+        <p>VetBook peut vous envoyer des rappels pour les vaccins et déparasitages de vos animaux.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" id="onboarding-skip">Ignorer</button>
+          <button type="button" class="btn-primary" id="onboarding-enable-notif">Activer les notifications</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Agrandir la photo">
     <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Fermer">✕</button>
     <img id="lightbox-img" src="" alt="">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
   </div>
+
+  <!-- Vaccine suggestions datalist -->
+  <datalist id="vaccine-suggestions"></datalist>
 
   <script src="app.js"></script>
 </body>
