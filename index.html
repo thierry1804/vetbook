@@ -70,11 +70,17 @@
       <button type="button" class="tab" data-tab="photos" role="tab">📷 <span class="tab-label">Photos</span></button>
       <button type="button" class="tab" data-tab="vaccins" role="tab">💉 <span class="tab-label">Vaccins</span></button>
       <button type="button" class="tab" data-tab="deworming" role="tab">🪱 <span class="tab-label">Déparas.</span></button>
+      <button type="button" class="tab" data-tab="hygiene" role="tab">🧼 <span class="tab-label">Hygiène</span></button>
       <button type="button" class="tab" data-tab="consultations" role="tab">🩺 <span class="tab-label">Consult.</span></button>
       <button type="button" class="tab" data-tab="medications" role="tab">💊 <span class="tab-label">Médic.</span></button>
+      <button type="button" class="tab" data-tab="nutrition" role="tab">🍽️ <span class="tab-label">Repas</span></button>
+      <button type="button" class="tab" data-tab="activites" role="tab">🏃 <span class="tab-label">Activités</span></button>
+      <button type="button" class="tab" data-tab="chaleurs" role="tab">🌡️ <span class="tab-label">Chaleurs</span></button>
       <button type="button" class="tab" data-tab="journal" role="tab">📝 <span class="tab-label">Journal</span></button>
+      <button type="button" class="tab" data-tab="checkup" role="tab">🩻 <span class="tab-label">Check-up</span></button>
       <button type="button" class="tab" data-tab="alertes" role="tab">🔔 <span class="tab-label">Alertes</span></button>
       <button type="button" class="tab" data-tab="calendrier" role="tab">📅 <span class="tab-label">Calendrier</span></button>
+      <button type="button" class="tab" data-tab="annuaire" role="tab">📞 <span class="tab-label">Annuaire</span></button>
       <button type="button" class="tab" data-tab="historique" role="tab">📋 <span class="tab-label">Historique</span></button>
     </nav>
 
@@ -156,6 +162,14 @@
           <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
         </div>
       </article>
+
+      <!-- Pedigree card -->
+      <article class="owner-card" id="pedigree-card"></article>
+
+      <!-- Quick check-up shortcut -->
+      <div class="checkup-shortcut">
+        <button type="button" class="btn-icon" onclick="app.switchTab('checkup')">🩻 Check-up rapide</button>
+      </div>
 
       <!-- Active medications badge area -->
       <div class="active-meds-summary" id="active-meds-summary" hidden>
@@ -335,6 +349,102 @@
       </div>
     </section>
 
+    <!-- Section Hygiène -->
+    <section id="section-hygiene" class="section" role="tabpanel" hidden>
+      <div class="data-table">
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">🧼 Soins d'Hygiène</h2>
+            <div class="table-controls" role="group" aria-label="Filtres hygiène">
+              <div class="table-control">
+                <label for="hygiene-search">Recherche</label>
+                <input id="hygiene-search" class="table-input" type="search" placeholder="type ou notes">
+              </div>
+              <div class="table-control">
+                <label for="hygiene-status-filter">Statut</label>
+                <select id="hygiene-status-filter" class="table-select">
+                  <option value="all">Tous</option>
+                  <option value="ok">À jour</option>
+                  <option value="soon">Bientôt</option>
+                  <option value="overdue">En retard</option>
+                </select>
+              </div>
+              <div class="table-control">
+                <label for="hygiene-sort">Tri</label>
+                <select id="hygiene-sort" class="table-select">
+                  <option value="nextAsc">Prochain rappel</option>
+                  <option value="nextDesc">Prochain rappel (inverse)</option>
+                  <option value="dateDesc" selected>Date (récentes)</option>
+                  <option value="dateAsc">Date (anciennes)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-icon" onclick="app.openModal('addHygiene')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="hygiene-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Nutrition -->
+    <section id="section-nutrition" class="section" role="tabpanel" hidden>
+      <div id="nutrition-content"></div>
+    </section>
+
+    <!-- Section Activités -->
+    <section id="section-activites" class="section" role="tabpanel" hidden>
+      <div class="stats-grid" id="activity-stats"></div>
+      <div class="data-table">
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">🏃 Activités Physiques</h2>
+          </div>
+          <button type="button" class="btn-icon" onclick="app.openModal('addActivity')">+ Ajouter</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Durée</th><th>Distance</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="activity-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Chaleurs -->
+    <section id="section-chaleurs" class="section" role="tabpanel" hidden>
+      <div id="heat-na-message" class="alert-banner alert-info" hidden>
+        <span>ℹ️</span> Suivi des chaleurs non applicable (mâle ou animal stérilisé).
+      </div>
+      <div id="heat-cycles-content" hidden>
+        <div id="heat-prediction"></div>
+        <div class="data-table">
+          <div class="table-header">
+            <div class="table-header-left">
+              <h2 class="section-title">🌡️ Périodes de Chaleur</h2>
+            </div>
+            <button type="button" class="btn-icon" onclick="app.openModal('addHeatCycle')">+ Ajouter</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Début</th><th>Fin</th><th>Durée</th><th>Intensité</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="heat-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Check-up -->
+    <section id="section-checkup" class="section" role="tabpanel" hidden>
+      <h2 class="section-title">🩻 Check-up Rapide</h2>
+      <div id="checkup-content"></div>
+    </section>
+
     <!-- Section Journal / Notes -->
     <section id="section-journal" class="section" role="tabpanel" hidden>
       <div class="journal-header">
@@ -391,6 +501,25 @@
       </div>
     </section>
 
+    <!-- Section Annuaire -->
+    <section id="section-annuaire" class="section" role="tabpanel" hidden>
+      <div class="data-table">
+        <div class="table-header">
+          <div class="table-header-left">
+            <h2 class="section-title">📞 Annuaire Vétérinaires</h2>
+            <div class="table-controls">
+              <div class="table-control">
+                <label for="vet-search">Recherche</label>
+                <input id="vet-search" class="table-input" type="search" placeholder="nom, clinique...">
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-icon" onclick="app.openModal('addVetContact')">+ Ajouter</button>
+        </div>
+        <div id="vet-directory-content"></div>
+      </div>
+    </section>
+
     <!-- Section Calendrier -->
     <section id="section-calendrier" class="section" role="tabpanel" hidden>
       <div class="calendar-wrapper">
@@ -402,6 +531,9 @@
         <div class="calendar-legend">
           <span class="cal-legend-item"><span class="cal-dot cal-dot-vaccine"></span> Vaccin</span>
           <span class="cal-legend-item"><span class="cal-dot cal-dot-deworming"></span> Déparasitage</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-hygiene"></span> Hygiène</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-activity"></span> Activité</span>
+          <span class="cal-legend-item"><span class="cal-dot cal-dot-heat"></span> Chaleurs</span>
           <span class="cal-legend-item"><span class="cal-dot cal-dot-birthday"></span> Anniversaire</span>
           <span class="cal-legend-item"><span class="cal-dot cal-dot-consult"></span> Consultation</span>
         </div>
@@ -420,8 +552,12 @@
             <option value="all" selected>Tout</option>
             <option value="vaccins">Vaccins</option>
             <option value="deworming">Déparasitage</option>
+            <option value="hygiene">Hygiène</option>
             <option value="weight">Pesées</option>
             <option value="consultations">Consultations</option>
+            <option value="nutrition">Repas</option>
+            <option value="activities">Activités</option>
+            <option value="chaleurs">Chaleurs</option>
             <option value="journal">Notes</option>
           </select>
         </div>
@@ -440,6 +576,9 @@
     <div class="fab-menu" id="fab-menu" hidden>
       <button type="button" class="fab-action" data-fab="vaccin" title="Vaccin">💉</button>
       <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage">🪱</button>
+      <button type="button" class="fab-action" data-fab="hygiene" title="Hygiène">🧼</button>
+      <button type="button" class="fab-action" data-fab="meal" title="Repas">🍽️</button>
+      <button type="button" class="fab-action" data-fab="activity" title="Activité">🏃</button>
       <button type="button" class="fab-action" data-fab="photo" title="Photo">📷</button>
       <button type="button" class="fab-action" data-fab="weight" title="Pesée">⚖️</button>
       <button type="button" class="fab-action" data-fab="consult" title="Consultation">🩺</button>
@@ -800,6 +939,327 @@
     </div>
   </div>
 
+  <!-- Hygiene modals -->
+  <div class="modal-overlay" id="modal-addHygiene" aria-hidden="true" role="dialog" aria-labelledby="modal-addHygiene-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addHygiene-title">🧼 Ajouter un Soin d'Hygiène</h2>
+      <form id="form-add-hygiene" class="modal-form">
+        <div class="form-group"><label class="form-label" for="hy-type">Type de soin</label>
+          <select class="form-input" id="hy-type">
+            <option value="Brossage dents">Brossage dents</option><option value="Coupe griffes">Coupe griffes</option>
+            <option value="Bain">Bain</option><option value="Toilettage">Toilettage</option>
+            <option value="Nettoyage oreilles">Nettoyage oreilles</option><option value="Nettoyage yeux">Nettoyage yeux</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="hy-date">Date</label><input class="form-input" id="hy-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="hy-next">Rappel</label><input class="form-input" id="hy-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="hy-frequency">Fréquence (jours)</label><input class="form-input" id="hy-frequency" type="number" min="1" step="1" placeholder="ex: 30"></div>
+        <div class="quick-date-btns" data-target="hy-next" data-source="hy-date">
+          <button type="button" class="btn-quick-date" data-days="7">+1 sem</button>
+          <button type="button" class="btn-quick-date" data-days="14">+2 sem</button>
+          <button type="button" class="btn-quick-date" data-days="30">+1 mois</button>
+          <button type="button" class="btn-quick-date" data-days="90">+3 mois</button>
+        </div>
+        <div class="form-group"><label class="form-label" for="hy-notes">Notes</label><textarea class="form-input" id="hy-notes" rows="2" placeholder="Observations..."></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addHygiene">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editHygiene" aria-hidden="true" role="dialog" aria-labelledby="modal-editHygiene-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editHygiene-title">🧼 Modifier un Soin d'Hygiène</h2>
+      <form id="form-edit-hygiene" class="modal-form">
+        <div class="form-group"><label class="form-label" for="ehy-type">Type de soin</label>
+          <select class="form-input" id="ehy-type">
+            <option value="Brossage dents">Brossage dents</option><option value="Coupe griffes">Coupe griffes</option>
+            <option value="Bain">Bain</option><option value="Toilettage">Toilettage</option>
+            <option value="Nettoyage oreilles">Nettoyage oreilles</option><option value="Nettoyage yeux">Nettoyage yeux</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ehy-date">Date</label><input class="form-input" id="ehy-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ehy-next">Rappel</label><input class="form-input" id="ehy-next" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ehy-frequency">Fréquence (jours)</label><input class="form-input" id="ehy-frequency" type="number" min="1" step="1"></div>
+        <div class="form-group"><label class="form-label" for="ehy-notes">Notes</label><textarea class="form-input" id="ehy-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editHygiene">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Heat cycle modals -->
+  <div class="modal-overlay" id="modal-addHeatCycle" aria-hidden="true" role="dialog" aria-labelledby="modal-addHeatCycle-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addHeatCycle-title">🌡️ Ajouter une Période de Chaleur</h2>
+      <form id="form-add-heat-cycle" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="hc-start">Date début</label><input class="form-input" id="hc-start" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="hc-end">Date fin</label><input class="form-input" id="hc-end" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="hc-intensity">Intensité</label>
+          <select class="form-input" id="hc-intensity"><option value="Faible">Faible</option><option value="Moyenne" selected>Moyenne</option><option value="Forte">Forte</option></select>
+        </div>
+        <div class="form-group"><label class="form-label" for="hc-notes">Notes</label><textarea class="form-input" id="hc-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addHeatCycle">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editHeatCycle" aria-hidden="true" role="dialog" aria-labelledby="modal-editHeatCycle-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editHeatCycle-title">🌡️ Modifier une Période de Chaleur</h2>
+      <form id="form-edit-heat-cycle" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ehc-start">Date début</label><input class="form-input" id="ehc-start" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="ehc-end">Date fin</label><input class="form-input" id="ehc-end" type="date"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ehc-intensity">Intensité</label>
+          <select class="form-input" id="ehc-intensity"><option value="Faible">Faible</option><option value="Moyenne">Moyenne</option><option value="Forte">Forte</option></select>
+        </div>
+        <div class="form-group"><label class="form-label" for="ehc-notes">Notes</label><textarea class="form-input" id="ehc-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editHeatCycle">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Activity modals -->
+  <div class="modal-overlay" id="modal-addActivity" aria-hidden="true" role="dialog" aria-labelledby="modal-addActivity-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addActivity-title">🏃 Ajouter une Activité</h2>
+      <form id="form-add-activity" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="act-date">Date</label><input class="form-input" id="act-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="act-type">Type</label>
+            <select class="form-input" id="act-type">
+              <option value="Promenade">Promenade</option><option value="Course">Course</option><option value="Jeu">Jeu</option>
+              <option value="Natation">Natation</option><option value="Agility">Agility</option><option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="act-duration">Durée (min)</label><input class="form-input" id="act-duration" type="number" min="0" step="1" placeholder="ex: 30"></div>
+          <div class="form-group"><label class="form-label" for="act-distance">Distance (km)</label><input class="form-input" id="act-distance" type="number" min="0" step="0.1" placeholder="ex: 2.5"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="act-notes">Notes</label><textarea class="form-input" id="act-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addActivity">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editActivity" aria-hidden="true" role="dialog" aria-labelledby="modal-editActivity-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editActivity-title">🏃 Modifier une Activité</h2>
+      <form id="form-edit-activity" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="eact-date">Date</label><input class="form-input" id="eact-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="eact-type">Type</label>
+            <select class="form-input" id="eact-type">
+              <option value="Promenade">Promenade</option><option value="Course">Course</option><option value="Jeu">Jeu</option>
+              <option value="Natation">Natation</option><option value="Agility">Agility</option><option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="eact-duration">Durée (min)</label><input class="form-input" id="eact-duration" type="number" min="0" step="1"></div>
+          <div class="form-group"><label class="form-label" for="eact-distance">Distance (km)</label><input class="form-input" id="eact-distance" type="number" min="0" step="0.1"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="eact-notes">Notes</label><textarea class="form-input" id="eact-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editActivity">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Meal modals -->
+  <div class="modal-overlay" id="modal-addMeal" aria-hidden="true" role="dialog" aria-labelledby="modal-addMeal-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addMeal-title">🍽️ Ajouter un Repas</h2>
+      <form id="form-add-meal" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="meal-date">Date</label><input class="form-input" id="meal-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="meal-time">Heure</label><input class="form-input" id="meal-time" type="time"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="meal-type">Type</label>
+          <select class="form-input" id="meal-type">
+            <option value="Croquettes">Croquettes</option><option value="Pâtée">Pâtée</option><option value="BARF">BARF</option>
+            <option value="Ration ménagère">Ration ménagère</option><option value="Friandise">Friandise</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label" for="meal-food">Aliment</label><input class="form-input" id="meal-food" placeholder="Marque / nom de l'aliment"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="meal-quantity">Quantité</label><input class="form-input" id="meal-quantity" type="number" min="0" step="1" placeholder="ex: 200"></div>
+          <div class="form-group"><label class="form-label" for="meal-unit">Unité</label>
+            <select class="form-input" id="meal-unit"><option value="g">g</option><option value="ml">ml</option><option value="portion">portion</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="meal-notes">Notes</label><textarea class="form-input" id="meal-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addMeal">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editMeal" aria-hidden="true" role="dialog" aria-labelledby="modal-editMeal-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editMeal-title">🍽️ Modifier un Repas</h2>
+      <form id="form-edit-meal" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emeal-date">Date</label><input class="form-input" id="emeal-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="emeal-time">Heure</label><input class="form-input" id="emeal-time" type="time"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="emeal-type">Type</label>
+          <select class="form-input" id="emeal-type">
+            <option value="Croquettes">Croquettes</option><option value="Pâtée">Pâtée</option><option value="BARF">BARF</option>
+            <option value="Ration ménagère">Ration ménagère</option><option value="Friandise">Friandise</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label" for="emeal-food">Aliment</label><input class="form-input" id="emeal-food"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emeal-quantity">Quantité</label><input class="form-input" id="emeal-quantity" type="number" min="0" step="1"></div>
+          <div class="form-group"><label class="form-label" for="emeal-unit">Unité</label>
+            <select class="form-input" id="emeal-unit"><option value="g">g</option><option value="ml">ml</option><option value="portion">portion</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="emeal-notes">Notes</label><textarea class="form-input" id="emeal-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editMeal">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Nutrition plan modal -->
+  <div class="modal-overlay" id="modal-editNutritionPlan" aria-hidden="true" role="dialog" aria-labelledby="modal-editNutritionPlan-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editNutritionPlan-title">📋 Plan Nutritionnel</h2>
+      <form id="form-edit-nutrition-plan" class="modal-form">
+        <div class="form-group"><label class="form-label" for="np-food-brand">Marque d'aliment</label><input class="form-input" id="np-food-brand" placeholder="ex: Royal Canin"></div>
+        <div class="form-group"><label class="form-label" for="np-portion">Taille de portion</label><input class="form-input" id="np-portion" placeholder="ex: 200g 2x/jour"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="np-meals-per-day">Repas par jour</label><input class="form-input" id="np-meals-per-day" type="number" min="1" max="10" step="1"></div>
+          <div class="form-group"><label class="form-label" for="np-calories">Objectif calories (kcal)</label><input class="form-input" id="np-calories" type="number" min="0" step="1" placeholder="Auto si vide"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editNutritionPlan">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pedigree modal -->
+  <div class="modal-overlay" id="modal-editPedigree" aria-hidden="true" role="dialog" aria-labelledby="modal-editPedigree-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editPedigree-title">🏆 Modifier le Pedigree</h2>
+      <form id="form-edit-pedigree" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-registry">Registre</label>
+            <select class="form-input" id="ped-registry"><option value="Non inscrit">Non inscrit</option><option value="LOF">LOF</option><option value="LOMAD">LOMAD</option><option value="Autre">Autre</option></select>
+          </div>
+          <div class="form-group"><label class="form-label" for="ped-reg-number">N° Registre</label><input class="form-input" id="ped-reg-number" placeholder="N° d'inscription"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="ped-chip">N° Puce</label><input class="form-input" id="ped-chip" placeholder="N° de puce électronique"></div>
+        <h3 style="margin:12px 0 8px;font-size:0.95rem">♂ Père</h3>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-sire-name">Nom</label><input class="form-input" id="ped-sire-name"></div>
+          <div class="form-group"><label class="form-label" for="ped-sire-reg">Registre</label><input class="form-input" id="ped-sire-reg" placeholder="LOF / LOMAD..."></div>
+        </div>
+        <h3 style="margin:12px 0 8px;font-size:0.95rem">♀ Mère</h3>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-dam-name">Nom</label><input class="form-input" id="ped-dam-name"></div>
+          <div class="form-group"><label class="form-label" for="ped-dam-reg">Registre</label><input class="form-input" id="ped-dam-reg" placeholder="LOF / LOMAD..."></div>
+        </div>
+        <h3 style="margin:12px 0 8px;font-size:0.95rem">Grands-parents</h3>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-gp-ps">GP paternel ♂</label><input class="form-input" id="ped-gp-ps" placeholder="Grand-père paternel"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-pd">GP paternel ♀</label><input class="form-input" id="ped-gp-pd" placeholder="Grand-mère paternelle"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-gp-ms">GP maternel ♂</label><input class="form-input" id="ped-gp-ms" placeholder="Grand-père maternel"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-md">GP maternel ♀</label><input class="form-input" id="ped-gp-md" placeholder="Grand-mère maternelle"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editPedigree">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vet contact modals -->
+  <div class="modal-overlay" id="modal-addVetContact" aria-hidden="true" role="dialog" aria-labelledby="modal-addVetContact-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addVetContact-title">📞 Ajouter un Contact</h2>
+      <form id="form-add-vet-contact" class="modal-form">
+        <div class="form-group"><label class="form-label" for="vc-name">Nom</label><input class="form-input" id="vc-name" required placeholder="Nom du vétérinaire"></div>
+        <div class="form-group"><label class="form-label" for="vc-clinic">Clinique</label><input class="form-input" id="vc-clinic" placeholder="Nom de la clinique"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="vc-phone">Téléphone</label><input class="form-input" id="vc-phone" type="tel" placeholder="01 23 45 67 89"></div>
+          <div class="form-group"><label class="form-label" for="vc-email">Email</label><input class="form-input" id="vc-email" type="email"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="vc-address">Adresse</label><input class="form-input" id="vc-address" placeholder="Adresse complète"></div>
+        <div class="form-group"><label class="form-label" for="vc-hours">Horaires</label><input class="form-input" id="vc-hours" placeholder="ex: Lun-Ven 9h-18h"></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="vc-emergency" style="width:auto">
+          <label class="form-label" for="vc-emergency" style="margin:0">Contact d'urgence</label>
+        </div>
+        <div class="form-group"><label class="form-label" for="vc-notes">Notes</label><textarea class="form-input" id="vc-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addVetContact">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editVetContact" aria-hidden="true" role="dialog" aria-labelledby="modal-editVetContact-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editVetContact-title">📞 Modifier un Contact</h2>
+      <form id="form-edit-vet-contact" class="modal-form">
+        <div class="form-group"><label class="form-label" for="evc-name">Nom</label><input class="form-input" id="evc-name" required></div>
+        <div class="form-group"><label class="form-label" for="evc-clinic">Clinique</label><input class="form-input" id="evc-clinic"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="evc-phone">Téléphone</label><input class="form-input" id="evc-phone" type="tel"></div>
+          <div class="form-group"><label class="form-label" for="evc-email">Email</label><input class="form-input" id="evc-email" type="email"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="evc-address">Adresse</label><input class="form-input" id="evc-address"></div>
+        <div class="form-group"><label class="form-label" for="evc-hours">Horaires</label><input class="form-input" id="evc-hours"></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="evc-emergency" style="width:auto">
+          <label class="form-label" for="evc-emergency" style="margin:0">Contact d'urgence</label>
+        </div>
+        <div class="form-group"><label class="form-label" for="evc-notes">Notes</label><textarea class="form-input" id="evc-notes" rows="2"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editVetContact">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-backup" aria-hidden="true" role="dialog" aria-labelledby="modal-backup-title">
     <div class="modal" role="document" aria-modal="true">
       <h2 class="modal-title" id="modal-backup-title">Sauvegarde / Importation</h2>
@@ -890,6 +1350,7 @@
   <!-- Vaccine suggestions datalist -->
   <datalist id="vaccine-suggestions"></datalist>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

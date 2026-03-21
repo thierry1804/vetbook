@@ -100,13 +100,21 @@
     consultations: [],
     medications: [],
     notes: [],
+    hygiene: [],
+    heatCycles: [],
+    activities: [],
+    nutrition: { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } },
+    pedigree: { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } },
     notifications: {
       vaccineReminder: true,
       dewormingReminder: true,
+      hygieneReminder: true,
       birthdayReminder: true,
       monthlySummary: false
     }
   };
+
+  var VET_DIRECTORY_KEY = 'vetbook_vet_directory';
 
   // Vaccine suggestions by species
   var VACCINE_DB = {
@@ -140,6 +148,11 @@
     editMedicationId: null,
     editNoteId: null,
     editCaptionPhotoId: null,
+    editHygieneId: null,
+    editHeatCycleId: null,
+    editActivityId: null,
+    editMealId: null,
+    editVetContactId: null,
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth()
   };
@@ -247,7 +260,16 @@
         if (!Array.isArray(a.consultations)) a.consultations = [];
         if (!Array.isArray(a.medications)) a.medications = [];
         if (!Array.isArray(a.notes)) a.notes = [];
+        if (!Array.isArray(a.hygiene)) a.hygiene = [];
+        if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
+        if (!Array.isArray(a.activities)) a.activities = [];
+        if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } };
+        if (!Array.isArray(a.nutrition.meals)) a.nutrition.meals = [];
+        if (!a.nutrition.dailyPlan) a.nutrition.dailyPlan = { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' };
+        if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } };
         if (!a.animal.themeColor) a.animal.themeColor = '';
+        if (!a.notifications) a.notifications = {};
+        if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
       });
       return true;
     } catch (e) {
@@ -283,7 +305,11 @@
       var dt = isoToLocalDate(x.next);
       return x.next && dt && dt >= todayMid;
     })).length;
-    return v + d;
+    var h = ((data.hygiene || []).filter(function (x) {
+      var dt = isoToLocalDate(x.next);
+      return x.next && dt && dt >= todayMid;
+    })).length;
+    return v + d + h;
   }
 
   // ——— Photos : IndexedDB ——————————————————————————————
@@ -508,6 +534,13 @@
       data.dewormings.forEach(function (d) {
         if (!d.next) return;
         var dt = isoToLocalDate(d.next);
+        if (!dt) return;
+        if (dt < todayMid) overdueCount++;
+        else if (dt <= weekLater) upcomingCount++;
+      });
+      (data.hygiene || []).forEach(function (h) {
+        if (!h.next) return;
+        var dt = isoToLocalDate(h.next);
         if (!dt) return;
         if (dt < todayMid) overdueCount++;
         else if (dt <= weekLater) upcomingCount++;
@@ -828,7 +861,6 @@
     draw();
   }
 
-  // ——— QR Code (simple SVG-based) ————————————————————————
   function renderQRCode(data) {
     var section = document.getElementById('qr-section');
     var canvas = document.getElementById('qr-canvas');
@@ -837,69 +869,48 @@
     var a = data.animal;
     var o = data.owner;
     if (!a.name && !a.chip) { section.hidden = true; return; }
+    if (typeof qrcode === 'undefined') { section.hidden = true; return; }
 
     section.hidden = false;
-    var text = [
-      a.name ? 'Nom: ' + a.name : '',
-      a.species ? 'Espèce: ' + a.species : '',
-      a.race ? 'Race: ' + a.race : '',
-      a.chip ? 'Puce: ' + a.chip : '',
-      o.phone ? 'Tel: ' + o.phone : ''
-    ].filter(Boolean).join('\n');
+    // Plain text with all animal info
+    var lines = [];
+    if (a.name) lines.push('Nom: ' + a.name);
+    if (a.species) lines.push('Espece: ' + a.species);
+    if (a.race) lines.push('Race: ' + a.race);
+    if (a.sex) lines.push('Sexe: ' + a.sex);
+    if (a.dob) lines.push('Naissance: ' + fmtDate(a.dob));
+    if (a.weight) lines.push('Poids: ' + a.weight + ' kg');
+    if (a.color) lines.push('Couleur: ' + a.color);
+    if (a.chip) lines.push('Puce: ' + a.chip);
+    if (a.sterilise && a.sterilise !== 'Non') lines.push('Sterilise: ' + a.sterilise);
+    if (a.notes) lines.push('Notes: ' + a.notes);
+    var text = lines.join('\n');
 
-    // Simple text-to-visual encoding (not a real QR, but a visual pattern)
-    var ctx = canvas.getContext('2d');
-    var size = 200;
-    canvas.width = size;
-    canvas.height = size;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-
-    // Generate deterministic pattern from text hash
-    var hash = 0;
-    for (var i = 0; i < text.length; i++) {
-      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    }
-
-    var modules = 21;
-    var cellSize = Math.floor(size / modules);
-    var offset = Math.floor((size - modules * cellSize) / 2);
-    ctx.fillStyle = '#000000';
-
-    // Draw finder patterns
-    function drawFinder(ox, oy) {
-      for (var r = 0; r < 7; r++) {
-        for (var c = 0; c < 7; c++) {
-          var fill = (r === 0 || r === 6 || c === 0 || c === 6 ||
-                     (r >= 2 && r <= 4 && c >= 2 && c <= 4));
-          if (fill) {
-            ctx.fillRect(offset + (ox + c) * cellSize, offset + (oy + r) * cellSize, cellSize, cellSize);
+    try {
+      var qr = qrcode(0, 'M');
+      qr.addData(text);
+      qr.make();
+      var modules = qr.getModuleCount();
+      var cellSize = Math.max(6, Math.floor(300 / modules));
+      var margin = cellSize * 4;
+      var totalSize = cellSize * modules + margin * 2;
+      canvas.width = totalSize;
+      canvas.height = totalSize;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, totalSize, totalSize);
+      ctx.fillStyle = '#000000';
+      for (var r = 0; r < modules; r++) {
+        for (var c = 0; c < modules; c++) {
+          if (qr.isDark(r, c)) {
+            ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
           }
         }
       }
+    } catch (e) {
+      console.warn('VetBook: QR generation failed', e);
+      section.hidden = true;
     }
-    drawFinder(0, 0);
-    drawFinder(modules - 7, 0);
-    drawFinder(0, modules - 7);
-
-    // Fill data area with pseudo-random pattern based on text
-    var seed = Math.abs(hash);
-    for (var row = 0; row < modules; row++) {
-      for (var col = 0; col < modules; col++) {
-        // Skip finder areas
-        if ((row < 8 && col < 8) || (row < 8 && col >= modules - 8) || (row >= modules - 8 && col < 8)) continue;
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        if (seed % 3 === 0) {
-          ctx.fillRect(offset + col * cellSize, offset + row * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-
-    // Add text label below
-    ctx.fillStyle = '#666';
-    ctx.font = '9px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(a.name || 'VetBook', size / 2, size - 4);
   }
 
   // ——— Animal select ——————————————————————————————————————
@@ -1064,6 +1075,134 @@
       document.getElementById('en-category').value = n.category || 'autre';
       document.getElementById('en-title').value = n.title || '';
       document.getElementById('en-content').value = n.content || '';
+    }
+
+    // Hygiene modals
+    if (name === 'addHygiene') {
+      document.getElementById('hy-type').value = HYGIENE_TYPES[0];
+      document.getElementById('hy-date').value = todayISO();
+      document.getElementById('hy-next').value = '';
+      document.getElementById('hy-frequency').value = '';
+      document.getElementById('hy-notes').value = '';
+    }
+    if (name === 'editHygiene') {
+      var hid = uiState.editHygieneId;
+      var hEntry = Array.isArray(data.hygiene) ? data.hygiene.find(function (x) { return x.id === hid; }) : null;
+      if (!hEntry) return;
+      document.getElementById('ehy-type').value = hEntry.type || HYGIENE_TYPES[0];
+      document.getElementById('ehy-date').value = hEntry.date || '';
+      document.getElementById('ehy-next').value = hEntry.next || '';
+      document.getElementById('ehy-frequency').value = hEntry.frequencyDays != null ? String(hEntry.frequencyDays) : '';
+      document.getElementById('ehy-notes').value = hEntry.notes || '';
+    }
+
+    // Heat cycle modals
+    if (name === 'addHeatCycle') {
+      document.getElementById('hc-start').value = todayISO();
+      document.getElementById('hc-end').value = '';
+      document.getElementById('hc-intensity').value = 'Moyenne';
+      document.getElementById('hc-notes').value = '';
+    }
+    if (name === 'editHeatCycle') {
+      var hcid = uiState.editHeatCycleId;
+      var hcEntry = Array.isArray(data.heatCycles) ? data.heatCycles.find(function (x) { return x.id === hcid; }) : null;
+      if (!hcEntry) return;
+      document.getElementById('ehc-start').value = hcEntry.startDate || '';
+      document.getElementById('ehc-end').value = hcEntry.endDate || '';
+      document.getElementById('ehc-intensity').value = hcEntry.intensity || 'Moyenne';
+      document.getElementById('ehc-notes').value = hcEntry.notes || '';
+    }
+
+    // Activity modals
+    if (name === 'addActivity') {
+      document.getElementById('act-date').value = todayISO();
+      document.getElementById('act-type').value = ACTIVITY_TYPES[0];
+      document.getElementById('act-duration').value = '';
+      document.getElementById('act-distance').value = '';
+      document.getElementById('act-notes').value = '';
+    }
+    if (name === 'editActivity') {
+      var aid = uiState.editActivityId;
+      var aEntry = Array.isArray(data.activities) ? data.activities.find(function (x) { return x.id === aid; }) : null;
+      if (!aEntry) return;
+      document.getElementById('eact-date').value = aEntry.date || '';
+      document.getElementById('eact-type').value = aEntry.type || ACTIVITY_TYPES[0];
+      document.getElementById('eact-duration').value = aEntry.duration || '';
+      document.getElementById('eact-distance').value = aEntry.distance || '';
+      document.getElementById('eact-notes').value = aEntry.notes || '';
+    }
+
+    // Meal modals
+    if (name === 'addMeal') {
+      document.getElementById('meal-date').value = todayISO();
+      document.getElementById('meal-time').value = '';
+      document.getElementById('meal-type').value = MEAL_TYPES[0];
+      document.getElementById('meal-food').value = '';
+      document.getElementById('meal-quantity').value = '';
+      document.getElementById('meal-unit').value = 'g';
+      document.getElementById('meal-notes').value = '';
+    }
+    if (name === 'editMeal') {
+      var mealId = uiState.editMealId;
+      var mealEntry = data.nutrition && Array.isArray(data.nutrition.meals) ? data.nutrition.meals.find(function (x) { return x.id === mealId; }) : null;
+      if (!mealEntry) return;
+      document.getElementById('emeal-date').value = mealEntry.date || '';
+      document.getElementById('emeal-time').value = mealEntry.time || '';
+      document.getElementById('emeal-type').value = mealEntry.type || MEAL_TYPES[0];
+      document.getElementById('emeal-food').value = mealEntry.food || '';
+      document.getElementById('emeal-quantity').value = mealEntry.quantity || '';
+      document.getElementById('emeal-unit').value = mealEntry.unit || 'g';
+      document.getElementById('emeal-notes').value = mealEntry.notes || '';
+    }
+    if (name === 'editNutritionPlan') {
+      var nPlan = data.nutrition ? data.nutrition.dailyPlan || {} : {};
+      document.getElementById('np-calories').value = nPlan.targetCalories || '';
+      document.getElementById('np-meals-per-day').value = nPlan.mealsPerDay || '';
+      document.getElementById('np-food-brand').value = nPlan.foodBrand || '';
+      document.getElementById('np-portion').value = nPlan.portionSize || '';
+    }
+
+    // Pedigree modal
+    if (name === 'editPedigree') {
+      var ped = data.pedigree || {};
+      document.getElementById('ped-registry').value = ped.registry || 'Non inscrit';
+      document.getElementById('ped-reg-number').value = ped.registryNumber || '';
+      document.getElementById('ped-chip').value = ped.chipNumber || data.animal.chip || '';
+      document.getElementById('ped-sire-name').value = (ped.sire && ped.sire.name) || '';
+      document.getElementById('ped-sire-reg').value = (ped.sire && ped.sire.registry) || '';
+      document.getElementById('ped-dam-name').value = (ped.dam && ped.dam.name) || '';
+      document.getElementById('ped-dam-reg').value = (ped.dam && ped.dam.registry) || '';
+      var gpd = ped.grandparents || {};
+      document.getElementById('ped-gp-ps').value = gpd.paternalGrandsire || '';
+      document.getElementById('ped-gp-pd').value = gpd.paternalGranddam || '';
+      document.getElementById('ped-gp-ms').value = gpd.maternalGrandsire || '';
+      document.getElementById('ped-gp-md').value = gpd.maternalGranddam || '';
+    }
+
+    // Vet contact modals
+    if (name === 'addVetContact') {
+      document.getElementById('vc-name').value = '';
+      document.getElementById('vc-clinic').value = '';
+      document.getElementById('vc-phone').value = '';
+      document.getElementById('vc-email').value = '';
+      document.getElementById('vc-address').value = '';
+      document.getElementById('vc-hours').value = '';
+      document.getElementById('vc-emergency').checked = false;
+      document.getElementById('vc-notes').value = '';
+    }
+    if (name === 'editVetContact') {
+      var dir = loadVetDirectory();
+      var vcid = uiState.editVetContactId;
+      var vcEntry = dir.entries.find(function (e) { return e.id === vcid; });
+      if (!vcEntry) return;
+      document.getElementById('evc-name').value = vcEntry.name || '';
+      document.getElementById('evc-clinic').value = vcEntry.clinic || '';
+      document.getElementById('evc-phone').value = vcEntry.phone || '';
+      document.getElementById('evc-email').value = vcEntry.email || '';
+      document.getElementById('evc-address').value = vcEntry.address || '';
+      document.getElementById('evc-hours').value = vcEntry.hours || '';
+      document.getElementById('evc-emergency').checked = !!vcEntry.emergency;
+      document.getElementById('evc-notes').value = vcEntry.notes || '';
     }
 
     if (name === 'editCaption') {
@@ -1972,6 +2111,795 @@
     showToast('Note modifiée', 'success');
   }
 
+  // ——— Hygiene ————————————————————————————————————————
+  var HYGIENE_TYPES = ['Brossage dents', 'Coupe griffes', 'Bain', 'Toilettage', 'Nettoyage oreilles', 'Nettoyage yeux'];
+
+  function renderHygiene() {
+    var data = getCurrent();
+    var tbody = document.getElementById('hygiene-table');
+    if (!data || !tbody) return;
+
+    var searchQ = (document.getElementById('hygiene-search')?.value || '').toLowerCase().trim();
+    var statusFilter = document.getElementById('hygiene-status-filter')?.value || 'all';
+    var sortBy = document.getElementById('hygiene-sort')?.value || 'dateDesc';
+    var list = Array.isArray(data.hygiene) ? data.hygiene.slice() : [];
+
+    if (searchQ) {
+      list = list.filter(function (h) {
+        return (h.type || '').toLowerCase().includes(searchQ) || (h.notes || '').toLowerCase().includes(searchQ) || (h.date || '').includes(searchQ);
+      });
+    }
+    if (statusFilter !== 'all') {
+      list = list.filter(function (h) {
+        var st = h.next ? getStatus(h.next) : null;
+        if (!st) return false;
+        if (statusFilter === 'ok') return st.cls === 'status-ok';
+        if (statusFilter === 'soon') return st.cls === 'status-soon';
+        if (statusFilter === 'overdue') return st.cls === 'status-overdue';
+        return true;
+      });
+    }
+    list.sort(function (a, b) {
+      var nextA = a.next ? (isoToLocalDate(a.next) ? isoToLocalDate(a.next).getTime() : Infinity) : Infinity;
+      var nextB = b.next ? (isoToLocalDate(b.next) ? isoToLocalDate(b.next).getTime() : Infinity) : Infinity;
+      var dateA = a.date ? (isoToLocalDate(a.date) ? isoToLocalDate(a.date).getTime() : Infinity) : Infinity;
+      var dateB = b.date ? (isoToLocalDate(b.date) ? isoToLocalDate(b.date).getTime() : Infinity) : Infinity;
+      if (sortBy === 'nextAsc') return nextA - nextB;
+      if (sortBy === 'nextDesc') return nextB - nextA;
+      if (sortBy === 'dateAsc') return dateA - dateB;
+      return dateB - dateA;
+    });
+
+    if (list.length === 0 && !searchQ && statusFilter === 'all') {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🧼</text></svg><p>Aucun soin d\'hygiène enregistré</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = list.map(function (h) {
+        var st = h.next ? getStatus(h.next) : null;
+        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
+        var rel = h.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(h.next)) + '</span>' : '';
+        return '<tr><td>' + fmtDate(h.date) + '</td>' +
+          '<td><strong>' + escapeHtml(h.type || '') + '</strong>' + (h.notes ? '<br><span class="table-muted">' + escapeHtml(h.notes) + '</span>' : '') + '</td>' +
+          '<td>' + fmtDate(h.next) + rel + '</td>' +
+          '<td>' + stHtml + '</td>' +
+          '<td><button type="button" class="btn-edit" data-hygiene-id="' + h.id + '">Modifier</button> <button type="button" class="btn-delete" data-hygiene-id="' + h.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer ce soin ?')) return;
+        var id = parseInt(btn.getAttribute('data-hygiene-id'), 10);
+        data.hygiene = data.hygiene.filter(function (h) { return h.id !== id; });
+        saveState(); renderHygiene(); renderProfile();
+        showToast('Soin supprimé', 'success');
+      });
+    });
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editHygieneId = parseInt(btn.getAttribute('data-hygiene-id'), 10);
+        openModal('editHygiene');
+      });
+    });
+  }
+
+  function addHygiene() {
+    var type = document.getElementById('hy-type').value;
+    var date = document.getElementById('hy-date').value;
+    if (!type || !date) { showToast('Type et date sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.hygiene)) data.hygiene = [];
+
+    var freqVal = document.getElementById('hy-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('hy-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+
+    data.hygiene.push({
+      id: state.nextId++, type: type, date: date, next: computedNext || manualNext,
+      frequencyDays: !isNaN(freqDays) && freqDays > 0 ? freqDays : '',
+      notes: document.getElementById('hy-notes').value.trim()
+    });
+    closeModal('addHygiene');
+    saveState(); renderHygiene(); renderProfile();
+    showToast('Soin ajouté', 'success');
+  }
+
+  function updateHygieneEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editHygieneId;
+    var h = Array.isArray(data.hygiene) ? data.hygiene.find(function (x) { return x.id === id; }) : null;
+    if (!h) return;
+
+    var type = document.getElementById('ehy-type').value;
+    var date = document.getElementById('ehy-date').value;
+    if (!type || !date) { showToast('Type et date sont requis.', 'error'); return; }
+
+    var freqVal = document.getElementById('ehy-frequency')?.value;
+    var freqDays = freqVal ? parseInt(freqVal, 10) : NaN;
+    var manualNext = document.getElementById('ehy-next').value || '';
+    var computedNext = !isNaN(freqDays) && freqDays > 0 ? addDaysISO(date, freqDays) : '';
+
+    h.type = type; h.date = date; h.next = computedNext || manualNext;
+    h.frequencyDays = !isNaN(freqDays) && freqDays > 0 ? freqDays : '';
+    h.notes = document.getElementById('ehy-notes').value.trim();
+
+    closeModal('editHygiene');
+    uiState.editHygieneId = null;
+    saveState(); refreshAll();
+    showToast('Soin modifié', 'success');
+  }
+
+  // ——— Heat Cycles ————————————————————————————————————————
+  function renderHeatCycles() {
+    var data = getCurrent();
+    var section = document.getElementById('section-chaleurs');
+    if (!data || !section) return;
+
+    var container = document.getElementById('heat-cycles-content');
+    var naMsg = document.getElementById('heat-na-message');
+    if (!container || !naMsg) return;
+
+    var isFemaleIntact = data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui';
+    container.hidden = !isFemaleIntact;
+    naMsg.hidden = isFemaleIntact;
+    if (!isFemaleIntact) return;
+
+    var tbody = document.getElementById('heat-table');
+    if (!tbody) return;
+
+    var list = Array.isArray(data.heatCycles) ? data.heatCycles.slice() : [];
+    list.sort(function (a, b) { return new Date(b.startDate) - new Date(a.startDate); });
+
+    // Predictive logic
+    var predictionHtml = '';
+    var sorted = list.slice().sort(function (a, b) { return new Date(a.startDate) - new Date(b.startDate); });
+    var avgCycle = 180;
+    if (sorted.length >= 2) {
+      var gaps = [];
+      for (var i = 1; i < sorted.length; i++) {
+        var diff = Math.round((new Date(sorted[i].startDate) - new Date(sorted[i - 1].startDate)) / 864e5);
+        if (diff > 0) gaps.push(diff);
+      }
+      if (gaps.length > 0) avgCycle = Math.round(gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length);
+    }
+    if (sorted.length > 0) {
+      var lastStart = sorted[sorted.length - 1].startDate;
+      var nextPredicted = addDaysISO(lastStart, avgCycle);
+      var rel = relativeDate(nextPredicted);
+      predictionHtml = '<div class="heat-prediction-banner"><span>🔮</span> Prochaines chaleurs estimées : <strong>' + fmtDate(nextPredicted) + '</strong> (' + escapeHtml(rel) + ') — cycle moyen : ' + avgCycle + ' jours</div>';
+    }
+
+    var predEl = document.getElementById('heat-prediction');
+    if (predEl) predEl.innerHTML = predictionHtml;
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🌡️</text></svg><p>Aucune période enregistrée</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = list.map(function (c) {
+        var duration = '';
+        if (c.startDate && c.endDate) {
+          var days = Math.round((new Date(c.endDate) - new Date(c.startDate)) / 864e5);
+          duration = days + ' jours';
+        }
+        return '<tr><td>' + fmtDate(c.startDate) + '</td>' +
+          '<td>' + fmtDate(c.endDate) + '</td>' +
+          '<td>' + escapeHtml(duration) + '</td>' +
+          '<td>' + escapeHtml(c.intensity || '') + '</td>' +
+          '<td>' + escapeHtml(c.notes || '') + '</td>' +
+          '<td><button type="button" class="btn-edit" data-heat-id="' + c.id + '">Modifier</button> <button type="button" class="btn-delete" data-heat-id="' + c.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer cette période ?')) return;
+        var id = parseInt(btn.getAttribute('data-heat-id'), 10);
+        data.heatCycles = data.heatCycles.filter(function (c) { return c.id !== id; });
+        saveState(); renderHeatCycles();
+        showToast('Période supprimée', 'success');
+      });
+    });
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editHeatCycleId = parseInt(btn.getAttribute('data-heat-id'), 10);
+        openModal('editHeatCycle');
+      });
+    });
+  }
+
+  function addHeatCycle() {
+    var startDate = document.getElementById('hc-start').value;
+    if (!startDate) { showToast('Date de début requise.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.heatCycles)) data.heatCycles = [];
+
+    data.heatCycles.push({
+      id: state.nextId++, startDate: startDate,
+      endDate: document.getElementById('hc-end').value || '',
+      intensity: document.getElementById('hc-intensity').value || 'Moyenne',
+      notes: document.getElementById('hc-notes').value.trim()
+    });
+    closeModal('addHeatCycle');
+    saveState(); renderHeatCycles();
+    showToast('Période ajoutée', 'success');
+  }
+
+  function updateHeatCycleEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editHeatCycleId;
+    var c = Array.isArray(data.heatCycles) ? data.heatCycles.find(function (x) { return x.id === id; }) : null;
+    if (!c) return;
+
+    var startDate = document.getElementById('ehc-start').value;
+    if (!startDate) { showToast('Date de début requise.', 'error'); return; }
+
+    c.startDate = startDate;
+    c.endDate = document.getElementById('ehc-end').value || '';
+    c.intensity = document.getElementById('ehc-intensity').value || 'Moyenne';
+    c.notes = document.getElementById('ehc-notes').value.trim();
+
+    closeModal('editHeatCycle');
+    uiState.editHeatCycleId = null;
+    saveState(); refreshAll();
+    showToast('Période modifiée', 'success');
+  }
+
+  // ——— Check-up rapide ————————————————————————————————————
+  var CHECKUP_QUESTIONS = [
+    { key: 'appetite', label: 'Appétit', icon: '🍽️', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'energy', label: 'Énergie', icon: '⚡', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'hydration', label: 'Hydratation', icon: '💧', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'coat', label: 'Pelage', icon: '✨', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'eyes', label: 'Yeux', icon: '👁️', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'ears', label: 'Oreilles', icon: '👂', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'gums', label: 'Gencives', icon: '🦷', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'mobility', label: 'Mobilité', icon: '🦿', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'behavior', label: 'Comportement', icon: '🧠', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'weight', label: 'Poids', icon: '⚖️', levels: ['Normal', 'À surveiller', 'Préoccupant'] }
+  ];
+
+  function renderCheckup() {
+    var container = document.getElementById('checkup-content');
+    if (!container) return;
+
+    var html = '<div class="checkup-intro"><h3>Évaluez rapidement l\'état de santé de votre animal</h3><p>Répondez aux 10 questions ci-dessous en choisissant le niveau qui correspond le mieux.</p></div>';
+    html += '<div class="checkup-questions">';
+    CHECKUP_QUESTIONS.forEach(function (q) {
+      html += '<div class="checkup-question" data-key="' + q.key + '">' +
+        '<div class="checkup-q-label">' + q.icon + ' ' + escapeHtml(q.label) + '</div>' +
+        '<div class="checkup-levels">' +
+        '<button type="button" class="checkup-level checkup-level-1" data-key="' + q.key + '" data-value="1">Normal</button>' +
+        '<button type="button" class="checkup-level checkup-level-2" data-key="' + q.key + '" data-value="2">À surveiller</button>' +
+        '<button type="button" class="checkup-level checkup-level-3" data-key="' + q.key + '" data-value="3">Préoccupant</button>' +
+        '</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="checkup-actions"><button type="button" class="btn-primary" id="btn-checkup-submit">Calculer le score</button></div>';
+    html += '<div id="checkup-result" class="checkup-result" hidden></div>';
+
+    container.innerHTML = html;
+
+    var answers = {};
+    container.querySelectorAll('.checkup-level').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-key');
+        var val = parseInt(btn.getAttribute('data-value'), 10);
+        answers[key] = val;
+        var siblings = btn.parentElement.querySelectorAll('.checkup-level');
+        siblings.forEach(function (s) { s.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+
+    document.getElementById('btn-checkup-submit').addEventListener('click', function () {
+      var keys = CHECKUP_QUESTIONS.map(function (q) { return q.key; });
+      var answered = keys.filter(function (k) { return answers[k]; });
+      if (answered.length < keys.length) {
+        showToast('Répondez à toutes les questions.', 'warning');
+        return;
+      }
+      var total = keys.reduce(function (sum, k) { return sum + (answers[k] || 1); }, 0);
+      var avg = total / keys.length;
+
+      var color, label, reco;
+      if (avg <= 1.3) {
+        color = '#22c55e'; label = 'Bon état général'; reco = 'Votre animal semble en bonne santé. Continuez les soins réguliers et les visites de contrôle.';
+      } else if (avg <= 2.0) {
+        color = '#f59e0b'; label = 'À surveiller'; reco = 'Certains points méritent votre attention. Surveillez l\'évolution et consultez un vétérinaire si les symptômes persistent.';
+      } else {
+        color = '#ef4444'; label = 'Consultation recommandée'; reco = 'Plusieurs indicateurs sont préoccupants. Une visite chez le vétérinaire est recommandée rapidement.';
+      }
+
+      var detailHtml = keys.map(function (k) {
+        var q = CHECKUP_QUESTIONS.find(function (x) { return x.key === k; });
+        var v = answers[k];
+        var cls = v === 1 ? 'checkup-ok' : (v === 2 ? 'checkup-warn' : 'checkup-bad');
+        return '<div class="checkup-detail-row ' + cls + '">' + q.icon + ' ' + escapeHtml(q.label) + ': <strong>' + q.levels[v - 1] + '</strong></div>';
+      }).join('');
+
+      var resultEl = document.getElementById('checkup-result');
+      resultEl.hidden = false;
+      resultEl.innerHTML = '<div class="checkup-score-card" style="border-color:' + color + '">' +
+        '<div class="checkup-score-header" style="background:' + color + '">' +
+        '<div class="checkup-score-value">' + avg.toFixed(1) + ' / 3</div>' +
+        '<div class="checkup-score-label">' + escapeHtml(label) + '</div></div>' +
+        '<div class="checkup-score-body"><p>' + escapeHtml(reco) + '</p>' + detailHtml +
+        '<button type="button" class="btn-primary" id="btn-checkup-save" style="margin-top:12px">📝 Sauvegarder dans le journal</button></div></div>';
+
+      document.getElementById('btn-checkup-save').addEventListener('click', function () {
+        var data = getCurrent();
+        if (!data) return;
+        if (!Array.isArray(data.notes)) data.notes = [];
+        var content = 'Score: ' + avg.toFixed(1) + '/3 — ' + label + '\n' + keys.map(function (k) {
+          var q = CHECKUP_QUESTIONS.find(function (x) { return x.key === k; });
+          return q.label + ': ' + q.levels[answers[k] - 1];
+        }).join('\n');
+        data.notes.push({ id: state.nextId++, date: todayISO(), title: 'Check-up rapide — ' + label, content: content, category: 'sante' });
+        saveState();
+        showToast('Résultat sauvegardé dans le journal', 'success');
+      });
+
+      resultEl.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  // ——— Activities ————————————————————————————————————————
+  var ACTIVITY_TYPES = ['Promenade', 'Course', 'Jeu', 'Natation', 'Agility', 'Autre'];
+
+  function renderActivities() {
+    var data = getCurrent();
+    var tbody = document.getElementById('activity-table');
+    var statsEl = document.getElementById('activity-stats');
+    if (!data || !tbody) return;
+
+    var list = Array.isArray(data.activities) ? data.activities.slice() : [];
+    list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    // Stats
+    if (statsEl) {
+      if (list.length === 0) {
+        statsEl.innerHTML = '';
+      } else {
+        var totalDuration = list.reduce(function (s, a) { return s + (parseFloat(a.duration) || 0); }, 0);
+        var totalDistance = list.reduce(function (s, a) { return s + (parseFloat(a.distance) || 0); }, 0);
+        var typeCounts = {};
+        list.forEach(function (a) { typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
+        var topType = Object.keys(typeCounts).sort(function (a, b) { return typeCounts[b] - typeCounts[a]; })[0] || '—';
+        statsEl.innerHTML =
+          '<div class="stat-card"><span class="stat-number">' + list.length + '</span><span class="stat-label">Sessions</span></div>' +
+          '<div class="stat-card"><span class="stat-number">' + Math.round(totalDuration) + '</span><span class="stat-label">min totales</span></div>' +
+          '<div class="stat-card"><span class="stat-number">' + totalDistance.toFixed(1) + '</span><span class="stat-label">km parcourus</span></div>' +
+          '<div class="stat-card"><span class="stat-number stat-accent">' + escapeHtml(topType) + '</span><span class="stat-label">Activité favorite</span></div>';
+      }
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🏃</text></svg><p>Aucune activité enregistrée</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = list.map(function (a) {
+        return '<tr><td>' + fmtDate(a.date) + '</td>' +
+          '<td>' + escapeHtml(a.type || '') + '</td>' +
+          '<td>' + (a.duration ? a.duration + ' min' : '—') + '</td>' +
+          '<td>' + (a.distance ? a.distance + ' km' : '—') + '</td>' +
+          '<td>' + escapeHtml(a.notes || '') + '</td>' +
+          '<td><button type="button" class="btn-edit" data-activity-id="' + a.id + '">Modifier</button> <button type="button" class="btn-delete" data-activity-id="' + a.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer cette activité ?')) return;
+        var id = parseInt(btn.getAttribute('data-activity-id'), 10);
+        data.activities = data.activities.filter(function (a) { return a.id !== id; });
+        saveState(); renderActivities();
+        showToast('Activité supprimée', 'success');
+      });
+    });
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editActivityId = parseInt(btn.getAttribute('data-activity-id'), 10);
+        openModal('editActivity');
+      });
+    });
+  }
+
+  function addActivity() {
+    var date = document.getElementById('act-date').value;
+    var type = document.getElementById('act-type').value;
+    if (!date || !type) { showToast('Date et type sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.activities)) data.activities = [];
+
+    data.activities.push({
+      id: state.nextId++, date: date, type: type,
+      duration: document.getElementById('act-duration').value || '',
+      distance: document.getElementById('act-distance').value || '',
+      notes: document.getElementById('act-notes').value.trim()
+    });
+    closeModal('addActivity');
+    saveState(); renderActivities();
+    showToast('Activité ajoutée', 'success');
+  }
+
+  function updateActivityEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editActivityId;
+    var a = Array.isArray(data.activities) ? data.activities.find(function (x) { return x.id === id; }) : null;
+    if (!a) return;
+
+    var date = document.getElementById('eact-date').value;
+    var type = document.getElementById('eact-type').value;
+    if (!date || !type) { showToast('Date et type sont requis.', 'error'); return; }
+
+    a.date = date; a.type = type;
+    a.duration = document.getElementById('eact-duration').value || '';
+    a.distance = document.getElementById('eact-distance').value || '';
+    a.notes = document.getElementById('eact-notes').value.trim();
+
+    closeModal('editActivity');
+    uiState.editActivityId = null;
+    saveState(); refreshAll();
+    showToast('Activité modifiée', 'success');
+  }
+
+  // ——— Nutrition ————————————————————————————————————————
+  var MEAL_TYPES = ['Croquettes', 'Pâtée', 'BARF', 'Ration ménagère', 'Friandise'];
+
+  function renderNutrition() {
+    var data = getCurrent();
+    var container = document.getElementById('nutrition-content');
+    if (!data || !container) return;
+
+    if (!data.nutrition) data.nutrition = { meals: [], dailyPlan: {} };
+    var plan = data.nutrition.dailyPlan || {};
+    var meals = Array.isArray(data.nutrition.meals) ? data.nutrition.meals.slice() : [];
+    meals.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    // Calorie estimation
+    var weight = parseFloat(data.animal.weight) || 0;
+    var rer = weight > 0 ? 70 * Math.pow(weight, 0.75) : 0;
+    var mer = rer * 1.6;
+
+    // Plan card
+    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">📋 Plan nutritionnel</h3><button type="button" class="btn-icon" onclick="app.openModal(\'editNutritionPlan\')">✏️ Modifier</button></div>' +
+      '<div class="info-grid">' +
+      '<div><span class="info-label">Marque aliment</span><span class="info-value">' + escapeHtml(plan.foodBrand || 'Non renseigné') + '</span></div>' +
+      '<div><span class="info-label">Portion</span><span class="info-value">' + escapeHtml(plan.portionSize || 'Non renseigné') + '</span></div>' +
+      '<div><span class="info-label">Repas/jour</span><span class="info-value">' + escapeHtml(plan.mealsPerDay || 'Non renseigné') + '</span></div>' +
+      '<div><span class="info-label">Objectif calories</span><span class="info-value">' + (plan.targetCalories || 'Auto') + '</span></div>' +
+      '</div>';
+    if (weight > 0) {
+      planHtml += '<div class="nutrition-calorie-info">Estimation calorique : RER = <strong>' + Math.round(rer) + ' kcal</strong> · MER = <strong>' + Math.round(mer) + ' kcal/j</strong> (facteur 1.6)</div>';
+    }
+    planHtml += '</div>';
+
+    // Today's summary
+    var todayStr = todayISO();
+    var todayMeals = meals.filter(function (m) { return m.date === todayStr; });
+    var plannedPerDay = parseInt(plan.mealsPerDay, 10) || 0;
+    var summaryHtml = '<div class="nutrition-summary"><h3>Aujourd\'hui : ' + todayMeals.length + (plannedPerDay ? ' / ' + plannedPerDay : '') + ' repas</h3></div>';
+
+    // Table
+    var tableHtml = '<div class="data-table"><div class="table-header"><div class="table-header-left"><h2 class="section-title">🍽️ Repas enregistrés</h2></div><button type="button" class="btn-icon" onclick="app.openModal(\'addMeal\')">+ Ajouter</button></div>' +
+      '<div class="table-scroll"><table><thead><tr><th>Date</th><th>Heure</th><th>Type</th><th>Aliment</th><th>Quantité</th><th>Notes</th><th></th></tr></thead><tbody id="meal-table"></tbody></table></div></div>';
+
+    container.innerHTML = planHtml + summaryHtml + tableHtml;
+
+    var tbody = document.getElementById('meal-table');
+    if (meals.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🍽️</text></svg><p>Aucun repas enregistré</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = meals.map(function (m) {
+        return '<tr><td>' + fmtDate(m.date) + '</td>' +
+          '<td>' + escapeHtml(m.time || '') + '</td>' +
+          '<td>' + escapeHtml(m.type || '') + '</td>' +
+          '<td>' + escapeHtml(m.food || '') + '</td>' +
+          '<td>' + (m.quantity ? escapeHtml(m.quantity) + ' ' + escapeHtml(m.unit || '') : '—') + '</td>' +
+          '<td>' + escapeHtml(m.notes || '') + '</td>' +
+          '<td><button type="button" class="btn-edit" data-meal-id="' + m.id + '">Modifier</button> <button type="button" class="btn-delete" data-meal-id="' + m.id + '">✕</button></td></tr>';
+      }).join('');
+    }
+
+    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer ce repas ?')) return;
+        var id = parseInt(btn.getAttribute('data-meal-id'), 10);
+        data.nutrition.meals = data.nutrition.meals.filter(function (m) { return m.id !== id; });
+        saveState(); renderNutrition();
+        showToast('Repas supprimé', 'success');
+      });
+    });
+    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editMealId = parseInt(btn.getAttribute('data-meal-id'), 10);
+        openModal('editMeal');
+      });
+    });
+  }
+
+  function addMeal() {
+    var date = document.getElementById('meal-date').value;
+    var type = document.getElementById('meal-type').value;
+    if (!date || !type) { showToast('Date et type sont requis.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!data.nutrition) data.nutrition = { meals: [], dailyPlan: {} };
+    if (!Array.isArray(data.nutrition.meals)) data.nutrition.meals = [];
+
+    data.nutrition.meals.push({
+      id: state.nextId++, date: date, type: type,
+      time: document.getElementById('meal-time').value || '',
+      food: document.getElementById('meal-food').value.trim(),
+      quantity: document.getElementById('meal-quantity').value || '',
+      unit: document.getElementById('meal-unit').value || 'g',
+      notes: document.getElementById('meal-notes').value.trim()
+    });
+    closeModal('addMeal');
+    saveState(); renderNutrition();
+    showToast('Repas ajouté', 'success');
+  }
+
+  function updateMealEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editMealId;
+    var m = data.nutrition && Array.isArray(data.nutrition.meals) ? data.nutrition.meals.find(function (x) { return x.id === id; }) : null;
+    if (!m) return;
+
+    m.date = document.getElementById('emeal-date').value;
+    m.type = document.getElementById('emeal-type').value;
+    m.time = document.getElementById('emeal-time').value || '';
+    m.food = document.getElementById('emeal-food').value.trim();
+    m.quantity = document.getElementById('emeal-quantity').value || '';
+    m.unit = document.getElementById('emeal-unit').value || 'g';
+    m.notes = document.getElementById('emeal-notes').value.trim();
+
+    closeModal('editMeal');
+    uiState.editMealId = null;
+    saveState(); renderNutrition();
+    showToast('Repas modifié', 'success');
+  }
+
+  function saveNutritionPlan() {
+    var data = getCurrent();
+    if (!data) return;
+    if (!data.nutrition) data.nutrition = { meals: [], dailyPlan: {} };
+    data.nutrition.dailyPlan = {
+      targetCalories: document.getElementById('np-calories').value || '',
+      mealsPerDay: document.getElementById('np-meals-per-day').value || '',
+      foodBrand: document.getElementById('np-food-brand').value.trim(),
+      portionSize: document.getElementById('np-portion').value.trim()
+    };
+    closeModal('editNutritionPlan');
+    saveState(); renderNutrition();
+    showToast('Plan nutritionnel enregistré', 'success');
+  }
+
+  // ——— Pedigree ————————————————————————————————————————
+  function renderPedigree() {
+    var data = getCurrent();
+    var container = document.getElementById('pedigree-card');
+    if (!data || !container) return;
+
+    var p = data.pedigree || {};
+    var name = escapeHtml(data.animal.name || 'Animal');
+    var chip = p.chipNumber || data.animal.chip || '';
+
+    var html = '<div class="card-header"><h2 class="section-title">🏆 Pedigree</h2><button type="button" class="btn-icon" onclick="app.openModal(\'editPedigree\')">✏️ Modifier</button></div>';
+
+    if (p.registry && p.registry !== 'Non inscrit') {
+      html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
+      if (p.registryNumber) html += ' <span class="table-muted">N° ' + escapeHtml(p.registryNumber) + '</span>';
+      html += '</div>';
+    }
+    if (chip) {
+      html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span></div>';
+    }
+
+    // Tree
+    var gp = p.grandparents || {};
+    html += '<div class="pedigree-tree">' +
+      '<div class="pedigree-generation pedigree-gp">' +
+        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGrandsire || '?') + '</div>' +
+        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGranddam || '?') + '</div>' +
+        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGrandsire || '?') + '</div>' +
+        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGranddam || '?') + '</div>' +
+      '</div>' +
+      '<div class="pedigree-generation pedigree-parents">' +
+        '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
+        '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
+      '</div>' +
+      '<div class="pedigree-generation pedigree-subject">' +
+        '<div class="pedigree-node pedigree-node-subject">' + name + '</div>' +
+      '</div>' +
+    '</div>';
+
+    container.innerHTML = html;
+  }
+
+  function savePedigree() {
+    var data = getCurrent();
+    if (!data) return;
+    data.pedigree = {
+      registry: document.getElementById('ped-registry').value || 'Non inscrit',
+      registryNumber: document.getElementById('ped-reg-number').value.trim(),
+      chipNumber: document.getElementById('ped-chip').value.trim(),
+      sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim() },
+      dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim() },
+      grandparents: {
+        paternalGrandsire: document.getElementById('ped-gp-ps').value.trim(),
+        paternalGranddam: document.getElementById('ped-gp-pd').value.trim(),
+        maternalGrandsire: document.getElementById('ped-gp-ms').value.trim(),
+        maternalGranddam: document.getElementById('ped-gp-md').value.trim()
+      }
+    };
+    closeModal('editPedigree');
+    saveState(); renderPedigree();
+    showToast('Pedigree enregistré', 'success');
+  }
+
+  // ——— Vet Directory (app-level) ————————————————————————————
+  var DEFAULT_VET_ENTRIES = [
+    { id: 1, name: 'Centre Antipoison Animal CAPAE-Ouest', clinic: 'CAPAE-Ouest', phone: '02 40 68 77 40', email: '', address: 'Nantes', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire' },
+    { id: 2, name: 'Centre Antipoison VetAgro Sup', clinic: 'VetAgro Sup', phone: '04 78 87 10 40', email: '', address: 'Lyon', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire' }
+  ];
+
+  function loadVetDirectory() {
+    try {
+      var raw = localStorage.getItem(VET_DIRECTORY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { entries: DEFAULT_VET_ENTRIES.slice(), nextId: 10 };
+  }
+
+  function saveVetDirectory(dir) {
+    try { localStorage.setItem(VET_DIRECTORY_KEY, JSON.stringify(dir)); } catch (e) {}
+  }
+
+  function renderVetDirectory() {
+    var container = document.getElementById('vet-directory-content');
+    if (!container) return;
+
+    var dir = loadVetDirectory();
+    var entries = dir.entries || [];
+    var searchQ = (document.getElementById('vet-search')?.value || '').toLowerCase().trim();
+
+    if (searchQ) {
+      entries = entries.filter(function (e) {
+        return (e.name || '').toLowerCase().includes(searchQ) || (e.clinic || '').toLowerCase().includes(searchQ);
+      });
+    }
+
+    // Sort: favorites first, then emergency, then name
+    entries.sort(function (a, b) {
+      if (a.favorite !== b.favorite) return b.favorite ? 1 : -1;
+      if (a.emergency !== b.emergency) return b.emergency ? 1 : -1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    var emergencyEntries = entries.filter(function (e) { return e.emergency; });
+    var normalEntries = entries.filter(function (e) { return !e.emergency; });
+
+    var html = '';
+
+    // Emergency section
+    if (emergencyEntries.length > 0) {
+      html += '<div class="vet-emergency-section"><h3>🚨 Urgences</h3><div class="vet-cards">';
+      emergencyEntries.forEach(function (e) {
+        html += renderVetCard(e, dir);
+      });
+      html += '</div></div>';
+    }
+
+    // Normal contacts
+    html += '<div class="vet-contacts-section"><div class="vet-cards">';
+    if (normalEntries.length === 0 && emergencyEntries.length === 0 && !searchQ) {
+      html += '<p class="empty-state">Aucun contact enregistré</p>';
+    } else {
+      normalEntries.forEach(function (e) {
+        html += renderVetCard(e, dir);
+      });
+    }
+    html += '</div></div>';
+
+    container.innerHTML = html;
+
+    // Bind events
+    container.querySelectorAll('[data-vet-fav]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-vet-fav'), 10);
+        var entry = dir.entries.find(function (e) { return e.id === id; });
+        if (entry) { entry.favorite = !entry.favorite; saveVetDirectory(dir); renderVetDirectory(); }
+      });
+    });
+    container.querySelectorAll('[data-vet-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editVetContactId = parseInt(btn.getAttribute('data-vet-edit'), 10);
+        openModal('editVetContact');
+      });
+    });
+    container.querySelectorAll('[data-vet-delete]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Supprimer ce contact ?')) return;
+        var id = parseInt(btn.getAttribute('data-vet-delete'), 10);
+        dir.entries = dir.entries.filter(function (e) { return e.id !== id; });
+        saveVetDirectory(dir); renderVetDirectory();
+        showToast('Contact supprimé', 'success');
+      });
+    });
+  }
+
+  function renderVetCard(e) {
+    return '<div class="vet-card' + (e.emergency ? ' vet-card-emergency' : '') + '">' +
+      '<div class="vet-card-header">' +
+        '<div class="vet-card-name">' + (e.emergency ? '🚨 ' : '') + escapeHtml(e.name) + '</div>' +
+        '<button type="button" class="vet-fav-btn" data-vet-fav="' + e.id + '">' + (e.favorite ? '⭐' : '☆') + '</button>' +
+      '</div>' +
+      (e.clinic ? '<div class="vet-card-clinic">' + escapeHtml(e.clinic) + '</div>' : '') +
+      (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">📞 ' + escapeHtml(e.phone) + '</a></div>' : '') +
+      (e.email ? '<div class="vet-card-email">' + escapeHtml(e.email) + '</div>' : '') +
+      (e.address ? '<div class="vet-card-address">📍 ' + escapeHtml(e.address) + '</div>' : '') +
+      (e.hours ? '<div class="vet-card-hours">🕐 ' + escapeHtml(e.hours) + '</div>' : '') +
+      (e.notes ? '<div class="vet-card-notes table-muted">' + escapeHtml(e.notes) + '</div>' : '') +
+      '<div class="vet-card-actions">' +
+        '<button type="button" class="btn-edit" data-vet-edit="' + e.id + '">Modifier</button> ' +
+        '<button type="button" class="btn-delete" data-vet-delete="' + e.id + '">✕</button>' +
+      '</div></div>';
+  }
+
+  function addVetContact() {
+    var name = document.getElementById('vc-name').value.trim();
+    if (!name) { showToast('Nom requis.', 'error'); return; }
+    var dir = loadVetDirectory();
+
+    dir.entries.push({
+      id: dir.nextId++, name: name,
+      clinic: document.getElementById('vc-clinic').value.trim(),
+      phone: document.getElementById('vc-phone').value.trim(),
+      email: document.getElementById('vc-email').value.trim(),
+      address: document.getElementById('vc-address').value.trim(),
+      hours: document.getElementById('vc-hours').value.trim(),
+      emergency: document.getElementById('vc-emergency').checked,
+      favorite: false,
+      notes: document.getElementById('vc-notes').value.trim()
+    });
+    saveVetDirectory(dir);
+    closeModal('addVetContact');
+    renderVetDirectory();
+    showToast('Contact ajouté', 'success');
+  }
+
+  function updateVetContact() {
+    var dir = loadVetDirectory();
+    var id = uiState.editVetContactId;
+    var entry = dir.entries.find(function (e) { return e.id === id; });
+    if (!entry) return;
+
+    var name = document.getElementById('evc-name').value.trim();
+    if (!name) { showToast('Nom requis.', 'error'); return; }
+
+    entry.name = name;
+    entry.clinic = document.getElementById('evc-clinic').value.trim();
+    entry.phone = document.getElementById('evc-phone').value.trim();
+    entry.email = document.getElementById('evc-email').value.trim();
+    entry.address = document.getElementById('evc-address').value.trim();
+    entry.hours = document.getElementById('evc-hours').value.trim();
+    entry.emergency = document.getElementById('evc-emergency').checked;
+    entry.notes = document.getElementById('evc-notes').value.trim();
+
+    saveVetDirectory(dir);
+    closeModal('editVetContact');
+    uiState.editVetContactId = null;
+    renderVetDirectory();
+    showToast('Contact modifié', 'success');
+  }
+
   // ——— Alerts & notifications ————————————————————————————
   function renderAlerts() {
     var data = getCurrent();
@@ -1991,7 +2919,28 @@
       }))
       .concat((data.dewormings || []).filter(function (d) { return d.next; }).map(function (d) {
         return { type: 'deworming', date: d.next, icon: '🪱', title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
+      }))
+      .concat((data.hygiene || []).filter(function (h) { return h.next; }).map(function (h) {
+        return { type: 'hygiene', date: h.next, icon: '🧼', title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
       }));
+
+    // Heat cycle prediction
+    if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
+      var hcSorted = (data.heatCycles || []).slice().sort(function (a, b) { return new Date(a.startDate) - new Date(b.startDate); });
+      if (hcSorted.length > 0) {
+        var hcAvg = 180;
+        if (hcSorted.length >= 2) {
+          var hcGaps = [];
+          for (var gi = 1; gi < hcSorted.length; gi++) {
+            var gDiff = Math.round((new Date(hcSorted[gi].startDate) - new Date(hcSorted[gi - 1].startDate)) / 864e5);
+            if (gDiff > 0) hcGaps.push(gDiff);
+          }
+          if (hcGaps.length > 0) hcAvg = Math.round(hcGaps.reduce(function (a, b) { return a + b; }, 0) / hcGaps.length);
+        }
+        var nextHeat = addDaysISO(hcSorted[hcSorted.length - 1].startDate, hcAvg);
+        events.push({ type: 'heat', date: nextHeat, icon: '🌡️', title: 'Chaleurs prévues', sub: 'Cycle moyen : ' + hcAvg + ' jours' });
+      }
+    }
 
     var upcoming = events.map(function (e) {
       var dt = isoToLocalDate(e.date);
@@ -2028,6 +2977,7 @@
     notifList.innerHTML = [
       { key: 'vaccineReminder', label: 'Rappels vaccins', desc: '30 jours avant la date de rappel' },
       { key: 'dewormingReminder', label: 'Rappels déparasitage', desc: '7 jours avant la date de rappel' },
+      { key: 'hygieneReminder', label: 'Rappels hygiène', desc: '7 jours avant la date de rappel' },
       { key: 'birthdayReminder', label: 'Anniversaire de ' + animalName, desc: data.animal.dob ? 'Le ' + fmtDate(data.animal.dob) + ' chaque année' : 'Date de naissance à renseigner' },
       { key: 'monthlySummary', label: 'Résumé mensuel', desc: 'Récapitulatif de santé chaque mois' }
     ].map(function (item) {
@@ -2090,6 +3040,18 @@
         });
       }
 
+      if (n.hygieneReminder) {
+        (data.hygiene || []).forEach(function (h) {
+          if (!h.next) return;
+          var dt = isoToLocalDate(h.next);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff >= 0 && diff <= 7) {
+            new Notification('VetBook — Rappel hygiène', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(h.type) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
       if (n.birthdayReminder && data.animal.dob) {
         var dob = isoToLocalDate(data.animal.dob);
         if (dob && today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
@@ -2132,6 +3094,12 @@
     data.vaccines.forEach(function (v) { addEvent(v.next, 'vaccine'); addEvent(v.date, 'vaccine'); });
     data.dewormings.forEach(function (d) { addEvent(d.next, 'deworming'); addEvent(d.date, 'deworming'); });
     if (Array.isArray(data.consultations)) data.consultations.forEach(function (c) { addEvent(c.date, 'consult'); });
+    (data.hygiene || []).forEach(function (h) { addEvent(h.next, 'hygiene'); addEvent(h.date, 'hygiene'); });
+    (data.activities || []).forEach(function (a) { addEvent(a.date, 'activity'); });
+    // Heat cycles: mark start/end dates
+    if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
+      (data.heatCycles || []).forEach(function (c) { addEvent(c.startDate, 'heat'); if (c.endDate) addEvent(c.endDate, 'heat'); });
+    }
 
     // Birthday
     if (data.animal.dob) {
@@ -2195,6 +3163,19 @@
     if (Array.isArray(data.consultations)) {
       data.consultations.forEach(function (c) {
         if (c.date === isoDate) events.push({ icon: '🩺', text: 'Consultation : ' + escapeHtml(c.reason) });
+      });
+    }
+    (data.hygiene || []).forEach(function (h) {
+      if (h.date === isoDate) events.push({ icon: '🧼', text: 'Hygiène : ' + escapeHtml(h.type) });
+      if (h.next === isoDate) events.push({ icon: '🧼', text: 'Rappel hygiène : ' + escapeHtml(h.type) });
+    });
+    (data.activities || []).forEach(function (a) {
+      if (a.date === isoDate) events.push({ icon: '🏃', text: 'Activité : ' + escapeHtml(a.type) + (a.duration ? ' (' + a.duration + ' min)' : '') });
+    });
+    if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
+      (data.heatCycles || []).forEach(function (c) {
+        if (c.startDate === isoDate) events.push({ icon: '🌡️', text: 'Début chaleurs' });
+        if (c.endDate === isoDate) events.push({ icon: '🌡️', text: 'Fin chaleurs' });
       });
     }
     if (data.animal.dob) {
@@ -2353,6 +3334,18 @@
       .concat((historyType === 'all' || historyType === 'journal') ? (Array.isArray(data.notes) ? data.notes : []).map(function (n) {
         return { date: n.date, title: escapeHtml(n.title || ''), sub: 'Note · ' + escapeHtml(n.category || ''), icon: '📝' };
       }) : [])
+      .concat((historyType === 'all' || historyType === 'hygiene') ? (data.hygiene || []).map(function (h) {
+        return { date: h.date, title: escapeHtml(h.type || ''), sub: 'Hygiène', icon: '🧼' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'activities') ? (data.activities || []).map(function (a) {
+        return { date: a.date, title: escapeHtml(a.type || ''), sub: 'Activité' + (a.duration ? ' · ' + a.duration + ' min' : ''), icon: '🏃' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'nutrition') ? (data.nutrition && data.nutrition.meals || []).map(function (m) {
+        return { date: m.date, title: escapeHtml(m.type || '') + (m.food ? ' — ' + escapeHtml(m.food) : ''), sub: 'Repas', icon: '🍽️' };
+      }) : [])
+      .concat((historyType === 'all' || historyType === 'chaleurs') ? (data.heatCycles || []).map(function (c) {
+        return { date: c.startDate, title: 'Chaleurs — ' + escapeHtml(c.intensity || ''), sub: 'Reproduction', icon: '🌡️' };
+      }) : [])
       .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
     timeline.innerHTML = all.map(function (e, idx) {
@@ -2374,13 +3367,19 @@
 
     if (tabName === 'vaccins') renderVaccines();
     if (tabName === 'deworming') renderDewormings();
+    if (tabName === 'hygiene') renderHygiene();
     if (tabName === 'alertes') renderAlerts();
     if (tabName === 'historique') renderHistory();
     if (tabName === 'photos') renderGallery();
     if (tabName === 'consultations') renderConsultations();
     if (tabName === 'medications') renderMedications();
+    if (tabName === 'nutrition') renderNutrition();
+    if (tabName === 'activites') renderActivities();
+    if (tabName === 'chaleurs') renderHeatCycles();
     if (tabName === 'journal') renderJournal();
+    if (tabName === 'checkup') renderCheckup();
     if (tabName === 'calendrier') renderCalendar();
+    if (tabName === 'annuaire') renderVetDirectory();
 
     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -2390,13 +3389,19 @@
     renderAnimalSelect();
     renderVaccines();
     renderDewormings();
+    renderHygiene();
     renderAlerts();
     renderHistory();
     renderGallery();
     renderConsultations();
     renderMedications();
+    renderNutrition();
+    renderActivities();
+    renderHeatCycles();
     renderJournal();
     renderCalendar();
+    renderPedigree();
+    renderVetDirectory();
   }
 
   // ——— Print / Share ————————————————————————————————————
@@ -2477,9 +3482,12 @@
         fabBtn.classList.remove('fab-open');
         if (action === 'vaccin') openModal('addVaccin');
         if (action === 'deworming') openModal('addDeworming');
+        if (action === 'hygiene') openModal('addHygiene');
         if (action === 'photo') triggerPhotoUpload();
         if (action === 'weight') openModal('addWeight');
         if (action === 'consult') openModal('addConsult');
+        if (action === 'meal') openModal('addMeal');
+        if (action === 'activity') openModal('addActivity');
         if (action === 'note') openModal('addNote');
       });
     });
@@ -2683,6 +3691,9 @@
       exportState.animals.push(Object.assign({}, wrap, { photos: exportedPhotos, animal: Object.assign({}, a, { avatar: avatar }) }));
     }
 
+    // Include vet directory
+    exportState.vetDirectory = loadVetDirectory();
+
     downloadText('vetbook-backup.json', JSON.stringify(exportState), 'application/json');
     showToast('Sauvegarde téléchargée', 'success');
   }
@@ -2703,8 +3714,20 @@
       if (!Array.isArray(a.consultations)) a.consultations = [];
       if (!Array.isArray(a.medications)) a.medications = [];
       if (!Array.isArray(a.notes)) a.notes = [];
+      if (!Array.isArray(a.hygiene)) a.hygiene = [];
+      if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
+      if (!Array.isArray(a.activities)) a.activities = [];
+      if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: {} };
+      if (!a.pedigree) a.pedigree = {};
       if (a.animal && !a.animal.themeColor) a.animal.themeColor = '';
+      if (!a.notifications) a.notifications = {};
+      if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
     });
+
+    // Restore vet directory if present
+    if (parsed.vetDirectory) {
+      saveVetDirectory(parsed.vetDirectory);
+    }
 
     try { await clearPhotoStore(); } catch (e) { console.warn('VetBook: clearPhotoStore échoué', e); }
     await migrateLegacyImagesToIndexedDB();
@@ -2752,6 +3775,13 @@
       var dt = isoToLocalDate(d.next);
       if (!dt || dt < from || dt > to) return;
       events.push({ uid: 'vetbook-deworm-' + d.id, summary: 'Déparasitage : ' + (d.name || ''), desc: 'Type : ' + (d.type || ''), isoDate: d.next });
+    });
+
+    (wrap.hygiene || []).forEach(function (h) {
+      if (!h.next) return;
+      var dt = isoToLocalDate(h.next);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-hygiene-' + h.id, summary: 'Hygiène : ' + (h.type || ''), desc: h.notes || '', isoDate: h.next });
     });
 
     var dob = wrap?.animal?.dob;
@@ -2871,6 +3901,20 @@
     document.getElementById('form-edit-note').addEventListener('submit', function (e) { e.preventDefault(); updateNote(); });
     document.getElementById('form-edit-caption').addEventListener('submit', function (e) { e.preventDefault(); saveCaption(); });
 
+    // New feature forms
+    document.getElementById('form-add-hygiene').addEventListener('submit', function (e) { e.preventDefault(); addHygiene(); });
+    document.getElementById('form-edit-hygiene').addEventListener('submit', function (e) { e.preventDefault(); updateHygieneEntry(); });
+    document.getElementById('form-add-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); addHeatCycle(); });
+    document.getElementById('form-edit-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); updateHeatCycleEntry(); });
+    document.getElementById('form-add-activity').addEventListener('submit', function (e) { e.preventDefault(); addActivity(); });
+    document.getElementById('form-edit-activity').addEventListener('submit', function (e) { e.preventDefault(); updateActivityEntry(); });
+    document.getElementById('form-add-meal').addEventListener('submit', function (e) { e.preventDefault(); addMeal(); });
+    document.getElementById('form-edit-meal').addEventListener('submit', function (e) { e.preventDefault(); updateMealEntry(); });
+    document.getElementById('form-edit-nutrition-plan').addEventListener('submit', function (e) { e.preventDefault(); saveNutritionPlan(); });
+    document.getElementById('form-edit-pedigree').addEventListener('submit', function (e) { e.preventDefault(); savePedigree(); });
+    document.getElementById('form-add-vet-contact').addEventListener('submit', function (e) { e.preventDefault(); addVetContact(); });
+    document.getElementById('form-edit-vet-contact').addEventListener('submit', function (e) { e.preventDefault(); updateVetContact(); });
+
     // Filters & sorts
     ['vaccine-search', 'vaccine-status-filter', 'vaccine-sort'].forEach(function (id) {
       var el = document.getElementById(id);
@@ -2885,6 +3929,16 @@
       el.addEventListener('input', function () { renderDewormings(); });
       el.addEventListener('change', function () { renderDewormings(); });
     });
+
+    ['hygiene-search', 'hygiene-status-filter', 'hygiene-sort'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function () { renderHygiene(); });
+      el.addEventListener('change', function () { renderHygiene(); });
+    });
+
+    var vetSearch = document.getElementById('vet-search');
+    if (vetSearch) vetSearch.addEventListener('input', function () { renderVetDirectory(); });
 
     var consultSearch = document.getElementById('consult-search');
     if (consultSearch) {
@@ -2991,7 +4045,8 @@
 
   window.app = {
     openModal: openModal,
-    closeModal: closeModal
+    closeModal: closeModal,
+    switchTab: switchTab
   };
 
   if (document.readyState === 'loading') {

@@ -1,13 +1,14 @@
 /**
  * Service Worker VetBook — cache de l'app shell pour usage hors ligne / PWA
  */
-const CACHE_NAME = 'vetbook-v1';
+const CACHE_NAME = 'vetbook-v2';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'
 ];
 
 self.addEventListener('install', function (event) {
