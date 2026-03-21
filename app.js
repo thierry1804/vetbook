@@ -594,14 +594,14 @@
         '</div></div>' +
         '<div class="pet-card-stats">' +
         '<span>💉 ' + data.vaccines.length + ' vaccin(s)</span>' +
-        '<span>🪱 ' + data.dewormings.length + ' déparas.</span>' +
+        '<span>💊 ' + data.dewormings.length + ' déparas.</span>' +
         '<span>📷 ' + data.photos.length + ' photo(s)</span>' +
         (upcoming ? '<span>🔔 ' + upcoming + ' rappel(s)</span>' : '') +
         '</div>' +
         '<div class="pet-card-actions">' +
         '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">📋 Voir le carnet</button>' +
         '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '">💉 Vaccin</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '">🪱 Déparas.</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '">💊 Déparas.</button>' +
         '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '">📷 Photos</button>' +
         '</div></article>';
     }).join('');
@@ -1756,7 +1756,7 @@
     });
 
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🪱</text></svg><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">💊</text></svg><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
     } else {
       tbody.innerHTML = list.map(function (d) {
         var st = d.next ? getStatus(d.next) : null;
@@ -2918,7 +2918,7 @@
         return { type: 'vaccin', date: v.next, icon: '💉', title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
       }))
       .concat((data.dewormings || []).filter(function (d) { return d.next; }).map(function (d) {
-        return { type: 'deworming', date: d.next, icon: '🪱', title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
+        return { type: 'deworming', date: d.next, icon: '💊', title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
       }))
       .concat((data.hygiene || []).filter(function (h) { return h.next; }).map(function (h) {
         return { type: 'hygiene', date: h.next, icon: '🧼', title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
@@ -3157,8 +3157,8 @@
       if (v.next === isoDate) events.push({ icon: '💉', text: 'Rappel vaccin : ' + escapeHtml(v.name) });
     });
     data.dewormings.forEach(function (d) {
-      if (d.date === isoDate) events.push({ icon: '🪱', text: 'Déparasitage : ' + escapeHtml(d.name) });
-      if (d.next === isoDate) events.push({ icon: '🪱', text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
+      if (d.date === isoDate) events.push({ icon: '💊', text: 'Déparasitage : ' + escapeHtml(d.name) });
+      if (d.next === isoDate) events.push({ icon: '💊', text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
     });
     if (Array.isArray(data.consultations)) {
       data.consultations.forEach(function (c) {
@@ -3323,7 +3323,7 @@
         return { date: v.date, title: escapeHtml(v.name), sub: 'Vaccin · ' + escapeHtml(v.vet || ''), icon: '💉' };
       }) : [])
       .concat((historyType === 'all' || historyType === 'deworming') ? data.dewormings.map(function (d) {
-        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: '🪱' };
+        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: '💊' };
       }) : [])
       .concat(((historyType === 'all' || historyType === 'weight') && data.animal && Array.isArray(data.animal.weightHistory)) ? data.animal.weightHistory.map(function (w) {
         return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: '⚖️' };

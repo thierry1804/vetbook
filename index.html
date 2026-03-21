@@ -69,7 +69,7 @@
       <button type="button" class="tab active" data-tab="profil" role="tab" aria-selected="true">🐶 <span class="tab-label">Profil</span></button>
       <button type="button" class="tab" data-tab="photos" role="tab">📷 <span class="tab-label">Photos</span></button>
       <button type="button" class="tab" data-tab="vaccins" role="tab">💉 <span class="tab-label">Vaccins</span></button>
-      <button type="button" class="tab" data-tab="deworming" role="tab">🪱 <span class="tab-label">Déparas.</span></button>
+      <button type="button" class="tab" data-tab="deworming" role="tab">💊 <span class="tab-label">Déparas.</span></button>
       <button type="button" class="tab" data-tab="hygiene" role="tab">🧼 <span class="tab-label">Hygiène</span></button>
       <button type="button" class="tab" data-tab="consultations" role="tab">🩺 <span class="tab-label">Consult.</span></button>
       <button type="button" class="tab" data-tab="medications" role="tab">💊 <span class="tab-label">Médic.</span></button>
@@ -77,7 +77,7 @@
       <button type="button" class="tab" data-tab="activites" role="tab">🏃 <span class="tab-label">Activités</span></button>
       <button type="button" class="tab" data-tab="chaleurs" role="tab">🌡️ <span class="tab-label">Chaleurs</span></button>
       <button type="button" class="tab" data-tab="journal" role="tab">📝 <span class="tab-label">Journal</span></button>
-      <button type="button" class="tab" data-tab="checkup" role="tab">🩻 <span class="tab-label">Check-up</span></button>
+      <button type="button" class="tab" data-tab="checkup" role="tab">✅ <span class="tab-label">Check-up</span></button>
       <button type="button" class="tab" data-tab="alertes" role="tab">🔔 <span class="tab-label">Alertes</span></button>
       <button type="button" class="tab" data-tab="calendrier" role="tab">📅 <span class="tab-label">Calendrier</span></button>
       <button type="button" class="tab" data-tab="annuaire" role="tab">📞 <span class="tab-label">Annuaire</span></button>
@@ -168,7 +168,7 @@
 
       <!-- Quick check-up shortcut -->
       <div class="checkup-shortcut">
-        <button type="button" class="btn-icon" onclick="app.switchTab('checkup')">🩻 Check-up rapide</button>
+        <button type="button" class="btn-icon" onclick="app.switchTab('checkup')">✅ Check-up rapide</button>
       </div>
 
       <!-- Active medications badge area -->
@@ -256,7 +256,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">🪱 Déparasitage</h2>
+            <h2 class="section-title">💊 Déparasitage</h2>
             <div class="table-controls" role="group" aria-label="Filtres déparasitage">
               <div class="table-control">
                 <label for="deworming-search">Recherche</label>
@@ -441,7 +441,7 @@
 
     <!-- Section Check-up -->
     <section id="section-checkup" class="section" role="tabpanel" hidden>
-      <h2 class="section-title">🩻 Check-up Rapide</h2>
+      <h2 class="section-title">✅ Check-up Rapide</h2>
       <div id="checkup-content"></div>
     </section>
 
@@ -575,7 +575,7 @@
   <div class="fab-container" id="fab-container" hidden>
     <div class="fab-menu" id="fab-menu" hidden>
       <button type="button" class="fab-action" data-fab="vaccin" title="Vaccin">💉</button>
-      <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage">🪱</button>
+      <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage">💊</button>
       <button type="button" class="fab-action" data-fab="hygiene" title="Hygiène">🧼</button>
       <button type="button" class="fab-action" data-fab="meal" title="Repas">🍽️</button>
       <button type="button" class="fab-action" data-fab="activity" title="Activité">🏃</button>
@@ -685,7 +685,7 @@
 
   <div class="modal-overlay" id="modal-addDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-addDeworming-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addDeworming-title">🪱 Ajouter un Déparasitage</h2>
+      <h2 class="modal-title" id="modal-addDeworming-title">💊 Ajouter un Déparasitage</h2>
       <form id="form-add-deworming" class="modal-form">
         <div class="form-group"><label class="form-label" for="d-name">Traitement</label><input class="form-input" id="d-name" placeholder="ex: Milpro 1cp" required></div>
         <div class="form-row">
@@ -747,7 +747,7 @@
 
   <div class="modal-overlay" id="modal-editDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-editDeworming-title">
     <div class="modal" role="document" aria-modal="true">
-      <h2 class="modal-title" id="modal-editDeworming-title">🪱 Modifier un déparasitage</h2>
+      <h2 class="modal-title" id="modal-editDeworming-title">💊 Modifier un déparasitage</h2>
       <form id="form-edit-deworming" class="modal-form">
         <input type="hidden" id="ed-id">
         <div class="form-group"><label class="form-label" for="ed-name">Traitement</label><input class="form-input" id="ed-name" placeholder="ex: Milpro 1cp" required></div>
