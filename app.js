@@ -115,6 +115,46 @@
   };
 
   var VET_DIRECTORY_KEY = 'vetbook_vet_directory';
+  var COMMUNITY_KEY = 'vetbook_community';
+
+  // ——— Community: default events & tips ———
+  var DEFAULT_DOG_EVENTS = [
+    { id: 1, title: 'Salon International de l\'Agriculture', month: 2, day: 22, description: 'Concours canins et présentation de races au SIA, Paris.', recurring: true },
+    { id: 2, title: 'Exposition Canine de Paris', month: 3, day: 8, description: 'Exposition internationale organisée par la SCC.', recurring: true },
+    { id: 3, title: 'Journée mondiale du chien de sauvetage', month: 4, day: 28, description: 'Célébration des chiens de recherche et sauvetage.', recurring: true },
+    { id: 4, title: 'Journée mondiale des animaux de compagnie', month: 4, day: 11, description: 'Journée dédiée à nos compagnons.', recurring: true },
+    { id: 5, title: 'Fête de la Nature', month: 5, day: 22, description: 'Sorties canines en pleine nature dans toute la France.', recurring: true },
+    { id: 6, title: 'Game Fair', month: 6, day: 14, description: 'Grand rassemblement autour de la chasse et des chiens de travail.', recurring: true },
+    { id: 7, title: 'Journée mondiale du chien', month: 8, day: 26, description: 'La journée internationale dédiée à nos meilleurs amis !', recurring: true },
+    { id: 8, title: 'Septembre : mois de l\'adoption', month: 9, day: 1, description: 'Campagnes d\'adoption dans les refuges partout en France.', recurring: true },
+    { id: 9, title: 'Journée mondiale des animaux', month: 10, day: 4, description: 'Sensibilisation au bien-être animal dans le monde.', recurring: true },
+    { id: 10, title: 'Exposition Canine d\'Automne', month: 10, day: 19, description: 'Exposition nationale d\'automne, Paris-Villepinte.', recurring: true },
+    { id: 11, title: 'Semaine Vétérinaire', month: 11, day: 18, description: 'Semaine de sensibilisation à la santé animale.', recurring: true },
+    { id: 12, title: 'Journée du bénévolat animalier', month: 12, day: 5, description: 'Bénévolat dans les refuges et associations.', recurring: true },
+    { id: 13, title: 'Noël des animaux', month: 12, day: 24, description: 'Collectes et dons pour les animaux des refuges.', recurring: true }
+  ];
+
+  var DEFAULT_TIPS = [
+    { id: 1, title: 'Vérifiez les gencives régulièrement', content: 'Des gencives roses et humides sont signe de bonne santé. Des gencives pâles, bleues ou jaunes nécessitent une visite vétérinaire.', category: 'sante', author: 'VetBook' },
+    { id: 2, title: 'Rappels de vaccins annuels', content: 'N\'oubliez pas les rappels annuels (DHPPi, Leptospirose, Rage). Consultez votre vétérinaire pour le protocole adapté.', category: 'sante', author: 'VetBook' },
+    { id: 3, title: 'Évitez les aliments toxiques', content: 'Chocolat, raisins, oignons, ail, xylitol et noix de macadamia sont toxiques pour les chiens. Gardez-les hors de portée.', category: 'alimentation', author: 'VetBook' },
+    { id: 4, title: 'Transition alimentaire progressive', content: 'Changez la nourriture sur 7 à 10 jours en mélangeant progressivement l\'ancien et le nouveau aliment.', category: 'alimentation', author: 'VetBook' },
+    { id: 5, title: 'Eau fraîche toujours disponible', content: 'Un chien doit boire environ 50-70 ml d\'eau par kg de poids par jour. Renouvelez l\'eau régulièrement.', category: 'alimentation', author: 'VetBook' },
+    { id: 6, title: 'Socialisation avant 4 mois', content: 'La période critique de socialisation est entre 3 et 14 semaines. Exposez votre chiot à différentes personnes, animaux et environnements.', category: 'education', author: 'VetBook' },
+    { id: 7, title: 'Renforcement positif', content: 'Récompensez les bons comportements plutôt que de punir les mauvais. Friandises, caresses et jeu sont vos meilleurs outils.', category: 'education', author: 'VetBook' },
+    { id: 8, title: 'Brossage dentaire 2-3 fois/semaine', content: 'Le tartre s\'accumule vite. Utilisez un dentifrice spécial chien (jamais de dentifrice humain) et une brosse adaptée.', category: 'hygiene', author: 'VetBook' },
+    { id: 9, title: 'Coupe des griffes régulière', content: 'Coupez les griffes toutes les 2-4 semaines. Si vous entendez les griffes cliquer sur le sol, elles sont trop longues.', category: 'hygiene', author: 'VetBook' },
+    { id: 10, title: 'Nettoyage des oreilles', content: 'Nettoyez les oreilles toutes les semaines, surtout pour les races à oreilles tombantes. Utilisez un produit auriculaire vétérinaire.', category: 'hygiene', author: 'VetBook' },
+    { id: 11, title: 'Signes de stress à surveiller', content: 'Bâillements fréquents, léchage des babines, queue entre les pattes, oreilles plaquées : votre chien peut être stressé.', category: 'comportement', author: 'VetBook' },
+    { id: 12, title: 'Exercice quotidien adapté', content: 'Un chien adulte a besoin de 30 min à 2h d\'exercice par jour selon sa race. Variez les activités : marche, jeu, nage.', category: 'comportement', author: 'VetBook' },
+    { id: 13, title: 'Protection anti-parasitaire toute l\'année', content: 'Les puces et tiques sont actives même en hiver. Maintenez un traitement antiparasitaire régulier toute l\'année.', category: 'sante', author: 'VetBook' },
+    { id: 14, title: 'Attention au coup de chaleur', content: 'Ne laissez jamais un chien dans une voiture fermée. Signes : halètement excessif, bave, titubation. Refroidissez progressivement.', category: 'sante', author: 'VetBook' },
+    { id: 15, title: 'Enrichissement mental', content: 'Jouets distributeurs, jeux de flair, tricks : un chien mentalement stimulé est un chien équilibré et heureux.', category: 'comportement', author: 'VetBook' }
+  ];
+
+  // ——— LOF/LOMAD validation patterns ———
+  var LOF_PATTERN = /^\d{1,3}\s?\d{3}\/\d{4,5}$/;
+  var LOMAD_PATTERN = /^\d{6,15}$/;
 
   // Vaccine suggestions by species
   var VACCINE_DB = {
@@ -153,6 +193,9 @@
     editActivityId: null,
     editMealId: null,
     editVetContactId: null,
+    userLat: null,
+    userLng: null,
+    geoSortActive: false,
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth()
   };
@@ -640,7 +683,9 @@
     state.viewMode = 'home';
     var viewHome = document.getElementById('view-home');
     var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
     viewDetail.hidden = true;
+    if (viewCommunity) viewCommunity.hidden = true;
     viewHome.hidden = false;
     viewHome.classList.remove('view-enter');
     void viewHome.offsetWidth;
@@ -655,7 +700,9 @@
     state.viewMode = 'detail';
     var viewHome = document.getElementById('view-home');
     var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
     viewHome.hidden = true;
+    if (viewCommunity) viewCommunity.hidden = true;
     viewDetail.hidden = false;
     viewDetail.classList.remove('view-enter');
     void viewDetail.offsetWidth;
@@ -1177,6 +1224,7 @@
       document.getElementById('ped-gp-pd').value = gpd.paternalGranddam || '';
       document.getElementById('ped-gp-ms').value = gpd.maternalGrandsire || '';
       document.getElementById('ped-gp-md').value = gpd.maternalGranddam || '';
+      toggleLofVerifyControls();
     }
 
     // Vet contact modals
@@ -1186,6 +1234,8 @@
       document.getElementById('vc-phone').value = '';
       document.getElementById('vc-email').value = '';
       document.getElementById('vc-address').value = '';
+      document.getElementById('vc-lat').value = '';
+      document.getElementById('vc-lng').value = '';
       document.getElementById('vc-hours').value = '';
       document.getElementById('vc-emergency').checked = false;
       document.getElementById('vc-notes').value = '';
@@ -1202,6 +1252,8 @@
       document.getElementById('evc-address').value = vcEntry.address || '';
       document.getElementById('evc-hours').value = vcEntry.hours || '';
       document.getElementById('evc-emergency').checked = !!vcEntry.emergency;
+      document.getElementById('evc-lat').value = vcEntry.lat != null ? vcEntry.lat : '';
+      document.getElementById('evc-lng').value = vcEntry.lng != null ? vcEntry.lng : '';
       document.getElementById('evc-notes').value = vcEntry.notes || '';
     }
 
@@ -2696,6 +2748,10 @@
     if (p.registry && p.registry !== 'Non inscrit') {
       html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
       if (p.registryNumber) html += ' <span class="table-muted">N° ' + escapeHtml(p.registryNumber) + '</span>';
+      if (p.verified) {
+        html += ' <span class="badge badge-verified">✅ Vérifié</span>';
+        if (p.verifiedDate) html += ' <span class="table-muted">le ' + escapeHtml(p.verifiedDate) + '</span>';
+      }
       html += '</div>';
     }
     if (chip) {
@@ -2720,15 +2776,22 @@
       '</div>' +
     '</div>';
 
+    if (p.registry && p.registry !== 'Non inscrit') {
+      html += '<div class="lof-disclaimer-display"><small>⚠️ La vérification est une simulation locale de format. Une vérification officielle nécessite un accès aux bases de la SCC (LOF) ou aux registres officiels (LOMAD).</small></div>';
+    }
+
     container.innerHTML = html;
   }
 
   function savePedigree() {
     var data = getCurrent();
     if (!data) return;
+    var registry = document.getElementById('ped-registry').value || 'Non inscrit';
+    var regNumber = document.getElementById('ped-reg-number').value.trim();
+    var vResult = validateRegistryNumber(registry, regNumber);
     data.pedigree = {
-      registry: document.getElementById('ped-registry').value || 'Non inscrit',
-      registryNumber: document.getElementById('ped-reg-number').value.trim(),
+      registry: registry,
+      registryNumber: regNumber,
       chipNumber: document.getElementById('ped-chip').value.trim(),
       sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim() },
       dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim() },
@@ -2737,7 +2800,9 @@
         paternalGranddam: document.getElementById('ped-gp-pd').value.trim(),
         maternalGrandsire: document.getElementById('ped-gp-ms').value.trim(),
         maternalGranddam: document.getElementById('ped-gp-md').value.trim()
-      }
+      },
+      verified: vResult.valid,
+      verifiedDate: vResult.valid ? new Date().toISOString().slice(0, 10) : null
     };
     closeModal('editPedigree');
     saveState(); renderPedigree();
@@ -2746,8 +2811,8 @@
 
   // ——— Vet Directory (app-level) ————————————————————————————
   var DEFAULT_VET_ENTRIES = [
-    { id: 1, name: 'Centre Antipoison Animal CAPAE-Ouest', clinic: 'CAPAE-Ouest', phone: '02 40 68 77 40', email: '', address: 'Nantes', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire' },
-    { id: 2, name: 'Centre Antipoison VetAgro Sup', clinic: 'VetAgro Sup', phone: '04 78 87 10 40', email: '', address: 'Lyon', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire' }
+    { id: 1, name: 'Centre Antipoison Animal CAPAE-Ouest', clinic: 'CAPAE-Ouest', phone: '02 40 68 77 40', email: '', address: 'Nantes', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire', lat: 47.2184, lng: -1.5536 },
+    { id: 2, name: 'Centre Antipoison VetAgro Sup', clinic: 'VetAgro Sup', phone: '04 78 87 10 40', email: '', address: 'Lyon', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire', lat: 45.7640, lng: 4.8357 }
   ];
 
   function loadVetDirectory() {
@@ -2776,10 +2841,26 @@
       });
     }
 
-    // Sort: favorites first, then emergency, then name
+    // Calculate distances if geolocation active
+    if (uiState.geoSortActive && uiState.userLat != null) {
+      entries.forEach(function (e) {
+        if (e.lat != null && e.lng != null) {
+          e._distance = haversineDistance(uiState.userLat, uiState.userLng, e.lat, e.lng);
+        } else {
+          e._distance = null;
+        }
+      });
+    }
+
+    // Sort: favorites first, then emergency, then by distance (if geo active), then name
     entries.sort(function (a, b) {
       if (a.favorite !== b.favorite) return b.favorite ? 1 : -1;
       if (a.emergency !== b.emergency) return b.emergency ? 1 : -1;
+      if (uiState.geoSortActive) {
+        var da = a._distance != null ? a._distance : 999999;
+        var db = b._distance != null ? b._distance : 999999;
+        if (da !== db) return da - db;
+      }
       return (a.name || '').localeCompare(b.name || '');
     });
 
@@ -2836,12 +2917,14 @@
   }
 
   function renderVetCard(e) {
+    var distHtml = (e._distance != null) ? '<div class="vet-card-distance">📍 ' + e._distance.toFixed(1) + ' km</div>' : '';
     return '<div class="vet-card' + (e.emergency ? ' vet-card-emergency' : '') + '">' +
       '<div class="vet-card-header">' +
         '<div class="vet-card-name">' + (e.emergency ? '🚨 ' : '') + escapeHtml(e.name) + '</div>' +
         '<button type="button" class="vet-fav-btn" data-vet-fav="' + e.id + '">' + (e.favorite ? '⭐' : '☆') + '</button>' +
       '</div>' +
       (e.clinic ? '<div class="vet-card-clinic">' + escapeHtml(e.clinic) + '</div>' : '') +
+      distHtml +
       (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">📞 ' + escapeHtml(e.phone) + '</a></div>' : '') +
       (e.email ? '<div class="vet-card-email">' + escapeHtml(e.email) + '</div>' : '') +
       (e.address ? '<div class="vet-card-address">📍 ' + escapeHtml(e.address) + '</div>' : '') +
@@ -2858,12 +2941,16 @@
     if (!name) { showToast('Nom requis.', 'error'); return; }
     var dir = loadVetDirectory();
 
+    var latVal = parseFloat(document.getElementById('vc-lat').value);
+    var lngVal = parseFloat(document.getElementById('vc-lng').value);
     dir.entries.push({
       id: dir.nextId++, name: name,
       clinic: document.getElementById('vc-clinic').value.trim(),
       phone: document.getElementById('vc-phone').value.trim(),
       email: document.getElementById('vc-email').value.trim(),
       address: document.getElementById('vc-address').value.trim(),
+      lat: isNaN(latVal) ? null : latVal,
+      lng: isNaN(lngVal) ? null : lngVal,
       hours: document.getElementById('vc-hours').value.trim(),
       emergency: document.getElementById('vc-emergency').checked,
       favorite: false,
@@ -2884,11 +2971,15 @@
     var name = document.getElementById('evc-name').value.trim();
     if (!name) { showToast('Nom requis.', 'error'); return; }
 
+    var eLatVal = parseFloat(document.getElementById('evc-lat').value);
+    var eLngVal = parseFloat(document.getElementById('evc-lng').value);
     entry.name = name;
     entry.clinic = document.getElementById('evc-clinic').value.trim();
     entry.phone = document.getElementById('evc-phone').value.trim();
     entry.email = document.getElementById('evc-email').value.trim();
     entry.address = document.getElementById('evc-address').value.trim();
+    entry.lat = isNaN(eLatVal) ? null : eLatVal;
+    entry.lng = isNaN(eLngVal) ? null : eLngVal;
     entry.hours = document.getElementById('evc-hours').value.trim();
     entry.emergency = document.getElementById('evc-emergency').checked;
     entry.notes = document.getElementById('evc-notes').value.trim();
@@ -2898,6 +2989,362 @@
     uiState.editVetContactId = null;
     renderVetDirectory();
     showToast('Contact modifié', 'success');
+  }
+
+  // ——— Community (events & tips) ————————————————————————————
+
+  function loadCommunity() {
+    try {
+      var raw = localStorage.getItem(COMMUNITY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { userTips: [], nextTipId: 100 };
+  }
+
+  function saveCommunity(data) {
+    try { localStorage.setItem(COMMUNITY_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  function showCommunity(panel) {
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
+    viewHome.hidden = true;
+    viewDetail.hidden = true;
+    viewCommunity.hidden = false;
+    viewCommunity.classList.remove('view-enter');
+    void viewCommunity.offsetWidth;
+    viewCommunity.classList.add('view-enter');
+    document.getElementById('animal-select').style.display = 'none';
+    document.getElementById('btn-accueil').hidden = true;
+    document.getElementById('fab-container').hidden = true;
+
+    document.getElementById('community-events').hidden = (panel !== 'events');
+    document.getElementById('community-tips').hidden = (panel !== 'tips');
+
+    if (panel === 'events') renderCommunityEvents();
+    if (panel === 'tips') renderCommunityTips();
+  }
+
+  function renderCommunityEvents() {
+    var container = document.getElementById('community-events-list');
+    var reminderBox = document.getElementById('community-next-reminder');
+    if (!container) return;
+
+    var today = new Date();
+    var currentMonth = today.getMonth() + 1;
+    var currentDay = today.getDate();
+
+    var events = DEFAULT_DOG_EVENTS.slice().sort(function (a, b) {
+      // Sort by upcoming: current month first, then future months, then past
+      var aMonthDiff = (a.month - currentMonth + 12) % 12;
+      var bMonthDiff = (b.month - currentMonth + 12) % 12;
+      if (aMonthDiff !== bMonthDiff) return aMonthDiff - bMonthDiff;
+      return a.day - b.day;
+    });
+
+    var monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+    // Upcoming events this month
+    var thisMonthEvents = events.filter(function (e) { return e.month === currentMonth; });
+    var nextMonthEvents = events.filter(function (e) { return e.month === ((currentMonth % 12) + 1); });
+
+    if (reminderBox) {
+      if (thisMonthEvents.length > 0) {
+        reminderBox.innerHTML = '<strong>🔔 Ce mois-ci :</strong> ' + thisMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
+        reminderBox.hidden = false;
+      } else if (nextMonthEvents.length > 0) {
+        reminderBox.innerHTML = '<strong>🔔 Le mois prochain :</strong> ' + nextMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
+        reminderBox.hidden = false;
+      } else {
+        reminderBox.hidden = true;
+      }
+    }
+
+    var html = '<div class="community-events-grid">';
+    events.forEach(function (ev) {
+      var isThisMonth = ev.month === currentMonth;
+      var isPast = ev.month < currentMonth || (ev.month === currentMonth && ev.day < currentDay);
+      html += '<div class="community-event-card' + (isThisMonth ? ' community-event-upcoming' : '') + (isPast && !isThisMonth ? ' community-event-past' : '') + '">' +
+        '<div class="community-event-date"><span class="community-event-day">' + ev.day + '</span><span class="community-event-month">' + monthNames[ev.month] + '</span></div>' +
+        '<div class="community-event-info"><div class="community-event-title">' + escapeHtml(ev.title) + '</div>' +
+        '<div class="community-event-desc">' + escapeHtml(ev.description) + '</div></div></div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderCommunityTips() {
+    var container = document.getElementById('community-tips-list');
+    if (!container) return;
+
+    var community = loadCommunity();
+    var categoryFilter = (document.getElementById('tips-category-filter')?.value || 'all');
+    var allTips = DEFAULT_TIPS.concat((community.userTips || []).map(function (t) { return Object.assign({}, t, { userAdded: true }); }));
+
+    if (categoryFilter !== 'all') {
+      allTips = allTips.filter(function (t) { return t.category === categoryFilter; });
+    }
+
+    var categoryLabels = { sante: 'Santé', alimentation: 'Alimentation', education: 'Éducation', hygiene: 'Hygiène', comportement: 'Comportement' };
+
+    var html = '<div class="community-tips-grid">';
+    if (allTips.length === 0) {
+      html += '<p class="empty-state">Aucune astuce dans cette catégorie.</p>';
+    }
+    allTips.forEach(function (tip) {
+      html += '<div class="community-tip-card">' +
+        '<div class="community-tip-header">' +
+          '<span class="community-tip-badge community-tip-badge-' + tip.category + '">' + escapeHtml(categoryLabels[tip.category] || tip.category) + '</span>' +
+          '<span class="community-tip-author">' + escapeHtml(tip.author || 'Utilisateur') + '</span>' +
+        '</div>' +
+        '<div class="community-tip-title">' + escapeHtml(tip.title) + '</div>' +
+        '<div class="community-tip-content">' + escapeHtml(tip.content) + '</div>' +
+        (tip.userAdded ? '<button type="button" class="btn-delete community-tip-delete" data-tip-id="' + tip.id + '">✕ Supprimer</button>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Bind delete buttons
+    container.querySelectorAll('.community-tip-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-tip-id'), 10);
+        var c = loadCommunity();
+        c.userTips = (c.userTips || []).filter(function (t) { return t.id !== id; });
+        saveCommunity(c);
+        renderCommunityTips();
+        showToast('Astuce supprimée', 'success');
+      });
+    });
+  }
+
+  function addCommunityTip() {
+    var title = document.getElementById('tip-title').value.trim();
+    var content = document.getElementById('tip-content').value.trim();
+    var category = document.getElementById('tip-category').value;
+    if (!title || !content) { showToast('Titre et contenu requis.', 'error'); return; }
+
+    var community = loadCommunity();
+    community.userTips = community.userTips || [];
+    community.userTips.push({ id: community.nextTipId++, title: title, content: content, category: category, author: 'Moi', date: new Date().toISOString().slice(0, 10) });
+    saveCommunity(community);
+    closeModal('addTip');
+    renderCommunityTips();
+    showToast('Astuce ajoutée !', 'success');
+  }
+
+  // ——— Geolocation (Vet Directory) ————————————————————————————
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  var GEO_SEARCH_RADIUS = 10000; // 10 km in meters
+
+  function geolocateUser() {
+    var statusEl = document.getElementById('geo-status');
+    if (!navigator.geolocation) {
+      showToast('Géolocalisation non disponible sur ce navigateur.', 'error');
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Localisation en cours...';
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        uiState.userLat = pos.coords.latitude;
+        uiState.userLng = pos.coords.longitude;
+        uiState.geoSortActive = true;
+        if (statusEl) statusEl.textContent = 'Position trouvée ✓';
+        renderVetDirectory();
+        searchNearbyVets(pos.coords.latitude, pos.coords.longitude);
+      },
+      function (err) {
+        if (statusEl) statusEl.textContent = 'Erreur : ' + err.message;
+        showToast('Impossible d\'obtenir la position.', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
+  function searchNearbyVets(lat, lng) {
+    var statusEl = document.getElementById('geo-status');
+    var resultsContainer = document.getElementById('vet-nearby-results');
+    var listEl = document.getElementById('vet-nearby-list');
+    var radiusInfo = document.getElementById('geo-radius-info');
+    if (!listEl || !resultsContainer) return;
+
+    if (statusEl) statusEl.textContent = 'Recherche des cliniques...';
+    if (radiusInfo) radiusInfo.textContent = '(rayon ' + (GEO_SEARCH_RADIUS / 1000) + ' km)';
+    resultsContainer.hidden = false;
+    listEl.innerHTML = '<p class="table-muted">Recherche en cours...</p>';
+
+    var query = '[out:json][timeout:15];(' +
+      'node["amenity"="veterinary"](around:' + GEO_SEARCH_RADIUS + ',' + lat + ',' + lng + ');' +
+      'way["amenity"="veterinary"](around:' + GEO_SEARCH_RADIUS + ',' + lat + ',' + lng + ');' +
+      'node["healthcare"="veterinary"](around:' + GEO_SEARCH_RADIUS + ',' + lat + ',' + lng + ');' +
+      'way["healthcare"="veterinary"](around:' + GEO_SEARCH_RADIUS + ',' + lat + ',' + lng + ');' +
+    ');out center body;';
+
+    var overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+    fetch(overpassUrl)
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      var elements = (data.elements || []).map(function (el) {
+        var elLat = el.lat || (el.center && el.center.lat);
+        var elLng = el.lon || (el.center && el.center.lon);
+        var tags = el.tags || {};
+        return {
+          name: tags.name || tags['name:fr'] || tags['name:en'] || tags['name:mg'] || 'Clinique vétérinaire',
+          phone: tags.phone || tags['contact:phone'] || '',
+          address: [tags['addr:housenumber'], tags['addr:street'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ') || '',
+          website: tags.website || tags['contact:website'] || '',
+          hours: tags.opening_hours || '',
+          lat: elLat,
+          lng: elLng,
+          distance: (elLat && elLng) ? haversineDistance(lat, lng, elLat, elLng) : null
+        };
+      });
+
+      // Remove duplicates by name+address
+      var seen = {};
+      elements = elements.filter(function (e) {
+        var key = (e.name + '|' + e.address).toLowerCase();
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+
+      // Sort by distance
+      elements.sort(function (a, b) {
+        return (a.distance || 999) - (b.distance || 999);
+      });
+
+      if (elements.length === 0) {
+        listEl.innerHTML = '<p class="empty-state">Aucune clinique vétérinaire trouvée dans un rayon de ' + (GEO_SEARCH_RADIUS / 1000) + ' km.</p>';
+        if (statusEl) statusEl.textContent = '0 résultat';
+        return;
+      }
+
+      if (statusEl) statusEl.textContent = elements.length + ' clinique(s) trouvée(s)';
+
+      var html = '<div class="vet-cards">';
+      elements.forEach(function (e, idx) {
+        html += '<div class="vet-card vet-card-nearby">' +
+          '<div class="vet-card-header"><div class="vet-card-name">' + escapeHtml(e.name) + '</div></div>' +
+          (e.distance != null ? '<div class="vet-card-distance">📍 ' + e.distance.toFixed(1) + ' km</div>' : '') +
+          (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">📞 ' + escapeHtml(e.phone) + '</a></div>' : '') +
+          (e.address ? '<div class="vet-card-address">📍 ' + escapeHtml(e.address) + '</div>' : '') +
+          (e.hours ? '<div class="vet-card-hours">🕐 ' + escapeHtml(e.hours) + '</div>' : '') +
+          (e.website ? '<div class="vet-card-website"><a href="' + escapeHtml(e.website) + '" target="_blank" rel="noopener">🌐 Site web</a></div>' : '') +
+          '<div class="vet-card-actions">' +
+            '<button type="button" class="btn-icon vet-add-to-dir" data-nearby-idx="' + idx + '">+ Ajouter à mon annuaire</button>' +
+          '</div></div>';
+      });
+      html += '</div>';
+      listEl.innerHTML = html;
+
+      // Bind "add to directory" buttons
+      listEl.querySelectorAll('.vet-add-to-dir').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var idx = parseInt(btn.getAttribute('data-nearby-idx'), 10);
+          var e = elements[idx];
+          if (!e) return;
+          var dir = loadVetDirectory();
+          dir.entries.push({
+            id: dir.nextId++,
+            name: e.name,
+            clinic: e.name,
+            phone: e.phone,
+            email: '',
+            address: e.address,
+            lat: e.lat || null,
+            lng: e.lng || null,
+            hours: e.hours,
+            emergency: false,
+            favorite: false,
+            notes: 'Ajouté via recherche GPS'
+          });
+          saveVetDirectory(dir);
+          renderVetDirectory();
+          btn.textContent = '✓ Ajouté';
+          btn.disabled = true;
+          showToast(e.name + ' ajouté à l\'annuaire', 'success');
+        });
+      });
+    })
+    .catch(function (err) {
+      console.warn('VetBook: Overpass search failed', err);
+      listEl.innerHTML = '<p class="empty-state">Erreur lors de la recherche. Vérifiez votre connexion internet.</p>';
+      if (statusEl) statusEl.textContent = 'Erreur de recherche';
+      showToast('Recherche échouée : ' + err.message, 'error');
+    });
+  }
+
+  function fillCurrentPosition(latId, lngId) {
+    if (!navigator.geolocation) {
+      showToast('Géolocalisation non disponible.', 'error');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        var latEl = document.getElementById(latId);
+        var lngEl = document.getElementById(lngId);
+        if (latEl) latEl.value = pos.coords.latitude.toFixed(6);
+        if (lngEl) lngEl.value = pos.coords.longitude.toFixed(6);
+        showToast('Position GPS récupérée', 'success');
+      },
+      function () { showToast('Impossible d\'obtenir la position.', 'error'); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  // ——— LOF/LOMAD Verification ————————————————————————————
+
+  function validateRegistryNumber(registry, number) {
+    if (!number || !registry) return { valid: false, message: 'Numéro non renseigné' };
+    number = number.trim();
+    if (registry === 'LOF') {
+      if (LOF_PATTERN.test(number)) return { valid: true, message: 'Format LOF valide ✓ (simulation)' };
+      return { valid: false, message: 'Format LOF invalide. Attendu : ex. 123 456/12345' };
+    }
+    if (registry === 'LOMAD') {
+      if (LOMAD_PATTERN.test(number)) return { valid: true, message: 'Format LOMAD valide ✓ (simulation)' };
+      return { valid: false, message: 'Format LOMAD invalide. Attendu : 6 à 15 chiffres' };
+    }
+    return { valid: false, message: 'Registre non reconnu pour la vérification' };
+  }
+
+  function simulateVerification() {
+    var registry = document.getElementById('ped-registry').value;
+    var number = document.getElementById('ped-reg-number').value;
+    var resultEl = document.getElementById('lof-verify-result');
+    if (!resultEl) return;
+
+    var result = validateRegistryNumber(registry, number);
+    resultEl.innerHTML = '<span class="lof-badge ' + (result.valid ? 'lof-badge-valid' : 'lof-badge-invalid') + '">' +
+      (result.valid ? '✅' : '❌') + ' ' + escapeHtml(result.message) + '</span>';
+  }
+
+  function toggleLofVerifyControls() {
+    var registry = document.getElementById('ped-registry').value;
+    var isLofLomad = (registry === 'LOF' || registry === 'LOMAD');
+    var verifyGroup = document.getElementById('lof-verify-group');
+    var disclaimer = document.getElementById('lof-disclaimer');
+    if (verifyGroup) verifyGroup.hidden = !isLofLomad;
+    if (disclaimer) disclaimer.hidden = !isLofLomad;
+    var resultEl = document.getElementById('lof-verify-result');
+    if (resultEl) resultEl.innerHTML = '';
   }
 
   // ——— Alerts & notifications ————————————————————————————
@@ -3691,8 +4138,9 @@
       exportState.animals.push(Object.assign({}, wrap, { photos: exportedPhotos, animal: Object.assign({}, a, { avatar: avatar }) }));
     }
 
-    // Include vet directory
+    // Include vet directory & community
     exportState.vetDirectory = loadVetDirectory();
+    exportState.community = loadCommunity();
 
     downloadText('vetbook-backup.json', JSON.stringify(exportState), 'application/json');
     showToast('Sauvegarde téléchargée', 'success');
@@ -3724,9 +4172,12 @@
       if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
     });
 
-    // Restore vet directory if present
+    // Restore vet directory & community if present
     if (parsed.vetDirectory) {
       saveVetDirectory(parsed.vetDirectory);
+    }
+    if (parsed.community) {
+      saveCommunity(parsed.community);
     }
 
     try { await clearPhotoStore(); } catch (e) { console.warn('VetBook: clearPhotoStore échoué', e); }
@@ -3914,6 +4365,7 @@
     document.getElementById('form-edit-pedigree').addEventListener('submit', function (e) { e.preventDefault(); savePedigree(); });
     document.getElementById('form-add-vet-contact').addEventListener('submit', function (e) { e.preventDefault(); addVetContact(); });
     document.getElementById('form-edit-vet-contact').addEventListener('submit', function (e) { e.preventDefault(); updateVetContact(); });
+    document.getElementById('form-add-tip').addEventListener('submit', function (e) { e.preventDefault(); addCommunityTip(); });
 
     // Filters & sorts
     ['vaccine-search', 'vaccine-status-filter', 'vaccine-sort'].forEach(function (id) {
@@ -4036,6 +4488,22 @@
       closeModal(id.slice('modal-'.length));
     });
 
+    // Community buttons
+    document.getElementById('btn-show-events').addEventListener('click', function () { showCommunity('events'); });
+    document.getElementById('btn-show-tips').addEventListener('click', function () { showCommunity('tips'); });
+    document.getElementById('btn-community-back').addEventListener('click', function () { showHome(); });
+    document.getElementById('btn-add-tip').addEventListener('click', function () { openModal('addTip'); });
+    document.getElementById('tips-category-filter').addEventListener('change', function () { renderCommunityTips(); });
+
+    // Geolocation
+    document.getElementById('btn-geolocate-vets').addEventListener('click', function () { geolocateUser(); });
+    document.getElementById('btn-geocode-vc').addEventListener('click', function () { fillCurrentPosition('vc-lat', 'vc-lng'); });
+    document.getElementById('btn-geocode-evc').addEventListener('click', function () { fillCurrentPosition('evc-lat', 'evc-lng'); });
+
+    // LOF/LOMAD verify
+    document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
+    document.getElementById('ped-registry').addEventListener('change', function () { toggleLofVerifyControls(); });
+
     // Setup features
     setupFAB();
     setupQuickDateButtons();
@@ -4046,7 +4514,8 @@
   window.app = {
     openModal: openModal,
     closeModal: closeModal,
-    switchTab: switchTab
+    switchTab: switchTab,
+    showCommunity: showCommunity
   };
 
   if (document.readyState === 'loading') {

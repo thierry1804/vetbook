@@ -1,7 +1,7 @@
 /**
  * Service Worker VetBook — cache de l'app shell pour usage hors ligne / PWA
  */
-const CACHE_NAME = 'vetbook-v2';
+const CACHE_NAME = 'vetbook-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -32,17 +32,20 @@ self.addEventListener('activate', function (event) {
 
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
+  // Never intercept external API calls (Overpass, etc.)
   if (event.request.url.indexOf(self.location.origin) !== 0) return;
+  // Never cache API calls
+  if (event.request.url.indexOf('overpass-api') !== -1) return;
 
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(event.request).then(function (res) {
-        if (!res || res.status !== 200 || res.type !== 'basic') return res;
-        var clone = res.clone();
-        caches.open(CACHE_NAME).then(function (c) { c.put(event.request, clone); });
-        return res;
-      }).catch(function () {
+    fetch(event.request).then(function (res) {
+      if (!res || res.status !== 200 || res.type !== 'basic') return res;
+      var clone = res.clone();
+      caches.open(CACHE_NAME).then(function (c) { c.put(event.request, clone); });
+      return res;
+    }).catch(function () {
+      return caches.match(event.request).then(function (cached) {
+        if (cached) return cached;
         return caches.match('./index.html').then(function (f) {
           return f || new Response('Hors ligne', { status: 503, statusText: 'Service Unavailable' });
         });

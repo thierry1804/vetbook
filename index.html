@@ -61,6 +61,76 @@
       </div>
       <div id="home-pet-grid" class="home-pet-grid"></div>
       <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
+
+      <!-- Section Communauté (accueil) -->
+      <div id="home-community" class="home-community-section">
+        <h2 class="section-title">🐕 Communauté & Événements</h2>
+        <div class="community-cards">
+          <div class="community-card" id="btn-show-events" role="button" tabindex="0">
+            <span class="community-icon">📅</span>
+            <span class="community-label">Calendrier Événements Canins</span>
+          </div>
+          <div class="community-card" id="btn-show-tips" role="button" tabindex="0">
+            <span class="community-icon">💡</span>
+            <span class="community-label">Astuces & Conseils</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue communauté -->
+    <div id="view-community" class="view" hidden>
+      <button type="button" class="btn-accueil" id="btn-community-back">← Accueil</button>
+
+      <div id="community-events" class="community-panel" hidden>
+        <h2 class="section-title">📅 Événements Canins</h2>
+        <p class="table-muted">Calendrier annuel des principaux événements canins en France. Les événements du mois sont mis en avant.</p>
+        <div id="community-next-reminder" class="community-reminder-box"></div>
+        <div id="community-events-list"></div>
+      </div>
+
+      <div id="community-tips" class="community-panel" hidden>
+        <h2 class="section-title">💡 Astuces & Conseils</h2>
+        <div class="table-controls">
+          <div class="table-control">
+            <label for="tips-category-filter">Catégorie</label>
+            <select id="tips-category-filter" class="table-select">
+              <option value="all">Toutes</option>
+              <option value="sante">Santé</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="education">Éducation</option>
+              <option value="hygiene">Hygiène</option>
+              <option value="comportement">Comportement</option>
+            </select>
+          </div>
+          <button type="button" class="btn-icon" id="btn-add-tip">+ Ajouter une astuce</button>
+        </div>
+        <div id="community-tips-list"></div>
+      </div>
+    </div>
+
+    <!-- Modal ajout astuce -->
+    <div class="modal-overlay" id="modal-addTip" aria-hidden="true" role="dialog">
+      <div class="modal" role="document">
+        <h2 class="modal-title">💡 Ajouter une Astuce</h2>
+        <form id="form-add-tip" class="modal-form">
+          <div class="form-group"><label class="form-label" for="tip-title">Titre</label><input class="form-input" id="tip-title" required placeholder="Titre de l'astuce"></div>
+          <div class="form-group"><label class="form-label" for="tip-category">Catégorie</label>
+            <select class="form-input" id="tip-category">
+              <option value="sante">Santé</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="education">Éducation</option>
+              <option value="hygiene">Hygiène</option>
+              <option value="comportement">Comportement</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label" for="tip-content">Contenu</label><textarea class="form-input" id="tip-content" rows="4" required placeholder="Partagez votre conseil..."></textarea></div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" data-close="addTip">Annuler</button>
+            <button type="submit" class="btn-primary">Enregistrer</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Vue détail : carnet d'un animal -->
@@ -512,9 +582,17 @@
                 <label for="vet-search">Recherche</label>
                 <input id="vet-search" class="table-input" type="search" placeholder="nom, clinique...">
               </div>
+              <div class="table-control">
+                <button type="button" class="btn-icon" id="btn-geolocate-vets">📍 Trouver à proximité</button>
+                <span id="geo-status" class="table-muted" style="display:inline;font-size:0.8rem;margin-left:6px"></span>
+              </div>
             </div>
           </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addVetContact')">+ Ajouter</button>
+        </div>
+        <div id="vet-nearby-results" hidden>
+          <h3 class="section-title" style="margin-top:16px">📍 Cliniques à proximité <small class="table-muted" id="geo-radius-info"></small></h3>
+          <div id="vet-nearby-list"></div>
         </div>
         <div id="vet-directory-content"></div>
       </div>
@@ -1181,6 +1259,13 @@
           </div>
           <div class="form-group"><label class="form-label" for="ped-reg-number">N° Registre</label><input class="form-input" id="ped-reg-number" placeholder="N° d'inscription"></div>
         </div>
+        <div class="form-group" id="lof-verify-group" hidden>
+          <button type="button" class="btn-icon" id="btn-verify-lof">🔍 Vérifier le numéro</button>
+          <div id="lof-verify-result" class="lof-verify-result"></div>
+        </div>
+        <div class="form-group lof-disclaimer" id="lof-disclaimer" hidden>
+          <p class="table-muted"><small>⚠️ Simulation : la vérification réelle nécessite un partenariat officiel avec la SCC (LOF) ou le ministère (LOMAD). Cette fonctionnalité valide uniquement le format du numéro.</small></p>
+        </div>
         <div class="form-group"><label class="form-label" for="ped-chip">N° Puce</label><input class="form-input" id="ped-chip" placeholder="N° de puce électronique"></div>
         <h3 style="margin:12px 0 8px;font-size:0.95rem">♂ Père</h3>
         <div class="form-row">
@@ -1221,6 +1306,11 @@
           <div class="form-group"><label class="form-label" for="vc-email">Email</label><input class="form-input" id="vc-email" type="email"></div>
         </div>
         <div class="form-group"><label class="form-label" for="vc-address">Adresse</label><input class="form-input" id="vc-address" placeholder="Adresse complète"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="vc-lat">Latitude</label><input class="form-input" id="vc-lat" type="number" step="any" placeholder="ex: 48.8566"></div>
+          <div class="form-group"><label class="form-label" for="vc-lng">Longitude</label><input class="form-input" id="vc-lng" type="number" step="any" placeholder="ex: 2.3522"></div>
+        </div>
+        <button type="button" class="btn-icon" id="btn-geocode-vc" style="margin-bottom:12px">📍 Utiliser ma position</button>
         <div class="form-group"><label class="form-label" for="vc-hours">Horaires</label><input class="form-input" id="vc-hours" placeholder="ex: Lun-Ven 9h-18h"></div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="vc-emergency" style="width:auto">
@@ -1246,6 +1336,11 @@
           <div class="form-group"><label class="form-label" for="evc-email">Email</label><input class="form-input" id="evc-email" type="email"></div>
         </div>
         <div class="form-group"><label class="form-label" for="evc-address">Adresse</label><input class="form-input" id="evc-address"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="evc-lat">Latitude</label><input class="form-input" id="evc-lat" type="number" step="any" placeholder="ex: 48.8566"></div>
+          <div class="form-group"><label class="form-label" for="evc-lng">Longitude</label><input class="form-input" id="evc-lng" type="number" step="any" placeholder="ex: 2.3522"></div>
+        </div>
+        <button type="button" class="btn-icon" id="btn-geocode-evc" style="margin-bottom:12px">📍 Utiliser ma position</button>
         <div class="form-group"><label class="form-label" for="evc-hours">Horaires</label><input class="form-input" id="evc-hours"></div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="evc-emergency" style="width:auto">
