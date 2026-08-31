@@ -1,14 +1,19 @@
 /**
  * Service Worker VetBook — cache de l'app shell pour usage hors ligne / PWA
  */
-const CACHE_NAME = 'vetbook-v3';
+const CACHE_NAME = 'vetbook-v6';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'
+  './vendor/qrcode.min.js',
+  './vendor/supabase.js',
+  './data-layer.js'
+  // Note : config.js est volontairement absent (spécifique à chaque
+  // déploiement, potentiellement inexistant) — Cache.addAll() échouerait
+  // entièrement si une seule URL de la liste est introuvable.
 ];
 
 self.addEventListener('install', function (event) {
@@ -32,10 +37,9 @@ self.addEventListener('activate', function (event) {
 
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
-  // Never intercept external API calls (Overpass, etc.)
+  // Cross-origin requests (Overpass API, Google Fonts, ...) are left to the
+  // network/browser cache; nothing to vendor locally beyond app assets.
   if (event.request.url.indexOf(self.location.origin) !== 0) return;
-  // Never cache API calls
-  if (event.request.url.indexOf('overpass-api') !== -1) return;
 
   event.respondWith(
     fetch(event.request).then(function (res) {

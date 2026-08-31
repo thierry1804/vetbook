@@ -22,9 +22,18 @@ VetBook est une **PWA** : elle peut être installée sur mobile ou bureau (menu 
 
 - **manifest.json** : nom, couleurs, mode `standalone`, icônes
 - **sw.js** : service worker qui met en cache l’app shell (HTML, CSS, JS) et sert la page en cache si le réseau est indisponible
-- **Icônes** : `icons/icon-192.png` et `icons/icon-512.png` (placeholders 1×1 par défaut ; pour une meilleure expérience d’installation, remplacez-les par de vraies icônes 192×192 et 512×512)
+- **Icônes** : `icons/icon-192.png` et `icons/icon-512.png`, générées depuis `icons/source/icon.svg`
 
 Pour que l’installation soit proposée, l’app doit être servie en **HTTPS** (ou en `localhost` en dev).
+
+## Stack
+
+VetBook est **100% JavaScript vanilla** (pas de framework) : `index.html` charge directement `app.js` et `styles.css` via des balises `<script>`/`<link>` classiques, sans étape de build nécessaire pour tourner.
+
+- `vite` est utilisé uniquement comme **serveur de dev statique** (`npm run dev`), pas comme bundler applicatif.
+- `esbuild` sert au **build de prod** (`npm run build`) : minifie `app.js`/`styles.css` dans `dist/` avec cache-busting.
+- `@supabase/supabase-js` est présent en dépendance en vue de la synchronisation cloud / comptes / notifications push (à venir) — pas encore branché dans `app.js`.
+- `vendor/qrcode.min.js` : bibliothèque QR code vendorisée en local (plus de dépendance CDN, nécessaire pour que ça fonctionne aussi hors-ligne via le service worker).
 
 ## Fichiers
 
@@ -33,8 +42,12 @@ Pour que l’installation soit proposée, l’app doit être servie en **HTTPS**
 - `app.js` — logique (état, localStorage, rendus, enregistrement du SW)
 - `manifest.json` — manifeste PWA
 - `sw.js` — service worker (cache)
-- `icons/` — icônes PWA (192×192, 512×512)
+- `icons/` — icônes PWA (192×192, 512×512) + `icons/source/icon.svg` (source éditable)
+- `vendor/` — bibliothèques tierces vendorisées en local
+- `scripts/build.mjs` — script de build de prod
 
 ## Lancement
 
-Ouvrir `index.html` dans un navigateur (ou servir le dossier avec un serveur local). Aucune dépendance externe hormis les polices Google (Playfair Display, DM Sans). Pour tester la PWA (installation, hors ligne), utilisez un serveur local (ex. `npx serve .`) et un navigateur compatible (Chrome, Edge, Safari).
+**Dev :** ouvrir `index.html` directement dans un navigateur, ou `npm run dev` (serveur Vite sur `http://127.0.0.1:3000`). Pour tester la PWA (installation, hors ligne), servez le dossier en local (ex. `npx serve .`) avec un navigateur compatible (Chrome, Edge, Safari).
+
+**Prod :** `npm run build` génère un dossier `dist/` prêt à déployer (assets minifiés, versionnés). Servez `dist/` en HTTPS.

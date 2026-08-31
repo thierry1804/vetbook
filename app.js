@@ -7,6 +7,56 @@
 (function () {
   'use strict';
 
+  // ——— SVG Icon System (Pawly / Feather style) ———————————————
+  var _ic = function (d, s) { s = s || 20; return '<svg class="icon" viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var ICO = {
+    paw:       _ic('<path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>'),
+    vaccine:   _ic('<path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/>'),
+    pill:      _ic('<path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/>'),
+    hospital:  _ic('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/>'),
+    flask:     _ic('<path d="M10 2v7.527a2 2 0 01-.211.896L4.72 20.18A1 1 0 005.596 22h12.808a1 1 0 00.877-1.82l-5.07-9.757A2 2 0 0114 9.527V2"/><path d="M8.5 2h7"/>'),
+    edit:      _ic('<path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>'),
+    trash:     _ic('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'),
+    check:     _ic('<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'),
+    x:         _ic('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'),
+    share:     _ic('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'),
+    clipboard: _ic('<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>'),
+    fileText:  _ic('<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>'),
+    mapPin:    _ic('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>'),
+    phone:     _ic('<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>'),
+    globe:     _ic('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/>'),
+    bell:      _ic('<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'),
+    star:      _ic('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),
+    starOff:   _ic('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none"/>'),
+    sparkle:   _ic('<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>'),
+    zap:       _ic('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'),
+    eye:       _ic('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+    trophy:    _ic('<path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/>'),
+    search:    _ic('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'),
+    calendar:  _ic('<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
+    clock:     _ic('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'),
+    warning:   _ic('<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'),
+    camera:    _ic('<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>'),
+    droplet:   _ic('<path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>'),
+    thermom:   _ic('<path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/>'),
+    activity:  _ic('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'),
+    utensils:  _ic('<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>'),
+    scale:     _ic('<path d="M16 3L8 3"/><path d="M12 3v18"/><path d="M19 7l-3.5 9h-1L19 7z"/><path d="M5 7l3.5 9h1L5 7z"/><circle cx="12" cy="21" r="1"/>'),
+    stethoscope: _ic('<path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/>'),
+    user:      _ic('<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/>'),
+    dog:       _ic('<path d="M10 5.172C10 3.782 8.884 2.5 7.5 2.5c-1.384 0-2.5 1.282-2.5 2.672 0 1.39-.392 3.328-1.5 4.828h17c-1.108-1.5-1.5-3.438-1.5-4.828 0-1.39-1.116-2.672-2.5-2.672S14 3.782 14 5.172"/><path d="M2 10v2a5 5 0 005 5 5 5 0 005-5v0a5 5 0 005 5 5 5 0 005-5v-2"/><path d="M7 17v5"/><path d="M17 17v5"/>'),
+    cat:       _ic('<path d="M12 5c-2.8-2-7 0-7 4v8c0 2 1 4 3 4h8c2 0 3-2 3-4V9c0-4-4.2-6-7-4"/><path d="M5 9L2 4"/><path d="M19 9l3-5"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/>'),
+    cake:      _ic('<path d="M20 21v-8a2 2 0 00-2-2H6a2 2 0 00-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/>'),
+    print:     _ic('<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'),
+    download:  _ic('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+    qr:        _ic('<rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><path d="M22 14h-4v4"/><path d="M22 22h-8v-4"/>'),
+    plus:      _ic('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'),
+    heart:     _ic('<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>'),
+    info:      _ic('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'),
+    lightbulb: _ic('<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>')
+  };
+  function ico(name, size) { return ICO[name] ? (size ? ICO[name].replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"') : ICO[name]) : ''; }
+
   // ——— i18n ———————————————————————————————————————————————————
   var locales = {};
   locales.fr = {
@@ -197,7 +247,9 @@
     userLng: null,
     geoSortActive: false,
     calendarYear: new Date().getFullYear(),
-    calendarMonth: new Date().getMonth()
+    calendarMonth: new Date().getMonth(),
+    petTaskFilter: 'all',
+    petChartMode: 'weight'
   };
 
   // ——— Helpers —————————————————————————————————————————————
@@ -214,6 +266,10 @@
   function fmtDate(d) {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function fmtCost(n) {
+    return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   }
 
   function relativeDate(isoDate) {
@@ -280,6 +336,87 @@
     }, duration || 3500);
   }
 
+  // Toast de succès avec action "Annuler" (restaure un élément qu'on vient
+  // de supprimer). restoreFn doit remettre l'état local + sauvegarder +
+  // re-render, exactement comme si la suppression n'avait pas eu lieu.
+  function showUndoToast(message, restoreFn) {
+    var container = document.getElementById('toast-container');
+    if (!container) { showToast(message, 'success'); return; }
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success toast-undo';
+    var textEl = document.createElement('span');
+    textEl.textContent = message;
+    var undoBtn = document.createElement('button');
+    undoBtn.type = 'button';
+    undoBtn.className = 'toast-undo-btn';
+    undoBtn.textContent = 'Annuler';
+    undoBtn.addEventListener('click', function () {
+      restoreFn();
+      toast.remove();
+    });
+    toast.appendChild(textEl);
+    toast.appendChild(undoBtn);
+    container.appendChild(toast);
+    setTimeout(function () {
+      toast.classList.add('toast-out');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 6000);
+  }
+
+  // ——— Confirmation de suppression (remplace confirm() natif) ————————
+  // Affiche la modale #modal-confirmDelete, appelle onConfirm() si
+  // l'utilisateur clique "Supprimer". Repli sur confirm() natif si la
+  // modale est absente du DOM (ne devrait pas arriver).
+  function confirmDelete(message, onConfirm) {
+    var overlay = document.getElementById('modal-confirmDelete');
+    var msgEl = document.getElementById('confirm-delete-message');
+    var btn = document.getElementById('confirm-delete-btn');
+    if (!overlay || !msgEl || !btn) {
+      if (window.confirm(message)) onConfirm();
+      return;
+    }
+    msgEl.textContent = message;
+    openModal('confirmDelete');
+    function handler() {
+      btn.removeEventListener('click', handler);
+      closeModal('confirmDelete');
+      onConfirm();
+    }
+    btn.addEventListener('click', handler);
+  }
+
+  // Suppression d'un animal : demande la raison (facultatif) pour adapter
+  // le ton du message plutôt que de traiter ça comme une suppression de
+  // ligne de tableau comme les autres. onConfirm(reason) reçoit
+  // 'deceased' | 'rehomed' | 'other' | '' (non précisé).
+  function confirmDeleteAnimal(animalName, onConfirm) {
+    var overlay = document.getElementById('modal-deleteAnimal');
+    var nameEl = document.getElementById('delete-animal-name');
+    var btn = document.getElementById('confirm-delete-animal-btn');
+    if (!overlay || !btn) {
+      if (window.confirm('Supprimer ' + animalName + ' et toutes ses données ?')) onConfirm('');
+      return;
+    }
+    if (nameEl) nameEl.textContent = animalName;
+    var form = document.getElementById('form-delete-animal-reason');
+    if (form) form.reset();
+    openModal('deleteAnimal');
+    function handler() {
+      btn.removeEventListener('click', handler);
+      var checked = form ? form.querySelector('input[name="delete-animal-reason"]:checked') : null;
+      closeModal('deleteAnimal');
+      onConfirm(checked ? checked.value : '');
+    }
+    btn.addEventListener('click', handler);
+  }
+
+  var DELETE_ANIMAL_MESSAGES = {
+    deceased: function (name) { return name + ' restera à jamais dans son carnet. Toutes nos condoléances. 🕊️'; },
+    rehomed: function (name) { return 'Bonne route à ' + name + ' dans sa nouvelle famille.'; },
+    other: function () { return 'Animal supprimé.'; },
+    '': function () { return 'Animal supprimé.'; },
+  };
+
   // ——— State management ————————————————————————————————————
   function loadState() {
     try {
@@ -311,6 +448,7 @@
         if (!a.nutrition.dailyPlan) a.nutrition.dailyPlan = { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' };
         if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } };
         if (!a.animal.themeColor) a.animal.themeColor = '';
+        if (a.animal.height === undefined) a.animal.height = null;
         if (!a.notifications) a.notifications = {};
         if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
       });
@@ -521,30 +659,36 @@
       showToast(t('lastAnimal'), 'error');
       return;
     }
-    if (!confirm('Supprimer cet animal et toutes ses données ?')) return;
-    var animal = state.animals.find(function (a) { return a.id === id; });
-    if (!animal) return;
+    var animalToDelete = state.animals.find(function (a) { return a.id === id; });
+    if (!animalToDelete) return;
+    var animalName = (animalToDelete.animal && animalToDelete.animal.name) || 'cet animal';
 
-    // Clean up IndexedDB photos
-    if (Array.isArray(animal.photos)) {
-      for (var p of animal.photos) {
-        if (p && p.id != null) {
-          deletePhotoBlob(p.id).catch(function () {});
+    confirmDeleteAnimal(animalName, function (reason) {
+      var animal = state.animals.find(function (a) { return a.id === id; });
+      if (!animal) return;
+
+      // Clean up IndexedDB photos
+      if (Array.isArray(animal.photos)) {
+        for (var p of animal.photos) {
+          if (p && p.id != null) {
+            deletePhotoBlob(p.id).catch(function () {});
+          }
         }
       }
-    }
-    if (animal.animal && typeof animal.animal.avatar === 'number') {
-      deletePhotoBlob(animal.animal.avatar).catch(function () {});
-    }
+      if (animal.animal && typeof animal.animal.avatar === 'number') {
+        deletePhotoBlob(animal.animal.avatar).catch(function () {});
+      }
 
-    state.animals = state.animals.filter(function (a) { return a.id !== id; });
-    if (state.currentAnimalId === id) {
-      state.currentAnimalId = state.animals[0]?.id ?? null;
-    }
-    saveState();
-    showToast('Animal supprimé', 'success');
-    if (state.viewMode === 'home') renderHome();
-    else showHome();
+      state.animals = state.animals.filter(function (a) { return a.id !== id; });
+      if (state.currentAnimalId === id) {
+        state.currentAnimalId = state.animals[0]?.id ?? null;
+      }
+      saveState();
+      var msgFn = DELETE_ANIMAL_MESSAGES[reason] || DELETE_ANIMAL_MESSAGES[''];
+      showToast(msgFn(animalName), 'success', reason === 'deceased' ? 5500 : 3500);
+      if (state.viewMode === 'home') renderHome();
+      else showHome();
+    });
   }
 
   // ——— Dashboard ———————————————————————————————————————
@@ -598,12 +742,430 @@
   }
 
   // ——— Home ————————————————————————————————————————————
+  // ——— Pet avatars row (Pawly style) ————————————————————————
+  function renderPetsRow() {
+    var row = document.getElementById('home-pets-row');
+    if (!row) return;
+    if (state.animals.length === 0) { row.innerHTML = ''; return; }
+
+    row.innerHTML = state.animals.map(function (data) {
+      var a = data.animal;
+      var name = escapeHtml(a.name || 'Sans nom');
+      var isActive = data.id === state.currentAnimalId;
+      var avatarInner = a.avatar
+        ? (typeof a.avatar === 'number'
+            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
+            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
+        : (a.species === 'Féline' ? '🐱' : '🐕');
+      return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
+        '<div class="home-pet-bubble__avatar">' + avatarInner + '</div>' +
+        '<span class="home-pet-bubble__name">' + name + '</span>' +
+        '</div>';
+    }).join('') +
+    '<div class="home-pet-bubble" id="home-add-pet-bubble">' +
+      '<div class="home-pet-bubble__avatar" style="border-style:dashed;font-size:22px;color:var(--text-muted)">+</div>' +
+      '<span class="home-pet-bubble__name">Ajouter</span>' +
+    '</div>';
+
+    row.querySelectorAll('.home-pet-bubble[data-pet-id]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var id = parseInt(el.getAttribute('data-pet-id'), 10);
+        state.currentAnimalId = id;
+        saveState();
+        showDetail();
+      });
+    });
+
+    var addBubble = document.getElementById('home-add-pet-bubble');
+    if (addBubble) addBubble.addEventListener('click', function () { addAnimal(); });
+
+    row.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
+      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
+      if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
+    });
+  }
+
+  function renderDetailPetsRow() {
+    var row = document.getElementById('detail-pets-row');
+    if (!row) return;
+    if (state.animals.length === 0) { row.innerHTML = ''; return; }
+
+    row.innerHTML = state.animals.map(function (data) {
+      var a = data.animal;
+      var name = escapeHtml(a.name || 'Sans nom');
+      var isActive = data.id === state.currentAnimalId;
+      var avatarInner = a.avatar
+        ? (typeof a.avatar === 'number'
+            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
+            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
+        : (a.species === 'Féline' ? '🐱' : '🐕');
+      return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
+        '<div class="home-pet-bubble__avatar">' + avatarInner + '</div>' +
+        '<span class="home-pet-bubble__name">' + name + '</span>' +
+        '</div>';
+    }).join('') +
+    '<div class="home-pet-bubble" id="detail-add-pet-bubble">' +
+      '<div class="home-pet-bubble__avatar" style="border-style:dashed;font-size:22px;color:var(--text-muted)">+</div>' +
+      '<span class="home-pet-bubble__name">Ajouter</span>' +
+    '</div>';
+
+    row.querySelectorAll('.home-pet-bubble[data-pet-id]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var id = parseInt(el.getAttribute('data-pet-id'), 10);
+        state.currentAnimalId = id;
+        uiState.petChartMode = 'weight';
+        uiState.petTaskFilter = 'all';
+        saveState();
+        renderAnimalSelect();
+        refreshAll();
+      });
+    });
+
+    var addBubble = document.getElementById('detail-add-pet-bubble');
+    if (addBubble) addBubble.addEventListener('click', function () { openModal('addAnimal'); });
+
+    row.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
+      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
+      if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
+    });
+  }
+
+  function getVaccinationStripState(data) {
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var hasRecords = ((data.vaccines || []).length + (data.dewormings || []).length) > 0;
+    if (!hasRecords) {
+      return { className: 'pet-vaccination-strip__badge--muted', text: 'Suivi : non renseigné' };
+    }
+    var overdue = false;
+    function checkNext(next) {
+      if (!next) return;
+      var dt = isoToLocalDate(next);
+      if (dt && dt < todayMid) overdue = true;
+    }
+    (data.vaccines || []).forEach(function (v) { checkNext(v.next); });
+    (data.dewormings || []).forEach(function (d) { checkNext(d.next); });
+    (data.hygiene || []).forEach(function (h) { checkNext(h.next); });
+    if (overdue) return { className: 'pet-vaccination-strip__badge--warn', text: 'Vaccins / soins : à mettre à jour' };
+    return { className: 'pet-vaccination-strip__badge--ok', text: 'Vaccination : à jour' };
+  }
+
+  function getLastConsultDate(data) {
+    var consults = Array.isArray(data.consultations) ? data.consultations : [];
+    var dates = consults.map(function (c) { return c.date; }).filter(Boolean).sort();
+    return dates.length ? dates[dates.length - 1] : null;
+  }
+
+  function formatReproLabel(a) {
+    if (a.sterilise === 'Oui') return a.sex === 'Femelle' ? 'Stérilisée' : 'Castré(e)';
+    return 'Non stérilisé' + (a.sex === 'Femelle' ? 'e' : '');
+  }
+
+  function renderPetProfileWeightChart(data) {
+    var container = document.getElementById('pet-profile-weight-chart');
+    if (!container) return;
+    if (!data || !data.animal) { container.innerHTML = ''; return; }
+
+    var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
+    var entries = entriesRaw.filter(function (e) { return e && e.date && e.weight != null && !isNaN(Number(e.weight)); })
+      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+
+    if (entries.length === 0) {
+      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des pesées pour afficher la courbe de poids.</p>';
+      return;
+    }
+
+    // Keep last 6 points for a clean mobile chart
+    if (entries.length > 6) entries = entries.slice(entries.length - 6);
+
+    var weights = entries.map(function (e) { return Number(e.weight); });
+    var minW = Math.min.apply(null, weights);
+    var maxW = Math.max.apply(null, weights);
+    var pad = Math.max(0.5, (maxW - minW) * 0.2);
+    minW = Math.max(0, Math.floor(minW - pad));
+    maxW = Math.ceil(maxW + pad);
+    var range = maxW - minW;
+    if (range < 1) { minW = Math.max(0, minW - 1); maxW = maxW + 1; range = maxW - minW; }
+
+    var W = 360;
+    var H = 150;
+    var padL = 28;
+    var padR = 10;
+    var padT = 18;
+    var padB = 28;
+    var chartH = H - padT - padB;
+    var chartW = W - padL - padR;
+
+    // Overweight line near top (~90% of scale)
+    var overweight = maxW - range * 0.08;
+    var owY = padT + (1 - (overweight - minW) / range) * chartH;
+
+    var xFor = function (i, n) {
+      if (n === 1) return padL + chartW / 2;
+      return padL + (chartW * i) / (n - 1);
+    };
+    var yFor = function (w) { return padT + (1 - (w - minW) / range) * chartH; };
+
+    var n = entries.length;
+    var pts = entries.map(function (e, i) {
+      return { x: xFor(i, n), y: yFor(Number(e.weight)) };
+    });
+
+    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
+    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
+      linePts + ' ' +
+      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
+
+    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var xLabels = '';
+    entries.forEach(function (e, i) {
+      var d = new Date(e.date);
+      var label = monthLabels[d.getMonth()] || '';
+      // Show label if few points, or every other, or first/last
+      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
+        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
+      }
+    });
+
+    var gridLines = '';
+    var steps = 4;
+    for (var i = 0; i <= steps; i++) {
+      var wVal = minW + (range * i / steps);
+      var yVal = yFor(wVal);
+      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(wVal) + '</text>';
+    }
+
+    var overLineSvg =
+      '<line x1="' + padL + '" y1="' + owY.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + owY.toFixed(2) + '" stroke="#ef4444" stroke-width="1.25" stroke-dasharray="5 4"/>' +
+      '<text x="' + (W - padR - 2) + '" y="' + (owY - 5).toFixed(2) + '" fill="#ef4444" font-size="9" text-anchor="end" font-weight="600">Surpoids</text>';
+
+    container.innerHTML =
+      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
+      '<defs><linearGradient id="petWeightFill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#ea580c" stop-opacity="0.28"/>' +
+      '<stop offset="100%" stop-color="#ea580c" stop-opacity="0.02"/>' +
+      '</linearGradient></defs>' +
+      gridLines + overLineSvg +
+      '<polygon fill="url(#petWeightFill)" points="' + areaPts + '"/>' +
+      '<polyline fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
+      pts.map(function (p) {
+        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#ea580c" stroke="#fff" stroke-width="2"/>';
+      }).join('') +
+      xLabels +
+      '</svg>';
+  }
+
+  function collectProfileTasks(data) {
+    var out = [];
+    var now = new Date();
+    var horizon = new Date();
+    horizon.setDate(horizon.getDate() + 21);
+    var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    (data.vaccines || []).forEach(function (v) {
+      if (!v.next) return;
+      var d = isoToLocalDate(v.next);
+      if (!d || d > horizon) return;
+      out.push({ kind: 'vaccine', title: v.name || 'Vaccin', sub: v.next ? 'Rappel le ' + fmtDate(v.next) : '', dateObj: d, filter: 'vaccine' });
+    });
+    (data.dewormings || []).forEach(function (d0) {
+      if (!d0.next) return;
+      var d = isoToLocalDate(d0.next);
+      if (!d || d > horizon) return;
+      out.push({ kind: 'deworm', title: d0.name || 'Déparasitage', sub: d0.next ? 'Rappel le ' + fmtDate(d0.next) : '', dateObj: d, filter: 'deworm' });
+    });
+    (data.medications || []).forEach(function (m) {
+      if (m.active === false) return;
+      if (m.endDate && isoToLocalDate(m.endDate) < todayMid) return;
+      var kind = 'med';
+      var filter = 'med';
+      // Classify medications by form/type for filtering
+      var form = (m.form || m.type || '').toLowerCase();
+      if (form.indexOf('goutte') >= 0) { filter = 'drops'; }
+      else if (form.indexOf('vitamine') >= 0 || form.indexOf('vitamin') >= 0) { filter = 'vitamin'; }
+      else if (form.indexOf('repas') >= 0 || form.indexOf('nourriture') >= 0 || form.indexOf('aliment') >= 0 || form.indexOf('croquette') >= 0) { filter = 'meal'; kind = 'meal'; }
+      out.push({ kind: kind, title: m.name || 'Médicament', sub: m.dosage || 'Traitement en cours', dateObj: todayMid, filter: filter });
+    });
+
+    // Also include nutrition items as meals
+    if (data.nutrition) {
+      (data.nutrition.meals || []).forEach(function (meal) {
+        out.push({ kind: 'meal', title: meal.name || meal.brand || 'Repas', sub: meal.quantity || meal.dosage || '', dateObj: todayMid, filter: 'meal' });
+      });
+    }
+
+    out.sort(function (a, b) { return a.dateObj - b.dateObj; });
+    return out;
+  }
+
+  function renderPetProfileTasks(data) {
+    var list = document.getElementById('pet-profile-tasks-list');
+    if (!list) return;
+    if (!data) { list.innerHTML = ''; return; }
+
+    var all = collectProfileTasks(data);
+    var filt = uiState.petTaskFilter || 'all';
+    var filtered = filt === 'all' ? all : all.filter(function (t) { return t.filter === filt; });
+
+    // Update filter badge counts
+    ['med', 'drops'].forEach(function (key) {
+      var badge = document.querySelector('.pet-task-filter__count[data-filter-count="' + key + '"]');
+      if (!badge) return;
+      var count = all.filter(function (t) { return t.filter === key; }).length;
+      if (count > 0) {
+        badge.hidden = false;
+        badge.textContent = String(count);
+      } else {
+        badge.hidden = true;
+      }
+    });
+
+    var times = ['09:45', '11:30', '16:40', '18:00', '20:00'];
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<p class="pet-weight-chart-empty" style="padding:12px 0">Aucune tâche à venir pour cet animal.</p>';
+      return;
+    }
+
+    var html = '';
+    var lastPeriod = '';
+    filtered.slice(0, 8).forEach(function (t, idx) {
+      var time = times[idx % times.length];
+      var hours = parseInt(time.split(':')[0], 10);
+      var period = hours < 12 ? 'morning' : 'afternoon';
+
+      if (period !== lastPeriod) {
+        var greeting = period === 'morning' ? 'Matin' : 'Après-midi';
+        html += '<div class="pet-task-separator">' +
+          '<span class="pet-task-separator__dot"></span>' +
+          '<span class="pet-task-separator__text">' + greeting + '</span>' +
+          '</div>';
+        lastPeriod = period;
+      }
+
+      var icon = t.kind === 'vaccine' ? ico('vaccine', 18) : (t.kind === 'meal' ? ico('utensils', 18) : ico('pill', 18));
+      var cls = t.kind === 'vaccine' ? 'vaccine' : (t.kind === 'deworm' ? 'deworm' : (t.kind === 'meal' ? 'meal' : 'med'));
+      html += '<div class="pet-task-row">' +
+        '<span class="pet-task-time">' + time + '</span>' +
+        '<div class="pet-task-card pet-task-card--' + cls + '">' +
+        '<span class="pet-task-card__icon pet-task-card__icon--' + cls + '">' + icon + '</span>' +
+        '<div class="pet-task-card__body">' +
+        '<div class="pet-task-card__title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="pet-task-card__sub">' + escapeHtml(t.sub) + '</div>' +
+        '</div>' +
+        '<label class="pet-task-check"><input type="checkbox"><span class="pet-task-check__box"></span></label>' +
+        '</div></div>';
+    });
+
+    list.innerHTML = html;
+  }
+
+  // ——— Today's reminders (Pawly style) ————————————————————————
+  function renderHomeReminders(filterMode) {
+    var list = document.getElementById('home-reminders-list');
+    if (!list) return;
+
+    var now = new Date();
+    var reminders = [];
+    var rangeEnd = new Date(now);
+    if (filterMode === 'week') rangeEnd.setDate(rangeEnd.getDate() + 7);
+    else if (filterMode === 'month') rangeEnd.setDate(rangeEnd.getDate() + 30);
+    else rangeEnd.setDate(rangeEnd.getDate() + 7); // default: next 7 days
+
+    state.animals.forEach(function (data) {
+      var petName = data.animal.name || 'Animal';
+      ['vaccines', 'dewormings'].forEach(function (type) {
+        (data[type] || []).forEach(function (item) {
+          if (!item.next) return;
+          var nd = isoToLocalDate(item.next);
+          if (nd <= rangeEnd) {
+            reminders.push({
+              type: type === 'vaccines' ? 'vaccine' : 'deworming',
+              name: item.name || item.treatment || '—',
+              pet: petName,
+              date: item.next,
+              dateObj: nd,
+              overdue: nd < now
+            });
+          }
+        });
+      });
+    });
+
+    reminders.sort(function (a, b) { return a.dateObj - b.dateObj; });
+
+    if (reminders.length === 0) {
+      list.innerHTML = '<div class="home-reminders__empty">' +
+        '<div class="home-reminders__empty-icon">' + ico('clipboard', 18) + '</div>' +
+        '<p class="home-reminders__empty-text">Aucun rappel pour le moment.<br>Ajoutez des soins pour suivre vos animaux !</p>' +
+        '<button type="button" class="action-pill action-pill--primary" id="btn-add-reminder-empty">+ Ajouter un rappel</button>' +
+        '</div>';
+      var addBtn = document.getElementById('btn-add-reminder-empty');
+      if (addBtn) addBtn.addEventListener('click', function () {
+        if (state.animals.length > 0) { showDetail(); openModal('addVaccin'); }
+      });
+      return;
+    }
+
+    list.innerHTML = reminders.slice(0, 5).map(function (r) {
+      var icon = r.type === 'vaccine' ? ico('vaccine', 18) : ico('pill', 18);
+      var iconClass = r.type === 'vaccine' ? 'vaccine' : 'deworming';
+      var dateStr = fmtDate(r.date);
+      return '<div class="home-reminder-card">' +
+        '<div class="home-reminder-card__icon home-reminder-card__icon--' + iconClass + '">' + icon + '</div>' +
+        '<div class="home-reminder-card__content">' +
+        '<div class="home-reminder-card__title">' + escapeHtml(r.name) + '</div>' +
+        '<div class="home-reminder-card__meta">' + escapeHtml(r.pet) + ' · ' + dateStr + (r.overdue ? ' <span style="color:var(--color-error);font-weight:600">En retard</span>' : '') + '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ——— Recommended vets & tips (Pawly style) ————————————————
+  function renderHomeVetsAndTips() {
+    var vetsScroll = document.getElementById('home-vets-scroll');
+    var tipsScroll = document.getElementById('home-tips-scroll');
+
+    if (vetsScroll) {
+      var vets = (state.animals.length > 0 && state.animals[0].vetContacts) ? state.animals[0].vetContacts.slice(0, 5) : [];
+      if (vets.length === 0) {
+        vetsScroll.innerHTML = ['Dr. Martin', 'Dr. Dupont', 'Dr. Leroy'].map(function (name) {
+          return '<div class="home-vet-card"><div class="home-vet-card__img">' + ico('hospital', 24) + '</div>' +
+            '<div class="home-vet-card__body"><div class="home-vet-card__name">' + name + '</div>' +
+            '<div class="home-vet-card__specialty">Vétérinaire généraliste</div></div></div>';
+        }).join('');
+      } else {
+        vetsScroll.innerHTML = vets.map(function (v) {
+          return '<div class="home-vet-card"><div class="home-vet-card__img">' + ico('hospital', 24) + '</div>' +
+            '<div class="home-vet-card__body"><div class="home-vet-card__name">' + escapeHtml(v.name || '—') + '</div>' +
+            '<div class="home-vet-card__specialty">' + escapeHtml(v.clinic || 'Clinique vétérinaire') + '</div></div></div>';
+        }).join('');
+      }
+    }
+
+    if (tipsScroll) {
+      var tips = [
+        { icon: ico('dog', 18), title: 'Les 8 meilleurs aliments pour votre chien' },
+        { icon: ico('utensils', 18), title: 'La bonne quantité de nourriture pour votre animal' },
+        { icon: ico('cat', 18), title: 'Les soins dentaires essentiels' },
+        { icon: ico('activity', 18), title: 'Combien d\'exercice pour votre compagnon ?' }
+      ];
+      tipsScroll.innerHTML = tips.map(function (tip) {
+        return '<div class="home-tip-card"><div class="home-tip-card__img">' + tip.icon + '</div>' +
+          '<div class="home-tip-card__body"><div class="home-tip-card__title">' + tip.title + '</div></div></div>';
+      }).join('');
+    }
+  }
+
   function renderHome() {
     var grid = document.getElementById('home-pet-grid');
     var emptyEl = document.getElementById('home-empty');
     if (!grid) return;
 
     renderDashboard();
+    renderPetsRow();
+    renderHomeReminders('all');
+    renderHomeVetsAndTips();
 
     if (state.animals.length === 0) {
       grid.innerHTML = '';
@@ -625,10 +1187,10 @@
       var activeMeds = Array.isArray(data.medications) ? data.medications.filter(function (m) {
         return m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= new Date());
       }) : [];
-      var medBadge = activeMeds.length ? '<div class="pet-card-med-badge">💊 ' + activeMeds.length + ' en cours</div>' : '';
+      var medBadge = activeMeds.length ? '<div class="pet-card-med-badge">' + ico('pill', 14) + ' ' + activeMeds.length + ' en cours</div>' : '';
       return '<article class="pet-card" data-animal-id="' + data.id + '" style="animation-delay:' + (idx * 0.05) + 's">' +
         medBadge +
-        '<button type="button" class="pet-card-delete" data-delete-animal="' + data.id + '" aria-label="Supprimer" title="Supprimer">🗑️</button>' +
+        '<button type="button" class="pet-card-delete" data-delete-animal="' + data.id + '" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
         '<div class="pet-card-header">' +
         '<div class="pet-card-avatar">' + avatarHtml + '</div>' +
         '<div class="pet-card-info">' +
@@ -636,16 +1198,16 @@
         '<div class="pet-card-meta">' + meta + '</div>' +
         '</div></div>' +
         '<div class="pet-card-stats">' +
-        '<span>💉 ' + data.vaccines.length + ' vaccin(s)</span>' +
-        '<span>💊 ' + data.dewormings.length + ' déparas.</span>' +
-        '<span>📷 ' + data.photos.length + ' photo(s)</span>' +
-        (upcoming ? '<span>🔔 ' + upcoming + ' rappel(s)</span>' : '') +
+        '<span>' + ico('vaccine', 14) + ' ' + data.vaccines.length + ' vaccin(s)</span>' +
+        '<span>' + ico('pill', 14) + ' ' + data.dewormings.length + ' déparas.</span>' +
+        '<span>' + ico('camera', 14) + ' ' + data.photos.length + ' photo(s)</span>' +
+        (upcoming ? '<span>' + ico('bell', 14) + ' ' + upcoming + ' rappel(s)</span>' : '') +
         '</div>' +
         '<div class="pet-card-actions">' +
-        '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">📋 Voir le carnet</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '">💉 Vaccin</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '">💊 Déparas.</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '">📷 Photos</button>' +
+        '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">' + ico('clipboard', 14) + ' Voir le carnet</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '">' + ico('vaccine', 14) + ' Vaccin</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '">' + ico('pill', 14) + ' Déparas.</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '">' + ico('camera', 14) + ' Photos</button>' +
         '</div></article>';
     }).join('');
 
@@ -679,13 +1241,29 @@
     });
   }
 
+  function setBottomNavActive(nav) {
+    document.querySelectorAll('.bottom-nav__item').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-nav') === nav);
+    });
+  }
+
+  function syncBottomNavFromTab(tabName) {
+    if (tabName === 'profil') setBottomNavActive('pets');
+    else if (tabName === 'nutrition') setBottomNavActive('nutrition');
+    else if (TABS_SANTE.indexOf(tabName) !== -1) setBottomNavActive('medical');
+    else if (tabName === 'calendrier' || tabName === 'alertes') setBottomNavActive('calendar');
+  }
+
   function showHome() {
     state.viewMode = 'home';
     var viewHome = document.getElementById('view-home');
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
     viewDetail.hidden = true;
+    if (viewDetail) viewDetail.classList.remove('is-pet-profile');
     if (viewCommunity) viewCommunity.hidden = true;
+    if (viewProfile) viewProfile.hidden = true;
     viewHome.hidden = false;
     viewHome.classList.remove('view-enter');
     void viewHome.offsetWidth;
@@ -693,16 +1271,20 @@
     document.getElementById('animal-select').style.display = 'none';
     document.getElementById('btn-accueil').hidden = true;
     document.getElementById('fab-container').hidden = true;
+    setBottomNavActive('home');
     renderHome();
   }
 
-  function showDetail() {
+  function showDetail(opts) {
+    opts = opts || {};
     state.viewMode = 'detail';
     var viewHome = document.getElementById('view-home');
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
     viewHome.hidden = true;
     if (viewCommunity) viewCommunity.hidden = true;
+    if (viewProfile) viewProfile.hidden = true;
     viewDetail.hidden = false;
     viewDetail.classList.remove('view-enter');
     void viewDetail.offsetWidth;
@@ -711,8 +1293,19 @@
     document.getElementById('btn-accueil').hidden = false;
     document.getElementById('fab-container').hidden = false;
     renderAnimalSelect();
+    uiState.petChartMode = 'weight';
     refreshAll();
-    switchTab('profil');
+    var tab = opts.tab || 'profil';
+    switchTab(tab);
+    if (!opts.nav) {
+      if (tab === 'profil') setBottomNavActive('pets');
+      else if (tab === 'nutrition') setBottomNavActive('nutrition');
+      else if (tab === 'vaccins' || tab === 'consultations' || tab === 'medications' || tab === 'deworming' || tab === 'hygiene') setBottomNavActive('medical');
+      else if (tab === 'calendrier' || tab === 'alertes') setBottomNavActive('calendar');
+      else setBottomNavActive('pets');
+    } else {
+      setBottomNavActive(opts.nav);
+    }
   }
 
   // ——— Profile ———————————————————————————————————————————
@@ -722,59 +1315,108 @@
     var a = data.animal;
     var o = data.owner;
 
-    // Apply animal theme color
     var hero = document.getElementById('animal-hero');
-    if (hero && a.themeColor) {
-      hero.style.setProperty('--animal-color', a.themeColor);
-      hero.style.background = 'linear-gradient(135deg, ' + a.themeColor + ' 0%, var(--teal-light) 100%)';
-    } else if (hero) {
+    if (hero) {
       hero.style.removeProperty('--animal-color');
       hero.style.background = '';
     }
 
-    document.getElementById('hero-name').textContent = a.name || '—';
-    document.getElementById('hero-breed').textContent = [a.race, a.sex].filter(Boolean).join(' · ') || '—';
-    document.getElementById('hero-dob').textContent = a.dob ? '🎂 ' + fmtDate(a.dob) : '🎂 —';
-    document.getElementById('hero-weight').textContent = a.weight != null ? '⚖️ ' + a.weight + ' kg' : '⚖️ — kg';
-    document.getElementById('hero-species').textContent = a.species ? '🔬 ' + a.species : '🔬 —';
+    var titleEl = document.getElementById('pet-profile-page-title');
+    if (titleEl) titleEl.textContent = 'Profil de ' + (a.name || 'Animal');
 
-    document.getElementById('info-race').textContent = a.race || '—';
-    document.getElementById('info-weight').textContent = a.weight != null ? a.weight + ' kg' : '—';
-    document.getElementById('info-chip').textContent = a.chip || 'Non renseigné';
-    document.getElementById('info-color').textContent = a.color || '—';
-    document.getElementById('info-sterilise').textContent = a.sterilise || 'Non';
+    renderDetailPetsRow();
+
+    var chipWrap = document.getElementById('pet-profile-chip-wrap');
+    var chipText = document.getElementById('pet-profile-chip-text');
+    if (chipWrap && chipText) {
+      if (a.chip) {
+        chipWrap.hidden = false;
+        chipText.textContent = a.chip;
+      } else {
+        chipWrap.hidden = true;
+      }
+    }
+
+    var dotsEl = document.getElementById('pet-profile-photo-dots');
+    if (dotsEl) {
+      var nPhotos = Array.isArray(data.photos) ? data.photos.length : 0;
+      var n = Math.max(1, Math.min(4, nPhotos > 0 ? Math.min(4, nPhotos) : 1));
+      var dots = [];
+      for (var di = 0; di < n; di++) dots.push('<span class="' + (di === 0 ? 'is-active' : '') + '"></span>');
+      dotsEl.innerHTML = dots.join('');
+    }
+
+    var vac = getVaccinationStripState(data);
+    var vacEl = document.getElementById('pet-vacc-status');
+    if (vacEl) {
+      vacEl.textContent = vac.text;
+      vacEl.className = 'pet-vaccination-strip__badge ' + vac.className;
+    }
+
+    var lastVisitEl = document.getElementById('pet-last-visit');
+    var lastC = getLastConsultDate(data);
+    if (lastVisitEl) {
+      lastVisitEl.textContent = lastC
+        ? 'Basé sur la dernière visite : ' + fmtDate(lastC)
+        : 'Basé sur la dernière visite : —';
+    }
+
+    function setText(id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    setText('pet-tile-breed', a.race || '—');
+    setText('pet-tile-dob', a.dob ? fmtDate(a.dob) : '—');
+    setText('pet-tile-gender', a.sex || '—');
+    setText('pet-tile-height', a.height != null && a.height !== '' ? a.height + ' cm' : '—');
+    setText('pet-tile-weight', a.weight != null ? a.weight + ' kg' : '—');
+    setText('pet-tile-repro', formatReproLabel(a));
+
+    var infoRace = document.getElementById('info-race');
+    var infoWeight = document.getElementById('info-weight');
+    var infoChip = document.getElementById('info-chip');
+    var infoSter = document.getElementById('info-sterilise');
+    if (infoRace) infoRace.textContent = a.race || '—';
+    if (infoWeight) infoWeight.textContent = a.weight != null ? a.weight + ' kg' : '—';
+    if (infoChip) infoChip.textContent = a.chip || 'Non renseigné';
+    if (infoSter) infoSter.textContent = a.sterilise || 'Non';
 
     var ageEl = document.getElementById('age-display');
     if (a.dob) {
       var months = Math.floor((new Date() - new Date(a.dob)) / (864e5 * 30.44));
-      ageEl.textContent = months < 24 ? months + ' mois' : Math.floor(months / 12) + ' ans';
+      if (ageEl) ageEl.textContent = months < 24 ? months + ' mois' : Math.floor(months / 12) + ' ans';
     } else {
-      ageEl.textContent = '—';
+      if (ageEl) ageEl.textContent = '—';
     }
 
     var av = document.getElementById('hero-avatar');
-    av.innerHTML = '';
-    av.style.fontSize = '';
+    if (av) {
+      av.innerHTML = '';
+      av.style.fontSize = '';
 
-    if (a.avatar && typeof a.avatar === 'number') {
-      av.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
-      getPhotoObjectUrl(a.avatar).then(function (url) {
-        var img = av.querySelector('img[data-avatar-key]');
-        if (img && url) img.src = url;
-      }).catch(function () {});
-    } else if (a.avatar && typeof a.avatar === 'string') {
-      av.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
-    } else {
-      av.textContent = a.species === 'Féline' ? '🐱' : '🐕';
-      av.style.fontSize = '48px';
+      if (a.avatar && typeof a.avatar === 'number') {
+        av.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
+        getPhotoObjectUrl(a.avatar).then(function (url) {
+          var img = av.querySelector('img[data-avatar-key]');
+          if (img && url) img.src = url;
+        }).catch(function () {});
+      } else if (a.avatar && typeof a.avatar === 'string') {
+        av.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
+      } else {
+        av.textContent = a.species === 'Féline' ? '🐱' : '🐕';
+        av.style.fontSize = '64px';
+      }
     }
+
+    var colorEl = document.getElementById('info-color');
+    if (colorEl) colorEl.textContent = a.color || '—';
 
     document.getElementById('owner-name').textContent = o.name || '—';
     document.getElementById('owner-phone').textContent = o.phone || '—';
     document.getElementById('owner-email').textContent = o.email || '—';
     document.getElementById('owner-clinic').textContent = o.clinic || '—';
 
-    // Stats with animated counters
     animateCounter(document.getElementById('stat-vax'), data.vaccines.length, 400);
     animateCounter(document.getElementById('stat-dew'), data.dewormings.length, 400);
     animateCounter(document.getElementById('stat-photos'), data.photos.length, 400);
@@ -790,17 +1432,48 @@
       });
     animateCounter(document.getElementById('stat-next'), upcoming.length, 400);
 
-    // Profile completeness
     renderProfileCompleteness(data);
-
-    // Active medications summary
     renderActiveMedsSummary(data);
-
-    // Birthday check
     checkBirthday(data);
-
-    // QR Code
     renderQRCode(data);
+
+    var pctW = document.getElementById('pet-chart-toggle-weight');
+    var pctH = document.getElementById('pet-chart-toggle-height');
+    if (uiState.petChartMode === 'height') {
+      if (pctW) { pctW.classList.remove('active'); pctW.setAttribute('aria-selected', 'false'); }
+      if (pctH) { pctH.classList.add('active'); pctH.setAttribute('aria-selected', 'true'); }
+      var hw = document.getElementById('pet-weight-chart-wrap');
+      var hh = document.getElementById('pet-height-chart-wrap');
+      var hint = document.getElementById('pet-height-chart-hint');
+      if (hw) hw.hidden = true;
+      if (hh) hh.hidden = false;
+      if (hint) {
+        hint.textContent = a.height != null && a.height !== ''
+          ? 'Taille actuelle : ' + a.height + ' cm (historique à venir).'
+          : 'Indiquez la taille au garrot dans la fiche pour le suivi.';
+      }
+    } else {
+      if (pctW) { pctW.classList.add('active'); pctW.setAttribute('aria-selected', 'true'); }
+      if (pctH) { pctH.classList.remove('active'); pctH.setAttribute('aria-selected', 'false'); }
+      var hw2 = document.getElementById('pet-weight-chart-wrap');
+      var hh2 = document.getElementById('pet-height-chart-wrap');
+      if (hw2) hw2.hidden = false;
+      if (hh2) hh2.hidden = true;
+      renderPetProfileWeightChart(data);
+    }
+
+    // Update tasks heading with pet name
+    var tasksHeading = document.getElementById('pet-tasks-heading');
+    if (tasksHeading) {
+      tasksHeading.textContent = 'Tâches de ' + (a.name || 'Animal') + ' pour aujourd\'hui';
+    }
+
+    document.querySelectorAll('.pet-task-filter').forEach(function (b) {
+      var f = b.getAttribute('data-pet-task-filter');
+      b.classList.toggle('active', (f || 'all') === (uiState.petTaskFilter || 'all'));
+    });
+
+    renderPetProfileTasks(data);
   }
 
   function animateCounter(el, target, duration) {
@@ -825,7 +1498,7 @@
 
     var a = data.animal;
     var o = data.owner;
-    var fields = [a.name, a.dob, a.weight, a.race, a.color, a.chip, a.sterilise !== 'Non' ? a.sterilise : '', o.name, a.avatar];
+    var fields = [a.name, a.dob, a.weight, a.height, a.race, a.color, a.chip, a.sterilise !== 'Non' ? a.sterilise : '', o.name, a.avatar];
     var filled = fields.filter(function (f) { return f != null && f !== '' && f !== false; }).length;
     var pct = Math.round((filled / fields.length) * 100);
 
@@ -931,6 +1604,8 @@
     if (a.chip) lines.push('Puce: ' + a.chip);
     if (a.sterilise && a.sterilise !== 'Non') lines.push('Sterilise: ' + a.sterilise);
     if (a.notes) lines.push('Notes: ' + a.notes);
+    if (o && o.name) lines.push('Proprietaire: ' + o.name);
+    if (o && o.phone) lines.push('Tel: ' + o.phone);
     var text = lines.join('\n');
 
     try {
@@ -1007,8 +1682,10 @@
         var el = document.getElementById('ea-' + f);
         if (el) el.value = a[f] != null && a[f] !== '' ? a[f] : '';
       });
+      var hEl = document.getElementById('ea-height');
+      if (hEl) hEl.value = a.height != null && a.height !== '' ? a.height : '';
       var colorEl = document.getElementById('ea-themeColor');
-      if (colorEl) colorEl.value = a.themeColor || '#0f766e';
+      if (colorEl) colorEl.value = a.themeColor || '#4F46E5';
       var prev = document.getElementById('edit-avatar-preview');
       if (prev) {
         prev.innerHTML = '';
@@ -1308,16 +1985,28 @@
 
     var overlay = document.getElementById('modal-' + name);
     if (overlay) {
+      modalLastFocused = document.activeElement;
       overlay.classList.add('open');
       overlay.setAttribute('aria-hidden', 'false');
+      window.setTimeout(function () {
+        var focusable = overlay.querySelector('input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])');
+        if (!focusable) focusable = overlay.querySelector('button:not([disabled])');
+        if (focusable) focusable.focus();
+      }, 50);
     }
   }
+
+  var modalLastFocused = null;
 
   function closeModal(name) {
     var overlay = document.getElementById('modal-' + name);
     if (overlay) {
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden', 'true');
+      if (modalLastFocused && typeof modalLastFocused.focus === 'function') {
+        modalLastFocused.focus();
+      }
+      modalLastFocused = null;
     }
   }
 
@@ -1333,8 +2022,13 @@
     });
     var w = parseFloat(document.getElementById('ea-weight').value, 10);
     a.weight = isNaN(w) ? a.weight : w;
+    var hIn = document.getElementById('ea-height');
+    if (hIn) {
+      var hv = parseFloat(hIn.value, 10);
+      a.height = hIn.value.trim() === '' || isNaN(hv) ? null : hv;
+    }
     var colorEl = document.getElementById('ea-themeColor');
-    if (colorEl) a.themeColor = colorEl.value === '#0f766e' ? '' : colorEl.value;
+    if (colorEl) a.themeColor = colorEl.value === '#4F46E5' ? '' : colorEl.value;
     closeModal('editAnimal');
     saveState();
     renderProfile();
@@ -1411,12 +2105,21 @@
   function deleteWeightEntry(entryId) {
     var data = getCurrent();
     if (!data || !data.animal || !Array.isArray(data.animal.weightHistory)) return;
-    if (!confirm('Supprimer cette pesée ?')) return;
-    data.animal.weightHistory = data.animal.weightHistory.filter(function (w) { return w.id !== entryId; });
-    syncAnimalWeightFromHistory(data);
-    saveState();
-    refreshAll();
-    showToast('Pesée supprimée', 'success');
+    confirmDelete('Supprimer cette pesée ?', function () {
+      var idx = data.animal.weightHistory.findIndex(function (w) { return w.id === entryId; });
+      if (idx === -1) return;
+      var removed = data.animal.weightHistory[idx];
+      data.animal.weightHistory.splice(idx, 1);
+      syncAnimalWeightFromHistory(data);
+      saveState();
+      refreshAll();
+      showUndoToast('Pesée supprimée', function () {
+        data.animal.weightHistory.splice(idx, 0, removed);
+        syncAnimalWeightFromHistory(data);
+        saveState();
+        refreshAll();
+      });
+    });
   }
 
   // ——— Add animal ———————————————————————————————————————
@@ -1432,7 +2135,7 @@
         sex: document.getElementById('aa-sex').value || 'Mâle',
         dob: document.getElementById('aa-dob').value || '',
         weight: parseFloat(document.getElementById('aa-weight').value, 10) || null,
-        weightHistory: [], color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
+        weightHistory: [], height: null, color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
       },
       owner: JSON.parse(JSON.stringify((getCurrent() || {}).owner || { name: '', phone: '', email: '', clinic: '', address: '' })),
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
@@ -1516,10 +2219,10 @@
     if (!data || !grid) return;
 
     if (data.photos.length === 0) {
-      grid.innerHTML = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">📷</span><span>Ajouter une photo</span></div>' +
-        '<div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">📷</text></svg><p>' + t('noPhotos', escapeHtml(data.animal.name || '')) + '</p></div>';
+      grid.innerHTML = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></div>' +
+        '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:4px solid var(--border)">' + ico('camera') + '</div><p>' + t('noPhotos', escapeHtml(data.animal.name || '')) + '</p></div>';
     } else {
-      var addBtn = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">📷</span><span>Ajouter une photo</span></div>';
+      var addBtn = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></div>';
       var items = data.photos.map(function (p) {
         var photoId = p.id;
         var legacySrc = (p && typeof p.src === 'string') ? escapeHtml(p.src) : '';
@@ -1528,7 +2231,7 @@
           '<img src="' + legacySrc + '" data-photo-key="' + photoId + '" alt="Photo">' +
           '<div class="photo-date">' + fmtDate(p.date) + captionHtml + '</div>' +
           '<div class="photo-actions-overlay">' +
-          '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">✏️</button>' +
+          '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">' + ico('edit', 14) + '</button>' +
           '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer">✕</button>' +
           '</div></div>';
       }).join('');
@@ -1602,15 +2305,16 @@
   }
 
   function deletePhoto(id) {
-    if (!confirm('Supprimer cette photo ?')) return;
     var data = getCurrent();
     if (!data) return;
-    data.photos = data.photos.filter(function (p) { return p.id !== id; });
-    deletePhotoBlob(id).catch(function () {});
-    saveState();
-    renderGallery();
-    renderProfile();
-    showToast('Photo supprimée', 'success');
+    confirmDelete('Supprimer cette photo ? Cette action est irréversible.', function () {
+      data.photos = data.photos.filter(function (p) { return p.id !== id; });
+      deletePhotoBlob(id).catch(function () {});
+      saveState();
+      renderGallery();
+      renderProfile();
+      showToast('Photo supprimée', 'success');
+    });
   }
 
   function openLightbox(photoId, fallbackSrc) {
@@ -1676,32 +2380,64 @@
       return dateB - dateA;
     });
 
+    // Render as cards (Pawly style) inside the tbody's parent
+    var cardsContainer = document.getElementById('vaccine-cards');
+    var tableScroll = tbody.closest('.table-scroll');
+    if (!cardsContainer) {
+      cardsContainer = document.createElement('div');
+      cardsContainer.id = 'vaccine-cards';
+      cardsContainer.className = 'medical-cards';
+      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
+    }
+    if (tableScroll) tableScroll.style.display = 'none';
+
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">💉</text></svg><p>' + t('noVaccines', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
+      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('vaccine') + '</div><p>' + t('noVaccines', escapeHtml(data.animal.name || '')) + '</p></div>';
     } else {
-      tbody.innerHTML = list.map(function (v) {
+      cardsContainer.innerHTML = list.map(function (v) {
         var st = getStatus(v.next);
-        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
-        var rel = v.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(v.next)) + '</span>' : '';
-        return '<tr><td>' + fmtDate(v.date) + '</td>' +
-          '<td><strong>' + escapeHtml(v.name || '') + '</strong><br><span class="table-muted">' + escapeHtml(v.vet || '') + '</span></td>' +
-          '<td>' + fmtDate(v.next) + rel + '</td>' +
-          '<td>' + stHtml + '</td>' +
-          '<td><button type="button" class="btn-edit" data-vaccine-id="' + v.id + '">Modifier</button> <button type="button" class="btn-delete" data-vaccine-id="' + v.id + '">✕</button></td></tr>';
+        var statusCls = st ? st.cls : '';
+        var statusLbl = st ? st.lbl : '';
+        var rel = v.next ? relativeDate(v.next) : '';
+        return '<div class="med-record-card">' +
+          '<div class="med-record-card__icon med-record-card__icon--vaccine">' + ico('vaccine', 18) + '</div>' +
+          '<div class="med-record-card__body">' +
+            '<div class="med-record-card__header">' +
+              '<div class="med-record-card__title">' + escapeHtml(v.name || '') + '</div>' +
+              (st ? '<span class="med-record-card__status ' + statusCls + '">' + escapeHtml(statusLbl) + '</span>' : '') +
+            '</div>' +
+            (v.vet ? '<div class="med-record-card__meta">Dr. ' + escapeHtml(v.vet) + '</div>' : '') +
+            '<div class="med-record-card__dates">' +
+              '<span>Fait le ' + fmtDate(v.date) + '</span>' +
+              (v.next ? '<span>Rappel : ' + fmtDate(v.next) + (rel ? ' (' + escapeHtml(rel) + ')' : '') + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="med-record-card__actions">' +
+            '<button type="button" class="med-record-card__btn" data-vaccine-id="' + v.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-vaccine-id="' + v.id + '" data-action="delete" title="Supprimer">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
-    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce vaccin ?')) return;
         var id = parseInt(btn.getAttribute('data-vaccine-id'), 10);
-        data.vaccines = data.vaccines.filter(function (v) { return v.id !== id; });
-        saveState(); renderVaccines(); renderProfile();
-        showToast('Vaccin supprimé', 'success');
+        confirmDelete('Supprimer ce vaccin ?', function () {
+          var idx = data.vaccines.findIndex(function (v) { return v.id === id; });
+          if (idx === -1) return;
+          var removed = data.vaccines[idx];
+          data.vaccines.splice(idx, 1);
+          saveState(); renderVaccines(); renderProfile();
+          showUndoToast('Vaccin supprimé', function () {
+            data.vaccines.splice(idx, 0, removed);
+            saveState(); renderVaccines(); renderProfile();
+          });
+        });
       });
     });
 
-    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         uiState.editVaccineId = parseInt(btn.getAttribute('data-vaccine-id'), 10);
         openModal('editVaccin');
@@ -1712,8 +2448,8 @@
       var overdue = data.vaccines.filter(function (v) { return v.next && getStatus(v.next)?.cls === 'status-overdue'; });
       var soon = data.vaccines.filter(function (v) { return v.next && getStatus(v.next)?.cls === 'status-soon'; });
       var html = '';
-      if (overdue.length) html += '<div class="alert-banner alert-warning"><span>⚠️</span> En retard : ' + overdue.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
-      if (soon.length) html += '<div class="alert-banner alert-info"><span>⏰</span> Bientôt : ' + soon.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
+      if (overdue.length) html += '<div class="alert-banner alert-warning"><span>' + ico('warning', 16) + '</span> En retard : ' + overdue.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
+      if (soon.length) html += '<div class="alert-banner alert-info"><span>' + ico('clock', 16) + '</span> Bientôt : ' + soon.map(function (v) { return escapeHtml(v.name); }).join(', ') + '</div>';
       alertsEl.innerHTML = html;
     }
   }
@@ -1807,32 +2543,64 @@
       return dateB - dateA;
     });
 
+    // Render as cards (Pawly style)
+    var cardsContainer = document.getElementById('deworming-cards');
+    var tableScroll = tbody.closest('.table-scroll');
+    if (!cardsContainer) {
+      cardsContainer = document.createElement('div');
+      cardsContainer.id = 'deworming-cards';
+      cardsContainer.className = 'medical-cards';
+      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
+    }
+    if (tableScroll) tableScroll.style.display = 'none';
+
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">💊</text></svg><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div></td></tr>';
+      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('pill') + '</div><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div>';
     } else {
-      tbody.innerHTML = list.map(function (d) {
+      cardsContainer.innerHTML = list.map(function (d) {
         var st = d.next ? getStatus(d.next) : null;
-        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
-        var rel = d.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(d.next)) + '</span>' : '';
-        return '<tr><td>' + fmtDate(d.date) + '</td>' +
-          '<td><strong>' + escapeHtml(d.name || '') + '</strong><br><span class="table-muted">' + escapeHtml(d.type || '') + '</span></td>' +
-          '<td>' + fmtDate(d.next) + rel + '</td>' +
-          '<td>' + stHtml + '</td>' +
-          '<td><button type="button" class="btn-edit" data-deworming-id="' + d.id + '">Modifier</button> <button type="button" class="btn-delete" data-deworming-id="' + d.id + '">✕</button></td></tr>';
+        var statusCls = st ? st.cls : '';
+        var statusLbl = st ? st.lbl : '';
+        var rel = d.next ? relativeDate(d.next) : '';
+        return '<div class="med-record-card">' +
+          '<div class="med-record-card__icon med-record-card__icon--deworming">' + ico('pill', 18) + '</div>' +
+          '<div class="med-record-card__body">' +
+            '<div class="med-record-card__header">' +
+              '<div class="med-record-card__title">' + escapeHtml(d.name || '') + '</div>' +
+              (st ? '<span class="med-record-card__status ' + statusCls + '">' + escapeHtml(statusLbl) + '</span>' : '') +
+            '</div>' +
+            (d.type ? '<div class="med-record-card__meta">Type : ' + escapeHtml(d.type) + '</div>' : '') +
+            '<div class="med-record-card__dates">' +
+              '<span>Fait le ' + fmtDate(d.date) + '</span>' +
+              (d.next ? '<span>Rappel : ' + fmtDate(d.next) + (rel ? ' (' + escapeHtml(rel) + ')' : '') + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="med-record-card__actions">' +
+            '<button type="button" class="med-record-card__btn" data-deworming-id="' + d.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-deworming-id="' + d.id + '" data-action="delete" title="Supprimer">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
-    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce déparasitage ?')) return;
         var id = parseInt(btn.getAttribute('data-deworming-id'), 10);
-        data.dewormings = data.dewormings.filter(function (d) { return d.id !== id; });
-        saveState(); renderDewormings(); renderProfile();
-        showToast('Déparasitage supprimé', 'success');
+        confirmDelete('Supprimer ce déparasitage ?', function () {
+          var idx = data.dewormings.findIndex(function (d) { return d.id === id; });
+          if (idx === -1) return;
+          var removed = data.dewormings[idx];
+          data.dewormings.splice(idx, 1);
+          saveState(); renderDewormings(); renderProfile();
+          showUndoToast('Déparasitage supprimé', function () {
+            data.dewormings.splice(idx, 0, removed);
+            saveState(); renderDewormings(); renderProfile();
+          });
+        });
       });
     });
 
-    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         uiState.editDewormingId = parseInt(btn.getAttribute('data-deworming-id'), 10);
         openModal('editDeworming');
@@ -1906,6 +2674,21 @@
 
     list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
+    var summaryEl = document.getElementById('consult-summary');
+    if (summaryEl) {
+      var allConsults = Array.isArray(data.consultations) ? data.consultations : [];
+      summaryEl.hidden = allConsults.length === 0;
+      var filteredTotal = list.reduce(function (sum, c) { return sum + (Number(c.cost) || 0); }, 0);
+      var yearAgo = new Date(); yearAgo.setDate(yearAgo.getDate() - 365);
+      var yearTotal = allConsults.reduce(function (sum, c) {
+        return sum + (c.date && new Date(c.date) >= yearAgo ? (Number(c.cost) || 0) : 0);
+      }, 0);
+      var filteredEl = document.getElementById('consult-summary-filtered');
+      var yearEl = document.getElementById('consult-summary-year');
+      if (filteredEl) filteredEl.textContent = fmtCost(filteredTotal);
+      if (yearEl) yearEl.textContent = fmtCost(yearTotal);
+    }
+
     if (list.length === 0 && !searchQ) {
       tbody.innerHTML = '';
       if (emptyEl) {
@@ -1919,18 +2702,25 @@
         return '<tr><td>' + fmtDate(c.date) + '</td>' +
           '<td><strong>' + escapeHtml(c.reason || '') + '</strong>' + (c.diagnosis ? '<br><span class="table-muted">' + escapeHtml(c.diagnosis) + '</span>' : '') + '</td>' +
           '<td>' + escapeHtml(c.vet || '—') + '</td>' +
-          '<td>' + (c.cost != null && c.cost !== '' ? escapeHtml(c.cost) + ' €' : '—') + '</td>' +
+          '<td>' + (c.cost != null && c.cost !== '' ? fmtCost(c.cost) : '—') + '</td>' +
           '<td><button type="button" class="btn-edit" data-consult-id="' + c.id + '">Modifier</button> <button type="button" class="btn-delete" data-consult-id="' + c.id + '">✕</button></td></tr>';
       }).join('');
     }
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer cette consultation ?')) return;
         var id = parseInt(btn.getAttribute('data-consult-id'), 10);
-        data.consultations = data.consultations.filter(function (c) { return c.id !== id; });
-        saveState(); renderConsultations();
-        showToast('Consultation supprimée', 'success');
+        confirmDelete('Supprimer cette consultation ?', function () {
+          var idx = data.consultations.findIndex(function (c) { return c.id === id; });
+          if (idx === -1) return;
+          var removed = data.consultations[idx];
+          data.consultations.splice(idx, 1);
+          saveState(); renderConsultations();
+          showUndoToast('Consultation supprimée', function () {
+            data.consultations.splice(idx, 0, removed);
+            saveState(); renderConsultations();
+          });
+        });
       });
     });
 
@@ -2017,11 +2807,18 @@
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce médicament ?')) return;
         var id = parseInt(btn.getAttribute('data-med-id'), 10);
-        data.medications = data.medications.filter(function (m) { return m.id !== id; });
-        saveState(); renderMedications(); renderProfile();
-        showToast('Médicament supprimé', 'success');
+        confirmDelete('Supprimer ce médicament ?', function () {
+          var idx = data.medications.findIndex(function (m) { return m.id === id; });
+          if (idx === -1) return;
+          var removed = data.medications[idx];
+          data.medications.splice(idx, 1);
+          saveState(); renderMedications(); renderProfile();
+          showUndoToast('Médicament supprimé', function () {
+            data.medications.splice(idx, 0, removed);
+            saveState(); renderMedications(); renderProfile();
+          });
+        });
       });
     });
 
@@ -2111,11 +2908,18 @@
 
     container.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer cette note ?')) return;
         var id = parseInt(btn.getAttribute('data-note-id'), 10);
-        data.notes = data.notes.filter(function (n) { return n.id !== id; });
-        saveState(); renderJournal();
-        showToast('Note supprimée', 'success');
+        confirmDelete('Supprimer cette note ?', function () {
+          var idx = data.notes.findIndex(function (n) { return n.id === id; });
+          if (idx === -1) return;
+          var removed = data.notes[idx];
+          data.notes.splice(idx, 1);
+          saveState(); renderJournal();
+          showUndoToast('Note supprimée', function () {
+            data.notes.splice(idx, 0, removed);
+            saveState(); renderJournal();
+          });
+        });
       });
     });
 
@@ -2202,31 +3006,63 @@
       return dateB - dateA;
     });
 
+    // Render as cards (Pawly style)
+    var cardsContainer = document.getElementById('hygiene-cards');
+    var tableScroll = tbody.closest('.table-scroll');
+    if (!cardsContainer) {
+      cardsContainer = document.createElement('div');
+      cardsContainer.id = 'hygiene-cards';
+      cardsContainer.className = 'medical-cards';
+      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
+    }
+    if (tableScroll) tableScroll.style.display = 'none';
+
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🧼</text></svg><p>Aucun soin d\'hygiène enregistré</p></div></td></tr>';
+      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('droplet') + '</div><p>Aucun soin d\'hygiène enregistré</p></div>';
     } else {
-      tbody.innerHTML = list.map(function (h) {
+      cardsContainer.innerHTML = list.map(function (h) {
         var st = h.next ? getStatus(h.next) : null;
-        var stHtml = st ? '<span class="status ' + st.cls + '"><span class="status-dot"></span>' + escapeHtml(st.lbl) + '</span>' : '—';
-        var rel = h.next ? '<br><span class="table-muted">' + escapeHtml(relativeDate(h.next)) + '</span>' : '';
-        return '<tr><td>' + fmtDate(h.date) + '</td>' +
-          '<td><strong>' + escapeHtml(h.type || '') + '</strong>' + (h.notes ? '<br><span class="table-muted">' + escapeHtml(h.notes) + '</span>' : '') + '</td>' +
-          '<td>' + fmtDate(h.next) + rel + '</td>' +
-          '<td>' + stHtml + '</td>' +
-          '<td><button type="button" class="btn-edit" data-hygiene-id="' + h.id + '">Modifier</button> <button type="button" class="btn-delete" data-hygiene-id="' + h.id + '">✕</button></td></tr>';
+        var statusCls = st ? st.cls : '';
+        var statusLbl = st ? st.lbl : '';
+        var rel = h.next ? relativeDate(h.next) : '';
+        return '<div class="med-record-card">' +
+          '<div class="med-record-card__icon med-record-card__icon--hygiene">' + ico('droplet', 18) + '</div>' +
+          '<div class="med-record-card__body">' +
+            '<div class="med-record-card__header">' +
+              '<div class="med-record-card__title">' + escapeHtml(h.type || '') + '</div>' +
+              (st ? '<span class="med-record-card__status ' + statusCls + '">' + escapeHtml(statusLbl) + '</span>' : '') +
+            '</div>' +
+            (h.notes ? '<div class="med-record-card__meta">' + escapeHtml(h.notes) + '</div>' : '') +
+            '<div class="med-record-card__dates">' +
+              '<span>Fait le ' + fmtDate(h.date) + '</span>' +
+              (h.next ? '<span>Rappel : ' + fmtDate(h.next) + (rel ? ' (' + escapeHtml(rel) + ')' : '') + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="med-record-card__actions">' +
+            '<button type="button" class="med-record-card__btn" data-hygiene-id="' + h.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-hygiene-id="' + h.id + '" data-action="delete" title="Supprimer">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
-    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce soin ?')) return;
         var id = parseInt(btn.getAttribute('data-hygiene-id'), 10);
-        data.hygiene = data.hygiene.filter(function (h) { return h.id !== id; });
-        saveState(); renderHygiene(); renderProfile();
-        showToast('Soin supprimé', 'success');
+        confirmDelete('Supprimer ce soin ?', function () {
+          var idx = data.hygiene.findIndex(function (h) { return h.id === id; });
+          if (idx === -1) return;
+          var removed = data.hygiene[idx];
+          data.hygiene.splice(idx, 1);
+          saveState(); renderHygiene(); renderProfile();
+          showUndoToast('Soin supprimé', function () {
+            data.hygiene.splice(idx, 0, removed);
+            saveState(); renderHygiene(); renderProfile();
+          });
+        });
       });
     });
-    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         uiState.editHygieneId = parseInt(btn.getAttribute('data-hygiene-id'), 10);
         openModal('editHygiene');
@@ -2327,7 +3163,7 @@
     if (predEl) predEl.innerHTML = predictionHtml;
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🌡️</text></svg><p>Aucune période enregistrée</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('thermom') + '</div><p>Aucune période enregistrée</p></div></td></tr>';
     } else {
       tbody.innerHTML = list.map(function (c) {
         var duration = '';
@@ -2346,11 +3182,18 @@
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer cette période ?')) return;
         var id = parseInt(btn.getAttribute('data-heat-id'), 10);
-        data.heatCycles = data.heatCycles.filter(function (c) { return c.id !== id; });
-        saveState(); renderHeatCycles();
-        showToast('Période supprimée', 'success');
+        confirmDelete('Supprimer cette période ?', function () {
+          var idx = data.heatCycles.findIndex(function (c) { return c.id === id; });
+          if (idx === -1) return;
+          var removed = data.heatCycles[idx];
+          data.heatCycles.splice(idx, 1);
+          saveState(); renderHeatCycles();
+          showUndoToast('Période supprimée', function () {
+            data.heatCycles.splice(idx, 0, removed);
+            saveState(); renderHeatCycles();
+          });
+        });
       });
     });
     tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
@@ -2402,16 +3245,16 @@
 
   // ——— Check-up rapide ————————————————————————————————————
   var CHECKUP_QUESTIONS = [
-    { key: 'appetite', label: 'Appétit', icon: '🍽️', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
-    { key: 'energy', label: 'Énergie', icon: '⚡', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'appetite', label: 'Appétit', icon: ico('utensils', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'energy', label: 'Énergie', icon: ico('zap', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] },
     { key: 'hydration', label: 'Hydratation', icon: '💧', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
-    { key: 'coat', label: 'Pelage', icon: '✨', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
-    { key: 'eyes', label: 'Yeux', icon: '👁️', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'coat', label: 'Pelage', icon: ico('sparkle', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] },
+    { key: 'eyes', label: 'Yeux', icon: ico('eye', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] },
     { key: 'ears', label: 'Oreilles', icon: '👂', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
     { key: 'gums', label: 'Gencives', icon: '🦷', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
     { key: 'mobility', label: 'Mobilité', icon: '🦿', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
     { key: 'behavior', label: 'Comportement', icon: '🧠', levels: ['Normal', 'À surveiller', 'Préoccupant'] },
-    { key: 'weight', label: 'Poids', icon: '⚖️', levels: ['Normal', 'À surveiller', 'Préoccupant'] }
+    { key: 'weight', label: 'Poids', icon: ico('scale', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] }
   ];
 
   function renderCheckup() {
@@ -2480,7 +3323,7 @@
         '<div class="checkup-score-value">' + avg.toFixed(1) + ' / 3</div>' +
         '<div class="checkup-score-label">' + escapeHtml(label) + '</div></div>' +
         '<div class="checkup-score-body"><p>' + escapeHtml(reco) + '</p>' + detailHtml +
-        '<button type="button" class="btn-primary" id="btn-checkup-save" style="margin-top:12px">📝 Sauvegarder dans le journal</button></div></div>';
+        '<button type="button" class="btn-primary" id="btn-checkup-save" style="margin-top:12px">' + ico('fileText', 14) + ' Sauvegarder dans le journal</button></div></div>';
 
       document.getElementById('btn-checkup-save').addEventListener('click', function () {
         var data = getCurrent();
@@ -2530,7 +3373,7 @@
     }
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🏃</text></svg><p>Aucune activité enregistrée</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('activity') + '</div><p>Aucune activité enregistrée</p></div></td></tr>';
     } else {
       tbody.innerHTML = list.map(function (a) {
         return '<tr><td>' + fmtDate(a.date) + '</td>' +
@@ -2544,11 +3387,18 @@
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer cette activité ?')) return;
         var id = parseInt(btn.getAttribute('data-activity-id'), 10);
-        data.activities = data.activities.filter(function (a) { return a.id !== id; });
-        saveState(); renderActivities();
-        showToast('Activité supprimée', 'success');
+        confirmDelete('Supprimer cette activité ?', function () {
+          var idx = data.activities.findIndex(function (a) { return a.id === id; });
+          if (idx === -1) return;
+          var removed = data.activities[idx];
+          data.activities.splice(idx, 1);
+          saveState(); renderActivities();
+          showUndoToast('Activité supprimée', function () {
+            data.activities.splice(idx, 0, removed);
+            saveState(); renderActivities();
+          });
+        });
       });
     });
     tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
@@ -2619,7 +3469,7 @@
     var mer = rer * 1.6;
 
     // Plan card
-    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">📋 Plan nutritionnel</h3><button type="button" class="btn-icon" onclick="app.openModal(\'editNutritionPlan\')">✏️ Modifier</button></div>' +
+    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3><button type="button" class="btn-icon" onclick="app.openModal(\'editNutritionPlan\')">' + ico('edit', 14) + ' Modifier</button></div>' +
       '<div class="info-grid">' +
       '<div><span class="info-label">Marque aliment</span><span class="info-value">' + escapeHtml(plan.foodBrand || 'Non renseigné') + '</span></div>' +
       '<div><span class="info-label">Portion</span><span class="info-value">' + escapeHtml(plan.portionSize || 'Non renseigné') + '</span></div>' +
@@ -2638,14 +3488,14 @@
     var summaryHtml = '<div class="nutrition-summary"><h3>Aujourd\'hui : ' + todayMeals.length + (plannedPerDay ? ' / ' + plannedPerDay : '') + ' repas</h3></div>';
 
     // Table
-    var tableHtml = '<div class="data-table"><div class="table-header"><div class="table-header-left"><h2 class="section-title">🍽️ Repas enregistrés</h2></div><button type="button" class="btn-icon" onclick="app.openModal(\'addMeal\')">+ Ajouter</button></div>' +
+    var tableHtml = '<div class="data-table"><div class="table-header"><div class="table-header-left"><h2 class="section-title">' + ico('utensils') + ' Repas enregistrés</h2></div><button type="button" class="btn-icon" onclick="app.openModal(\'addMeal\')">+ Ajouter</button></div>' +
       '<div class="table-scroll"><table><thead><tr><th>Date</th><th>Heure</th><th>Type</th><th>Aliment</th><th>Quantité</th><th>Notes</th><th></th></tr></thead><tbody id="meal-table"></tbody></table></div></div>';
 
     container.innerHTML = planHtml + summaryHtml + tableHtml;
 
     var tbody = document.getElementById('meal-table');
     if (meals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state-illustrated"><svg class="empty-svg" viewBox="0 0 120 120" width="60" height="60"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="36">🍽️</text></svg><p>Aucun repas enregistré</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('utensils') + '</div><p>Aucun repas enregistré</p></div></td></tr>';
     } else {
       tbody.innerHTML = meals.map(function (m) {
         return '<tr><td>' + fmtDate(m.date) + '</td>' +
@@ -2660,11 +3510,18 @@
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce repas ?')) return;
         var id = parseInt(btn.getAttribute('data-meal-id'), 10);
-        data.nutrition.meals = data.nutrition.meals.filter(function (m) { return m.id !== id; });
-        saveState(); renderNutrition();
-        showToast('Repas supprimé', 'success');
+        confirmDelete('Supprimer ce repas ?', function () {
+          var idx = data.nutrition.meals.findIndex(function (m) { return m.id === id; });
+          if (idx === -1) return;
+          var removed = data.nutrition.meals[idx];
+          data.nutrition.meals.splice(idx, 1);
+          saveState(); renderNutrition();
+          showUndoToast('Repas supprimé', function () {
+            data.nutrition.meals.splice(idx, 0, removed);
+            saveState(); renderNutrition();
+          });
+        });
       });
     });
     tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
@@ -2743,13 +3600,13 @@
     var name = escapeHtml(data.animal.name || 'Animal');
     var chip = p.chipNumber || data.animal.chip || '';
 
-    var html = '<div class="card-header"><h2 class="section-title">🏆 Pedigree</h2><button type="button" class="btn-icon" onclick="app.openModal(\'editPedigree\')">✏️ Modifier</button></div>';
+    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2><button type="button" class="btn-icon" onclick="app.openModal(\'editPedigree\')">' + ico('edit', 14) + ' Modifier</button></div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
       html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
       if (p.registryNumber) html += ' <span class="table-muted">N° ' + escapeHtml(p.registryNumber) + '</span>';
       if (p.verified) {
-        html += ' <span class="badge badge-verified">✅ Vérifié</span>';
+        html += ' <span class="badge badge-verified">' + ico('check', 16) + ' Vérifié</span>';
         if (p.verifiedDate) html += ' <span class="table-muted">le ' + escapeHtml(p.verifiedDate) + '</span>';
       }
       html += '</div>';
@@ -2777,7 +3634,7 @@
     '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
-      html += '<div class="lof-disclaimer-display"><small>⚠️ La vérification est une simulation locale de format. Une vérification officielle nécessite un accès aux bases de la SCC (LOF) ou aux registres officiels (LOMAD).</small></div>';
+      html += '<div class="lof-disclaimer-display"><small>' + ico('warning', 16) + ' La vérification est une simulation locale de format. Une vérification officielle nécessite un accès aux bases de la SCC (LOF) ou aux registres officiels (LOMAD).</small></div>';
     }
 
     container.innerHTML = html;
@@ -2871,7 +3728,7 @@
 
     // Emergency section
     if (emergencyEntries.length > 0) {
-      html += '<div class="vet-emergency-section"><h3>🚨 Urgences</h3><div class="vet-cards">';
+      html += '<div class="vet-emergency-section"><h3>' + ico('warning', 16) + ' Urgences</h3><div class="vet-cards">';
       emergencyEntries.forEach(function (e) {
         html += renderVetCard(e, dir);
       });
@@ -2907,32 +3764,52 @@
     });
     container.querySelectorAll('[data-vet-delete]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('Supprimer ce contact ?')) return;
         var id = parseInt(btn.getAttribute('data-vet-delete'), 10);
-        dir.entries = dir.entries.filter(function (e) { return e.id !== id; });
-        saveVetDirectory(dir); renderVetDirectory();
-        showToast('Contact supprimé', 'success');
+        confirmDelete('Supprimer ce contact ?', function () {
+          var idx = dir.entries.findIndex(function (e) { return e.id === id; });
+          if (idx === -1) return;
+          var removed = dir.entries[idx];
+          dir.entries.splice(idx, 1);
+          saveVetDirectory(dir); renderVetDirectory();
+          showUndoToast('Contact supprimé', function () {
+            dir.entries.splice(idx, 0, removed);
+            saveVetDirectory(dir); renderVetDirectory();
+          });
+        });
       });
     });
   }
 
   function renderVetCard(e) {
-    var distHtml = (e._distance != null) ? '<div class="vet-card-distance">📍 ' + e._distance.toFixed(1) + ' km</div>' : '';
-    return '<div class="vet-card' + (e.emergency ? ' vet-card-emergency' : '') + '">' +
-      '<div class="vet-card-header">' +
-        '<div class="vet-card-name">' + (e.emergency ? '🚨 ' : '') + escapeHtml(e.name) + '</div>' +
-        '<button type="button" class="vet-fav-btn" data-vet-fav="' + e.id + '">' + (e.favorite ? '⭐' : '☆') + '</button>' +
+    var distHtml = (e._distance != null) ? '<span class="vet-card__distance">' + ico('mapPin', 14) + ' ' + e._distance.toFixed(1) + ' km</span>' : '';
+    var initial = (e.name || '?').charAt(0).toUpperCase();
+    var starsFull = Math.floor(e.rating || 0);
+    var starsHtml = '';
+    for (var s = 0; s < 5; s++) starsHtml += '<span class="vet-star' + (s < starsFull ? ' vet-star--filled' : '') + '">★</span>';
+    var ratingHtml = e.rating ? '<div class="vet-card__rating">' + starsHtml + '<span class="vet-card__rating-num">' + Number(e.rating).toFixed(1) + '</span></div>' : '';
+
+    return '<div class="vet-card' + (e.emergency ? ' vet-card--emergency' : '') + '">' +
+      '<div class="vet-card__top">' +
+        '<div class="vet-card__avatar">' + initial + '</div>' +
+        '<div class="vet-card__info">' +
+          '<div class="vet-card__name">' + (e.emergency ? ico('warning', 16) + ' ' : '') + escapeHtml(e.name) + '</div>' +
+          (e.clinic ? '<div class="vet-card__specialty">' + escapeHtml(e.clinic) + '</div>' : '<div class="vet-card__specialty">Vétérinaire</div>') +
+          ratingHtml +
+        '</div>' +
+        '<button type="button" class="vet-card__fav-btn" data-vet-fav="' + e.id + '" title="Favori">' + (e.favorite ? ico('star', 16) : ico('starOff', 16)) + '</button>' +
       '</div>' +
-      (e.clinic ? '<div class="vet-card-clinic">' + escapeHtml(e.clinic) + '</div>' : '') +
-      distHtml +
-      (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">📞 ' + escapeHtml(e.phone) + '</a></div>' : '') +
-      (e.email ? '<div class="vet-card-email">' + escapeHtml(e.email) + '</div>' : '') +
-      (e.address ? '<div class="vet-card-address">📍 ' + escapeHtml(e.address) + '</div>' : '') +
-      (e.hours ? '<div class="vet-card-hours">🕐 ' + escapeHtml(e.hours) + '</div>' : '') +
-      (e.notes ? '<div class="vet-card-notes table-muted">' + escapeHtml(e.notes) + '</div>' : '') +
-      '<div class="vet-card-actions">' +
-        '<button type="button" class="btn-edit" data-vet-edit="' + e.id + '">Modifier</button> ' +
-        '<button type="button" class="btn-delete" data-vet-delete="' + e.id + '">✕</button>' +
+      '<div class="vet-card__details">' +
+        (e.phone ? '<div class="vet-card__detail-row"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> <a href="tel:' + escapeHtml(e.phone) + '">' + escapeHtml(e.phone) + '</a></div>' : '') +
+        (e.address ? '<div class="vet-card__detail-row"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + escapeHtml(e.address) + '</div>' : '') +
+        distHtml +
+        (e.hours ? '<div class="vet-card__detail-row"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ' + escapeHtml(e.hours) + '</div>' : '') +
+        (e.email ? '<div class="vet-card__detail-row"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> ' + escapeHtml(e.email) + '</div>' : '') +
+        (e.notes ? '<div class="vet-card__notes">' + escapeHtml(e.notes) + '</div>' : '') +
+      '</div>' +
+      '<div class="vet-card__actions">' +
+        (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary">Appeler</a>' : '') +
+        '<button type="button" class="vet-card__btn vet-card__btn--outline" data-vet-edit="' + e.id + '">Modifier</button>' +
+        '<button type="button" class="vet-card__btn vet-card__btn--ghost" data-vet-delete="' + e.id + '">✕</button>' +
       '</div></div>';
   }
 
@@ -3009,8 +3886,10 @@
     var viewHome = document.getElementById('view-home');
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
     viewHome.hidden = true;
     viewDetail.hidden = true;
+    if (viewProfile) viewProfile.hidden = true;
     viewCommunity.hidden = false;
     viewCommunity.classList.remove('view-enter');
     void viewCommunity.offsetWidth;
@@ -3051,10 +3930,10 @@
 
     if (reminderBox) {
       if (thisMonthEvents.length > 0) {
-        reminderBox.innerHTML = '<strong>🔔 Ce mois-ci :</strong> ' + thisMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
+        reminderBox.innerHTML = '<strong>' + ico('bell', 16) + ' Ce mois-ci :</strong> ' + thisMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
         reminderBox.hidden = false;
       } else if (nextMonthEvents.length > 0) {
-        reminderBox.innerHTML = '<strong>🔔 Le mois prochain :</strong> ' + nextMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
+        reminderBox.innerHTML = '<strong>' + ico('bell', 16) + ' Le mois prochain :</strong> ' + nextMonthEvents.map(function (e) { return escapeHtml(e.title) + ' (' + e.day + ' ' + monthNames[e.month] + ')'; }).join(', ');
         reminderBox.hidden = false;
       } else {
         reminderBox.hidden = true;
@@ -3242,11 +4121,11 @@
       elements.forEach(function (e, idx) {
         html += '<div class="vet-card vet-card-nearby">' +
           '<div class="vet-card-header"><div class="vet-card-name">' + escapeHtml(e.name) + '</div></div>' +
-          (e.distance != null ? '<div class="vet-card-distance">📍 ' + e.distance.toFixed(1) + ' km</div>' : '') +
-          (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">📞 ' + escapeHtml(e.phone) + '</a></div>' : '') +
-          (e.address ? '<div class="vet-card-address">📍 ' + escapeHtml(e.address) + '</div>' : '') +
-          (e.hours ? '<div class="vet-card-hours">🕐 ' + escapeHtml(e.hours) + '</div>' : '') +
-          (e.website ? '<div class="vet-card-website"><a href="' + escapeHtml(e.website) + '" target="_blank" rel="noopener">🌐 Site web</a></div>' : '') +
+          (e.distance != null ? '<div class="vet-card-distance">' + ico('mapPin', 14) + ' ' + e.distance.toFixed(1) + ' km</div>' : '') +
+          (e.phone ? '<div class="vet-card-phone"><a href="tel:' + escapeHtml(e.phone) + '">' + ico('phone', 14) + ' ' + escapeHtml(e.phone) + '</a></div>' : '') +
+          (e.address ? '<div class="vet-card-address">' + ico('mapPin', 14) + ' ' + escapeHtml(e.address) + '</div>' : '') +
+          (e.hours ? '<div class="vet-card-hours">' + ico('clock', 14) + ' ' + escapeHtml(e.hours) + '</div>' : '') +
+          (e.website ? '<div class="vet-card-website"><a href="' + escapeHtml(e.website) + '" target="_blank" rel="noopener">' + ico('globe', 14) + ' Site web</a></div>' : '') +
           '<div class="vet-card-actions">' +
             '<button type="button" class="btn-icon vet-add-to-dir" data-nearby-idx="' + idx + '">+ Ajouter à mon annuaire</button>' +
           '</div></div>';
@@ -3333,7 +4212,7 @@
 
     var result = validateRegistryNumber(registry, number);
     resultEl.innerHTML = '<span class="lof-badge ' + (result.valid ? 'lof-badge-valid' : 'lof-badge-invalid') + '">' +
-      (result.valid ? '✅' : '❌') + ' ' + escapeHtml(result.message) + '</span>';
+      (result.valid ? ico('check', 16) : ico('x', 16)) + ' ' + escapeHtml(result.message) + '</span>';
   }
 
   function toggleLofVerifyControls() {
@@ -3362,13 +4241,13 @@
 
     var events = []
       .concat((data.vaccines || []).filter(function (v) { return v.next; }).map(function (v) {
-        return { type: 'vaccin', date: v.next, icon: '💉', title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
+        return { type: 'vaccin', date: v.next, icon: ico('vaccine', 18), title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
       }))
       .concat((data.dewormings || []).filter(function (d) { return d.next; }).map(function (d) {
-        return { type: 'deworming', date: d.next, icon: '💊', title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
+        return { type: 'deworming', date: d.next, icon: ico('pill', 18), title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
       }))
       .concat((data.hygiene || []).filter(function (h) { return h.next; }).map(function (h) {
-        return { type: 'hygiene', date: h.next, icon: '🧼', title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
+        return { type: 'hygiene', date: h.next, icon: ico('droplet', 18), title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
       }));
 
     // Heat cycle prediction
@@ -3385,7 +4264,7 @@
           if (hcGaps.length > 0) hcAvg = Math.round(hcGaps.reduce(function (a, b) { return a + b; }, 0) / hcGaps.length);
         }
         var nextHeat = addDaysISO(hcSorted[hcSorted.length - 1].startDate, hcAvg);
-        events.push({ type: 'heat', date: nextHeat, icon: '🌡️', title: 'Chaleurs prévues', sub: 'Cycle moyen : ' + hcAvg + ' jours' });
+        events.push({ type: 'heat', date: nextHeat, icon: ico('thermom', 18), title: 'Chaleurs prévues', sub: 'Cycle moyen : ' + hcAvg + ' jours' });
       }
     }
 
@@ -3396,26 +4275,28 @@
       return Object.assign({}, e, { dt: dt, diffDays: diffDays, dayKey: e.date, cls: diffDays < 0 ? 'j-overdue' : (diffDays <= 7 ? 'j-soon' : 'j-ok') });
     }).filter(Boolean).filter(function (e) { return e.dt >= from && e.dt <= to; }).sort(function (a, b) { return a.dt - b.dt; });
 
+    // Filter by category if any
+    var catFilter = cont.getAttribute('data-cat-filter') || 'all';
+    if (catFilter !== 'all') {
+      upcoming = upcoming.filter(function (e) { return e.type === catFilter; });
+    }
+
     if (upcoming.length === 0) {
-      cont.innerHTML = '<p class="empty-state">Aucun rappel dans la période.</p>';
+      cont.innerHTML = '<div class="reminder-empty"><div class="reminder-empty__icon">' + ico('bell', 18) + '</div><p class="reminder-empty__text">Aucun rappel dans la période.</p></div>';
     } else {
-      var groups = {};
-      upcoming.forEach(function (e) { if (!groups[e.dayKey]) groups[e.dayKey] = []; groups[e.dayKey].push(e); });
-      var dayKeys = Object.keys(groups).sort();
-
-      cont.innerHTML = dayKeys.map(function (dayKey) {
-        var dayEvents = groups[dayKey];
-        var diffs = dayEvents.map(function (x) { return x.diffDays; });
-        var dayClass = diffs.some(function (d) { return d < 0; }) ? 'j-overdue' : (diffs.some(function (d) { return d <= 7; }) ? 'j-soon' : 'j-ok');
-        var minDiff = Math.min.apply(null, diffs);
-        var headingTxt = minDiff < 0 ? 'Retard ' + Math.abs(minDiff) + ' j' : (minDiff === 0 ? "Aujourd'hui" : 'J-' + minDiff);
-
-        var evHtml = dayEvents.map(function (e) {
-          var counterTxt = e.diffDays < 0 ? 'Retard ' + Math.abs(e.diffDays) + ' j' : (e.diffDays === 0 ? "Aujourd'hui" : 'J-' + e.diffDays);
-          return '<div class="agenda-event"><div class="agenda-event-left"><span class="agenda-event-icon">' + e.icon + '</span><div><div class="agenda-event-title">' + e.title + '</div><div class="agenda-event-sub">' + e.sub + '</div></div></div><div class="j-counter ' + e.cls + '">' + counterTxt + '</div></div>';
-        }).join('');
-
-        return '<div class="agenda-day"><div class="agenda-day-heading"><div><div class="agenda-day-date">' + fmtDate(dayKey) + '</div><div class="agenda-day-sub">' + dayEvents.length + ' rappel(s)</div></div><div class="j-counter ' + dayClass + '">' + headingTxt + '</div></div><div class="agenda-events">' + evHtml + '</div></div>';
+      cont.innerHTML = upcoming.map(function (e) {
+        var counterTxt = e.diffDays < 0 ? 'Retard ' + Math.abs(e.diffDays) + ' j' : (e.diffDays === 0 ? "Aujourd'hui" : 'J-' + e.diffDays);
+        var dotClass = e.diffDays < 0 ? 'reminder-dot--overdue' : (e.diffDays <= 7 ? 'reminder-dot--soon' : 'reminder-dot--ok');
+        return '<div class="reminder-card">' +
+          '<div class="reminder-card__dot ' + dotClass + '"></div>' +
+          '<div class="reminder-card__icon">' + e.icon + '</div>' +
+          '<div class="reminder-card__body">' +
+            '<div class="reminder-card__title">' + e.title + '</div>' +
+            '<div class="reminder-card__sub">' + e.sub + '</div>' +
+            '<div class="reminder-card__date">' + fmtDate(e.date) + '</div>' +
+          '</div>' +
+          '<div class="reminder-card__badge ' + e.cls + '">' + counterTxt + '</div>' +
+        '</div>';
       }).join('');
     }
 
@@ -3600,35 +4481,35 @@
     var events = [];
 
     data.vaccines.forEach(function (v) {
-      if (v.date === isoDate) events.push({ icon: '💉', text: 'Vaccin : ' + escapeHtml(v.name) });
-      if (v.next === isoDate) events.push({ icon: '💉', text: 'Rappel vaccin : ' + escapeHtml(v.name) });
+      if (v.date === isoDate) events.push({ icon: ico('vaccine', 16), text: 'Vaccin : ' + escapeHtml(v.name) });
+      if (v.next === isoDate) events.push({ icon: ico('vaccine', 16), text: 'Rappel vaccin : ' + escapeHtml(v.name) });
     });
     data.dewormings.forEach(function (d) {
-      if (d.date === isoDate) events.push({ icon: '💊', text: 'Déparasitage : ' + escapeHtml(d.name) });
-      if (d.next === isoDate) events.push({ icon: '💊', text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
+      if (d.date === isoDate) events.push({ icon: ico('pill', 16), text: 'Déparasitage : ' + escapeHtml(d.name) });
+      if (d.next === isoDate) events.push({ icon: ico('pill', 16), text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
     });
     if (Array.isArray(data.consultations)) {
       data.consultations.forEach(function (c) {
-        if (c.date === isoDate) events.push({ icon: '🩺', text: 'Consultation : ' + escapeHtml(c.reason) });
+        if (c.date === isoDate) events.push({ icon: ico('stethoscope', 16), text: 'Consultation : ' + escapeHtml(c.reason) });
       });
     }
     (data.hygiene || []).forEach(function (h) {
-      if (h.date === isoDate) events.push({ icon: '🧼', text: 'Hygiène : ' + escapeHtml(h.type) });
-      if (h.next === isoDate) events.push({ icon: '🧼', text: 'Rappel hygiène : ' + escapeHtml(h.type) });
+      if (h.date === isoDate) events.push({ icon: ico('droplet', 16), text: 'Hygiène : ' + escapeHtml(h.type) });
+      if (h.next === isoDate) events.push({ icon: ico('droplet', 16), text: 'Rappel hygiène : ' + escapeHtml(h.type) });
     });
     (data.activities || []).forEach(function (a) {
-      if (a.date === isoDate) events.push({ icon: '🏃', text: 'Activité : ' + escapeHtml(a.type) + (a.duration ? ' (' + a.duration + ' min)' : '') });
+      if (a.date === isoDate) events.push({ icon: ico('activity', 16), text: 'Activité : ' + escapeHtml(a.type) + (a.duration ? ' (' + a.duration + ' min)' : '') });
     });
     if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
       (data.heatCycles || []).forEach(function (c) {
-        if (c.startDate === isoDate) events.push({ icon: '🌡️', text: 'Début chaleurs' });
-        if (c.endDate === isoDate) events.push({ icon: '🌡️', text: 'Fin chaleurs' });
+        if (c.startDate === isoDate) events.push({ icon: ico('thermom', 16), text: 'Début chaleurs' });
+        if (c.endDate === isoDate) events.push({ icon: ico('thermom', 16), text: 'Fin chaleurs' });
       });
     }
     if (data.animal.dob) {
       var dob = isoToLocalDate(data.animal.dob);
       if (dob && dob.getMonth() === month && dob.getDate() === day) {
-        events.push({ icon: '🎂', text: 'Anniversaire de ' + escapeHtml(data.animal.name || '') });
+        events.push({ icon: ico('cake', 16), text: 'Anniversaire de ' + escapeHtml(data.animal.name || '') });
       }
     }
 
@@ -3767,31 +4648,31 @@
 
     var all = []
       .concat((historyType === 'all' || historyType === 'vaccins') ? data.vaccines.map(function (v) {
-        return { date: v.date, title: escapeHtml(v.name), sub: 'Vaccin · ' + escapeHtml(v.vet || ''), icon: '💉' };
+        return { date: v.date, title: escapeHtml(v.name), sub: 'Vaccin · ' + escapeHtml(v.vet || ''), icon: ico('vaccine', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'deworming') ? data.dewormings.map(function (d) {
-        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: '💊' };
+        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: ico('pill', 16) };
       }) : [])
       .concat(((historyType === 'all' || historyType === 'weight') && data.animal && Array.isArray(data.animal.weightHistory)) ? data.animal.weightHistory.map(function (w) {
-        return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: '⚖️' };
+        return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: ico('scale', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'consultations') ? (Array.isArray(data.consultations) ? data.consultations : []).map(function (c) {
-        return { date: c.date, title: escapeHtml(c.reason || ''), sub: 'Consultation · ' + escapeHtml(c.vet || ''), icon: '🩺' };
+        return { date: c.date, title: escapeHtml(c.reason || ''), sub: 'Consultation · ' + escapeHtml(c.vet || ''), icon: ico('stethoscope', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'journal') ? (Array.isArray(data.notes) ? data.notes : []).map(function (n) {
-        return { date: n.date, title: escapeHtml(n.title || ''), sub: 'Note · ' + escapeHtml(n.category || ''), icon: '📝' };
+        return { date: n.date, title: escapeHtml(n.title || ''), sub: 'Note · ' + escapeHtml(n.category || ''), icon: ico('fileText', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'hygiene') ? (data.hygiene || []).map(function (h) {
-        return { date: h.date, title: escapeHtml(h.type || ''), sub: 'Hygiène', icon: '🧼' };
+        return { date: h.date, title: escapeHtml(h.type || ''), sub: 'Hygiène', icon: ico('droplet', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'activities') ? (data.activities || []).map(function (a) {
-        return { date: a.date, title: escapeHtml(a.type || ''), sub: 'Activité' + (a.duration ? ' · ' + a.duration + ' min' : ''), icon: '🏃' };
+        return { date: a.date, title: escapeHtml(a.type || ''), sub: 'Activité' + (a.duration ? ' · ' + a.duration + ' min' : ''), icon: ico('activity', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'nutrition') ? (data.nutrition && data.nutrition.meals || []).map(function (m) {
-        return { date: m.date, title: escapeHtml(m.type || '') + (m.food ? ' — ' + escapeHtml(m.food) : ''), sub: 'Repas', icon: '🍽️' };
+        return { date: m.date, title: escapeHtml(m.type || '') + (m.food ? ' — ' + escapeHtml(m.food) : ''), sub: 'Repas', icon: ico('utensils', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'chaleurs') ? (data.heatCycles || []).map(function (c) {
-        return { date: c.startDate, title: 'Chaleurs — ' + escapeHtml(c.intensity || ''), sub: 'Reproduction', icon: '🌡️' };
+        return { date: c.startDate, title: 'Chaleurs — ' + escapeHtml(c.intensity || ''), sub: 'Reproduction', icon: ico('thermom', 16) };
       }) : [])
       .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
@@ -3803,14 +4684,54 @@
   }
 
   // ——— Tabs ————————————————————————————————————————
+  var TABS_SANTE = ['vaccins', 'deworming', 'hygiene', 'consultations', 'medications'];
+  var TABS_MORE = ['nutrition', 'activites', 'chaleurs', 'journal', 'checkup', 'calendrier', 'annuaire', 'historique'];
+
+  function closeNavMore() {
+    var sub = document.getElementById('subnav-more');
+    if (sub) sub.hidden = true;
+    var btn = document.getElementById('btn-nav-more');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function updateDetailPrimaryNav(tabName) {
+    var santeBtn = document.getElementById('btn-primary-sante');
+    var moreBtn = document.getElementById('btn-nav-more');
+    var subSante = document.getElementById('subnav-sante');
+    var subMore = document.getElementById('subnav-more');
+    var onSante = TABS_SANTE.indexOf(tabName) !== -1;
+    var onMore = TABS_MORE.indexOf(tabName) !== -1;
+
+    if (subSante) subSante.hidden = !onSante;
+    if (subMore) subMore.hidden = !onMore;
+
+    if (santeBtn) {
+      santeBtn.classList.toggle('active', onSante);
+      santeBtn.setAttribute('aria-selected', onSante ? 'true' : 'false');
+    }
+    if (moreBtn) {
+      moreBtn.classList.toggle('active', onMore);
+      moreBtn.setAttribute('aria-selected', onMore ? 'true' : 'false');
+      moreBtn.setAttribute('aria-expanded', onMore ? 'true' : 'false');
+    }
+  }
+
   function switchTab(tabName) {
-    document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); s.hidden = true; });
-    document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    if (!tabName) return;
+    var root = document.getElementById('view-detail');
+    if (!root) return;
+    root.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); s.hidden = true; });
+    root.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
 
     var section = document.getElementById('section-' + tabName);
-    var tab = document.querySelector('.tab[data-tab="' + tabName + '"]');
+    var tab = root.querySelector('.tab[data-tab="' + tabName + '"]');
     if (section) { section.classList.add('active'); section.hidden = false; }
     if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
+
+    root.classList.toggle('is-pet-profile', tabName === 'profil');
+
+    updateDetailPrimaryNav(tabName);
+    syncBottomNavFromTab(tabName);
 
     if (tabName === 'vaccins') renderVaccines();
     if (tabName === 'deworming') renderDewormings();
@@ -3828,7 +4749,11 @@
     if (tabName === 'calendrier') renderCalendar();
     if (tabName === 'annuaire') renderVetDirectory();
 
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (section && tabName !== 'profil') {
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (tabName === 'profil') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   function refreshAll() {
@@ -3858,8 +4783,8 @@
     window.print();
     // Restore after print
     setTimeout(function () {
-      var activeTab = document.querySelector('.tab.active');
-      var tabName = activeTab ? activeTab.getAttribute('data-tab') : 'profil';
+      var activeTab = document.querySelector('#view-detail .tab.active');
+      var tabName = activeTab && activeTab.getAttribute('data-tab') ? activeTab.getAttribute('data-tab') : 'profil';
       switchTab(tabName);
     }, 500);
   }
@@ -4301,25 +5226,129 @@
     document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
 
     document.querySelectorAll('.tab').forEach(function (t) {
-      t.addEventListener('click', function () { switchTab(this.getAttribute('data-tab')); });
+      t.addEventListener('click', function () {
+        var name = t.getAttribute('data-tab');
+        if (!name) return;
+        switchTab(name);
+      });
+    });
+
+    var btnSante = document.getElementById('btn-primary-sante');
+    if (btnSante) btnSante.addEventListener('click', function () { switchTab('vaccins'); });
+
+    var btnMore = document.getElementById('btn-nav-more');
+    if (btnMore) btnMore.addEventListener('click', function () {
+      var subMore = document.getElementById('subnav-more');
+      if (subMore && !subMore.hidden) {
+        // Already open — go to nutrition if not on a more tab
+        var onMore = TABS_MORE.some(function (t) {
+          var sec = document.getElementById('section-' + t);
+          return sec && !sec.hidden;
+        });
+        if (!onMore) switchTab('nutrition');
+        return;
+      }
+      switchTab('nutrition');
     });
 
     document.getElementById('animal-select').addEventListener('change', onAnimalSelectChange);
     document.getElementById('btn-add-animal').addEventListener('click', function () { openModal('addAnimal'); });
     document.getElementById('btn-backup').addEventListener('click', function () { openModal('backup'); });
+    var btnUserNav = document.getElementById('btn-user-nav');
+    if (btnUserNav) btnUserNav.addEventListener('click', function () { showUserProfile(); });
     document.getElementById('btn-add-photo').addEventListener('click', triggerPhotoUpload);
 
     document.getElementById('photo-input').addEventListener('change', handlePhotoUpload);
     document.getElementById('btn-avatar-upload').addEventListener('click', function () { document.getElementById('avatar-input').click(); });
     document.getElementById('avatar-input').addEventListener('change', handleAvatarUpload);
 
-    // Profile buttons
-    document.getElementById('btn-delete-animal').addEventListener('click', function () {
+    // Profile — menu photo & actions
+    var petMenuBtn = document.getElementById('pet-profile-menu-btn');
+    var petMenuPop = document.getElementById('pet-profile-menu-pop');
+    if (petMenuBtn && petMenuPop) {
+      petMenuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        petMenuPop.hidden = !petMenuPop.hidden;
+        petMenuBtn.setAttribute('aria-expanded', petMenuPop.hidden ? 'false' : 'true');
+      });
+      document.addEventListener('click', function () {
+        petMenuPop.hidden = true;
+        petMenuBtn.setAttribute('aria-expanded', 'false');
+      });
+      petMenuPop.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+    var petMenuPrint = document.getElementById('pet-menu-print');
+    var petMenuShare = document.getElementById('pet-menu-share');
+    var petMenuDelete = document.getElementById('pet-menu-delete');
+    if (petMenuPrint) petMenuPrint.addEventListener('click', function () { if (petMenuPop) petMenuPop.hidden = true; printAnimalRecord(); });
+    if (petMenuShare) petMenuShare.addEventListener('click', function () { if (petMenuPop) petMenuPop.hidden = true; shareRecord(); });
+    if (petMenuDelete) petMenuDelete.addEventListener('click', function () {
+      if (petMenuPop) petMenuPop.hidden = true;
       var data = getCurrent();
       if (data) deleteAnimal(data.id);
     });
-    document.getElementById('btn-print-record').addEventListener('click', printAnimalRecord);
-    document.getElementById('btn-share-record').addEventListener('click', shareRecord);
+
+    var petEmerg = document.getElementById('pet-profile-emergency');
+    if (petEmerg) petEmerg.addEventListener('click', function () {
+      var data = getCurrent();
+      var phone = data && data.owner && data.owner.phone ? String(data.owner.phone).replace(/\s/g, '') : '';
+      if (phone) window.location.href = 'tel:' + phone;
+      else showToast('Ajoutez un numéro dans le profil propriétaire.', 'error');
+    });
+
+    var petHealthAll = document.getElementById('pet-health-view-all');
+    if (petHealthAll) petHealthAll.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail({ tab: 'vaccins', nav: 'medical' }); }
+    });
+    var petTasksAll = document.getElementById('pet-tasks-view-all');
+    if (petTasksAll) petTasksAll.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail({ tab: 'calendrier', nav: 'calendar' }); }
+    });
+
+    var petTileMed = document.getElementById('pet-tile-medical');
+    if (petTileMed) petTileMed.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail({ tab: 'vaccins', nav: 'medical' }); }
+    });
+    var petTileNut = document.getElementById('pet-tile-nutrition-go');
+    if (petTileNut) petTileNut.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail({ tab: 'nutrition', nav: 'nutrition' }); }
+    });
+
+    var petChartW = document.getElementById('pet-chart-toggle-weight');
+    var petChartH = document.getElementById('pet-chart-toggle-height');
+    if (petChartW && petChartH) {
+      petChartW.addEventListener('click', function () {
+        uiState.petChartMode = 'weight';
+        petChartW.classList.add('active');
+        petChartH.classList.remove('active');
+        petChartW.setAttribute('aria-selected', 'true');
+        petChartH.setAttribute('aria-selected', 'false');
+        renderProfile();
+      });
+      petChartH.addEventListener('click', function () {
+        uiState.petChartMode = 'height';
+        petChartH.classList.add('active');
+        petChartW.classList.remove('active');
+        petChartH.setAttribute('aria-selected', 'true');
+        petChartW.setAttribute('aria-selected', 'false');
+        renderProfile();
+      });
+    }
+
+    document.querySelectorAll('.pet-task-filter').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.pet-task-filter').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        uiState.petTaskFilter = btn.getAttribute('data-pet-task-filter') || 'all';
+        var data = getCurrent();
+        if (data) renderPetProfileTasks(data);
+      });
+    });
+
+    var petAddRem = document.getElementById('pet-profile-add-reminder');
+    if (petAddRem) petAddRem.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); openModal('addVaccin'); }
+    });
 
     var birthdayDismiss = document.getElementById('birthday-dismiss');
     if (birthdayDismiss) birthdayDismiss.addEventListener('click', function () {
@@ -4403,6 +5432,28 @@
     var alertsRange = document.getElementById('alerts-range');
     if (alertsRange) alertsRange.addEventListener('change', renderAlerts);
 
+    // Reminder category pills
+    document.querySelectorAll('.reminder-cat').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.reminder-cat').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var cont = document.getElementById('upcoming-alerts');
+        if (cont) cont.setAttribute('data-cat-filter', btn.getAttribute('data-cat'));
+        renderAlerts();
+      });
+    });
+
+    // Reminder period pills
+    document.querySelectorAll('.reminder-period').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.reminder-period').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var sel = document.getElementById('alerts-range');
+        if (sel) { sel.value = btn.getAttribute('data-range'); }
+        renderAlerts();
+      });
+    });
+
     var historyFilter = document.getElementById('history-type-filter');
     if (historyFilter) historyFilter.addEventListener('change', renderHistory);
 
@@ -4481,6 +5532,11 @@
       if (e.key !== 'Escape') return;
       var lb = document.getElementById('lightbox');
       if (lb && lb.classList.contains('open')) { closeLightbox(); return; }
+      var nmo = document.getElementById('subnav-more');
+      if (nmo && !nmo.hidden && window.matchMedia('(max-width: 1023px)').matches) {
+        closeNavMore();
+        return;
+      }
       var openOverlay = document.querySelector('.modal-overlay.open');
       if (!openOverlay) return;
       var id = openOverlay.getAttribute('id') || '';
@@ -4504,6 +5560,88 @@
     document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
     document.getElementById('ped-registry').addEventListener('change', function () { toggleLofVerifyControls(); });
 
+    // ——— Bottom Navigation Bar ———————————————————————————
+    document.querySelectorAll('.bottom-nav__item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var nav = btn.getAttribute('data-nav');
+
+        if (nav === 'home') {
+          showHome();
+        } else if (nav === 'pets') {
+          if (state.animals.length > 0) showDetail({ tab: 'profil', nav: 'pets' });
+          else openModal('addAnimal');
+        } else if (nav === 'nutrition') {
+          if (state.animals.length > 0) showDetail({ tab: 'nutrition', nav: 'nutrition' });
+          else openModal('addAnimal');
+        } else if (nav === 'medical') {
+          if (state.animals.length > 0) showDetail({ tab: 'vaccins', nav: 'medical' });
+          else openModal('addAnimal');
+        } else if (nav === 'calendar') {
+          if (state.animals.length > 0) showDetail({ tab: 'calendrier', nav: 'calendar' });
+          else openModal('addAnimal');
+        }
+      });
+    });
+
+    // ——— Home Action Pills ———————————————————————————————
+    var pillComplete = document.getElementById('pill-complete-profile');
+    if (pillComplete) pillComplete.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); openModal('editAnimal'); }
+    });
+
+    var pillEmergency = document.getElementById('pill-emergency');
+    if (pillEmergency) pillEmergency.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); switchTab('annuaire'); }
+    });
+
+    var pillReminder = document.getElementById('pill-add-reminder');
+    if (pillReminder) pillReminder.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); switchTab('alertes'); }
+    });
+
+    var pillCalorie = document.getElementById('pill-calorie');
+    if (pillCalorie) pillCalorie.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); switchTab('nutrition'); }
+    });
+
+    // ——— Home Reminders Tabs ————————————————————————————
+    document.querySelectorAll('.home-reminders__tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.home-reminders__tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        renderHomeReminders(tab.getAttribute('data-filter'));
+      });
+    });
+
+    var btnSeeAllReminders = document.getElementById('btn-see-all-reminders');
+    if (btnSeeAllReminders) btnSeeAllReminders.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); switchTab('alertes'); }
+    });
+
+    // ——— User Profile ——————————————————————————————————
+    var btnUserBackup = document.getElementById('btn-user-backup');
+    if (btnUserBackup) btnUserBackup.addEventListener('click', function () { openModal('backup'); });
+
+    var btnUserEditProfile = document.getElementById('btn-user-edit-profile');
+    if (btnUserEditProfile) btnUserEditProfile.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); openModal('editOwner'); }
+    });
+
+    var userDarkToggle = document.getElementById('user-dark-toggle');
+    if (userDarkToggle) {
+      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+      userDarkToggle.addEventListener('change', function () { toggleTheme(); });
+    }
+
+    // Tips & Vets see-all buttons
+    var btnSeeAllVets = document.getElementById('btn-see-all-vets');
+    if (btnSeeAllVets) btnSeeAllVets.addEventListener('click', function () {
+      if (state.animals.length > 0) { showDetail(); switchTab('annuaire'); }
+    });
+
+    var btnSeeAllTips = document.getElementById('btn-see-all-tips');
+    if (btnSeeAllTips) btnSeeAllTips.addEventListener('click', function () { showCommunity('tips'); });
+
     // Setup features
     setupFAB();
     setupQuickDateButtons();
@@ -4511,11 +5649,48 @@
     setupSwipe();
   }
 
+  // ——— User Profile View ——————————————————————————————————
+  function showUserProfile() {
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
+
+    if (viewHome) viewHome.hidden = true;
+    if (viewDetail) viewDetail.hidden = true;
+    if (viewCommunity) viewCommunity.hidden = true;
+    if (viewProfile) {
+      viewProfile.hidden = false;
+      viewProfile.classList.remove('view-enter');
+      void viewProfile.offsetWidth;
+      viewProfile.classList.add('view-enter');
+    }
+    document.getElementById('animal-select').style.display = 'none';
+    document.getElementById('btn-accueil').hidden = false;
+    document.getElementById('fab-container').hidden = true;
+
+    // Populate user profile info from owner data
+    var data = getCurrent();
+    if (data && data.owner) {
+      var nameEl = document.getElementById('user-profile-name');
+      var emailEl = document.getElementById('user-profile-email');
+      if (nameEl) nameEl.textContent = data.owner.name || 'Utilisateur';
+      if (emailEl) emailEl.textContent = data.owner.email || '';
+    }
+
+    // Sync dark mode toggle
+    var userDarkToggle = document.getElementById('user-dark-toggle');
+    if (userDarkToggle) {
+      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+  }
+
   window.app = {
     openModal: openModal,
     closeModal: closeModal,
     switchTab: switchTab,
-    showCommunity: showCommunity
+    showCommunity: showCommunity,
+    showUserProfile: showUserProfile
   };
 
   if (document.readyState === 'loading') {

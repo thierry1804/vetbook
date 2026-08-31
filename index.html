@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#4F46E5">
   <meta name="description" content="Carnet de santé pour vos animaux : profil, vaccins, déparasitage, photos et rappels.">
   <title>VetBook — Carnet de Santé Animal</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <header class="app-header">
     <div class="header-left">
-      <a href="#" class="logo" id="logo-home" aria-label="Retour à l'accueil">Vet<span>Book</span></a>
+      <a href="#" class="logo" id="logo-home" aria-label="Retour à l'accueil"><span class="logo-paw"><svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span> Vet<span>Book</span></a>
       <button type="button" class="btn-accueil" id="btn-accueil" hidden>← Accueil</button>
     </div>
     <div class="header-actions">
       <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel"></select>
       <button type="button" class="btn-add" id="btn-add-animal">+ Animal</button>
+      <button type="button" class="btn-icon btn-icon--user" id="btn-user-nav" title="Mon compte" aria-label="Mon compte">
+        <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
       <button type="button" class="btn-icon" id="btn-backup" title="Sauvegarde / Importation">Sauvegarde</button>
       <button type="button" class="btn-theme-toggle" id="btn-theme-toggle" title="Mode sombre / clair" aria-label="Basculer le thème">☀️</button>
     </div>
@@ -30,48 +33,106 @@
   <main class="container">
     <!-- Page d'accueil : liste des animaux avec actions rapides -->
     <div id="view-home" class="view">
-      <h1 class="home-title">Mes animaux</h1>
+      <header class="home-header">
+        <div class="home-header__intro">
+          <h1 class="home-title">Mes animaux</h1>
+          <p class="home-lead">Accès rapide aux carnets, rappels et soins.</p>
+        </div>
+      </header>
+
+      <!-- Pet Avatars Row (Pawly style) -->
+      <div id="home-pets-row" class="home-pets-row"></div>
+
+      <!-- Quick Action Pills -->
+      <div class="home-action-pills" id="home-action-pills">
+        <button type="button" class="action-pill action-pill--primary" id="pill-complete-profile">
+          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Complétez le profil
+        </button>
+        <button type="button" class="action-pill" id="pill-emergency">
+          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Urgence
+        </button>
+        <button type="button" class="action-pill" id="pill-add-reminder">
+          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span> Ajouter un rappel
+        </button>
+        <button type="button" class="action-pill" id="pill-calorie">
+          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></span> Calculateur calories
+        </button>
+      </div>
+
       <!-- Dashboard summary -->
       <div id="home-dashboard" class="home-dashboard" hidden>
         <div class="dashboard-card dashboard-overdue" id="dash-overdue">
-          <span class="dashboard-icon">⚠️</span>
+          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
           <span class="dashboard-number" id="dash-overdue-count">0</span>
           <span class="dashboard-label">En retard</span>
         </div>
         <div class="dashboard-card dashboard-upcoming" id="dash-upcoming">
-          <span class="dashboard-icon">🔔</span>
+          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
           <span class="dashboard-number" id="dash-upcoming-count">0</span>
           <span class="dashboard-label">Rappels (7j)</span>
         </div>
         <div class="dashboard-card dashboard-animals">
-          <span class="dashboard-icon">🐾</span>
+          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span>
           <span class="dashboard-number" id="dash-animals-count">0</span>
           <span class="dashboard-label">Animaux</span>
         </div>
         <div class="dashboard-card dashboard-vaccines">
-          <span class="dashboard-icon">💉</span>
+          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg></span>
           <span class="dashboard-number" id="dash-vaccines-count">0</span>
           <span class="dashboard-label">Vaccins</span>
         </div>
         <div class="dashboard-card dashboard-photos">
-          <span class="dashboard-icon">📷</span>
+          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
           <span class="dashboard-number" id="dash-photos-count">0</span>
           <span class="dashboard-label">Photos</span>
         </div>
       </div>
+
+      <!-- Today's Reminders (Pawly style) -->
+      <div class="home-reminders" id="home-reminders">
+        <div class="home-reminders__header">
+          <h2 class="home-reminders__title">Rappels du jour</h2>
+          <button type="button" class="home-reminders__see-all" id="btn-see-all-reminders">Voir tout</button>
+        </div>
+        <div class="home-reminders__tabs">
+          <button type="button" class="home-reminders__tab active" data-filter="all">Tous</button>
+          <button type="button" class="home-reminders__tab" data-filter="week">Semaine</button>
+          <button type="button" class="home-reminders__tab" data-filter="month">Mois</button>
+        </div>
+        <div id="home-reminders-list"></div>
+      </div>
+
       <div id="home-pet-grid" class="home-pet-grid"></div>
       <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
 
+      <!-- Recommended Vets -->
+      <div class="home-section" id="home-vets-section">
+        <div class="home-section-header">
+          <h2>Vétérinaires recommandés</h2>
+          <button type="button" class="see-all-btn" id="btn-see-all-vets">Voir tout</button>
+        </div>
+        <div class="home-hscroll" id="home-vets-scroll"></div>
+      </div>
+
+      <!-- Perfect Tips -->
+      <div class="home-section" id="home-tips-section">
+        <div class="home-section-header">
+          <h2>Conseils pratiques</h2>
+          <button type="button" class="see-all-btn" id="btn-see-all-tips">Voir tout</button>
+        </div>
+        <div class="home-hscroll" id="home-tips-scroll"></div>
+      </div>
+
       <!-- Section Communauté (accueil) -->
       <div id="home-community" class="home-community-section">
-        <h2 class="section-title">🐕 Communauté & Événements</h2>
+        <h2 class="section-title">Communauté & Événements</h2>
         <div class="community-cards">
           <div class="community-card" id="btn-show-events" role="button" tabindex="0">
-            <span class="community-icon">📅</span>
+            <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
             <span class="community-label">Calendrier Événements Canins</span>
           </div>
           <div class="community-card" id="btn-show-tips" role="button" tabindex="0">
-            <span class="community-icon">💡</span>
+            <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg></span>
             <span class="community-label">Astuces & Conseils</span>
           </div>
         </div>
@@ -83,14 +144,14 @@
       <button type="button" class="btn-accueil" id="btn-community-back">← Accueil</button>
 
       <div id="community-events" class="community-panel" hidden>
-        <h2 class="section-title">📅 Événements Canins</h2>
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Événements Canins</h2>
         <p class="table-muted">Calendrier annuel des principaux événements canins en France. Les événements du mois sont mis en avant.</p>
         <div id="community-next-reminder" class="community-reminder-box"></div>
         <div id="community-events-list"></div>
       </div>
 
       <div id="community-tips" class="community-panel" hidden>
-        <h2 class="section-title">💡 Astuces & Conseils</h2>
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg> Astuces & Conseils</h2>
         <div class="table-controls">
           <div class="table-control">
             <label for="tips-category-filter">Catégorie</label>
@@ -112,7 +173,7 @@
     <!-- Modal ajout astuce -->
     <div class="modal-overlay" id="modal-addTip" aria-hidden="true" role="dialog">
       <div class="modal" role="document">
-        <h2 class="modal-title">💡 Ajouter une Astuce</h2>
+        <h2 class="modal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg> Ajouter une Astuce</h2>
         <form id="form-add-tip" class="modal-form">
           <div class="form-group"><label class="form-label" for="tip-title">Titre</label><input class="form-input" id="tip-title" required placeholder="Titre de l'astuce"></div>
           <div class="form-group"><label class="form-label" for="tip-category">Catégorie</label>
@@ -134,137 +195,232 @@
     </div>
 
     <!-- Vue détail : carnet d'un animal -->
-    <div id="view-detail" class="view" hidden>
-    <nav class="tabs" role="tablist" aria-label="Sections du carnet">
-      <button type="button" class="tab active" data-tab="profil" role="tab" aria-selected="true">🐶 <span class="tab-label">Profil</span></button>
-      <button type="button" class="tab" data-tab="photos" role="tab">📷 <span class="tab-label">Photos</span></button>
-      <button type="button" class="tab" data-tab="vaccins" role="tab">💉 <span class="tab-label">Vaccins</span></button>
-      <button type="button" class="tab" data-tab="deworming" role="tab">💊 <span class="tab-label">Déparas.</span></button>
-      <button type="button" class="tab" data-tab="hygiene" role="tab">🧼 <span class="tab-label">Hygiène</span></button>
-      <button type="button" class="tab" data-tab="consultations" role="tab">🩺 <span class="tab-label">Consult.</span></button>
-      <button type="button" class="tab" data-tab="medications" role="tab">💊 <span class="tab-label">Médic.</span></button>
-      <button type="button" class="tab" data-tab="nutrition" role="tab">🍽️ <span class="tab-label">Repas</span></button>
-      <button type="button" class="tab" data-tab="activites" role="tab">🏃 <span class="tab-label">Activités</span></button>
-      <button type="button" class="tab" data-tab="chaleurs" role="tab">🌡️ <span class="tab-label">Chaleurs</span></button>
-      <button type="button" class="tab" data-tab="journal" role="tab">📝 <span class="tab-label">Journal</span></button>
-      <button type="button" class="tab" data-tab="checkup" role="tab">✅ <span class="tab-label">Check-up</span></button>
-      <button type="button" class="tab" data-tab="alertes" role="tab">🔔 <span class="tab-label">Alertes</span></button>
-      <button type="button" class="tab" data-tab="calendrier" role="tab">📅 <span class="tab-label">Calendrier</span></button>
-      <button type="button" class="tab" data-tab="annuaire" role="tab">📞 <span class="tab-label">Annuaire</span></button>
-      <button type="button" class="tab" data-tab="historique" role="tab">📋 <span class="tab-label">Historique</span></button>
-    </nav>
+    <div id="view-detail" class="view detail-layout" hidden>
+    <aside class="detail-sidebar" aria-label="Navigation du carnet">
+    <div class="detail-nav" id="detail-nav">
+      <nav class="tabs tabs--primary" role="tablist" aria-label="Navigation principale du carnet">
+        <button type="button" class="tab primary-nav__btn active" data-primary="profil" data-tab="profil" role="tab" aria-selected="true">Profil</button>
+        <button type="button" class="tab primary-nav__btn" data-primary="photos" data-tab="photos" role="tab" aria-selected="false">Photos</button>
+        <button type="button" class="primary-nav__btn" data-primary="sante" id="btn-primary-sante" aria-selected="false">Santé</button>
+        <button type="button" class="tab primary-nav__btn" data-primary="alertes" data-tab="alertes" role="tab" aria-selected="false">Rappels</button>
+        <button type="button" class="primary-nav__btn primary-nav__btn--more" id="btn-nav-more" aria-expanded="false" aria-haspopup="true" aria-controls="subnav-more" aria-selected="false">Plus</button>
+      </nav>
+      <div id="subnav-sante" class="subnav subnav--sante" hidden>
+        <div class="subnav__inner" role="tablist" aria-label="Sous-sections santé">
+          <button type="button" class="tab subnav-tab" data-tab="vaccins" role="tab">Vaccins</button>
+          <button type="button" class="tab subnav-tab" data-tab="deworming" role="tab">Déparasitage</button>
+          <button type="button" class="tab subnav-tab" data-tab="hygiene" role="tab">Hygiène</button>
+          <button type="button" class="tab subnav-tab" data-tab="consultations" role="tab">Consultations</button>
+          <button type="button" class="tab subnav-tab" data-tab="medications" role="tab">Médicaments</button>
+        </div>
+      </div>
+      <div id="subnav-more" class="subnav subnav--more" hidden>
+        <div class="subnav__group">
+          <span class="subnav__group-label">Suivi quotidien</span>
+          <div class="subnav__inner" role="tablist" aria-label="Suivi quotidien">
+            <button type="button" class="tab subnav-tab" data-tab="nutrition" role="tab">Repas</button>
+            <button type="button" class="tab subnav-tab" data-tab="activites" role="tab">Activités</button>
+            <button type="button" class="tab subnav-tab" data-tab="chaleurs" role="tab">Chaleurs</button>
+            <button type="button" class="tab subnav-tab" data-tab="journal" role="tab">Journal</button>
+            <button type="button" class="tab subnav-tab" data-tab="checkup" role="tab">Check-up</button>
+          </div>
+        </div>
+        <div class="subnav__group">
+          <span class="subnav__group-label">Vue d'ensemble</span>
+          <div class="subnav__inner" role="tablist" aria-label="Vue d'ensemble">
+            <button type="button" class="tab subnav-tab" data-tab="calendrier" role="tab">Calendrier</button>
+            <button type="button" class="tab subnav-tab" data-tab="annuaire" role="tab">Annuaire</button>
+            <button type="button" class="tab subnav-tab" data-tab="historique" role="tab">Historique</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </aside>
+    <div class="detail-main">
 
     <!-- Section Profil -->
     <section id="section-profil" class="section active" role="tabpanel" aria-labelledby="tab-profil">
       <!-- Birthday banner -->
       <div id="birthday-banner" class="birthday-banner" hidden>
         <div class="birthday-content">
-          <span class="birthday-emoji">🎉🎂🎈</span>
+          <span class="birthday-emoji"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 00-2-2H6a2 2 0 00-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg></span>
           <span id="birthday-text">Joyeux anniversaire !</span>
           <button type="button" class="birthday-dismiss" id="birthday-dismiss">✕</button>
         </div>
         <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
       </div>
 
-      <article class="animal-hero" id="animal-hero">
-        <div class="avatar-wrapper">
-          <div class="animal-avatar" id="hero-avatar" role="img" aria-label="Photo de l'animal">🐕</div>
-          <button type="button" class="avatar-edit-btn" onclick="app.openModal('editAnimal')" title="Modifier la photo">✏️</button>
-        </div>
-        <div class="hero-content">
-          <h1 class="animal-name" id="hero-name">—</h1>
-          <p class="animal-breed" id="hero-breed">—</p>
-          <div class="animal-badges">
-            <span class="badge" id="hero-dob">🎂 —</span>
-            <span class="badge" id="hero-weight">⚖️ — kg</span>
-            <span class="badge" id="hero-species">🔬 —</span>
-          </div>
-        </div>
-        <div class="hero-buttons">
-          <button type="button" class="hero-edit-btn" onclick="app.openModal('editAnimal')">✏️ <span>Modifier la fiche</span></button>
-          <button type="button" class="hero-edit-btn hero-print-btn" id="btn-print-record">🖨️ <span>Imprimer</span></button>
-          <button type="button" class="hero-edit-btn hero-share-btn" id="btn-share-record">📤 <span>Partager</span></button>
-          <button type="button" class="hero-edit-btn hero-delete-btn" id="btn-delete-animal">🗑️ <span>Supprimer</span></button>
-        </div>
-      </article>
+      <div class="pet-profile-sheet">
+        <h1 class="pet-profile-sheet__title" id="pet-profile-page-title">Profil</h1>
+        <div id="detail-pets-row" class="home-pets-row detail-pets-row" aria-label="Changer d’animal"></div>
 
-      <!-- Profile completeness -->
-      <div class="profile-completeness" id="profile-completeness" hidden>
-        <div class="completeness-bar">
-          <div class="completeness-fill" id="completeness-fill" style="width:0%"></div>
-        </div>
-        <span class="completeness-text" id="completeness-text">0% complété</span>
-      </div>
-
-      <!-- QR Code -->
-      <div class="qr-section" id="qr-section" hidden>
-        <h3 class="section-title">🔳 QR Code Identité</h3>
-        <canvas id="qr-canvas" class="qr-canvas" width="200" height="200"></canvas>
-        <p class="qr-hint">Scannez pour accéder aux informations de l'animal</p>
-      </div>
-
-      <div class="info-grid" aria-label="Informations de l'animal">
-        <div class="info-card"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
-        <div class="info-card"><span class="info-label">Race</span><span class="info-value" id="info-race">—</span></div>
-        <div class="info-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-            <div>
-              <span class="info-label">Poids</span>
-              <span class="info-value" id="info-weight">—</span>
+        <article class="pet-photo-card" id="animal-hero">
+          <div class="pet-photo-card__toolbar">
+            <div class="pet-photo-card__menu-wrap">
+              <button type="button" class="pet-photo-card__menu" id="pet-profile-menu-btn" aria-expanded="false" aria-haspopup="true" aria-label="Menu du profil">
+                <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+              <div class="pet-photo-card__menu-pop" id="pet-profile-menu-pop" hidden>
+                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-edit-photo" onclick="app.openModal('editAnimal')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier la photo</button>
+                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-print"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimer</button>
+                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-share"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Partager</button>
+                <button type="button" class="pet-photo-card__menu-item pet-photo-card__menu-item--danger" id="pet-menu-delete"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Supprimer</button>
+              </div>
             </div>
-            <button type="button" class="btn-icon" onclick="app.openModal('addWeight')" title="Ajouter une pesée">+ Pesée</button>
+          </div>
+          <div class="pet-photo-card__media">
+            <div class="animal-avatar animal-avatar--profile" id="hero-avatar" role="img" aria-label="Photo de l'animal">
+              <svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
+            </div>
+            <div class="pet-photo-card__chip" id="pet-profile-chip-wrap" hidden>
+              <span class="pet-photo-card__chip-label">Puce électronique :</span> <span id="pet-profile-chip-text">—</span>
+            </div>
+          </div>
+          <div class="pet-photo-card__dots" id="pet-profile-photo-dots" aria-hidden="true"></div>
+        </article>
+
+        <div class="pet-vaccination-strip">
+          <span class="pet-vaccination-strip__badge" id="pet-vacc-status">Vaccination : —</span>
+          <span class="pet-vaccination-strip__meta" id="pet-last-visit">Basé sur la dernière visite : —</span>
+        </div>
+
+        <div class="pet-spec-grid" aria-label="Informations principales">
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Race</span><span class="pet-spec-tile__value" id="pet-tile-breed">—</span></div>
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Né(e) le</span><span class="pet-spec-tile__value" id="pet-tile-dob">—</span></div>
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Sexe</span><span class="pet-spec-tile__value" id="pet-tile-gender">—</span></div>
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Taille</span><span class="pet-spec-tile__value" id="pet-tile-height">—</span></div>
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Poids</span><span class="pet-spec-tile__value" id="pet-tile-weight">—</span></div>
+          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Reproduction</span><span class="pet-spec-tile__value" id="pet-tile-repro">—</span></div>
+        </div>
+
+        <div class="pet-profile-actions">
+          <button type="button" class="pet-profile-actions__btn pet-profile-actions__btn--edit" onclick="app.openModal('editAnimal')">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
+            Modifier
+          </button>
+          <button type="button" class="pet-profile-actions__btn pet-profile-actions__btn--emergency" id="pet-profile-emergency">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+            Urgence
+          </button>
+        </div>
+
+        <section class="pet-health-block" aria-labelledby="pet-health-heading">
+          <div class="pet-block-header">
+            <h2 class="pet-block-header__title" id="pet-health-heading">Informations santé</h2>
+            <button type="button" class="pet-block-header__link" id="pet-health-view-all">Voir tout ›</button>
+          </div>
+          <div class="pet-health-tiles">
+            <button type="button" class="pet-health-tile" id="pet-tile-medical">
+              <span class="pet-health-tile__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14h6"/><path d="M12 11v6"/></svg></span>
+              <span class="pet-health-tile__label">Dossier médical</span>
+            </button>
+            <button type="button" class="pet-health-tile" id="pet-tile-nutrition-go">
+              <span class="pet-health-tile__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 11h16v2a6 6 0 01-6 6h-4a6 6 0 01-6-6v-2z"/><path d="M8 11V7a2 2 0 012-2h0a2 2 0 012 2v4"/><path d="M14 11V8a1.5 1.5 0 013 0v3"/><path d="M12 19v2"/></svg></span>
+              <span class="pet-health-tile__label">Nutrition</span>
+            </button>
+          </div>
+          <div class="pet-chart-toggle" role="tablist" aria-label="Courbe poids ou taille">
+            <button type="button" class="pet-chart-toggle__btn active" id="pet-chart-toggle-weight" role="tab" aria-selected="true">Courbe de poids</button>
+            <button type="button" class="pet-chart-toggle__btn" id="pet-chart-toggle-height" role="tab" aria-selected="false">Courbe de taille</button>
+          </div>
+          <div class="pet-weight-chart-wrap" id="pet-weight-chart-wrap">
+            <div class="pet-weight-chart" id="pet-profile-weight-chart"></div>
+          </div>
+          <div class="pet-height-chart-wrap" id="pet-height-chart-wrap" hidden>
+            <p class="pet-height-hint" id="pet-height-chart-hint">Indiquez la taille dans la fiche pour suivre son évolution.</p>
+          </div>
+        </section>
+
+        <section class="pet-tasks-block" aria-labelledby="pet-tasks-heading">
+          <div class="pet-block-header">
+            <h2 class="pet-block-header__title" id="pet-tasks-heading">Tâches du jour</h2>
+            <button type="button" class="pet-block-header__link" id="pet-tasks-view-all">Voir tout ›</button>
+          </div>
+          <div class="pet-task-filters" role="tablist" aria-label="Filtrer les tâches">
+            <button type="button" class="pet-task-filter active" data-pet-task-filter="all">Tous</button>
+            <button type="button" class="pet-task-filter" data-pet-task-filter="meal">Repas</button>
+            <button type="button" class="pet-task-filter" data-pet-task-filter="vitamin">Vitamine</button>
+            <button type="button" class="pet-task-filter" data-pet-task-filter="med">Pilule <span class="pet-task-filter__count" data-filter-count="med" hidden></span></button>
+            <button type="button" class="pet-task-filter" data-pet-task-filter="drops">Gouttes <span class="pet-task-filter__count" data-filter-count="drops" hidden></span></button>
+            <button type="button" class="pet-task-filter" data-pet-task-filter="vaccine">Vac.</button>
+          </div>
+          <div class="pet-task-timeline" id="pet-profile-tasks-list"></div>
+          <button type="button" class="pet-tasks-add-btn" id="pet-profile-add-reminder">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M16 4l2-1"/><path d="M19 6l1-1"/></svg>
+            Ajouter un rappel
+          </button>
+        </section>
+      </div>
+
+      <details class="pet-profile-more">
+        <summary class="pet-profile-more__summary">Plus d’informations</summary>
+        <div class="pet-profile-more__body">
+          <div class="profile-completeness" id="profile-completeness" hidden>
+            <div class="completeness-bar">
+              <div class="completeness-fill" id="completeness-fill" style="width:0%"></div>
+            </div>
+            <span class="completeness-text" id="completeness-text">0% complété</span>
+          </div>
+
+          <div class="qr-section" id="qr-section" hidden>
+            <h3 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><path d="M22 14h-4v4"/><path d="M22 22h-8v-4"/></svg> QR Code Identité</h3>
+            <canvas id="qr-canvas" class="qr-canvas" width="200" height="200"></canvas>
+            <p class="qr-hint">Scannez pour accéder aux informations de l'animal</p>
+          </div>
+
+          <div class="pet-profile-extra" aria-label="Détails complémentaires">
+            <div class="pet-profile-extra__grid">
+              <div class="pet-profile-extra__cell"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
+              <div class="pet-profile-extra__cell"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
+              <button type="button" class="pet-profile-extra__weight-btn" onclick="app.openModal('addWeight')" title="Ajouter une pesée">+ Pesée</button>
+            </div>
+          </div>
+          <span id="info-race" hidden></span><span id="info-weight" hidden></span><span id="info-chip" hidden></span><span id="info-sterilise" hidden></span>
+
+          <article class="owner-card">
+            <div class="card-header">
+              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg> Propriétaire</h2>
+              <button type="button" class="btn-icon" onclick="app.openModal('editOwner')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier</button>
+            </div>
+            <div class="info-grid">
+              <div><span class="info-label">Nom</span><span class="info-value" id="owner-name">—</span></div>
+              <div><span class="info-label">Téléphone</span><span class="info-value" id="owner-phone">—</span></div>
+              <div><span class="info-label">Email</span><span class="info-value" id="owner-email">—</span></div>
+              <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
+            </div>
+          </article>
+
+          <article class="owner-card" id="pedigree-card"></article>
+
+          <div class="checkup-shortcut">
+            <button type="button" class="btn-icon" onclick="app.switchTab('checkup')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Check-up rapide</button>
+          </div>
+
+          <div class="active-meds-summary" id="active-meds-summary" hidden>
+            <h3 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Médicaments en cours</h3>
+            <div id="active-meds-list" class="active-meds-list"></div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card"><span class="stat-number" id="stat-vax">0</span><span class="stat-label">Vaccins reçus</span></div>
+            <div class="stat-card"><span class="stat-number" id="stat-dew">0</span><span class="stat-label">Déparasitages</span></div>
+            <div class="stat-card"><span class="stat-number stat-accent" id="stat-photos">0</span><span class="stat-label">Photos</span></div>
+            <div class="stat-card"><span class="stat-number stat-accent" id="stat-next">0</span><span class="stat-label">Rappel à venir</span></div>
           </div>
         </div>
-        <div class="info-card"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
-        <div class="info-card"><span class="info-label">Microchip</span><span class="info-value" id="info-chip">Non renseigné</span></div>
-        <div class="info-card"><span class="info-label">Stérilisé(e)</span><span class="info-value" id="info-sterilise">—</span></div>
-      </div>
-
-      <article class="owner-card">
-        <div class="card-header">
-          <h2 class="section-title">👤 Propriétaire</h2>
-          <button type="button" class="btn-icon" onclick="app.openModal('editOwner')">✏️ Modifier</button>
-        </div>
-        <div class="info-grid">
-          <div><span class="info-label">Nom</span><span class="info-value" id="owner-name">—</span></div>
-          <div><span class="info-label">Téléphone</span><span class="info-value" id="owner-phone">—</span></div>
-          <div><span class="info-label">Email</span><span class="info-value" id="owner-email">—</span></div>
-          <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
-        </div>
-      </article>
-
-      <!-- Pedigree card -->
-      <article class="owner-card" id="pedigree-card"></article>
-
-      <!-- Quick check-up shortcut -->
-      <div class="checkup-shortcut">
-        <button type="button" class="btn-icon" onclick="app.switchTab('checkup')">✅ Check-up rapide</button>
-      </div>
-
-      <!-- Active medications badge area -->
-      <div class="active-meds-summary" id="active-meds-summary" hidden>
-        <h3 class="section-title">💊 Médicaments en cours</h3>
-        <div id="active-meds-list" class="active-meds-list"></div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card"><span class="stat-number" id="stat-vax">0</span><span class="stat-label">Vaccins reçus</span></div>
-        <div class="stat-card"><span class="stat-number" id="stat-dew">0</span><span class="stat-label">Déparasitages</span></div>
-        <div class="stat-card"><span class="stat-number stat-accent" id="stat-photos">0</span><span class="stat-label">Photos</span></div>
-        <div class="stat-card"><span class="stat-number stat-accent" id="stat-next">0</span><span class="stat-label">Rappel à venir</span></div>
-      </div>
+      </details>
     </section>
 
     <!-- Section Photos -->
     <section id="section-photos" class="section" role="tabpanel" hidden>
       <div class="gallery-section">
         <div class="gallery-header">
-          <h2 class="section-title">📷 Album Photo</h2>
-          <button type="button" class="btn-icon" id="btn-add-photo">📷 Ajouter des photos</button>
+          <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Album Photo</h2>
+          <button type="button" class="btn-icon" id="btn-add-photo"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Ajouter des photos</button>
         </div>
         <div class="gallery-grid" id="gallery-grid">
           <div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0">
-            <span class="gallery-add-icon" aria-hidden="true">📷</span>
+            <span class="gallery-add-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
             <span>Ajouter une photo</span>
           </div>
         </div>
@@ -278,7 +434,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">💉 Mes Vaccins</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg> Mes Vaccins</h2>
             <div class="table-controls" role="group" aria-label="Filtres vaccins">
               <div class="table-control">
                 <label for="vaccine-search">Recherche</label>
@@ -326,7 +482,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">💊 Déparasitage</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Déparasitage</h2>
             <div class="table-controls" role="group" aria-label="Filtres déparasitage">
               <div class="table-control">
                 <label for="deworming-search">Recherche</label>
@@ -374,7 +530,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">🩺 Consultations Vétérinaires</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg> Consultations Vétérinaires</h2>
             <div class="table-controls" role="group" aria-label="Filtres consultations">
               <div class="table-control">
                 <label for="consult-search">Recherche</label>
@@ -384,6 +540,16 @@
           </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addConsult')">+ Ajouter</button>
         </div>
+        <div class="consult-summary" id="consult-summary" hidden>
+          <div class="consult-summary__item">
+            <span class="consult-summary__label">Total affiché</span>
+            <span class="consult-summary__value" id="consult-summary-filtered">0,00 €</span>
+          </div>
+          <div class="consult-summary__item">
+            <span class="consult-summary__label">Sur 12 mois glissants</span>
+            <span class="consult-summary__value" id="consult-summary-year">0,00 €</span>
+          </div>
+        </div>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Date</th><th>Motif</th><th>Vétérinaire</th><th>Coût</th><th></th></tr></thead>
@@ -391,7 +557,7 @@
           </table>
         </div>
         <div id="consult-empty" class="empty-state-illustrated" hidden>
-          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">🩺</text></svg>
+          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><g transform="translate(36,36)" stroke="var(--border)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></g></svg>
           <p id="consult-empty-text">Aucune consultation enregistrée</p>
         </div>
       </div>
@@ -402,7 +568,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">💊 Médicaments</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Médicaments</h2>
           </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addMedication')">+ Ajouter</button>
         </div>
@@ -413,7 +579,7 @@
           </table>
         </div>
         <div id="medication-empty" class="empty-state-illustrated" hidden>
-          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">💊</text></svg>
+          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><g transform="translate(36,36)" stroke="var(--border)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></g></svg>
           <p>Aucun médicament enregistré</p>
         </div>
       </div>
@@ -424,7 +590,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">🧼 Soins d'Hygiène</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg> Soins d'Hygiène</h2>
             <div class="table-controls" role="group" aria-label="Filtres hygiène">
               <div class="table-control">
                 <label for="hygiene-search">Recherche</label>
@@ -472,7 +638,7 @@
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
-            <h2 class="section-title">🏃 Activités Physiques</h2>
+            <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Activités Physiques</h2>
           </div>
           <button type="button" class="btn-icon" onclick="app.openModal('addActivity')">+ Ajouter</button>
         </div>
@@ -495,7 +661,7 @@
         <div class="data-table">
           <div class="table-header">
             <div class="table-header-left">
-              <h2 class="section-title">🌡️ Périodes de Chaleur</h2>
+              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Périodes de Chaleur</h2>
             </div>
             <button type="button" class="btn-icon" onclick="app.openModal('addHeatCycle')">+ Ajouter</button>
           </div>
@@ -511,14 +677,14 @@
 
     <!-- Section Check-up -->
     <section id="section-checkup" class="section" role="tabpanel" hidden>
-      <h2 class="section-title">✅ Check-up Rapide</h2>
+      <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Check-up Rapide</h2>
       <div id="checkup-content"></div>
     </section>
 
     <!-- Section Journal / Notes -->
     <section id="section-journal" class="section" role="tabpanel" hidden>
       <div class="journal-header">
-        <h2 class="section-title">📝 Journal / Notes</h2>
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Journal / Notes</h2>
         <div class="table-controls">
           <div class="table-control">
             <label for="journal-cat-filter">Catégorie</label>
@@ -535,67 +701,85 @@
       </div>
       <div id="journal-cards" class="journal-cards"></div>
       <div id="journal-empty" class="empty-state-illustrated" hidden>
-        <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-size="40">📝</text></svg>
+        <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><g transform="translate(36,36)" stroke="var(--border)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></g></svg>
         <p>Aucune note enregistrée</p>
       </div>
     </section>
 
     <!-- Section Alertes -->
     <section id="section-alertes" class="section" role="tabpanel" hidden>
-      <div class="alert-banner alert-info" role="status">
-        <span aria-hidden="true">💡</span>
-        Activez les rappels pour ne manquer aucun soin important.
-      </div>
-      <div class="notif-card">
-        <h2 class="section-title">🔔 Préférences de Notification</h2>
-        <div class="notif-list" id="notif-list"></div>
-      </div>
-      <div class="data-table">
-        <div class="table-header">
-          <div class="table-header-left">
-            <h2 class="section-title">Agenda des rappels</h2>
-            <div class="table-controls" role="group" aria-label="Période agenda">
-              <div class="table-control">
-                <label for="alerts-range">Période</label>
-                <select id="alerts-range" class="table-select">
-                  <option value="30">30 jours</option>
-                  <option value="60" selected>60 jours</option>
-                  <option value="90">90 jours</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <button type="button" class="btn-icon" id="btn-export-ics">Calendrier (.ics)</button>
+      <!-- Reminder header (Pawly) -->
+      <div class="reminder-header">
+        <div class="reminder-header__top">
+          <h2 class="section-title">Rappels</h2>
+          <button type="button" class="action-pill action-pill--primary" id="btn-export-ics">Exporter .ics</button>
         </div>
-        <div id="upcoming-alerts" class="upcoming-alerts-body"></div>
+        <!-- Category filter pills -->
+        <div class="reminder-categories" id="reminder-categories">
+          <button type="button" class="reminder-cat active" data-cat="all">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Tous
+          </button>
+          <button type="button" class="reminder-cat" data-cat="vaccin">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg></span> Vaccins
+          </button>
+          <button type="button" class="reminder-cat" data-cat="deworming">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg></span> Déparas.
+          </button>
+          <button type="button" class="reminder-cat" data-cat="hygiene">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg></span> Hygiène
+          </button>
+          <button type="button" class="reminder-cat" data-cat="heat">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></span> Chaleurs
+          </button>
+        </div>
+        <!-- Period selector -->
+        <div class="reminder-period-pills">
+          <button type="button" class="reminder-period active" data-range="30">30 jours</button>
+          <button type="button" class="reminder-period" data-range="60">60 jours</button>
+          <button type="button" class="reminder-period" data-range="90">90 jours</button>
+        </div>
+        <!-- Hidden select for compatibility -->
+        <select id="alerts-range" class="table-select" hidden>
+          <option value="30" selected>30 jours</option>
+          <option value="60">60 jours</option>
+          <option value="90">90 jours</option>
+        </select>
+      </div>
+
+      <!-- Reminder cards list -->
+      <div id="upcoming-alerts" class="reminder-cards-list"></div>
+
+      <!-- Notification preferences -->
+      <div class="notif-card">
+        <h2 class="section-title">Préférences de Notification</h2>
+        <div class="notif-list" id="notif-list"></div>
       </div>
     </section>
 
     <!-- Section Annuaire -->
     <section id="section-annuaire" class="section" role="tabpanel" hidden>
-      <div class="data-table">
-        <div class="table-header">
-          <div class="table-header-left">
-            <h2 class="section-title">📞 Annuaire Vétérinaires</h2>
-            <div class="table-controls">
-              <div class="table-control">
-                <label for="vet-search">Recherche</label>
-                <input id="vet-search" class="table-input" type="search" placeholder="nom, clinique...">
-              </div>
-              <div class="table-control">
-                <button type="button" class="btn-icon" id="btn-geolocate-vets">📍 Trouver à proximité</button>
-                <span id="geo-status" class="table-muted" style="display:inline;font-size:0.8rem;margin-left:6px"></span>
-              </div>
-            </div>
-          </div>
+      <div class="annuaire-header">
+        <div class="annuaire-header__top">
+          <h2 class="section-title">Annuaire Vétérinaires</h2>
           <button type="button" class="btn-icon" onclick="app.openModal('addVetContact')">+ Ajouter</button>
         </div>
-        <div id="vet-nearby-results" hidden>
-          <h3 class="section-title" style="margin-top:16px">📍 Cliniques à proximité <small class="table-muted" id="geo-radius-info"></small></h3>
-          <div id="vet-nearby-list"></div>
+        <div class="annuaire-search-row">
+          <div class="annuaire-search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="vet-search" class="annuaire-search__input" type="search" placeholder="Rechercher un vétérinaire...">
+          </div>
+          <button type="button" class="action-pill" id="btn-geolocate-vets">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            À proximité
+          </button>
+          <span id="geo-status" class="table-muted" style="font-size:0.8rem" role="status" aria-live="polite"></span>
         </div>
-        <div id="vet-directory-content"></div>
       </div>
+      <div id="vet-nearby-results" hidden>
+        <h3 class="section-title" style="margin-top:16px">Cliniques à proximité <small class="table-muted" id="geo-radius-info"></small></h3>
+        <div id="vet-nearby-list"></div>
+      </div>
+      <div id="vet-directory-content"></div>
     </section>
 
     <!-- Section Calendrier -->
@@ -622,7 +806,7 @@
 
     <!-- Section Historique -->
     <section id="section-historique" class="section" role="tabpanel" hidden>
-      <h2 class="section-title">📋 Historique Complet</h2>
+      <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Historique Complet</h2>
       <div class="table-controls" role="group" aria-label="Filtres historique">
         <div class="table-control">
           <label for="history-type-filter">Type</label>
@@ -644,23 +828,24 @@
       <div class="timeline" id="history-timeline"></div>
     </section>
     </div>
+    </div>
   </main>
 
   <!-- Toast container -->
-  <div id="toast-container" class="toast-container"></div>
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
   <!-- FAB (Floating Action Button) -->
   <div class="fab-container" id="fab-container" hidden>
     <div class="fab-menu" id="fab-menu" hidden>
-      <button type="button" class="fab-action" data-fab="vaccin" title="Vaccin">💉</button>
-      <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage">💊</button>
-      <button type="button" class="fab-action" data-fab="hygiene" title="Hygiène">🧼</button>
-      <button type="button" class="fab-action" data-fab="meal" title="Repas">🍽️</button>
-      <button type="button" class="fab-action" data-fab="activity" title="Activité">🏃</button>
-      <button type="button" class="fab-action" data-fab="photo" title="Photo">📷</button>
-      <button type="button" class="fab-action" data-fab="weight" title="Pesée">⚖️</button>
-      <button type="button" class="fab-action" data-fab="consult" title="Consultation">🩺</button>
-      <button type="button" class="fab-action" data-fab="note" title="Note">📝</button>
+      <button type="button" class="fab-action" data-fab="vaccin" title="Vaccin"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg></button>
+      <button type="button" class="fab-action" data-fab="deworming" title="Déparasitage"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg></button>
+      <button type="button" class="fab-action" data-fab="hygiene" title="Hygiène"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg></button>
+      <button type="button" class="fab-action" data-fab="meal" title="Repas"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></button>
+      <button type="button" class="fab-action" data-fab="activity" title="Activité"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+      <button type="button" class="fab-action" data-fab="photo" title="Photo"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      <button type="button" class="fab-action" data-fab="weight" title="Pesée"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3L8 3"/><path d="M12 3v18"/><path d="M19 7l-3.5 9h-1L19 7z"/><path d="M5 7l3.5 9h1L5 7z"/><circle cx="12" cy="21" r="1"/></svg></button>
+      <button type="button" class="fab-action" data-fab="consult" title="Consultation"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg></button>
+      <button type="button" class="fab-action" data-fab="note" title="Note"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></button>
     </div>
     <button type="button" class="fab-btn" id="fab-btn" aria-label="Actions rapides">+</button>
   </div>
@@ -668,10 +853,10 @@
   <!-- Modals -->
   <div class="modal-overlay" id="modal-editAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-editAnimal-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editAnimal-title">✏️ Modifier la Fiche Animal</h2>
+      <h2 class="modal-title" id="modal-editAnimal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier la Fiche Animal</h2>
       <div class="avatar-preview-area">
-        <div class="avatar-preview" id="edit-avatar-preview">🐕</div>
-        <button type="button" class="btn-icon" id="btn-avatar-upload">📷 Changer la photo</button>
+        <div class="avatar-preview" id="edit-avatar-preview"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></div>
+        <button type="button" class="btn-icon" id="btn-avatar-upload"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Changer la photo</button>
         <input type="file" id="avatar-input" accept="image/*" hidden>
       </div>
       <form id="form-edit-animal" class="modal-form">
@@ -687,6 +872,7 @@
           <div class="form-group"><label class="form-label" for="ea-dob">Date de naissance</label><input class="form-input" id="ea-dob" type="date"></div>
           <div class="form-group"><label class="form-label" for="ea-weight">Poids (kg)</label><input class="form-input" id="ea-weight" type="number" step="0.1" min="0"></div>
         </div>
+        <div class="form-group"><label class="form-label" for="ea-height">Taille au garrot (cm)</label><input class="form-input" id="ea-height" type="number" step="0.1" min="0" placeholder="ex: 40"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ea-color">Couleur</label><input class="form-input" id="ea-color" placeholder="ex: Blanc"></div>
           <div class="form-group"><label class="form-label" for="ea-chip">Microchip</label><input class="form-input" id="ea-chip" placeholder="Numéro de puce"></div>
@@ -698,7 +884,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="ea-themeColor">Couleur du carnet</label>
-            <input class="form-input" id="ea-themeColor" type="color" value="#0f766e">
+            <input class="form-input" id="ea-themeColor" type="color" value="#4F46E5">
           </div>
         </div>
         <div class="form-group">
@@ -715,7 +901,7 @@
 
   <div class="modal-overlay" id="modal-editOwner" aria-hidden="true" role="dialog" aria-labelledby="modal-editOwner-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editOwner-title">👤 Modifier le Propriétaire</h2>
+      <h2 class="modal-title" id="modal-editOwner-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg> Modifier le Propriétaire</h2>
       <form id="form-edit-owner" class="modal-form">
         <div class="form-group"><label class="form-label" for="eo-name">Nom complet</label><input class="form-input" id="eo-name"></div>
         <div class="form-row">
@@ -734,7 +920,7 @@
 
   <div class="modal-overlay" id="modal-addVaccin" aria-hidden="true" role="dialog" aria-labelledby="modal-addVaccin-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addVaccin-title">💉 Ajouter un Vaccin</h2>
+      <h2 class="modal-title" id="modal-addVaccin-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg> Ajouter un Vaccin</h2>
       <form id="form-add-vaccin" class="modal-form">
         <div class="form-group"><label class="form-label" for="v-name">Nom du vaccin</label><input class="form-input" id="v-name" placeholder="ex: Nobivac Rabies" required list="vaccine-suggestions"></div>
         <div class="form-row">
@@ -763,7 +949,7 @@
 
   <div class="modal-overlay" id="modal-addDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-addDeworming-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addDeworming-title">💊 Ajouter un Déparasitage</h2>
+      <h2 class="modal-title" id="modal-addDeworming-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Ajouter un Déparasitage</h2>
       <form id="form-add-deworming" class="modal-form">
         <div class="form-group"><label class="form-label" for="d-name">Traitement</label><input class="form-input" id="d-name" placeholder="ex: Milpro 1cp" required></div>
         <div class="form-row">
@@ -789,7 +975,7 @@
 
   <div class="modal-overlay" id="modal-addWeight" aria-hidden="true" role="dialog" aria-labelledby="modal-addWeight-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addWeight-title">⚖️ Ajouter une pesée</h2>
+      <h2 class="modal-title" id="modal-addWeight-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3L8 3"/><path d="M12 3v18"/><path d="M19 7l-3.5 9h-1L19 7z"/><path d="M5 7l3.5 9h1L5 7z"/><circle cx="12" cy="21" r="1"/></svg> Ajouter une pesée</h2>
       <form id="form-add-weight" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="wh-date">Date</label><input class="form-input" id="wh-date" type="date" required></div>
@@ -805,7 +991,7 @@
 
   <div class="modal-overlay" id="modal-editVaccin" aria-hidden="true" role="dialog" aria-labelledby="modal-editVaccin-title">
     <div class="modal" role="document" aria-modal="true">
-      <h2 class="modal-title" id="modal-editVaccin-title">💉 Modifier un vaccin</h2>
+      <h2 class="modal-title" id="modal-editVaccin-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg> Modifier un vaccin</h2>
       <form id="form-edit-vaccin" class="modal-form">
         <input type="hidden" id="ev-id">
         <div class="form-group"><label class="form-label" for="ev-name">Nom du vaccin</label><input class="form-input" id="ev-name" placeholder="ex: Nobivac Rabies" required list="vaccine-suggestions"></div>
@@ -825,7 +1011,7 @@
 
   <div class="modal-overlay" id="modal-editDeworming" aria-hidden="true" role="dialog" aria-labelledby="modal-editDeworming-title">
     <div class="modal" role="document" aria-modal="true">
-      <h2 class="modal-title" id="modal-editDeworming-title">💊 Modifier un déparasitage</h2>
+      <h2 class="modal-title" id="modal-editDeworming-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Modifier un déparasitage</h2>
       <form id="form-edit-deworming" class="modal-form">
         <input type="hidden" id="ed-id">
         <div class="form-group"><label class="form-label" for="ed-name">Traitement</label><input class="form-input" id="ed-name" placeholder="ex: Milpro 1cp" required></div>
@@ -845,7 +1031,7 @@
 
   <div class="modal-overlay" id="modal-editWeight" aria-hidden="true" role="dialog" aria-labelledby="modal-editWeight-title">
     <div class="modal" role="document" aria-modal="true">
-      <h2 class="modal-title" id="modal-editWeight-title">⚖️ Modifier une pesée</h2>
+      <h2 class="modal-title" id="modal-editWeight-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3L8 3"/><path d="M12 3v18"/><path d="M19 7l-3.5 9h-1L19 7z"/><path d="M5 7l3.5 9h1L5 7z"/><circle cx="12" cy="21" r="1"/></svg> Modifier une pesée</h2>
       <form id="form-edit-weight" class="modal-form">
         <input type="hidden" id="ew-id">
         <div class="form-row">
@@ -863,7 +1049,7 @@
   <!-- Consultation modal -->
   <div class="modal-overlay" id="modal-addConsult" aria-hidden="true" role="dialog" aria-labelledby="modal-addConsult-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addConsult-title">🩺 Ajouter une Consultation</h2>
+      <h2 class="modal-title" id="modal-addConsult-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg> Ajouter une Consultation</h2>
       <form id="form-add-consult" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="c-date">Date</label><input class="form-input" id="c-date" type="date" required></div>
@@ -886,7 +1072,7 @@
 
   <div class="modal-overlay" id="modal-editConsult" aria-hidden="true" role="dialog" aria-labelledby="modal-editConsult-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editConsult-title">🩺 Modifier une Consultation</h2>
+      <h2 class="modal-title" id="modal-editConsult-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg> Modifier une Consultation</h2>
       <form id="form-edit-consult" class="modal-form">
         <input type="hidden" id="ec-id">
         <div class="form-row">
@@ -911,7 +1097,7 @@
   <!-- Medication modal -->
   <div class="modal-overlay" id="modal-addMedication" aria-hidden="true" role="dialog" aria-labelledby="modal-addMedication-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addMedication-title">💊 Ajouter un Médicament</h2>
+      <h2 class="modal-title" id="modal-addMedication-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Ajouter un Médicament</h2>
       <form id="form-add-medication" class="modal-form">
         <div class="form-group"><label class="form-label" for="m-name">Médicament</label><input class="form-input" id="m-name" required placeholder="Nom du médicament"></div>
         <div class="form-group"><label class="form-label" for="m-dosage">Posologie</label><input class="form-input" id="m-dosage" placeholder="ex: 1cp 2x/jour"></div>
@@ -931,7 +1117,7 @@
 
   <div class="modal-overlay" id="modal-editMedication" aria-hidden="true" role="dialog" aria-labelledby="modal-editMedication-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editMedication-title">💊 Modifier un Médicament</h2>
+      <h2 class="modal-title" id="modal-editMedication-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Modifier un Médicament</h2>
       <form id="form-edit-medication" class="modal-form">
         <input type="hidden" id="em-id">
         <div class="form-group"><label class="form-label" for="em-name">Médicament</label><input class="form-input" id="em-name" required></div>
@@ -953,7 +1139,7 @@
   <!-- Note / Journal modal -->
   <div class="modal-overlay" id="modal-addNote" aria-hidden="true" role="dialog" aria-labelledby="modal-addNote-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addNote-title">📝 Ajouter une Note</h2>
+      <h2 class="modal-title" id="modal-addNote-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Ajouter une Note</h2>
       <form id="form-add-note" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="n-date">Date</label><input class="form-input" id="n-date" type="date" required></div>
@@ -978,7 +1164,7 @@
 
   <div class="modal-overlay" id="modal-editNote" aria-hidden="true" role="dialog" aria-labelledby="modal-editNote-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editNote-title">📝 Modifier une Note</h2>
+      <h2 class="modal-title" id="modal-editNote-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Modifier une Note</h2>
       <form id="form-edit-note" class="modal-form">
         <input type="hidden" id="en-id">
         <div class="form-row">
@@ -1005,7 +1191,7 @@
   <!-- Photo caption modal -->
   <div class="modal-overlay" id="modal-editCaption" aria-hidden="true" role="dialog" aria-labelledby="modal-editCaption-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editCaption-title">📷 Légende de la photo</h2>
+      <h2 class="modal-title" id="modal-editCaption-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Légende de la photo</h2>
       <form id="form-edit-caption" class="modal-form">
         <input type="hidden" id="cap-photo-id">
         <div class="form-group"><label class="form-label" for="cap-text">Légende</label><input class="form-input" id="cap-text" placeholder="Ajouter une légende..."></div>
@@ -1017,10 +1203,54 @@
     </div>
   </div>
 
+  <!-- Confirmation de suppression (générique, remplace confirm() natif) -->
+  <div class="modal-overlay" id="modal-confirmDelete" aria-hidden="true" role="alertdialog" aria-labelledby="modal-confirmDelete-title" aria-describedby="confirm-delete-message">
+    <div class="modal modal--confirm" role="document">
+      <h2 class="modal-title" id="modal-confirmDelete-title">Confirmer la suppression</h2>
+      <p id="confirm-delete-message" class="confirm-delete-message"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" data-close="confirmDelete">Annuler</button>
+        <button type="button" class="btn-danger" id="confirm-delete-btn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suppression d'un animal : demande le motif pour adapter le ton -->
+  <div class="modal-overlay" id="modal-deleteAnimal" aria-hidden="true" role="alertdialog" aria-labelledby="modal-deleteAnimal-title">
+    <div class="modal modal--confirm" role="document">
+      <h2 class="modal-title" id="modal-deleteAnimal-title">Supprimer <span id="delete-animal-name"></span> ?</h2>
+      <p class="confirm-delete-message">Cette action est irréversible, y compris l'album photo. Tu peux nous dire pourquoi (facultatif) :</p>
+      <form id="form-delete-animal-reason">
+        <div class="delete-reason-options" role="radiogroup" aria-label="Raison de la suppression">
+          <label class="delete-reason-option">
+            <input type="radio" name="delete-animal-reason" value="deceased">
+            <span>🕊️ Il/elle est décédé(e)</span>
+          </label>
+          <label class="delete-reason-option">
+            <input type="radio" name="delete-animal-reason" value="rehomed">
+            <span>🏡 Vendu(e) / adopté(e) par quelqu'un d'autre</span>
+          </label>
+          <label class="delete-reason-option">
+            <input type="radio" name="delete-animal-reason" value="other">
+            <span>Autre raison</span>
+          </label>
+          <label class="delete-reason-option">
+            <input type="radio" name="delete-animal-reason" value="" checked>
+            <span>Je préfère ne pas préciser</span>
+          </label>
+        </div>
+      </form>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" data-close="deleteAnimal">Annuler</button>
+        <button type="button" class="btn-danger" id="confirm-delete-animal-btn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Hygiene modals -->
   <div class="modal-overlay" id="modal-addHygiene" aria-hidden="true" role="dialog" aria-labelledby="modal-addHygiene-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addHygiene-title">🧼 Ajouter un Soin d'Hygiène</h2>
+      <h2 class="modal-title" id="modal-addHygiene-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg> Ajouter un Soin d'Hygiène</h2>
       <form id="form-add-hygiene" class="modal-form">
         <div class="form-group"><label class="form-label" for="hy-type">Type de soin</label>
           <select class="form-input" id="hy-type">
@@ -1051,7 +1281,7 @@
 
   <div class="modal-overlay" id="modal-editHygiene" aria-hidden="true" role="dialog" aria-labelledby="modal-editHygiene-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editHygiene-title">🧼 Modifier un Soin d'Hygiène</h2>
+      <h2 class="modal-title" id="modal-editHygiene-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg> Modifier un Soin d'Hygiène</h2>
       <form id="form-edit-hygiene" class="modal-form">
         <div class="form-group"><label class="form-label" for="ehy-type">Type de soin</label>
           <select class="form-input" id="ehy-type">
@@ -1077,7 +1307,7 @@
   <!-- Heat cycle modals -->
   <div class="modal-overlay" id="modal-addHeatCycle" aria-hidden="true" role="dialog" aria-labelledby="modal-addHeatCycle-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addHeatCycle-title">🌡️ Ajouter une Période de Chaleur</h2>
+      <h2 class="modal-title" id="modal-addHeatCycle-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Ajouter une Période de Chaleur</h2>
       <form id="form-add-heat-cycle" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="hc-start">Date début</label><input class="form-input" id="hc-start" type="date" required></div>
@@ -1097,7 +1327,7 @@
 
   <div class="modal-overlay" id="modal-editHeatCycle" aria-hidden="true" role="dialog" aria-labelledby="modal-editHeatCycle-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editHeatCycle-title">🌡️ Modifier une Période de Chaleur</h2>
+      <h2 class="modal-title" id="modal-editHeatCycle-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Modifier une Période de Chaleur</h2>
       <form id="form-edit-heat-cycle" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ehc-start">Date début</label><input class="form-input" id="ehc-start" type="date" required></div>
@@ -1118,7 +1348,7 @@
   <!-- Activity modals -->
   <div class="modal-overlay" id="modal-addActivity" aria-hidden="true" role="dialog" aria-labelledby="modal-addActivity-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addActivity-title">🏃 Ajouter une Activité</h2>
+      <h2 class="modal-title" id="modal-addActivity-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Ajouter une Activité</h2>
       <form id="form-add-activity" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="act-date">Date</label><input class="form-input" id="act-date" type="date" required></div>
@@ -1144,7 +1374,7 @@
 
   <div class="modal-overlay" id="modal-editActivity" aria-hidden="true" role="dialog" aria-labelledby="modal-editActivity-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editActivity-title">🏃 Modifier une Activité</h2>
+      <h2 class="modal-title" id="modal-editActivity-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Modifier une Activité</h2>
       <form id="form-edit-activity" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="eact-date">Date</label><input class="form-input" id="eact-date" type="date" required></div>
@@ -1171,7 +1401,7 @@
   <!-- Meal modals -->
   <div class="modal-overlay" id="modal-addMeal" aria-hidden="true" role="dialog" aria-labelledby="modal-addMeal-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addMeal-title">🍽️ Ajouter un Repas</h2>
+      <h2 class="modal-title" id="modal-addMeal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg> Ajouter un Repas</h2>
       <form id="form-add-meal" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="meal-date">Date</label><input class="form-input" id="meal-date" type="date" required></div>
@@ -1201,7 +1431,7 @@
 
   <div class="modal-overlay" id="modal-editMeal" aria-hidden="true" role="dialog" aria-labelledby="modal-editMeal-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editMeal-title">🍽️ Modifier un Repas</h2>
+      <h2 class="modal-title" id="modal-editMeal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg> Modifier un Repas</h2>
       <form id="form-edit-meal" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="emeal-date">Date</label><input class="form-input" id="emeal-date" type="date" required></div>
@@ -1232,7 +1462,7 @@
   <!-- Nutrition plan modal -->
   <div class="modal-overlay" id="modal-editNutritionPlan" aria-hidden="true" role="dialog" aria-labelledby="modal-editNutritionPlan-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editNutritionPlan-title">📋 Plan Nutritionnel</h2>
+      <h2 class="modal-title" id="modal-editNutritionPlan-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Plan Nutritionnel</h2>
       <form id="form-edit-nutrition-plan" class="modal-form">
         <div class="form-group"><label class="form-label" for="np-food-brand">Marque d'aliment</label><input class="form-input" id="np-food-brand" placeholder="ex: Royal Canin"></div>
         <div class="form-group"><label class="form-label" for="np-portion">Taille de portion</label><input class="form-input" id="np-portion" placeholder="ex: 200g 2x/jour"></div>
@@ -1251,7 +1481,7 @@
   <!-- Pedigree modal -->
   <div class="modal-overlay" id="modal-editPedigree" aria-hidden="true" role="dialog" aria-labelledby="modal-editPedigree-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editPedigree-title">🏆 Modifier le Pedigree</h2>
+      <h2 class="modal-title" id="modal-editPedigree-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> Modifier le Pedigree</h2>
       <form id="form-edit-pedigree" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-registry">Registre</label>
@@ -1260,11 +1490,11 @@
           <div class="form-group"><label class="form-label" for="ped-reg-number">N° Registre</label><input class="form-input" id="ped-reg-number" placeholder="N° d'inscription"></div>
         </div>
         <div class="form-group" id="lof-verify-group" hidden>
-          <button type="button" class="btn-icon" id="btn-verify-lof">🔍 Vérifier le numéro</button>
+          <button type="button" class="btn-icon" id="btn-verify-lof"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Vérifier le numéro</button>
           <div id="lof-verify-result" class="lof-verify-result"></div>
         </div>
         <div class="form-group lof-disclaimer" id="lof-disclaimer" hidden>
-          <p class="table-muted"><small>⚠️ Simulation : la vérification réelle nécessite un partenariat officiel avec la SCC (LOF) ou le ministère (LOMAD). Cette fonctionnalité valide uniquement le format du numéro.</small></p>
+          <p class="table-muted"><small><svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Simulation : la vérification réelle nécessite un partenariat officiel avec la SCC (LOF) ou le ministère (LOMAD). Cette fonctionnalité valide uniquement le format du numéro.</small></p>
         </div>
         <div class="form-group"><label class="form-label" for="ped-chip">N° Puce</label><input class="form-input" id="ped-chip" placeholder="N° de puce électronique"></div>
         <h3 style="margin:12px 0 8px;font-size:0.95rem">♂ Père</h3>
@@ -1297,7 +1527,7 @@
   <!-- Vet contact modals -->
   <div class="modal-overlay" id="modal-addVetContact" aria-hidden="true" role="dialog" aria-labelledby="modal-addVetContact-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addVetContact-title">📞 Ajouter un Contact</h2>
+      <h2 class="modal-title" id="modal-addVetContact-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg> Ajouter un Contact</h2>
       <form id="form-add-vet-contact" class="modal-form">
         <div class="form-group"><label class="form-label" for="vc-name">Nom</label><input class="form-input" id="vc-name" required placeholder="Nom du vétérinaire"></div>
         <div class="form-group"><label class="form-label" for="vc-clinic">Clinique</label><input class="form-input" id="vc-clinic" placeholder="Nom de la clinique"></div>
@@ -1310,7 +1540,7 @@
           <div class="form-group"><label class="form-label" for="vc-lat">Latitude</label><input class="form-input" id="vc-lat" type="number" step="any" placeholder="ex: 48.8566"></div>
           <div class="form-group"><label class="form-label" for="vc-lng">Longitude</label><input class="form-input" id="vc-lng" type="number" step="any" placeholder="ex: 2.3522"></div>
         </div>
-        <button type="button" class="btn-icon" id="btn-geocode-vc" style="margin-bottom:12px">📍 Utiliser ma position</button>
+        <button type="button" class="btn-icon" id="btn-geocode-vc" style="margin-bottom:12px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> Utiliser ma position</button>
         <div class="form-group"><label class="form-label" for="vc-hours">Horaires</label><input class="form-input" id="vc-hours" placeholder="ex: Lun-Ven 9h-18h"></div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="vc-emergency" style="width:auto">
@@ -1327,7 +1557,7 @@
 
   <div class="modal-overlay" id="modal-editVetContact" aria-hidden="true" role="dialog" aria-labelledby="modal-editVetContact-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-editVetContact-title">📞 Modifier un Contact</h2>
+      <h2 class="modal-title" id="modal-editVetContact-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg> Modifier un Contact</h2>
       <form id="form-edit-vet-contact" class="modal-form">
         <div class="form-group"><label class="form-label" for="evc-name">Nom</label><input class="form-input" id="evc-name" required></div>
         <div class="form-group"><label class="form-label" for="evc-clinic">Clinique</label><input class="form-input" id="evc-clinic"></div>
@@ -1340,7 +1570,7 @@
           <div class="form-group"><label class="form-label" for="evc-lat">Latitude</label><input class="form-input" id="evc-lat" type="number" step="any" placeholder="ex: 48.8566"></div>
           <div class="form-group"><label class="form-label" for="evc-lng">Longitude</label><input class="form-input" id="evc-lng" type="number" step="any" placeholder="ex: 2.3522"></div>
         </div>
-        <button type="button" class="btn-icon" id="btn-geocode-evc" style="margin-bottom:12px">📍 Utiliser ma position</button>
+        <button type="button" class="btn-icon" id="btn-geocode-evc" style="margin-bottom:12px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> Utiliser ma position</button>
         <div class="form-group"><label class="form-label" for="evc-hours">Horaires</label><input class="form-input" id="evc-hours"></div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="evc-emergency" style="width:auto">
@@ -1378,7 +1608,7 @@
 
   <div class="modal-overlay" id="modal-addAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-addAnimal-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addAnimal-title">🐾 Ajouter un Animal</h2>
+      <h2 class="modal-title" id="modal-addAnimal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg> Ajouter un Animal</h2>
       <form id="form-add-animal" class="modal-form">
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="aa-name">Nom</label><input class="form-input" id="aa-name" placeholder="Nom" required></div>
@@ -1402,34 +1632,61 @@
 
   <!-- Onboarding wizard -->
   <div class="modal-overlay" id="modal-onboarding" aria-hidden="true" role="dialog" aria-labelledby="modal-onboarding-title">
-    <div class="modal modal-onboarding" role="document">
+    <div class="modal modal-onboarding onboarding-pawly" role="document">
+      <!-- Step 1: Welcome splash -->
       <div id="onboarding-step-1" class="onboarding-step">
-        <h2 class="modal-title" id="modal-onboarding-title">🐾 Bienvenue sur VetBook !</h2>
-        <p>VetBook est votre carnet de santé animal numérique. Suivez les vaccins, déparasitages, consultations et bien plus pour tous vos compagnons.</p>
-        <div class="modal-actions">
-          <button type="button" class="btn-primary" id="onboarding-next-1">Commencer →</button>
+        <div class="onboarding-splash">
+          <div class="onboarding-splash__icon"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></div>
+          <h2 class="onboarding-splash__title" id="modal-onboarding-title">Bienvenue sur VetBook</h2>
+          <p class="onboarding-splash__desc">Le carnet de santé numérique pour vos compagnons. Suivez vaccins, soins, consultations et bien plus.</p>
+          <div class="onboarding-dots">
+            <span class="onboarding-dot active"></span>
+            <span class="onboarding-dot"></span>
+            <span class="onboarding-dot"></span>
+          </div>
+        </div>
+        <div class="onboarding-actions">
+          <button type="button" class="btn-primary onboarding-btn" id="onboarding-next-1">Commencer</button>
         </div>
       </div>
+      <!-- Step 2: Add pet -->
       <div id="onboarding-step-2" class="onboarding-step" hidden>
-        <h2 class="modal-title">🐾 Ajoutez votre premier animal</h2>
-        <form id="form-onboarding-animal" class="modal-form">
+        <div class="onboarding-splash">
+          <div class="onboarding-splash__icon"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></div>
+          <h2 class="onboarding-splash__title">Ajoutez votre premier animal</h2>
+          <div class="onboarding-dots">
+            <span class="onboarding-dot"></span>
+            <span class="onboarding-dot active"></span>
+            <span class="onboarding-dot"></span>
+          </div>
+        </div>
+        <form id="form-onboarding-animal" class="modal-form onboarding-form">
           <div class="form-group"><label class="form-label" for="ob-name">Nom</label><input class="form-input" id="ob-name" required placeholder="Nom de votre animal"></div>
           <div class="form-row">
             <div class="form-group"><label class="form-label" for="ob-species">Espèce</label><select class="form-input" id="ob-species"><option value="Canine">Canine</option><option value="Féline">Féline</option><option value="Autre">Autre</option></select></div>
             <div class="form-group"><label class="form-label" for="ob-dob">Date de naissance</label><input class="form-input" id="ob-dob" type="date"></div>
           </div>
-          <div class="modal-actions">
-            <button type="button" class="btn-cancel" id="onboarding-back-2">← Retour</button>
-            <button type="submit" class="btn-primary">Suivant →</button>
+          <div class="onboarding-actions">
+            <button type="button" class="btn-cancel onboarding-btn--ghost" id="onboarding-back-2">Retour</button>
+            <button type="submit" class="btn-primary onboarding-btn">Suivant</button>
           </div>
         </form>
       </div>
+      <!-- Step 3: Notifications -->
       <div id="onboarding-step-3" class="onboarding-step" hidden>
-        <h2 class="modal-title">🔔 Notifications</h2>
-        <p>VetBook peut vous envoyer des rappels pour les vaccins et déparasitages de vos animaux.</p>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" id="onboarding-skip">Ignorer</button>
-          <button type="button" class="btn-primary" id="onboarding-enable-notif">Activer les notifications</button>
+        <div class="onboarding-splash">
+          <div class="onboarding-splash__icon"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <h2 class="onboarding-splash__title">Activez les notifications</h2>
+          <p class="onboarding-splash__desc">Recevez des rappels pour ne manquer aucun vaccin ou soin important de vos compagnons.</p>
+          <div class="onboarding-dots">
+            <span class="onboarding-dot"></span>
+            <span class="onboarding-dot"></span>
+            <span class="onboarding-dot active"></span>
+          </div>
+        </div>
+        <div class="onboarding-actions">
+          <button type="button" class="btn-cancel onboarding-btn--ghost" id="onboarding-skip">Ignorer</button>
+          <button type="button" class="btn-primary onboarding-btn" id="onboarding-enable-notif">Activer</button>
         </div>
       </div>
     </div>
@@ -1445,7 +1702,150 @@
   <!-- Vaccine suggestions datalist -->
   <datalist id="vaccine-suggestions"></datalist>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <!-- Bottom Navigation Bar (maquette Pet Profile) -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button type="button" class="bottom-nav__item active" data-nav="home" aria-label="Accueil">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="bottom-nav__label">Accueil</span>
+    </button>
+    <button type="button" class="bottom-nav__item" data-nav="pets" aria-label="Profil animal">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
+      <span class="bottom-nav__label">Profil</span>
+    </button>
+    <button type="button" class="bottom-nav__item" data-nav="nutrition" aria-label="Nutrition">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11h16v2a6 6 0 01-6 6h-4a6 6 0 01-6-6v-2z"/><path d="M8 11V7a2 2 0 012-2h0a2 2 0 012 2v4"/><path d="M14 11V8a1.5 1.5 0 013 0v3"/></svg>
+      <span class="bottom-nav__label">Nutrition</span>
+    </button>
+    <button type="button" class="bottom-nav__item" data-nav="medical" aria-label="Santé">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h2v4a4 4 0 004 4h0a4 4 0 004-4V4h2"/><path d="M12 12v8"/><circle cx="12" cy="20" r="1"/><path d="M8 4V2"/><path d="M16 4V2"/></svg>
+      <span class="bottom-nav__label">Santé</span>
+    </button>
+    <button type="button" class="bottom-nav__item" data-nav="calendar" aria-label="Agenda">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="bottom-nav__label">Agenda</span>
+    </button>
+  </nav>
+
+  <!-- Vue Profil Utilisateur -->
+  <div id="view-user-profile" class="view" hidden>
+    <div class="user-profile">
+      <div class="user-profile__header">
+        <div class="user-profile__avatar" id="user-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h2 class="user-profile__name" id="user-profile-name">Utilisateur</h2>
+        <p class="user-profile__email" id="user-profile-email">email@exemple.com</p>
+      </div>
+
+      <div class="user-profile__section" id="cloud-sync-section">
+        <h3 class="user-profile__section-title">Cloud &amp; synchronisation</h3>
+
+        <div id="cloud-sync-signedout">
+          <p class="user-profile__hint">Connecte-toi pour sauvegarder tes données dans le cloud et les retrouver sur un autre appareil.</p>
+          <div class="cloud-sync-form">
+            <input type="email" id="cloud-sync-email" class="form-input" placeholder="ton@email.com" autocomplete="email">
+            <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Recevoir un lien de connexion</button>
+          </div>
+          <p class="user-profile__hint" id="cloud-sync-signin-status" hidden></p>
+        </div>
+
+        <div id="cloud-sync-signedin" hidden>
+          <div class="user-profile__row">
+            <span class="user-profile__row-label">Connecté</span>
+            <span class="user-profile__row-value" id="cloud-sync-email-display"></span>
+          </div>
+          <div class="cloud-sync-actions">
+            <button type="button" class="action-pill action-pill--primary" id="btn-cloud-push">Sauvegarder dans le cloud</button>
+            <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le cloud</button>
+          </div>
+          <p class="user-profile__hint" id="cloud-sync-status" hidden></p>
+          <button type="button" class="user-profile__row" id="btn-cloud-signout">
+            <span class="user-profile__row-label">Se déconnecter</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="user-profile__section">
+        <h3 class="user-profile__section-title">Compte</h3>
+        <button type="button" class="user-profile__row" id="btn-user-edit-profile">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span class="user-profile__row-label">Modifier le profil</span>
+          <span class="user-profile__row-arrow">›</span>
+        </button>
+        <button type="button" class="user-profile__row" id="btn-user-favorites">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </span>
+          <span class="user-profile__row-label">Favoris</span>
+          <span class="user-profile__row-arrow">›</span>
+        </button>
+        <button type="button" class="user-profile__row" id="btn-user-backup">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </span>
+          <span class="user-profile__row-label">Sauvegarde / Import</span>
+          <span class="user-profile__row-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="user-profile__section">
+        <h3 class="user-profile__section-title">Paramètres</h3>
+        <button type="button" class="user-profile__row" id="btn-user-notifications">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          </span>
+          <span class="user-profile__row-label">Notifications</span>
+          <span class="user-profile__row-arrow">›</span>
+        </button>
+        <button type="button" class="user-profile__row" id="btn-user-language">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          </span>
+          <span class="user-profile__row-label">Langue</span>
+          <span class="user-profile__row-arrow">Français ›</span>
+        </button>
+        <div class="user-profile__row user-profile__row--toggle">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </span>
+          <span class="user-profile__row-label">Mode sombre</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="user-dark-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="user-profile__section">
+        <h3 class="user-profile__section-title">Support</h3>
+        <button type="button" class="user-profile__row" id="btn-user-help">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <span class="user-profile__row-label">Centre d'aide</span>
+          <span class="user-profile__row-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="user-profile__section">
+        <h3 class="user-profile__section-title">À propos</h3>
+        <div class="user-profile__row">
+          <span class="user-profile__row-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </span>
+          <span class="user-profile__row-label">Version de l'app</span>
+          <span class="user-profile__row-value">1.0.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
+  <script src="vendor/supabase.js"></script>
+  <script src="data-layer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
