@@ -475,24 +475,6 @@
     return state.animals.find(function (a) { return a.id === state.currentAnimalId; }) || state.animals[0];
   }
 
-  function getUpcomingCount(data) {
-    var today = new Date();
-    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    var v = (data.vaccines.filter(function (x) {
-      var dt = isoToLocalDate(x.next);
-      return x.next && dt && dt >= todayMid;
-    })).length;
-    var d = (data.dewormings.filter(function (x) {
-      var dt = isoToLocalDate(x.next);
-      return x.next && dt && dt >= todayMid;
-    })).length;
-    var h = ((data.hygiene || []).filter(function (x) {
-      var dt = isoToLocalDate(x.next);
-      return x.next && dt && dt >= todayMid;
-    })).length;
-    return v + d + h;
-  }
-
   // ——— Photos : IndexedDB ——————————————————————————————
   var PHOTO_DB_NAME = 'vetbook_photo_db_v1';
   var PHOTO_STORE_NAME = 'photos';
@@ -692,97 +674,58 @@
   }
 
   // ——— Dashboard ———————————————————————————————————————
-  function renderDashboard() {
-    var dashEl = document.getElementById('home-dashboard');
-    if (!dashEl) return;
-    if (state.animals.length === 0) { dashEl.hidden = true; return; }
-    dashEl.hidden = false;
-
-    var today = new Date();
-    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    var weekLater = new Date(todayMid);
-    weekLater.setDate(weekLater.getDate() + 7);
-
-    var overdueCount = 0;
-    var upcomingCount = 0;
-    var totalVaccines = 0;
-    var totalPhotos = 0;
-
-    state.animals.forEach(function (data) {
-      totalVaccines += data.vaccines.length;
-      totalPhotos += data.photos.length;
-      data.vaccines.forEach(function (v) {
-        if (!v.next) return;
-        var dt = isoToLocalDate(v.next);
-        if (!dt) return;
-        if (dt < todayMid) overdueCount++;
-        else if (dt <= weekLater) upcomingCount++;
-      });
-      data.dewormings.forEach(function (d) {
-        if (!d.next) return;
-        var dt = isoToLocalDate(d.next);
-        if (!dt) return;
-        if (dt < todayMid) overdueCount++;
-        else if (dt <= weekLater) upcomingCount++;
-      });
-      (data.hygiene || []).forEach(function (h) {
-        if (!h.next) return;
-        var dt = isoToLocalDate(h.next);
-        if (!dt) return;
-        if (dt < todayMid) overdueCount++;
-        else if (dt <= weekLater) upcomingCount++;
-      });
+  // ——— Home ————————————————————————————————————————————
+  // Statut santé agrégé d'un animal : proportion à jour / bientôt / en
+  // retard parmi ses vaccins, déparasitages et soins d'hygiène planifiés.
+  // Sert de base à l'anneau affiché sur sa carte d'accueil.
+  function computeHealthStatus(data) {
+    var items = [].concat(data.vaccines || [], data.dewormings || [], data.hygiene || []);
+    var trackable = items.filter(function (x) { return !!x.next; });
+    var overdue = 0, soon = 0;
+    trackable.forEach(function (x) {
+      var st = getStatus(x.next);
+      if (!st) return;
+      if (st.cls === 'status-overdue') overdue++;
+      else if (st.cls === 'status-soon') soon++;
     });
-
-    document.getElementById('dash-overdue-count').textContent = overdueCount;
-    document.getElementById('dash-upcoming-count').textContent = upcomingCount;
-    document.getElementById('dash-animals-count').textContent = state.animals.length;
-    document.getElementById('dash-vaccines-count').textContent = totalVaccines;
-    document.getElementById('dash-photos-count').textContent = totalPhotos;
+    return { total: trackable.length, overdue: overdue, soon: soon, ok: trackable.length - overdue - soon };
   }
 
-  // ——— Home ————————————————————————————————————————————
-  // ——— Pet avatars row (Pawly style) ————————————————————————
-  function renderPetsRow() {
-    var row = document.getElementById('home-pets-row');
-    if (!row) return;
-    if (state.animals.length === 0) { row.innerHTML = ''; return; }
+  // L'élément le plus urgent à afficher sous l'anneau : le plus en retard
+  // s'il y en a, sinon le plus proche à venir.
+  function getNextDueItem(data) {
+    var items = [].concat(
+      (data.vaccines || []).map(function (v) { return { name: v.name, next: v.next, kind: 'Vaccin' }; }),
+      (data.dewormings || []).map(function (d) { return { name: d.name, next: d.next, kind: 'Déparasitage' }; }),
+      (data.hygiene || []).map(function (h) { return { name: h.type, next: h.next, kind: 'Soin' }; })
+    ).filter(function (x) { return !!x.next; });
+    if (!items.length) return null;
+    items.sort(function (a, b) { return isoToLocalDate(a.next) - isoToLocalDate(b.next); });
+    var next = items[0];
+    var st = getStatus(next.next);
+    return { label: (next.name || next.kind), date: next.next, status: st };
+  }
 
-    row.innerHTML = state.animals.map(function (data) {
-      var a = data.animal;
-      var name = escapeHtml(a.name || 'Sans nom');
-      var isActive = data.id === state.currentAnimalId;
-      var avatarInner = a.avatar
-        ? (typeof a.avatar === 'number'
-            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
-            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
-        : (a.species === 'Féline' ? '🐱' : '🐕');
-      return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
-        '<div class="home-pet-bubble__avatar">' + avatarInner + '</div>' +
-        '<span class="home-pet-bubble__name">' + name + '</span>' +
-        '</div>';
-    }).join('') +
-    '<div class="home-pet-bubble" id="home-add-pet-bubble">' +
-      '<div class="home-pet-bubble__avatar" style="border-style:dashed;font-size:22px;color:var(--text-muted)">+</div>' +
-      '<span class="home-pet-bubble__name">Ajouter</span>' +
-    '</div>';
-
-    row.querySelectorAll('.home-pet-bubble[data-pet-id]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var id = parseInt(el.getAttribute('data-pet-id'), 10);
-        state.currentAnimalId = id;
-        saveState();
-        showDetail();
-      });
-    });
-
-    var addBubble = document.getElementById('home-add-pet-bubble');
-    if (addBubble) addBubble.addEventListener('click', function () { addAnimal(); });
-
-    row.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
-      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
-      if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
-    });
+  // Anneau de progression SVG : porte le statut de santé d'un animal
+  // (élément signature de l'accueil, pas décoratif — l'arc encode la
+  // proportion réellement à jour, sa couleur le pire statut présent).
+  function buildHealthRing(status) {
+    var r = 42, c = 2 * Math.PI * r;
+    if (status.total === 0) {
+      return '<svg class="pet-ring" viewBox="0 0 96 96" width="96" height="96">' +
+        '<circle class="pet-ring__track" cx="48" cy="48" r="' + r + '" stroke-dasharray="4 6"/>' +
+        '</svg>';
+    }
+    // L'arc grandit avec ce qui réclame de l'attention (pas l'inverse) :
+    // un animal entièrement à jour montre un anneau plein et rassurant,
+    // un animal entièrement en retard montre un anneau plein et alarmant.
+    var tone = status.overdue > 0 ? 'overdue' : (status.soon > 0 ? 'soon' : 'ok');
+    var ratio = tone === 'ok' ? 1 : (status.overdue + status.soon) / status.total;
+    var offset = c * (1 - ratio);
+    return '<svg class="pet-ring pet-ring--' + tone + '" viewBox="0 0 96 96" width="96" height="96">' +
+      '<circle class="pet-ring__track" cx="48" cy="48" r="' + r + '"/>' +
+      '<circle class="pet-ring__progress" cx="48" cy="48" r="' + r + '" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + offset.toFixed(2) + '"/>' +
+      '</svg>';
   }
 
   function renderDetailPetsRow() {
@@ -1127,13 +1070,16 @@
     var tipsScroll = document.getElementById('home-tips-scroll');
 
     if (vetsScroll) {
-      var vets = (state.animals.length > 0 && state.animals[0].vetContacts) ? state.animals[0].vetContacts.slice(0, 5) : [];
+      var vets = loadVetDirectory().entries.slice(0, 5);
       if (vets.length === 0) {
-        vetsScroll.innerHTML = ['Dr. Martin', 'Dr. Dupont', 'Dr. Leroy'].map(function (name) {
-          return '<div class="home-vet-card"><div class="home-vet-card__img">' + ico('hospital', 24) + '</div>' +
-            '<div class="home-vet-card__body"><div class="home-vet-card__name">' + name + '</div>' +
-            '<div class="home-vet-card__specialty">Vétérinaire généraliste</div></div></div>';
-        }).join('');
+        vetsScroll.innerHTML = '<button type="button" class="home-vet-card home-vet-card--empty" id="home-add-vet-cta">' +
+          '<div class="home-vet-card__img">' + ico('hospital', 24) + '</div>' +
+          '<div class="home-vet-card__body"><div class="home-vet-card__name">Ajoutez votre vétérinaire</div>' +
+          '<div class="home-vet-card__specialty">Coordonnées à portée de main en cas de besoin</div></div></button>';
+        var addVetBtn = document.getElementById('home-add-vet-cta');
+        if (addVetBtn) addVetBtn.addEventListener('click', function () {
+          if (state.animals.length > 0) showDetail({ tab: 'annuaire' });
+        });
       } else {
         vetsScroll.innerHTML = vets.map(function (v) {
           return '<div class="home-vet-card"><div class="home-vet-card__img">' + ico('hospital', 24) + '</div>' +
@@ -1144,15 +1090,9 @@
     }
 
     if (tipsScroll) {
-      var tips = [
-        { icon: ico('dog', 18), title: 'Les 8 meilleurs aliments pour votre chien' },
-        { icon: ico('utensils', 18), title: 'La bonne quantité de nourriture pour votre animal' },
-        { icon: ico('cat', 18), title: 'Les soins dentaires essentiels' },
-        { icon: ico('activity', 18), title: 'Combien d\'exercice pour votre compagnon ?' }
-      ];
-      tipsScroll.innerHTML = tips.map(function (tip) {
-        return '<div class="home-tip-card"><div class="home-tip-card__img">' + tip.icon + '</div>' +
-          '<div class="home-tip-card__body"><div class="home-tip-card__title">' + tip.title + '</div></div></div>';
+      tipsScroll.innerHTML = DEFAULT_TIPS.slice(0, 4).map(function (tip) {
+        return '<div class="home-tip-card"><div class="home-tip-card__img">' + ico('activity', 18) + '</div>' +
+          '<div class="home-tip-card__body"><div class="home-tip-card__title">' + escapeHtml(tip.title) + '</div></div></div>';
       }).join('');
     }
   }
@@ -1162,8 +1102,6 @@
     var emptyEl = document.getElementById('home-empty');
     if (!grid) return;
 
-    renderDashboard();
-    renderPetsRow();
     renderHomeReminders('all');
     renderHomeVetsAndTips();
 
@@ -1183,31 +1121,38 @@
             ? '<img src="" data-avatar-key="' + a.avatar + '" alt="" />'
             : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
         : (a.species === 'Féline' ? '🐱' : '🐕');
-      var upcoming = getUpcomingCount(data);
       var activeMeds = Array.isArray(data.medications) ? data.medications.filter(function (m) {
         return m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= new Date());
       }) : [];
       var medBadge = activeMeds.length ? '<div class="pet-card-med-badge">' + ico('pill', 14) + ' ' + activeMeds.length + ' en cours</div>' : '';
+
+      var health = computeHealthStatus(data);
+      var next = getNextDueItem(data);
+      var statusLine;
+      if (health.total === 0) {
+        statusLine = '<span class="pet-card-status pet-card-status--neutral">Ajoutez un vaccin pour suivre sa santé</span>';
+      } else if (health.overdue === 0 && health.soon === 0) {
+        statusLine = '<span class="pet-card-status pet-card-status--ok">' + ico('check', 14) + ' Tout est à jour</span>';
+      } else {
+        var toneClass = health.overdue > 0 ? 'pet-card-status--overdue' : 'pet-card-status--soon';
+        var label = next ? escapeHtml(next.label) + ' · ' + fmtDate(next.date) : (health.overdue + health.soon) + ' à faire';
+        statusLine = '<span class="pet-card-status ' + toneClass + '">' + ico('bell', 14) + ' ' + label + '</span>';
+      }
+
       return '<article class="pet-card" data-animal-id="' + data.id + '" style="animation-delay:' + (idx * 0.05) + 's">' +
-        medBadge +
         '<button type="button" class="pet-card-delete" data-delete-animal="' + data.id + '" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
         '<div class="pet-card-header">' +
-        '<div class="pet-card-avatar">' + avatarHtml + '</div>' +
+        '<div class="pet-card-ring-wrap">' + buildHealthRing(health) + '<div class="pet-card-avatar">' + avatarHtml + '</div></div>' +
         '<div class="pet-card-info">' +
-        '<div class="pet-card-name">' + name + '</div>' +
+        '<div class="pet-card-name">' + name + medBadge + '</div>' +
         '<div class="pet-card-meta">' + meta + '</div>' +
+        statusLine +
         '</div></div>' +
-        '<div class="pet-card-stats">' +
-        '<span>' + ico('vaccine', 14) + ' ' + data.vaccines.length + ' vaccin(s)</span>' +
-        '<span>' + ico('pill', 14) + ' ' + data.dewormings.length + ' déparas.</span>' +
-        '<span>' + ico('camera', 14) + ' ' + data.photos.length + ' photo(s)</span>' +
-        (upcoming ? '<span>' + ico('bell', 14) + ' ' + upcoming + ' rappel(s)</span>' : '') +
-        '</div>' +
         '<div class="pet-card-actions">' +
-        '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">' + ico('clipboard', 14) + ' Voir le carnet</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '">' + ico('vaccine', 14) + ' Vaccin</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '">' + ico('pill', 14) + ' Déparas.</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '">' + ico('camera', 14) + ' Photos</button>' +
+        '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">' + ico('clipboard', 16) + ' <span>Carnet</span></button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '" aria-label="Ajouter un vaccin" title="Ajouter un vaccin">' + ico('vaccine', 16) + '</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '" aria-label="Ajouter un déparasitage" title="Ajouter un déparasitage">' + ico('pill', 16) + '</button>' +
+        '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '" aria-label="Voir les photos" title="Voir les photos">' + ico('camera', 16) + '</button>' +
         '</div></article>';
     }).join('');
 
@@ -1217,6 +1162,17 @@
         e.stopPropagation();
         var id = parseInt(btn.getAttribute('data-delete-animal'), 10);
         deleteAnimal(id);
+      });
+    });
+
+    grid.querySelectorAll('.pet-card').forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('.btn-card, .pet-card-delete')) return;
+        var id = parseInt(card.getAttribute('data-animal-id'), 10);
+        if (!state.animals.some(function (x) { return x.id === id; })) return;
+        state.currentAnimalId = id;
+        saveState();
+        showDetail();
       });
     });
 

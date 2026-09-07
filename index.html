@@ -40,10 +40,11 @@
         </div>
       </header>
 
-      <!-- Pet Avatars Row (Pawly style) -->
-      <div id="home-pets-row" class="home-pets-row"></div>
+      <!-- Cartes santé : un anneau par animal, le point focal de l'accueil -->
+      <div id="home-pet-grid" class="home-pet-grid"></div>
+      <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
 
-      <!-- Quick Action Pills -->
+      <!-- Actions secondaires, discrètes -->
       <div class="home-action-pills" id="home-action-pills">
         <button type="button" class="action-pill action-pill--primary" id="pill-complete-profile">
           <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Complétez le profil
@@ -59,35 +60,6 @@
         </button>
       </div>
 
-      <!-- Dashboard summary -->
-      <div id="home-dashboard" class="home-dashboard" hidden>
-        <div class="dashboard-card dashboard-overdue" id="dash-overdue">
-          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-          <span class="dashboard-number" id="dash-overdue-count">0</span>
-          <span class="dashboard-label">En retard</span>
-        </div>
-        <div class="dashboard-card dashboard-upcoming" id="dash-upcoming">
-          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
-          <span class="dashboard-number" id="dash-upcoming-count">0</span>
-          <span class="dashboard-label">Rappels (7j)</span>
-        </div>
-        <div class="dashboard-card dashboard-animals">
-          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span>
-          <span class="dashboard-number" id="dash-animals-count">0</span>
-          <span class="dashboard-label">Animaux</span>
-        </div>
-        <div class="dashboard-card dashboard-vaccines">
-          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg></span>
-          <span class="dashboard-number" id="dash-vaccines-count">0</span>
-          <span class="dashboard-label">Vaccins</span>
-        </div>
-        <div class="dashboard-card dashboard-photos">
-          <span class="dashboard-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
-          <span class="dashboard-number" id="dash-photos-count">0</span>
-          <span class="dashboard-label">Photos</span>
-        </div>
-      </div>
-
       <!-- Today's Reminders (Pawly style) -->
       <div class="home-reminders" id="home-reminders">
         <div class="home-reminders__header">
@@ -101,9 +73,6 @@
         </div>
         <div id="home-reminders-list"></div>
       </div>
-
-      <div id="home-pet-grid" class="home-pet-grid"></div>
-      <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
 
       <!-- Recommended Vets -->
       <div class="home-section" id="home-vets-section">
