@@ -1,16 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect x="0" y="0" width="512" height="512" rx="115" fill="#4338CA"/>
-
-  <!-- Paw -->
-  <ellipse cx="256" cy="300" rx="95" ry="78" fill="#ffffff"/>
-  <ellipse cx="170" cy="190" rx="38" ry="50" transform="rotate(-18 170 190)" fill="#ffffff"/>
-  <ellipse cx="225" cy="148" rx="36" ry="48" transform="rotate(-6 225 148)" fill="#ffffff"/>
-  <ellipse cx="291" cy="148" rx="36" ry="48" transform="rotate(6 291 148)" fill="#ffffff"/>
-  <ellipse cx="346" cy="190" rx="38" ry="50" transform="rotate(18 346 190)" fill="#ffffff"/>
-
-  <!-- Health badge -->
-  <circle cx="356" cy="356" r="54" fill="#4338CA"/>
-  <circle cx="356" cy="356" r="46" fill="#f43f5e"/>
-  <rect x="350" y="330" width="12" height="52" rx="6" fill="#ffffff"/>
-  <rect x="330" y="350" width="52" height="12" rx="6" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="App'lika">
+  <rect width="512" height="512" rx="112" fill="#0B5450"/>
+  <!-- Patte -->
+  <ellipse cx="256" cy="292" rx="92" ry="76" fill="#fff"/>
+  <ellipse cx="168" cy="186" rx="36" ry="48" transform="rotate(-20 168 186)" fill="#fff"/>
+  <ellipse cx="224" cy="148" rx="34" ry="46" transform="rotate(-6 224 148)" fill="#fff"/>
+  <ellipse cx="288" cy="148" rx="34" ry="46" transform="rotate(6 288 148)" fill="#fff"/>
+  <ellipse cx="344" cy="186" rx="36" ry="48" transform="rotate(20 344 186)" fill="#fff"/>
+  <!-- Badge santé -->
+  <circle cx="368" cy="368" r="58" fill="#0B5450"/>
+  <circle cx="368" cy="368" r="48" fill="#B7433A"/>
+  <rect x="356" y="340" width="24" height="56" rx="8" fill="#fff"/>
+  <rect x="340" y="356" width="56" height="24" rx="8" fill="#fff"/>
 </svg>

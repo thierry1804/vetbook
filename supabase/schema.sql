@@ -1,4 +1,4 @@
--- VetBook — schéma cloud (Phase B)
+-- App'lika — schéma cloud (Phase B)
 -- À exécuter une fois dans Dashboard Supabase → SQL Editor → New query → Run.
 -- Idempotent : peut être relancé sans dupliquer (IF NOT EXISTS partout).
 
@@ -155,9 +155,16 @@ create table if not exists journal_notes (
   title text not null,
   content text,
   category text,
+  symptom_type text,
+  severity text,
   created_at timestamptz not null default now(),
   unique (pet_id, local_id)
 );
+
+-- Migration pour les installations existantes (create table if not exists
+-- ne modifie pas une table déjà créée) :
+alter table journal_notes add column if not exists symptom_type text;
+alter table journal_notes add column if not exists severity text;
 
 create table if not exists weight_history (
   id uuid primary key default gen_random_uuid(),

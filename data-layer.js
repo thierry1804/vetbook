@@ -1,5 +1,11 @@
 /**
- * VetBook — couche de synchronisation cloud (Supabase), Phase B.
+ * App'lika — couche de synchronisation cloud (API maison + Neon), Phase B.
+ *
+ * Remplace l'ancienne intégration Supabase (supabase-js) par des appels
+ * fetch vers la petite API serverless du projet (api/*.js) : la logique
+ * de mapping champs locaux <-> colonnes cloud vit maintenant côté serveur
+ * (voir api/_lib/mapping.js) ; ce fichier ne fait plus que l'auth (lien
+ * magique + JWT de session) et les deux appels push/pull.
  *
  * Additif et optionnel : n'intercepte pas les fonctions existantes de
  * app.js (loadState/saveState). Lit et écrit directement les mêmes clés
@@ -24,67 +30,21 @@
 
   var STORAGE_KEY = 'vetbook_data';
   var VET_DIRECTORY_KEY = 'vetbook_vet_directory';
+  var SESSION_KEY = 'vetbook_cloud_session';
 
   var cfg = window.__SUPABASE_CONFIG__;
-  var client = (cfg && cfg.url && cfg.anonKey && window.supabaseSdk)
-    ? window.supabaseSdk.createClient(cfg.url, cfg.anonKey)
-    : null;
-
-  // ——— Mapping local (camelCase) <-> colonnes cloud (snake_case) ———
-  // [clé locale, colonne cloud]
-  var ANIMAL_FIELDS = [
-    ['name', 'name'], ['species', 'species'], ['race', 'race'], ['sex', 'sex'],
-    ['dob', 'dob'], ['weight', 'weight'], ['color', 'color'], ['chip', 'chip'],
-    ['sterilise', 'sterilise'], ['notes', 'notes'], ['height', 'height'],
-    ['themeColor', 'theme_color'], ['avatar', 'avatar'],
-  ];
-  var OWNER_FIELDS = [['name', 'name'], ['phone', 'phone'], ['email', 'email'], ['clinic', 'clinic'], ['address', 'address']];
-  var PEDIGREE_FIELDS = [
-    ['registry', 'registry'], ['registryNumber', 'registry_number'], ['chipNumber', 'chip_number'],
-  ];
-  var NUTRITION_PLAN_FIELDS = [['targetCalories', 'target_calories'], ['mealsPerDay', 'meals_per_day'], ['foodBrand', 'food_brand'], ['portionSize', 'portion_size']];
-  var NOTIF_FIELDS = [
-    ['vaccineReminder', 'vaccine_reminder'], ['dewormingReminder', 'deworming_reminder'],
-    ['hygieneReminder', 'hygiene_reminder'], ['birthdayReminder', 'birthday_reminder'], ['monthlySummary', 'monthly_summary'],
-  ];
-
-  // [clé du tableau local sur le wrapper animal, table cloud, colonnes]
-  var CHILD_ARRAYS = [
-    ['vaccines', 'vaccinations', [['date', 'date'], ['name', 'name'], ['next', 'next'], ['frequencyDays', 'frequency_days'], ['vet', 'vet']]],
-    ['dewormings', 'dewormings', [['date', 'date'], ['name', 'name'], ['next', 'next'], ['frequencyDays', 'frequency_days'], ['type', 'type']]],
-    ['consultations', 'consultations', [['date', 'date'], ['vet', 'vet'], ['reason', 'reason'], ['diagnosis', 'diagnosis'], ['treatment', 'treatment'], ['cost', 'cost'], ['notes', 'notes']]],
-    ['medications', 'medications', [['name', 'name'], ['dosage', 'dosage'], ['frequency', 'frequency'], ['startDate', 'start_date'], ['endDate', 'end_date'], ['notes', 'notes'], ['active', 'active']]],
-    ['hygiene', 'hygiene_events', [['type', 'type'], ['date', 'date'], ['next', 'next'], ['frequencyDays', 'frequency_days'], ['notes', 'notes']]],
-    ['activities', 'activities', [['date', 'date'], ['type', 'type'], ['duration', 'duration'], ['distance', 'distance'], ['notes', 'notes']]],
-    ['heatCycles', 'heat_cycles', [['startDate', 'start_date'], ['endDate', 'end_date'], ['intensity', 'intensity'], ['notes', 'notes']]],
-    ['notes', 'journal_notes', [['date', 'date'], ['title', 'title'], ['content', 'content'], ['category', 'category']]],
-  ];
-  var VET_CONTACT_FIELDS = [
-    ['name', 'name'], ['clinic', 'clinic'], ['phone', 'phone'], ['email', 'email'], ['address', 'address'],
-    ['lat', 'lat'], ['lng', 'lng'], ['hours', 'hours'], ['emergency', 'emergency'], ['favorite', 'favorite'], ['notes', 'notes'],
-  ];
-
-  function toRow(obj, fields, extra) {
-    var row = Object.assign({}, extra);
-    fields.forEach(function (pair) {
-      var v = obj[pair[0]];
-      row[pair[1]] = (v === '' || v === undefined) ? null : v;
-    });
-    return row;
-  }
-
-  function fromRow(row, fields, idAsLocalId) {
-    var obj = {};
-    fields.forEach(function (pair) { obj[pair[0]] = row[pair[1]] == null ? '' : row[pair[1]]; });
-    if (idAsLocalId) obj.id = row.local_id;
-    return obj;
-  }
+  // Le nom de la config globale est resté __SUPABASE_CONFIG__ pour ne pas
+  // devoir toucher app.js (qui y lit vapidPublicKey) ; son contenu n'a
+  // plus rien de Supabase : { apiBaseUrl?, vapidPublicKey }.
+  var configured = !!cfg;
+  var apiBase = (cfg && cfg.apiBaseUrl) || '';
 
   // ——— Local storage helpers ———
   var AUTO_PUSH_DELAY_MS = 4000;
   var suppressAutoPush = false;
   var autoPushTimer = null;
-  var currentSession = null;
+  var currentSession = null; // { token, userId, email } | null
+  var authListeners = [];
   var onAutoSyncEvent = null; // hook set by initUI() to reflect status in the UI
 
   function readLocal() {
@@ -100,6 +60,23 @@
   }
   function writeVetDirectory(dir) { localStorage.setItem(VET_DIRECTORY_KEY, JSON.stringify(dir)); }
 
+  function readSession() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function writeSession(session) {
+    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    else localStorage.removeItem(SESSION_KEY);
+  }
+
+  function toPublicSession(session) {
+    return session ? { user: { id: session.userId, email: session.email, name: session.name || '', picture: session.picture || '' } } : null;
+  }
+
+  function notifyAuthListeners(event) {
+    var publicSession = toPublicSession(currentSession);
+    authListeners.forEach(function (cb) { cb(event, publicSession); });
+  }
+
   // Intercepte toute écriture de 'vetbook_data' faite par app.js (saveState)
   // pour programmer une sauvegarde cloud différée. N'affecte pas les autres
   // clés ; les écritures faites par writeLocal() ci-dessus sont exclues via
@@ -107,7 +84,7 @@
   var nativeSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     nativeSetItem(key, value);
-    if (key === STORAGE_KEY && !suppressAutoPush && client && currentSession) {
+    if (key === STORAGE_KEY && !suppressAutoPush && configured && currentSession) {
       scheduleAutoPush();
     }
   };
@@ -125,258 +102,192 @@
     }, AUTO_PUSH_DELAY_MS);
   }
 
+  // ——— Client API ———
+  function apiFetch(path, options) {
+    options = options || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+    if (currentSession) headers.Authorization = 'Bearer ' + currentSession.token;
+    return fetch(apiBase + path, Object.assign({}, options, { headers: headers })).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (!res.ok) throw new Error(body.error || ('Erreur serveur (' + res.status + ')'));
+        return body;
+      });
+    });
+  }
+
   // ——— Auth ———
-  function isConfigured() { return !!client; }
+  function isConfigured() { return configured; }
 
   function signInWithEmail(email) {
-    if (!client) return Promise.reject(new Error('Supabase non configuré (config.js manquant).'));
-    return client.auth.signInWithOtp({
-      email: email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée (config.js manquant).'));
+    return apiFetch('/api/auth/request-link', {
+      method: 'POST',
+      body: JSON.stringify({ email: email }),
+    }).then(function () { return true; });
+  }
+
+  function signOut() {
+    currentSession = null;
+    writeSession(null);
+    notifyAuthListeners('SIGNED_OUT');
+    return Promise.resolve();
+  }
+
+  function getSession() {
+    return Promise.resolve(toPublicSession(currentSession));
+  }
+
+  function onAuthChange(cb) {
+    authListeners.push(cb);
+  }
+
+  // ——— Connexion avec Google (Google Identity Services) ———
+  var GOOGLE_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
+  var googleScriptPromise = null;
+
+  function loadGoogleScript() {
+    if (googleScriptPromise) return googleScriptPromise;
+    googleScriptPromise = new Promise(function (resolve, reject) {
+      if (window.google && window.google.accounts && window.google.accounts.id) { resolve(); return; }
+      var script = document.createElement('script');
+      script.src = GOOGLE_SCRIPT_URL;
+      script.async = true;
+      script.defer = true;
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error('Impossible de charger Google Sign-In.')); };
+      document.head.appendChild(script);
+    });
+    return googleScriptPromise;
+  }
+
+  // Échange le jeton Google (credential renvoyé par le bouton GIS) contre
+  // un JWT de session App'lika — même mécanique que consumeLoginTokenFromUrl,
+  // le rattachement compte email <-> compte Google est fait côté serveur
+  // (api/auth/google.js).
+  function signInWithGoogleCredential(credential) {
+    return apiFetch('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential: credential }),
     }).then(function (res) {
-      if (res.error) throw res.error;
+      currentSession = { token: res.token, email: res.email, userId: res.userId, name: res.name, picture: res.picture };
+      writeSession(currentSession);
+      notifyAuthListeners('SIGNED_IN');
+      maybeAutoPull();
       return true;
     });
   }
 
-  function signOut() { return client ? client.auth.signOut() : Promise.resolve(); }
+  // Vérifie un lien magique (?login_token=...) au chargement de la page,
+  // remplace l'échange de session que faisait Supabase Auth automatiquement
+  // au clic sur le lien.
+  function consumeLoginTokenFromUrl() {
+    if (!configured) return;
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get('login_token');
+    if (!token) return;
 
-  function getSession() {
-    if (!client) return Promise.resolve(null);
-    return client.auth.getSession().then(function (res) { return res.data.session || null; });
+    params.delete('login_token');
+    var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+
+    if (onAutoSyncEvent) onAutoSyncEvent('auto-pulling');
+    apiFetch('/api/auth/verify', { method: 'POST', body: JSON.stringify({ token: token }) })
+      .then(function (res) {
+        currentSession = { token: res.token, email: res.email, userId: res.userId, name: res.name, picture: res.picture };
+        writeSession(currentSession);
+        notifyAuthListeners('SIGNED_IN');
+        maybeAutoPull();
+      })
+      .catch(function (err) {
+        if (onAutoSyncEvent) onAutoSyncEvent('error', err);
+      });
   }
 
-  function onAuthChange(cb) {
-    if (!client) return;
-    client.auth.onAuthStateChange(function (event, session) { cb(event, session); });
+  // ——— Push : abonnement de cet appareil ———
+  function subscribeToPush(subscriptionJson) {
+    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!currentSession) return Promise.reject(new Error('Connecte-toi d\'abord pour activer les notifications push.'));
+    return apiFetch('/api/push/subscription', {
+      method: 'POST',
+      body: JSON.stringify({
+        endpoint: subscriptionJson.endpoint,
+        keys: { p256dh: subscriptionJson.keys && subscriptionJson.keys.p256dh, auth: subscriptionJson.keys && subscriptionJson.keys.auth },
+      }),
+    }).then(function () { return true; });
   }
 
-  // Suivi interne de la session + pull auto si l'appareil est vierge.
-  // Ne s'exécute qu'une fois par chargement de page (autoPullDone) : au-delà,
-  // on laisse les boutons manuels décider pour ne jamais écraser en silence
-  // des données locales déjà présentes.
+  function unsubscribeFromPush(endpoint) {
+    if (!configured || !endpoint || !currentSession) return Promise.resolve(false);
+    return apiFetch('/api/push/subscription', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint: endpoint }),
+    }).then(function () { return true; });
+  }
+
+  // ——— Préférence de compte : rappel mensuel des événements canins ———
+  function getDogEventsReminderPref() {
+    if (!configured || !currentSession) return Promise.resolve(true);
+    return apiFetch('/api/user/dog-events-reminder', { method: 'GET' }).then(function (res) {
+      return !!res.dogEventsReminder;
+    });
+  }
+
+  function setDogEventsReminderPref(value) {
+    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!currentSession) return Promise.reject(new Error('Non connecté.'));
+    return apiFetch('/api/user/dog-events-reminder', {
+      method: 'POST',
+      body: JSON.stringify({ dogEventsReminder: !!value }),
+    }).then(function () { return true; });
+  }
+
+  // Restauration auto si l'appareil est vierge. Ne s'exécute qu'une fois
+  // par chargement de page (autoPullDone) : au-delà, on laisse les boutons
+  // manuels décider pour ne jamais écraser en silence des données locales
+  // déjà présentes.
   var autoPullDone = false;
-  if (client) {
-    client.auth.onAuthStateChange(function (event, session) {
-      currentSession = session;
-      if (session && !autoPullDone) {
-        autoPullDone = true;
-        var local = readLocal();
-        var isEmpty = !local || !Array.isArray(local.animals) || local.animals.length === 0;
-        if (isEmpty) {
-          if (onAutoSyncEvent) onAutoSyncEvent('auto-pulling');
-          pullAllFromCloud().then(function (found) {
-            if (found) {
-              if (onAutoSyncEvent) onAutoSyncEvent('auto-pulled');
-              window.setTimeout(function () { window.location.reload(); }, 400);
-            }
-          }).catch(function (err) {
-            if (onAutoSyncEvent) onAutoSyncEvent('error', err);
-          });
-        }
+  function maybeAutoPull() {
+    if (autoPullDone || !currentSession) return;
+    autoPullDone = true;
+    var local = readLocal();
+    var isEmpty = !local || !Array.isArray(local.animals) || local.animals.length === 0;
+    if (!isEmpty) return;
+    if (onAutoSyncEvent) onAutoSyncEvent('auto-pulling');
+    pullAllFromCloud().then(function (found) {
+      if (found) {
+        if (onAutoSyncEvent) onAutoSyncEvent('auto-pulled');
+        window.setTimeout(function () { window.location.reload(); }, 400);
       }
+    }).catch(function (err) {
+      if (onAutoSyncEvent) onAutoSyncEvent('error', err);
     });
   }
 
   // ——— Push : local -> cloud ———
   function pushAllToCloud(onProgress) {
-    if (!client) return Promise.reject(new Error('Supabase non configuré.'));
+    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     var state = readLocal();
     if (!state || !Array.isArray(state.animals) || state.animals.length === 0) {
       return Promise.reject(new Error('Rien à synchroniser localement.'));
     }
-    var report = function (msg) { if (onProgress) onProgress(msg); };
-
-    return getSession().then(function (session) {
-      if (!session) throw new Error('Non connecté.');
-      var userId = session.user.id;
-
-      var ownerSource = (state.animals[0] && state.animals[0].owner) || {};
-      var ownerRow = toRow(ownerSource, OWNER_FIELDS, { user_id: userId });
-      var chain = client.from('owners').upsert(ownerRow, { onConflict: 'user_id' });
-
-      state.animals.forEach(function (wrapper) {
-        chain = chain.then(function () {
-          report('Animal : ' + (wrapper.animal && wrapper.animal.name));
-          var petRow = toRow(wrapper.animal || {}, ANIMAL_FIELDS, { user_id: userId, local_id: wrapper.id });
-          return client.from('pets').upsert(petRow, { onConflict: 'user_id,local_id' }).select('id').single();
-        }).then(function (res) {
-          if (res.error) throw res.error;
-          var petId = res.data.id;
-          var subChain = Promise.resolve();
-
-          CHILD_ARRAYS.forEach(function (spec) {
-            var localKey = spec[0], table = spec[1], fields = spec[2];
-            var items = Array.isArray(wrapper[localKey]) ? wrapper[localKey] : [];
-            if (items.length === 0) return;
-            var rows = items.map(function (item) {
-              return toRow(item, fields, { pet_id: petId, user_id: userId, local_id: item.id });
-            });
-            subChain = subChain.then(function () {
-              return client.from(table).upsert(rows, { onConflict: 'pet_id,local_id' });
-            }).then(function (res2) { if (res2.error) throw res2.error; });
-          });
-
-          var weightHistory = (wrapper.animal && Array.isArray(wrapper.animal.weightHistory)) ? wrapper.animal.weightHistory : [];
-          if (weightHistory.length) {
-            var whRows = weightHistory.map(function (w) {
-              return { pet_id: petId, user_id: userId, local_id: w.id, date: w.date, weight: w.weight };
-            });
-            subChain = subChain.then(function () { return client.from('weight_history').upsert(whRows, { onConflict: 'pet_id,local_id' }); })
-              .then(function (res2) { if (res2.error) throw res2.error; });
-          }
-
-          var meals = (wrapper.nutrition && Array.isArray(wrapper.nutrition.meals)) ? wrapper.nutrition.meals : [];
-          if (meals.length) {
-            var mealRows = meals.map(function (m) {
-              return toRow(m, [['date', 'date'], ['type', 'type'], ['time', 'time'], ['food', 'food'], ['quantity', 'quantity'], ['unit', 'unit']], { pet_id: petId, user_id: userId, local_id: m.id });
-            });
-            subChain = subChain.then(function () { return client.from('nutrition_meals').upsert(mealRows, { onConflict: 'pet_id,local_id' }); })
-              .then(function (res2) { if (res2.error) throw res2.error; });
-          }
-
-          if (wrapper.nutrition && wrapper.nutrition.dailyPlan) {
-            var planRow = toRow(wrapper.nutrition.dailyPlan, NUTRITION_PLAN_FIELDS, { pet_id: petId, user_id: userId });
-            subChain = subChain.then(function () { return client.from('nutrition_daily_plan').upsert(planRow, { onConflict: 'pet_id' }); })
-              .then(function (res2) { if (res2.error) throw res2.error; });
-          }
-
-          if (wrapper.pedigree) {
-            var ped = wrapper.pedigree;
-            var pedRow = toRow(ped, PEDIGREE_FIELDS, {
-              pet_id: petId, user_id: userId,
-              sire_name: ped.sire && ped.sire.name, sire_registry: ped.sire && ped.sire.registry,
-              dam_name: ped.dam && ped.dam.name, dam_registry: ped.dam && ped.dam.registry,
-              paternal_grandsire: ped.grandparents && ped.grandparents.paternalGrandsire,
-              paternal_granddam: ped.grandparents && ped.grandparents.paternalGranddam,
-              maternal_grandsire: ped.grandparents && ped.grandparents.maternalGrandsire,
-              maternal_granddam: ped.grandparents && ped.grandparents.maternalGranddam,
-            });
-            subChain = subChain.then(function () { return client.from('pedigree').upsert(pedRow, { onConflict: 'pet_id' }); })
-              .then(function (res2) { if (res2.error) throw res2.error; });
-          }
-
-          if (wrapper.notifications) {
-            var notifRow = toRow(wrapper.notifications, NOTIF_FIELDS, { pet_id: petId, user_id: userId });
-            subChain = subChain.then(function () { return client.from('notification_prefs').upsert(notifRow, { onConflict: 'pet_id' }); })
-              .then(function (res2) { if (res2.error) throw res2.error; });
-          }
-
-          return subChain;
-        });
-      });
-
-      var dir = readVetDirectory();
-      if (dir && Array.isArray(dir.entries) && dir.entries.length) {
-        chain = chain.then(function () {
-          report('Carnet vétérinaires');
-          var rows = dir.entries.map(function (e) {
-            return toRow(e, VET_CONTACT_FIELDS, { user_id: userId, local_id: e.id });
-          });
-          return client.from('vet_contacts').upsert(rows, { onConflict: 'user_id,local_id' });
-        }).then(function (res2) { if (res2.error) throw res2.error; });
-      }
-
-      return chain;
-    });
+    if (onProgress) onProgress('Synchronisation en cours...');
+    var vetDirectory = readVetDirectory();
+    return apiFetch('/api/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({ state: state, vetDirectory: vetDirectory }),
+    }).then(function () { return true; });
   }
 
   // ——— Pull : cloud -> local (remplace l'état local) ———
   function pullAllFromCloud() {
-    if (!client) return Promise.reject(new Error('Supabase non configuré.'));
-    return getSession().then(function (session) {
-      if (!session) throw new Error('Non connecté.');
-      var userId = session.user.id;
-
-      return Promise.all([
-        client.from('pets').select('*').order('created_at', { ascending: true }),
-        client.from('owners').select('*').eq('user_id', userId).maybeSingle(),
-        client.from('vet_contacts').select('*').eq('user_id', userId),
-      ]).then(function (results) {
-        var petsRes = results[0], ownerRes = results[1], vetsRes = results[2];
-        if (petsRes.error) throw petsRes.error;
-        if (ownerRes.error) throw ownerRes.error;
-        if (vetsRes.error) throw vetsRes.error;
-
-        var pets = petsRes.data || [];
-        if (pets.length === 0) return null; // rien dans le cloud
-
-        var ownerObj = ownerRes.data ? fromRow(ownerRes.data, OWNER_FIELDS) : { name: '', phone: '', email: '', clinic: '', address: '' };
-
-        return Promise.all(pets.map(function (pet) {
-          var petId = pet.id;
-          var childQueries = CHILD_ARRAYS.map(function (spec) {
-            return client.from(spec[1]).select('*').eq('pet_id', petId).order('local_id', { ascending: true });
-          });
-          childQueries.push(client.from('weight_history').select('*').eq('pet_id', petId).order('local_id', { ascending: true }));
-          childQueries.push(client.from('nutrition_meals').select('*').eq('pet_id', petId).order('local_id', { ascending: true }));
-          childQueries.push(client.from('nutrition_daily_plan').select('*').eq('pet_id', petId).maybeSingle());
-          childQueries.push(client.from('pedigree').select('*').eq('pet_id', petId).maybeSingle());
-          childQueries.push(client.from('notification_prefs').select('*').eq('pet_id', petId).maybeSingle());
-
-          return Promise.all(childQueries).then(function (results2) {
-            results2.forEach(function (r) { if (r.error) throw r.error; });
-
-            var wrapper = { id: pet.local_id, owner: ownerObj, photos: [] };
-            wrapper.animal = fromRow(pet, ANIMAL_FIELDS);
-            wrapper.animal.weightHistory = (results2[CHILD_ARRAYS.length].data || []).map(function (w) {
-              return { id: w.local_id, date: w.date, weight: w.weight };
-            });
-
-            CHILD_ARRAYS.forEach(function (spec, i) {
-              var localKey = spec[0], fields = spec[2];
-              wrapper[localKey] = (results2[i].data || []).map(function (row) { return fromRow(row, fields, true); });
-            });
-
-            var mealsData = results2[CHILD_ARRAYS.length + 1].data || [];
-            var planData = results2[CHILD_ARRAYS.length + 2].data;
-            wrapper.nutrition = {
-              meals: mealsData.map(function (m) { return fromRow(m, [['date', 'date'], ['type', 'type'], ['time', 'time'], ['food', 'food'], ['quantity', 'quantity'], ['unit', 'unit']], true); }),
-              dailyPlan: planData ? fromRow(planData, NUTRITION_PLAN_FIELDS) : { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' },
-            };
-
-            var pedData = results2[CHILD_ARRAYS.length + 3].data;
-            wrapper.pedigree = pedData ? {
-              registry: pedData.registry || 'Non inscrit', registryNumber: pedData.registry_number || '', chipNumber: pedData.chip_number || '',
-              sire: { name: pedData.sire_name || '', registry: pedData.sire_registry || '' },
-              dam: { name: pedData.dam_name || '', registry: pedData.dam_registry || '' },
-              grandparents: {
-                paternalGrandsire: pedData.paternal_grandsire || '', paternalGranddam: pedData.paternal_granddam || '',
-                maternalGrandsire: pedData.maternal_grandsire || '', maternalGranddam: pedData.maternal_granddam || '',
-              },
-            } : null;
-
-            var notifData = results2[CHILD_ARRAYS.length + 4].data;
-            wrapper.notifications = notifData ? fromRow(notifData, NOTIF_FIELDS) : {};
-
-            return wrapper;
-          });
-        })).then(function (wrappers) {
-          var maxId = 20;
-          wrappers.forEach(function (w) {
-            maxId = Math.max(maxId, w.id || 0);
-            CHILD_ARRAYS.forEach(function (spec) { (w[spec[0]] || []).forEach(function (it) { maxId = Math.max(maxId, it.id || 0); }); });
-            (w.animal.weightHistory || []).forEach(function (it) { maxId = Math.max(maxId, it.id || 0); });
-            (w.nutrition.meals || []).forEach(function (it) { maxId = Math.max(maxId, it.id || 0); });
-          });
-
-          var newState = { animals: wrappers, nextId: maxId + 1, currentAnimalId: wrappers[0] ? wrappers[0].id : null };
-          writeLocal(newState);
-
-          var vets = vetsRes.data || [];
-          if (vets.length) {
-            var dirMaxId = 10;
-            var entries = vets.map(function (row) {
-              var e = fromRow(row, VET_CONTACT_FIELDS, true);
-              dirMaxId = Math.max(dirMaxId, e.id || 0);
-              return e;
-            });
-            writeVetDirectory({ entries: entries, nextId: dirMaxId + 1 });
-          }
-
-          return true;
-        });
-      });
+    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!currentSession) return Promise.reject(new Error('Non connecté.'));
+    return apiFetch('/api/sync/pull', { method: 'GET' }).then(function (res) {
+      if (!res.found) return false;
+      writeLocal(res.state);
+      if (res.vetDirectory) writeVetDirectory(res.vetDirectory);
+      return true;
     });
   }
 
@@ -388,6 +299,10 @@
     onAuthChange: onAuthChange,
     pushAllToCloud: pushAllToCloud,
     pullAllFromCloud: pullAllFromCloud,
+    subscribeToPush: subscribeToPush,
+    unsubscribeFromPush: unsubscribeFromPush,
+    getDogEventsReminderPref: getDogEventsReminderPref,
+    setDogEventsReminderPref: setDogEventsReminderPref,
   };
 
   // ——— UI : section "Cloud & synchronisation" du profil utilisateur ———
@@ -400,12 +315,17 @@
     var signedInEl = document.getElementById('cloud-sync-signedin');
     var emailInput = document.getElementById('cloud-sync-email');
     var signinStatus = document.getElementById('cloud-sync-signin-status');
-    var emailDisplay = document.getElementById('cloud-sync-email-display');
     var syncStatus = document.getElementById('cloud-sync-status');
     var btnSignin = document.getElementById('btn-cloud-sync-signin');
     var btnSignout = document.getElementById('btn-cloud-signout');
     var btnPush = document.getElementById('btn-cloud-push');
     var btnPull = document.getElementById('btn-cloud-pull');
+    var googleContainer = document.getElementById('google-signin-container');
+    var googleDivider = document.getElementById('cloud-sync-divider');
+    var profileAvatar = document.getElementById('user-avatar');
+    var profileAvatarDefault = profileAvatar ? profileAvatar.innerHTML : '';
+    var navAvatar = document.getElementById('btn-user-nav');
+    var navAvatarDefault = navAvatar ? navAvatar.innerHTML : '';
 
     function showStatus(el, msg, isError) {
       if (!el) return;
@@ -414,11 +334,35 @@
       el.style.color = isError ? 'var(--color-error)' : '';
     }
 
+    // Affiche la photo du compte connecté (Google) dans un conteneur avatar,
+    // ou restaure l'icône générique par défaut si aucune photo n'est
+    // disponible (compte lien magique). Toujours via un <img> créé en DOM
+    // (pas d'innerHTML avec l'URL) même si celle-ci vient du JWT Google déjà
+    // vérifié côté serveur.
+    function renderAvatar(el, defaultHtml, pictureUrl) {
+      if (!el) return;
+      if (pictureUrl) {
+        var img = document.createElement('img');
+        img.src = pictureUrl;
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        el.innerHTML = '';
+        el.appendChild(img);
+      } else {
+        el.innerHTML = defaultHtml;
+      }
+    }
+
     function renderAuthState(session) {
       var signedIn = !!session;
       if (signedOutEl) signedOutEl.hidden = signedIn;
       if (signedInEl) signedInEl.hidden = !signedIn;
-      if (signedIn && emailDisplay) emailDisplay.textContent = session.user.email || '';
+      // Avatar principal du profil (haut de l'écran) : app.js ne touche
+      // jamais #user-avatar (seulement le nom/email, dérivés du profil
+      // "propriétaire" local), donc pas de conflit à le mettre à jour ici.
+      renderAvatar(profileAvatar, profileAvatarDefault, signedIn ? session.user.picture : '');
+      // Bouton "Mon compte" du header.
+      renderAvatar(navAvatar, navAvatarDefault, signedIn ? session.user.picture : '');
       if (signedIn) showStatus(syncStatus, 'Synchronisation automatique activée — tout changement est sauvegardé dans le cloud quelques secondes après.', false);
     }
 
@@ -435,6 +379,27 @@
       else if (kind === 'auto-pulled') showStatus(syncStatus, 'Restauré depuis le cloud. Rechargement...', false);
       else if (kind === 'error') showStatus(syncStatus, 'Erreur de synchronisation : ' + (err && err.message), true);
     };
+
+    if (googleContainer && cfg && cfg.googleClientId) {
+      loadGoogleScript().then(function () {
+        window.google.accounts.id.initialize({
+          client_id: cfg.googleClientId,
+          callback: function (response) {
+            showStatus(signinStatus, 'Connexion avec Google...', false);
+            signInWithGoogleCredential(response.credential).catch(function (err) {
+              showStatus(signinStatus, 'Erreur : ' + err.message, true);
+            });
+          },
+        });
+        window.google.accounts.id.renderButton(googleContainer, {
+          theme: 'outline', size: 'large', width: 300, text: 'continue_with', locale: 'fr',
+        });
+        googleContainer.hidden = false;
+        if (googleDivider) googleDivider.hidden = false;
+      }).catch(function (err) {
+        console.warn('App\'lika: chargement Google Sign-In échoué', err);
+      });
+    }
 
     if (btnSignin) btnSignin.addEventListener('click', function () {
       var email = (emailInput && emailInput.value || '').trim();
@@ -474,6 +439,16 @@
         showStatus(syncStatus, 'Erreur : ' + err.message, true);
       }).finally(function () { btnPull.disabled = false; });
     });
+  }
+
+  if (configured) {
+    currentSession = readSession();
+    consumeLoginTokenFromUrl();
+    if (currentSession) {
+      // Session déjà active au chargement (retour sur l'appareil) : même
+      // logique de restauration auto que juste après une connexion.
+      window.setTimeout(function () { notifyAuthListeners('SIGNED_IN'); maybeAutoPull(); }, 0);
+    }
   }
 
   if (document.readyState === 'loading') {

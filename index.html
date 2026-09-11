@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4F46E5">
+  <meta name="theme-color" content="#0B5450">
   <meta name="description" content="Carnet de santé pour vos animaux : profil, vaccins, déparasitage, photos et rappels.">
-  <title>VetBook — Carnet de Santé Animal</title>
+  <title>App'lika — Carnet de Santé Animal</title>
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,17 +19,26 @@
 
   <header class="app-header">
     <div class="header-left">
-      <a href="#" class="logo" id="logo-home" aria-label="Retour à l'accueil"><span class="logo-paw"><svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></span> Vet<span>Book</span></a>
-      <button type="button" class="btn-accueil" id="btn-accueil" hidden>← Accueil</button>
+      <a href="#" class="logo" id="logo-home" aria-label="Retour à l'accueil">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
+            <rect width="32" height="32" rx="8" fill="currentColor"/>
+            <ellipse cx="16" cy="18.4" rx="5.8" ry="4.8" fill="#fff"/>
+            <ellipse cx="10.4" cy="11.4" rx="2.3" ry="3" transform="rotate(-20 10.4 11.4)" fill="#fff"/>
+            <ellipse cx="14" cy="9.2" rx="2.1" ry="2.9" transform="rotate(-6 14 9.2)" fill="#fff"/>
+            <ellipse cx="18" cy="9.2" rx="2.1" ry="2.9" transform="rotate(6 18 9.2)" fill="#fff"/>
+            <ellipse cx="21.6" cy="11.4" rx="2.3" ry="3" transform="rotate(20 21.6 11.4)" fill="#fff"/>
+          </svg>
+        </span>
+        <span class="logo-wordmark">App'<span>lika</span></span>
+      </a>
     </div>
     <div class="header-actions">
-      <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel"></select>
-      <button type="button" class="btn-add" id="btn-add-animal">+ Animal</button>
+      <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel" hidden></select>
+      <button type="button" class="btn-add btn-add-animal" id="btn-add-animal" aria-label="Ajouter un animal" title="Ajouter un animal"><span aria-hidden="true">+</span><span class="btn-add-animal__label"> Animal</span></button>
       <button type="button" class="btn-icon btn-icon--user" id="btn-user-nav" title="Mon compte" aria-label="Mon compte">
         <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>
-      <button type="button" class="btn-icon" id="btn-backup" title="Sauvegarde / Importation">Sauvegarde</button>
-      <button type="button" class="btn-theme-toggle" id="btn-theme-toggle" title="Mode sombre / clair" aria-label="Basculer le thème">☀️</button>
     </div>
   </header>
 
@@ -42,7 +54,34 @@
 
       <!-- Cartes santé : un anneau par animal, le point focal de l'accueil -->
       <div id="home-pet-grid" class="home-pet-grid"></div>
-      <p id="home-empty" class="home-empty" hidden>Vous n'avez pas encore d'animal. <button type="button" class="btn-add" id="btn-add-animal-home">+ Ajouter un animal</button></p>
+      <section id="home-empty" class="home-empty" aria-labelledby="home-empty-title" hidden>
+        <svg class="home-empty__backdrop" viewBox="0 0 720 160" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="translate(326 46) rotate(-12 44 32)">
+              <path d="M22 46c-8 4-16-4-11-12-9-2-9-15 0-18 6-2 12 2 14 8l37 22c5-5 12-6 17-1 7 6 2 16-6 16 2 8-7 14-14 9-5-3-6-8-3-13L20 36"/>
+            </g>
+            <g transform="translate(620 52)">
+              <path d="M4 40h76l-9 27H14L4 40Z"/><path d="M16 40c4-15 14-23 26-23s23 8 27 23"/>
+              <path d="M32 10c0-6 5-10 11-10"/>
+            </g>
+          </g>
+          <g fill="currentColor" transform="translate(500 28) rotate(12 55 50)">
+            <ellipse cx="55" cy="65" rx="31" ry="25"/>
+            <circle cx="22" cy="37" r="11"/>
+            <circle cx="45" cy="19" r="11"/>
+            <circle cx="72" cy="19" r="11"/>
+            <circle cx="93" cy="39" r="11"/>
+          </g>
+        </svg>
+        <span class="home-empty__icon" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="7" r="1.5"/><circle cx="16" cy="7" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/><circle cx="18.5" cy="11.5" r="1.5"/></svg>
+        </span>
+        <div class="home-empty__content">
+          <h2 id="home-empty-title" class="home-empty__title">Créez son carnet de santé</h2>
+          <p class="home-empty__text">Ajoutez votre animal pour centraliser ses soins, ses rendez-vous et ses rappels.</p>
+        </div>
+        <button type="button" class="btn-add home-empty__action" id="btn-add-animal-home">Ajouter mon animal</button>
+      </section>
 
       <!-- Actions secondaires, discrètes -->
       <div class="home-action-pills" id="home-action-pills">
@@ -66,18 +105,18 @@
           <h2 class="home-reminders__title">Rappels du jour</h2>
           <button type="button" class="home-reminders__see-all" id="btn-see-all-reminders">Voir tout</button>
         </div>
-        <div class="home-reminders__tabs">
-          <button type="button" class="home-reminders__tab active" data-filter="all">Tous</button>
-          <button type="button" class="home-reminders__tab" data-filter="week">Semaine</button>
-          <button type="button" class="home-reminders__tab" data-filter="month">Mois</button>
+        <div class="home-reminders__tabs" role="tablist" aria-label="Période des rappels">
+          <button type="button" class="home-reminders__tab active" id="reminders-tab-all" data-filter="all" role="tab" aria-selected="true" aria-controls="home-reminders-list" tabindex="0">Tous</button>
+          <button type="button" class="home-reminders__tab" id="reminders-tab-week" data-filter="week" role="tab" aria-selected="false" aria-controls="home-reminders-list" tabindex="-1">Semaine</button>
+          <button type="button" class="home-reminders__tab" id="reminders-tab-month" data-filter="month" role="tab" aria-selected="false" aria-controls="home-reminders-list" tabindex="-1">Mois</button>
         </div>
-        <div id="home-reminders-list"></div>
+        <div id="home-reminders-list" aria-live="polite"></div>
       </div>
 
       <!-- Recommended Vets -->
       <div class="home-section" id="home-vets-section">
         <div class="home-section-header">
-          <h2>Vétérinaires recommandés</h2>
+          <h2>Contacts vétérinaires utiles</h2>
           <button type="button" class="see-all-btn" id="btn-see-all-vets">Voir tout</button>
         </div>
         <div class="home-hscroll" id="home-vets-scroll"></div>
@@ -96,14 +135,14 @@
       <div id="home-community" class="home-community-section">
         <h2 class="section-title">Communauté & Événements</h2>
         <div class="community-cards">
-          <div class="community-card" id="btn-show-events" role="button" tabindex="0">
+          <button type="button" class="community-card" id="btn-show-events">
             <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
             <span class="community-label">Calendrier Événements Canins</span>
-          </div>
-          <div class="community-card" id="btn-show-tips" role="button" tabindex="0">
+          </button>
+          <button type="button" class="community-card" id="btn-show-tips">
             <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg></span>
             <span class="community-label">Astuces & Conseils</span>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -168,38 +207,38 @@
     <aside class="detail-sidebar" aria-label="Navigation du carnet">
     <div class="detail-nav" id="detail-nav">
       <nav class="tabs tabs--primary" role="tablist" aria-label="Navigation principale du carnet">
-        <button type="button" class="tab primary-nav__btn active" data-primary="profil" data-tab="profil" role="tab" aria-selected="true">Profil</button>
-        <button type="button" class="tab primary-nav__btn" data-primary="photos" data-tab="photos" role="tab" aria-selected="false">Photos</button>
-        <button type="button" class="primary-nav__btn" data-primary="sante" id="btn-primary-sante" aria-selected="false">Santé</button>
-        <button type="button" class="tab primary-nav__btn" data-primary="alertes" data-tab="alertes" role="tab" aria-selected="false">Rappels</button>
-        <button type="button" class="primary-nav__btn primary-nav__btn--more" id="btn-nav-more" aria-expanded="false" aria-haspopup="true" aria-controls="subnav-more" aria-selected="false">Plus</button>
+        <button type="button" class="tab primary-nav__btn active" id="tab-profil" data-primary="profil" data-tab="profil" role="tab" aria-selected="true" aria-controls="section-profil" tabindex="0">Profil</button>
+        <button type="button" class="tab primary-nav__btn" id="tab-photos" data-primary="photos" data-tab="photos" role="tab" aria-selected="false" aria-controls="section-photos" tabindex="-1">Photos</button>
+        <button type="button" class="primary-nav__btn" data-primary="sante" id="btn-primary-sante" role="tab" aria-selected="false" aria-controls="section-vaccins" tabindex="-1">Santé</button>
+        <button type="button" class="tab primary-nav__btn" id="tab-alertes" data-primary="alertes" data-tab="alertes" role="tab" aria-selected="false" aria-controls="section-alertes" tabindex="-1">Rappels</button>
+        <button type="button" class="primary-nav__btn primary-nav__btn--more" id="btn-nav-more" role="tab" aria-expanded="false" aria-haspopup="true" aria-controls="subnav-more" aria-selected="false" tabindex="-1">Plus</button>
       </nav>
       <div id="subnav-sante" class="subnav subnav--sante" hidden>
         <div class="subnav__inner" role="tablist" aria-label="Sous-sections santé">
-          <button type="button" class="tab subnav-tab" data-tab="vaccins" role="tab">Vaccins</button>
-          <button type="button" class="tab subnav-tab" data-tab="deworming" role="tab">Déparasitage</button>
-          <button type="button" class="tab subnav-tab" data-tab="hygiene" role="tab">Hygiène</button>
-          <button type="button" class="tab subnav-tab" data-tab="consultations" role="tab">Consultations</button>
-          <button type="button" class="tab subnav-tab" data-tab="medications" role="tab">Médicaments</button>
+          <button type="button" class="tab subnav-tab" id="tab-vaccins" data-tab="vaccins" role="tab" aria-selected="false" aria-controls="section-vaccins" tabindex="-1">Vaccins</button>
+          <button type="button" class="tab subnav-tab" id="tab-deworming" data-tab="deworming" role="tab" aria-selected="false" aria-controls="section-deworming" tabindex="-1">Déparasitage</button>
+          <button type="button" class="tab subnav-tab" id="tab-hygiene" data-tab="hygiene" role="tab" aria-selected="false" aria-controls="section-hygiene" tabindex="-1">Hygiène</button>
+          <button type="button" class="tab subnav-tab" id="tab-consultations" data-tab="consultations" role="tab" aria-selected="false" aria-controls="section-consultations" tabindex="-1">Consultations</button>
+          <button type="button" class="tab subnav-tab" id="tab-medications" data-tab="medications" role="tab" aria-selected="false" aria-controls="section-medications" tabindex="-1">Médicaments</button>
         </div>
       </div>
       <div id="subnav-more" class="subnav subnav--more" hidden>
         <div class="subnav__group">
           <span class="subnav__group-label">Suivi quotidien</span>
           <div class="subnav__inner" role="tablist" aria-label="Suivi quotidien">
-            <button type="button" class="tab subnav-tab" data-tab="nutrition" role="tab">Repas</button>
-            <button type="button" class="tab subnav-tab" data-tab="activites" role="tab">Activités</button>
-            <button type="button" class="tab subnav-tab" data-tab="chaleurs" role="tab">Chaleurs</button>
-            <button type="button" class="tab subnav-tab" data-tab="journal" role="tab">Journal</button>
-            <button type="button" class="tab subnav-tab" data-tab="checkup" role="tab">Check-up</button>
+            <button type="button" class="tab subnav-tab" id="tab-nutrition" data-tab="nutrition" role="tab" aria-selected="false" aria-controls="section-nutrition" tabindex="-1">Repas</button>
+            <button type="button" class="tab subnav-tab" id="tab-activites" data-tab="activites" role="tab" aria-selected="false" aria-controls="section-activites" tabindex="-1">Activités</button>
+            <button type="button" class="tab subnav-tab" id="tab-chaleurs" data-tab="chaleurs" role="tab" aria-selected="false" aria-controls="section-chaleurs" tabindex="-1">Chaleurs</button>
+            <button type="button" class="tab subnav-tab" id="tab-journal" data-tab="journal" role="tab" aria-selected="false" aria-controls="section-journal" tabindex="-1">Journal</button>
+            <button type="button" class="tab subnav-tab" id="tab-checkup" data-tab="checkup" role="tab" aria-selected="false" aria-controls="section-checkup" tabindex="-1">Check-up</button>
           </div>
         </div>
         <div class="subnav__group">
           <span class="subnav__group-label">Vue d'ensemble</span>
           <div class="subnav__inner" role="tablist" aria-label="Vue d'ensemble">
-            <button type="button" class="tab subnav-tab" data-tab="calendrier" role="tab">Calendrier</button>
-            <button type="button" class="tab subnav-tab" data-tab="annuaire" role="tab">Annuaire</button>
-            <button type="button" class="tab subnav-tab" data-tab="historique" role="tab">Historique</button>
+            <button type="button" class="tab subnav-tab" id="tab-calendrier" data-tab="calendrier" role="tab" aria-selected="false" aria-controls="section-calendrier" tabindex="-1">Calendrier</button>
+            <button type="button" class="tab subnav-tab" id="tab-annuaire" data-tab="annuaire" role="tab" aria-selected="false" aria-controls="section-annuaire" tabindex="-1">Annuaire</button>
+            <button type="button" class="tab subnav-tab" id="tab-historique" data-tab="historique" role="tab" aria-selected="false" aria-controls="section-historique" tabindex="-1">Historique</button>
           </div>
         </div>
       </div>
@@ -232,6 +271,7 @@
               <div class="pet-photo-card__menu-pop" id="pet-profile-menu-pop" hidden>
                 <button type="button" class="pet-photo-card__menu-item" id="pet-menu-edit-photo" onclick="app.openModal('editAnimal')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier la photo</button>
                 <button type="button" class="pet-photo-card__menu-item" id="pet-menu-print"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimer</button>
+                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-vet-view"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg> Imprimer pour le vétérinaire</button>
                 <button type="button" class="pet-photo-card__menu-item" id="pet-menu-share"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Partager</button>
                 <button type="button" class="pet-photo-card__menu-item pet-photo-card__menu-item--danger" id="pet-menu-delete"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Supprimer</button>
               </div>
@@ -305,7 +345,7 @@
             <h2 class="pet-block-header__title" id="pet-tasks-heading">Tâches du jour</h2>
             <button type="button" class="pet-block-header__link" id="pet-tasks-view-all">Voir tout ›</button>
           </div>
-          <div class="pet-task-filters" role="tablist" aria-label="Filtrer les tâches">
+          <div class="pet-task-filters" role="group" aria-label="Filtrer les tâches">
             <button type="button" class="pet-task-filter active" data-pet-task-filter="all">Tous</button>
             <button type="button" class="pet-task-filter" data-pet-task-filter="meal">Repas</button>
             <button type="button" class="pet-task-filter" data-pet-task-filter="vitamin">Vitamine</button>
@@ -381,24 +421,24 @@
     </section>
 
     <!-- Section Photos -->
-    <section id="section-photos" class="section" role="tabpanel" hidden>
+    <section id="section-photos" class="section" role="tabpanel" aria-labelledby="tab-photos" hidden>
       <div class="gallery-section">
         <div class="gallery-header">
           <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Album Photo</h2>
           <button type="button" class="btn-icon" id="btn-add-photo"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Ajouter des photos</button>
         </div>
         <div class="gallery-grid" id="gallery-grid">
-          <div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0">
+          <button type="button" class="gallery-add" id="gallery-add-trigger">
             <span class="gallery-add-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
             <span>Ajouter une photo</span>
-          </div>
+          </button>
         </div>
       </div>
       <input type="file" id="photo-input" accept="image/*" multiple hidden aria-label="Choisir des photos">
     </section>
 
     <!-- Section Vaccins -->
-    <section id="section-vaccins" class="section" role="tabpanel" hidden>
+    <section id="section-vaccins" class="section" role="tabpanel" aria-labelledby="tab-vaccins" hidden>
       <div id="vaccine-alerts" class="alerts-container"></div>
       <div class="data-table">
         <div class="table-header">
@@ -423,31 +463,20 @@
                 <select id="vaccine-sort" class="table-select">
                   <option value="nextAsc">Prochain rappel</option>
                   <option value="nextDesc">Prochain rappel (inverse)</option>
-                  <option value="dateDesc" selected>Date (récentes)</option>
-                  <option value="dateAsc">Date (anciennes)</option>
+                  <option value="dateDesc" selected>Plus récentes</option>
+                  <option value="dateAsc">Plus anciennes</option>
                 </select>
               </div>
             </div>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addVaccin')">+ Ajouter</button>
+          <button type="button" class="btn-add" onclick="app.openModal('addVaccin')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr>
-              <th class="sortable-th" data-sort-key="date">Date <span class="sort-arrow"></span></th>
-              <th>Vaccin</th>
-              <th class="sortable-th" data-sort-key="next">Rappel <span class="sort-arrow"></span></th>
-              <th>Statut</th>
-              <th></th>
-            </tr></thead>
-            <tbody id="vaccine-table"></tbody>
-          </table>
-        </div>
+        <div class="medical-cards" id="vaccine-cards"></div>
       </div>
     </section>
 
     <!-- Section Déparasitage -->
-    <section id="section-deworming" class="section" role="tabpanel" hidden>
+    <section id="section-deworming" class="section" role="tabpanel" aria-labelledby="tab-deworming" hidden>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -471,31 +500,20 @@
                 <select id="deworming-sort" class="table-select">
                   <option value="nextAsc">Prochain rappel</option>
                   <option value="nextDesc">Prochain rappel (inverse)</option>
-                  <option value="dateDesc" selected>Date (récentes)</option>
-                  <option value="dateAsc">Date (anciennes)</option>
+                  <option value="dateDesc" selected>Plus récentes</option>
+                  <option value="dateAsc">Plus anciennes</option>
                 </select>
               </div>
             </div>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addDeworming')">+ Ajouter</button>
+          <button type="button" class="btn-add" onclick="app.openModal('addDeworming')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr>
-              <th class="sortable-th" data-sort-key="date">Date <span class="sort-arrow"></span></th>
-              <th>Traitement</th>
-              <th class="sortable-th" data-sort-key="next">Rappel <span class="sort-arrow"></span></th>
-              <th>Statut</th>
-              <th></th>
-            </tr></thead>
-            <tbody id="deworming-table"></tbody>
-          </table>
-        </div>
+        <div class="medical-cards" id="deworming-cards"></div>
       </div>
     </section>
 
     <!-- Section Consultations -->
-    <section id="section-consultations" class="section" role="tabpanel" hidden>
+    <section id="section-consultations" class="section" role="tabpanel" aria-labelledby="tab-consultations" hidden>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -507,7 +525,7 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addConsult')">+ Ajouter</button>
+          <button type="button" class="btn-add" onclick="app.openModal('addConsult')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="consult-summary" id="consult-summary" hidden>
           <div class="consult-summary__item">
@@ -519,43 +537,31 @@
             <span class="consult-summary__value" id="consult-summary-year">0,00 €</span>
           </div>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Date</th><th>Motif</th><th>Vétérinaire</th><th>Coût</th><th></th></tr></thead>
-            <tbody id="consult-table"></tbody>
-          </table>
-        </div>
-        <div id="consult-empty" class="empty-state-illustrated" hidden>
-          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><g transform="translate(36,36)" stroke="var(--border)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></g></svg>
-          <p id="consult-empty-text">Aucune consultation enregistrée</p>
-        </div>
+        <div class="medical-cards" id="consult-cards"></div>
       </div>
     </section>
 
     <!-- Section Médicaments -->
-    <section id="section-medications" class="section" role="tabpanel" hidden>
+    <section id="section-medications" class="section" role="tabpanel" aria-labelledby="tab-medications" hidden>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
             <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Médicaments</h2>
+            <div class="table-controls" role="group" aria-label="Filtres médicaments">
+              <div class="table-control">
+                <label for="medication-search">Recherche</label>
+                <input id="medication-search" class="table-input" type="search" placeholder="nom ou posologie">
+              </div>
+            </div>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addMedication')">+ Ajouter</button>
+          <button type="button" class="btn-add" onclick="app.openModal('addMedication')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Médicament</th><th>Posologie</th><th>Début</th><th>Fin</th><th>Statut</th><th></th></tr></thead>
-            <tbody id="medication-table"></tbody>
-          </table>
-        </div>
-        <div id="medication-empty" class="empty-state-illustrated" hidden>
-          <svg class="empty-svg" viewBox="0 0 120 120" width="80" height="80"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="4"/><g transform="translate(36,36)" stroke="var(--border)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></g></svg>
-          <p>Aucun médicament enregistré</p>
-        </div>
+        <div class="medical-cards" id="medication-cards"></div>
       </div>
     </section>
 
     <!-- Section Hygiène -->
-    <section id="section-hygiene" class="section" role="tabpanel" hidden>
+    <section id="section-hygiene" class="section" role="tabpanel" aria-labelledby="tab-hygiene" hidden>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -579,30 +585,25 @@
                 <select id="hygiene-sort" class="table-select">
                   <option value="nextAsc">Prochain rappel</option>
                   <option value="nextDesc">Prochain rappel (inverse)</option>
-                  <option value="dateDesc" selected>Date (récentes)</option>
-                  <option value="dateAsc">Date (anciennes)</option>
+                  <option value="dateDesc" selected>Plus récentes</option>
+                  <option value="dateAsc">Plus anciennes</option>
                 </select>
               </div>
             </div>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addHygiene')">+ Ajouter</button>
+          <button type="button" class="btn-add" onclick="app.openModal('addHygiene')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Date</th><th>Type</th><th>Rappel</th><th>Statut</th><th></th></tr></thead>
-            <tbody id="hygiene-table"></tbody>
-          </table>
-        </div>
+        <div class="medical-cards" id="hygiene-cards"></div>
       </div>
     </section>
 
     <!-- Section Nutrition -->
-    <section id="section-nutrition" class="section" role="tabpanel" hidden>
+    <section id="section-nutrition" class="section" role="tabpanel" aria-labelledby="tab-nutrition" hidden>
       <div id="nutrition-content"></div>
     </section>
 
     <!-- Section Activités -->
-    <section id="section-activites" class="section" role="tabpanel" hidden>
+    <section id="section-activites" class="section" role="tabpanel" aria-labelledby="tab-activites" hidden>
       <div class="stats-grid" id="activity-stats"></div>
       <div class="data-table">
         <div class="table-header">
@@ -621,7 +622,7 @@
     </section>
 
     <!-- Section Chaleurs -->
-    <section id="section-chaleurs" class="section" role="tabpanel" hidden>
+    <section id="section-chaleurs" class="section" role="tabpanel" aria-labelledby="tab-chaleurs" hidden>
       <div id="heat-na-message" class="alert-banner alert-info" hidden>
         <span>ℹ️</span> Suivi des chaleurs non applicable (mâle ou animal stérilisé).
       </div>
@@ -645,13 +646,13 @@
     </section>
 
     <!-- Section Check-up -->
-    <section id="section-checkup" class="section" role="tabpanel" hidden>
+    <section id="section-checkup" class="section" role="tabpanel" aria-labelledby="tab-checkup" hidden>
       <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Check-up Rapide</h2>
       <div id="checkup-content"></div>
     </section>
 
     <!-- Section Journal / Notes -->
-    <section id="section-journal" class="section" role="tabpanel" hidden>
+    <section id="section-journal" class="section" role="tabpanel" aria-labelledby="tab-journal" hidden>
       <div class="journal-header">
         <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Journal / Notes</h2>
         <div class="table-controls">
@@ -676,11 +677,12 @@
     </section>
 
     <!-- Section Alertes -->
-    <section id="section-alertes" class="section" role="tabpanel" hidden>
+    <section id="section-alertes" class="section" role="tabpanel" aria-labelledby="tab-alertes" hidden>
       <!-- Reminder header (Pawly) -->
       <div class="reminder-header">
         <div class="reminder-header__top">
           <h2 class="section-title">Rappels</h2>
+          <button type="button" class="action-pill" id="btn-monthly-summary">Résumé du mois</button>
           <button type="button" class="action-pill action-pill--primary" id="btn-export-ics">Exporter .ics</button>
         </div>
         <!-- Category filter pills -->
@@ -699,6 +701,9 @@
           </button>
           <button type="button" class="reminder-cat" data-cat="heat">
             <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></span> Chaleurs
+          </button>
+          <button type="button" class="reminder-cat" data-cat="medication">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg></span> Médicaments
           </button>
         </div>
         <!-- Period selector -->
@@ -726,7 +731,7 @@
     </section>
 
     <!-- Section Annuaire -->
-    <section id="section-annuaire" class="section" role="tabpanel" hidden>
+    <section id="section-annuaire" class="section" role="tabpanel" aria-labelledby="tab-annuaire" hidden>
       <div class="annuaire-header">
         <div class="annuaire-header__top">
           <h2 class="section-title">Annuaire Vétérinaires</h2>
@@ -752,7 +757,7 @@
     </section>
 
     <!-- Section Calendrier -->
-    <section id="section-calendrier" class="section" role="tabpanel" hidden>
+    <section id="section-calendrier" class="section" role="tabpanel" aria-labelledby="tab-calendrier" hidden>
       <div class="calendar-wrapper">
         <div class="calendar-nav">
           <button type="button" class="btn-icon" id="cal-prev">←</button>
@@ -774,7 +779,7 @@
     </section>
 
     <!-- Section Historique -->
-    <section id="section-historique" class="section" role="tabpanel" hidden>
+    <section id="section-historique" class="section" role="tabpanel" aria-labelledby="tab-historique" hidden>
       <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Historique Complet</h2>
       <div class="table-controls" role="group" aria-label="Filtres historique">
         <div class="table-control">
@@ -834,7 +839,7 @@
           <div class="form-group"><label class="form-label" for="ea-species">Espèce</label><select class="form-input" id="ea-species"><option value="Canine">Canine (Chien)</option><option value="Féline">Féline (Chat)</option><option value="Autre">Autre</option></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label" for="ea-race">Race</label><input class="form-input" id="ea-race"></div>
+          <div class="form-group"><label class="form-label" for="ea-race">Race</label><input class="form-input" id="ea-race" list="breed-suggestions"></div>
           <div class="form-group"><label class="form-label" for="ea-sex">Sexe</label><select class="form-input" id="ea-sex"><option value="Mâle">Mâle</option><option value="Femelle">Femelle</option></select></div>
         </div>
         <div class="form-row">
@@ -853,7 +858,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="ea-themeColor">Couleur du carnet</label>
-            <input class="form-input" id="ea-themeColor" type="color" value="#4F46E5">
+            <input class="form-input" id="ea-themeColor" type="color" value="#0B5450">
           </div>
         </div>
         <div class="form-group">
@@ -1121,6 +1126,17 @@
             </select>
           </div>
         </div>
+        <div class="form-group" id="n-symptom-group" hidden>
+          <label class="form-label" for="n-symptom-type">Symptôme observé</label>
+          <select class="form-input" id="n-symptom-type"></select>
+          <label class="form-label" style="margin-top:8px">Sévérité</label>
+          <input type="hidden" id="n-severity" value="Normal">
+          <div class="checkup-levels">
+            <button type="button" class="checkup-level checkup-level-1" data-severity-target="n-severity" data-value="Normal">Normal</button>
+            <button type="button" class="checkup-level checkup-level-2" data-severity-target="n-severity" data-value="À surveiller">À surveiller</button>
+            <button type="button" class="checkup-level checkup-level-3" data-severity-target="n-severity" data-value="Préoccupant">Préoccupant</button>
+          </div>
+        </div>
         <div class="form-group"><label class="form-label" for="n-title">Titre</label><input class="form-input" id="n-title" required placeholder="Titre de la note"></div>
         <div class="form-group"><label class="form-label" for="n-content">Contenu</label><textarea class="form-input" id="n-content" rows="4" placeholder="Détails..."></textarea></div>
         <div class="modal-actions">
@@ -1145,6 +1161,17 @@
               <option value="alimentation">Alimentation</option>
               <option value="autre">Autre</option>
             </select>
+          </div>
+        </div>
+        <div class="form-group" id="en-symptom-group" hidden>
+          <label class="form-label" for="en-symptom-type">Symptôme observé</label>
+          <select class="form-input" id="en-symptom-type"></select>
+          <label class="form-label" style="margin-top:8px">Sévérité</label>
+          <input type="hidden" id="en-severity" value="Normal">
+          <div class="checkup-levels">
+            <button type="button" class="checkup-level checkup-level-1" data-severity-target="en-severity" data-value="Normal">Normal</button>
+            <button type="button" class="checkup-level checkup-level-2" data-severity-target="en-severity" data-value="À surveiller">À surveiller</button>
+            <button type="button" class="checkup-level checkup-level-3" data-severity-target="en-severity" data-value="Préoccupant">Préoccupant</button>
           </div>
         </div>
         <div class="form-group"><label class="form-label" for="en-title">Titre</label><input class="form-input" id="en-title" required></div>
@@ -1575,6 +1602,35 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-pushSettings" aria-hidden="true" role="dialog" aria-labelledby="modal-pushSettings-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-pushSettings-title">Notifications push</h2>
+      <p class="user-profile__hint">Reçois un rappel même quand App'lika n'est pas ouvert (vaccins, soins, etc.).</p>
+      <p class="user-profile__hint" id="push-settings-status"></p>
+      <p class="user-profile__hint" id="push-settings-hint" hidden></p>
+      <div class="form-group">
+        <button type="button" class="btn-primary" id="btn-push-toggle">Activer les notifications push</button>
+      </div>
+      <div class="notif-row">
+        <div><div class="notif-label">Événements canins du mois</div><div class="notif-desc">Rappel groupé une fois par mois (compte, pas par animal)</div></div>
+        <button type="button" class="toggle" id="btn-dog-events-toggle" aria-pressed="false"></button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" data-close="pushSettings">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-monthlySummary" aria-hidden="true" role="dialog" aria-labelledby="modal-monthlySummary-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-monthlySummary-title">Résumé du mois</h2>
+      <div id="monthly-summary-content"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" data-close="monthlySummary">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-addAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-addAnimal-title">
     <div class="modal" role="document">
       <h2 class="modal-title" id="modal-addAnimal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg> Ajouter un Animal</h2>
@@ -1584,7 +1640,7 @@
           <div class="form-group"><label class="form-label" for="aa-species">Espèce</label><select class="form-input" id="aa-species"><option value="Canine">Canine</option><option value="Féline">Féline</option><option value="Autre">Autre</option></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label" for="aa-race">Race</label><input class="form-input" id="aa-race" placeholder="Race"></div>
+          <div class="form-group"><label class="form-label" for="aa-race">Race</label><input class="form-input" id="aa-race" placeholder="Race" list="breed-suggestions"></div>
           <div class="form-group"><label class="form-label" for="aa-sex">Sexe</label><select class="form-input" id="aa-sex"><option value="Mâle">Mâle</option><option value="Femelle">Femelle</option></select></div>
         </div>
         <div class="form-row">
@@ -1606,7 +1662,7 @@
       <div id="onboarding-step-1" class="onboarding-step">
         <div class="onboarding-splash">
           <div class="onboarding-splash__icon"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></div>
-          <h2 class="onboarding-splash__title" id="modal-onboarding-title">Bienvenue sur VetBook</h2>
+          <h2 class="onboarding-splash__title" id="modal-onboarding-title">Bienvenue sur App'lika</h2>
           <p class="onboarding-splash__desc">Le carnet de santé numérique pour vos compagnons. Suivez vaccins, soins, consultations et bien plus.</p>
           <div class="onboarding-dots">
             <span class="onboarding-dot active"></span>
@@ -1671,6 +1727,12 @@
   <!-- Vaccine suggestions datalist -->
   <datalist id="vaccine-suggestions"></datalist>
 
+  <!-- Breed suggestions datalist -->
+  <datalist id="breed-suggestions"></datalist>
+
+  <!-- Vue vétérinaire imprimable (peuplée à la demande, cachée sinon) -->
+  <div id="vet-view-print" hidden></div>
+
   <!-- Bottom Navigation Bar (maquette Pet Profile) -->
   <nav class="bottom-nav" id="bottom-nav">
     <button type="button" class="bottom-nav__item active" data-nav="home" aria-label="Accueil">
@@ -1711,6 +1773,8 @@
 
         <div id="cloud-sync-signedout">
           <p class="user-profile__hint">Connecte-toi pour sauvegarder tes données dans le cloud et les retrouver sur un autre appareil.</p>
+          <div class="cloud-sync-google" id="google-signin-container" hidden></div>
+          <p class="cloud-sync-divider" id="cloud-sync-divider" hidden>ou</p>
           <div class="cloud-sync-form">
             <input type="email" id="cloud-sync-email" class="form-input" placeholder="ton@email.com" autocomplete="email">
             <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Recevoir un lien de connexion</button>
@@ -1719,10 +1783,6 @@
         </div>
 
         <div id="cloud-sync-signedin" hidden>
-          <div class="user-profile__row">
-            <span class="user-profile__row-label">Connecté</span>
-            <span class="user-profile__row-value" id="cloud-sync-email-display"></span>
-          </div>
           <div class="cloud-sync-actions">
             <button type="button" class="action-pill action-pill--primary" id="btn-cloud-push">Sauvegarder dans le cloud</button>
             <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le cloud</button>
@@ -1813,7 +1873,6 @@
 
   <script src="config.js"></script>
   <script src="vendor/qrcode.min.js"></script>
-  <script src="vendor/supabase.js"></script>
   <script src="data-layer.js"></script>
   <script src="app.js"></script>
 </body>

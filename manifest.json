@@ -1,12 +1,12 @@
 {
-  "name": "VetBook — Carnet de Santé Animal",
-  "short_name": "VetBook",
+  "name": "App'lika — Carnet de Santé Animal",
+  "short_name": "App'lika",
   "description": "Carnet de santé pour vos animaux : profil, vaccins, déparasitage, photos et rappels.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#4F46E5",
+  "theme_color": "#0B5450",
   "background_color": "#f8fafc",
   "lang": "fr",
   "icons": [

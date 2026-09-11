@@ -1,27 +1,30 @@
 ---
 name: project-frontend-redesign
 description: "Status of the ongoing full visual redesign of VetBook (all screens), using the frontend-design skill — what's done, what's next, and the design decisions to stay consistent with."
-metadata: 
+metadata:
   node_type: memory
   type: project
-  originSessionId: 8961cc69-88ef-4caa-bbd5-d20774894ccf
-  modified: 2026-08-31T20:03:06.949Z
 ---
 
-Full redesign of VetBook's UI is underway across multiple sessions, using the `frontend-design:frontend-design` skill. User explicitly asked to redo "l'écran d'accueil et tous les écrans" (2026-08-31) after confirming they didn't just want a re-verification of AI-slop risk (already done twice — see below).
+Full redesign of VetBook's UI is underway across multiple sessions, using the `frontend-design:frontend-design` skill.
 
-**Why:** two independent prior reviews (`/impeccable audit` → 15/20, `/impeccable critique` dual-agent → 25/40) both found VetBook's existing visual identity distinctive and low-risk for looking AI-generated, but the critique flagged a real composition problem on the home screen: 7+ stacked sections of equal visual weight, no hierarchy, no focal point (Aesthetic and Minimalist Design heuristic scored 2/4).
+**Design decisions — UPDATED 2026-09-10, supersedes the original palette decision below:**
+- **Primary brand color is now teal, not indigo** (user, 2026-09-10: "je n'aime pas les boutons très arrondis... l'interface n'est pas suffisamment professionnelle... pour la couleur principale choisis teal"). Picked direction **"A — Précision clinique"** from two mocked-up options: deep sober teal, tight radius scale. Tokens:
+  - Light: `--brand: #083F3C`, `--brand-mid: #0B5450` (the interactive color used everywhere), `--brand-light: #4C9B94`, `--coral: #B7433A`, `--coral-hover: #96362F`.
+  - Dark: `--brand: #14B8A6`, `--brand-mid: #2DD4BF`, `--brand-light: #5EEAD4`, `--coral: #E8574A`, `--coral-hover: #D14539`.
+  - Also updated: `manifest.json`/`index.html` theme-color meta, the default per-animal `themeColor` sentinel (2 spots in `app.js` + 1 in `index.html`, must stay in sync), and every hardcoded brand-color `rgba(...)` literal in `styles.css` (gradients/focus-rings/icon-tints — not `var()`-derived, must be updated by hand on any future palette change).
+- **Border-radius consolidated into a 3-tier system** (was 7+ ad hoc values, `6/8/10/12/14/16/20/26px` mixed with 6 different `var(--radius-*)` tokens): `--radius-sm` (8px) for every interactive control (buttons, pills, tabs, toggles, inputs — this fixed the user's main complaint, `.btn-primary`/`.action-pill`/`.reminder-cat` etc. were full pills before); `--radius-lg`/`--radius`/`--radius-card` (12px, now aliased) for cards/sections/modals; `--radius-full` kept only for true circles and *state* indicators (status badges, filter chips, toggle track) — action vs. state is the rule for any new component. ~29 selectors needed manual tier correction beyond the token redefinition — see `git log` around 2026-09-10 if auditing a specific component.
+- Single typeface (Plus Jakarta Sans) — unchanged, not part of this pass.
+- Signature element: per-pet **health status ring** (`computeHealthStatus()`/`buildHealthRing()` in `app.js`) — unchanged in shape, now renders in teal.
 
-**Design decisions to keep consistent across all screens:**
-- Keep the existing brand palette (indigo `#4338CA`/`#4F46E5`/`#818CF8`, coral `#f43f5e`) and single typeface (Plus Jakarta Sans) — these were already validated as non-generic, the diagnosed problem was hierarchy/composition, not color/type choice. Do not swap the palette just to seem different.
-- Signature element established on the home screen: a per-pet **health status ring** (SVG circular arc) — `computeHealthStatus()` / `buildHealthRing()` in `app.js`. The arc grows with what needs attention (not with what's fine): full colored ring = either fully up to date (brand/success tone) or fully overdue (red) — an animal needing zero attention and one needing total attention both read as a "complete" ring, just in different colors. This is the running visual signature; look for ways to echo it (status-as-shape, not just status-as-badge) rather than reinventing a new motif per screen.
-- General principle applied: consolidate redundant displays into one clear hero per screen, demote secondary actions visually (smaller, quieter, below the fold), restraint over decoration — per `frontend-design` skill's "spend your boldness in one place."
+**Verified 2026-09-10:** real browser check in both themes, `getComputedStyle` spot-checks confirmed correct tier/color on key components, zero console errors, lint + build clean.
 
-**Done (2026-08-31):**
-- Home screen (`#view-home`) fully rebuilt: removed `.home-pets-row` (avatar bubbles) and `.home-dashboard` (5 generic stat tiles) — both fully deleted from `app.js` (`renderPetsRow`, `renderDashboard`) and `styles.css`. Pet cards (`.pet-card` in `#home-pet-grid`) now lead with the health ring; secondary actions compacted to one row of icon buttons (was 4 stacked full-width buttons). Whole card is clickable to open the carnet.
-- Fixed two real bugs found while touching this code: "Vétérinaires recommandés" was reading `state.animals[0].vetContacts` (doesn't exist — vet contacts live in the separate `loadVetDirectory()` store) and always fell back to fabricated fake names ("Dr. Martin" etc.); now reads the real directory with an honest empty-state CTA. "Conseils pratiques" showed a hardcoded fake tips array; now reuses the real `DEFAULT_TIPS` content already used elsewhere in the app.
-- Verified in real Chromium (Playwright, temp-installed and removed each time — see [[feedback_playwright_verification]] if that memory exists) across 4 pet states (overdue/soon/ok/empty), zero console errors. Screenshot sent to user, direction approved 2026-08-31.
+**Done (2026-08-31, colors now teal per above):** home screen (`#view-home`) rebuilt — pet cards lead with the health ring, secondary actions compacted. Fixed two bugs found along the way (fake vet names, fake tips array).
 
-**Next (not started yet):** propagate the same discipline to the remaining ~14 screens/tabs: fiche animal détaillée (pet profile detail — planned as the next one, most-visible after home), then vaccins/déparasitage/consultations/médicaments tables, hygiène, activités, chaleurs, journal, calendrier, annuaire, historique, profil utilisateur, vue communauté. No redesign plan written yet for these individually — assess each against the same "one clear focal point, consolidate redundancy, restraint" lens rather than assuming they all need rework (profile page's progressive-disclosure accordion was already praised as good in the critique — likely needs lighter touch than home did).
+**Done (2026-09-10):** fiche animal détaillée (pet profile screen) redesigned.
 
-**How to resume:** re-read this memory, confirm current app.js/styles.css state matches (git log / diff since this was written), then continue with the fiche animal détaillée screen using the same process (brainstorm → self-critique → build → verify in real browser → screenshot → check in with user) that produced the home screen.
+**Done (2026-09-11, via `/impeccable layout`):** the 5 health-table screens (Vaccins, Déparasitage, Consultations, Médicaments, Hygiène) unified onto one `.med-record-card` list pattern — Consultations and Médicaments previously still rendered dead-weight `<table>` markup instead of cards, which was the actual inconsistency (not colors/radius, already fixed). Also fixed along the way: uncolored "Terminé" medication badge (new `.status-neutral` class, `styles.css`), added missing search to Médicaments, removed a duplicate/overridden `@media (max-width:600px)` block for `.table-controls` that a later `@media (max-width:768px)` block already fully superseded (`styles.css` ~3450), and — the one real bug found — search/filter returning zero results silently rendered a blank box on all 5 screens (Vaccins' status-filter had the same gap pre-existing); now shows "Aucun résultat pour cette recherche." Verified in real browser, light+dark, desktop+mobile (375px), incl. confirming Activités/Chaleurs (still real `<table>`-based, untouched, share `.table-controls` CSS) have no regression. `npm run lint` and `npm run build` clean.
+
+**Next:** same discipline on the remaining ~11 screens/tabs (Photos, Nutrition, Activités, Chaleurs, Journal, Check-up, Calendrier, Annuaire, Historique, profil utilisateur, vue communauté) — not yet requested, wait for user direction per the established checkpoint pattern.
+
+**How to resume:** re-read this memory, confirm current `app.js`/`styles.css` state matches, continue with the next screen the user names, same process (brainstorm → critique → build → verify → screenshot → check in).

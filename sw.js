@@ -1,7 +1,7 @@
 /**
- * Service Worker VetBook — cache de l'app shell pour usage hors ligne / PWA
+ * Service Worker App'lika — cache de l'app shell pour usage hors ligne / PWA
  */
-const CACHE_NAME = 'vetbook-v6';
+const CACHE_NAME = 'applika-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -9,7 +9,6 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './vendor/qrcode.min.js',
-  './vendor/supabase.js',
   './data-layer.js'
   // Note : config.js est volontairement absent (spécifique à chaque
   // déploiement, potentiellement inexistant) — Cache.addAll() échouerait
@@ -21,7 +20,7 @@ self.addEventListener('install', function (event) {
     caches.open(CACHE_NAME)
       .then(function (cache) { return cache.addAll(ASSETS); })
       .then(function () { return self.skipWaiting(); })
-      .catch(function (err) { console.warn('VetBook SW install:', err); })
+      .catch(function (err) { console.warn('App\'lika SW install:', err); })
   );
 });
 
@@ -54,6 +53,37 @@ self.addEventListener('fetch', function (event) {
           return f || new Response('Hors ligne', { status: 503, statusText: 'Service Unavailable' });
         });
       });
+    })
+  );
+});
+
+// ——— Web Push : reçoit un rappel même app fermée, envoyé par la fonction
+// planifiée Vercel (api/cron/send-reminders.js). ———
+self.addEventListener('push', function (event) {
+  var data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (err) { /* payload non JSON, on garde les valeurs par défaut */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'App\'lika', {
+      body: data.body || '',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: data.tag || 'vetbook-reminder',
+      data: { url: data.url || './' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url) || './';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        if ('focus' in list[i]) return list[i].focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });

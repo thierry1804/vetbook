@@ -1,5 +1,5 @@
 /**
- * VetBook — Carnet de Santé Animal
+ * App'lika — Carnet de Santé Animal
  * Application web : gestion du profil animal, vaccins, déparasitage, photos, alertes.
  * Données persistées dans localStorage.
  */
@@ -60,7 +60,7 @@
   // ——— i18n ———————————————————————————————————————————————————
   var locales = {};
   locales.fr = {
-    appName: 'VetBook',
+    appName: 'App\'lika',
     home: 'Mes animaux',
     profile: 'Profil',
     vaccines: 'Vaccins',
@@ -90,8 +90,8 @@
     birthday: 'Joyeux anniversaire {0} !',
     confirmDelete: 'Êtes-vous sûr de vouloir supprimer ?',
     lastAnimal: 'Impossible de supprimer le dernier animal.',
-    welcome: 'Bienvenue sur VetBook !',
-    onboardingDesc: 'VetBook est votre carnet de santé animal numérique.',
+    welcome: 'Bienvenue sur App\'lika !',
+    onboardingDesc: 'App\'lika est votre carnet de santé animal numérique.',
     printTitle: 'Carnet de santé — {0}',
     shareTitle: 'Carnet de santé de {0}',
     noVaccines: 'Aucun vaccin enregistré pour {0}',
@@ -119,6 +119,9 @@
   var THEME_KEY = 'vetbook_theme';
   var NOTIF_CHECK_KEY = 'vetbook_notif_last_check';
   var ONBOARDING_KEY = 'vetbook_onboarding_done';
+  var MONTHLY_SUMMARY_SEEN_KEY = 'vetbook_monthly_summary_seen';
+  var DOG_EVENTS_NOTIF_KEY = 'vetbook_dog_events_notif_last_month';
+  var DOG_EVENTS_REMINDER_PREF_KEY = 'vetbook_dog_events_reminder_enabled';
 
   var DEFAULT_ANIMAL = {
     id: 1,
@@ -160,6 +163,7 @@
       dewormingReminder: true,
       hygieneReminder: true,
       birthdayReminder: true,
+      medicationReminder: true,
       monthlySummary: false
     }
   };
@@ -185,21 +189,21 @@
   ];
 
   var DEFAULT_TIPS = [
-    { id: 1, title: 'Vérifiez les gencives régulièrement', content: 'Des gencives roses et humides sont signe de bonne santé. Des gencives pâles, bleues ou jaunes nécessitent une visite vétérinaire.', category: 'sante', author: 'VetBook' },
-    { id: 2, title: 'Rappels de vaccins annuels', content: 'N\'oubliez pas les rappels annuels (DHPPi, Leptospirose, Rage). Consultez votre vétérinaire pour le protocole adapté.', category: 'sante', author: 'VetBook' },
-    { id: 3, title: 'Évitez les aliments toxiques', content: 'Chocolat, raisins, oignons, ail, xylitol et noix de macadamia sont toxiques pour les chiens. Gardez-les hors de portée.', category: 'alimentation', author: 'VetBook' },
-    { id: 4, title: 'Transition alimentaire progressive', content: 'Changez la nourriture sur 7 à 10 jours en mélangeant progressivement l\'ancien et le nouveau aliment.', category: 'alimentation', author: 'VetBook' },
-    { id: 5, title: 'Eau fraîche toujours disponible', content: 'Un chien doit boire environ 50-70 ml d\'eau par kg de poids par jour. Renouvelez l\'eau régulièrement.', category: 'alimentation', author: 'VetBook' },
-    { id: 6, title: 'Socialisation avant 4 mois', content: 'La période critique de socialisation est entre 3 et 14 semaines. Exposez votre chiot à différentes personnes, animaux et environnements.', category: 'education', author: 'VetBook' },
-    { id: 7, title: 'Renforcement positif', content: 'Récompensez les bons comportements plutôt que de punir les mauvais. Friandises, caresses et jeu sont vos meilleurs outils.', category: 'education', author: 'VetBook' },
-    { id: 8, title: 'Brossage dentaire 2-3 fois/semaine', content: 'Le tartre s\'accumule vite. Utilisez un dentifrice spécial chien (jamais de dentifrice humain) et une brosse adaptée.', category: 'hygiene', author: 'VetBook' },
-    { id: 9, title: 'Coupe des griffes régulière', content: 'Coupez les griffes toutes les 2-4 semaines. Si vous entendez les griffes cliquer sur le sol, elles sont trop longues.', category: 'hygiene', author: 'VetBook' },
-    { id: 10, title: 'Nettoyage des oreilles', content: 'Nettoyez les oreilles toutes les semaines, surtout pour les races à oreilles tombantes. Utilisez un produit auriculaire vétérinaire.', category: 'hygiene', author: 'VetBook' },
-    { id: 11, title: 'Signes de stress à surveiller', content: 'Bâillements fréquents, léchage des babines, queue entre les pattes, oreilles plaquées : votre chien peut être stressé.', category: 'comportement', author: 'VetBook' },
-    { id: 12, title: 'Exercice quotidien adapté', content: 'Un chien adulte a besoin de 30 min à 2h d\'exercice par jour selon sa race. Variez les activités : marche, jeu, nage.', category: 'comportement', author: 'VetBook' },
-    { id: 13, title: 'Protection anti-parasitaire toute l\'année', content: 'Les puces et tiques sont actives même en hiver. Maintenez un traitement antiparasitaire régulier toute l\'année.', category: 'sante', author: 'VetBook' },
-    { id: 14, title: 'Attention au coup de chaleur', content: 'Ne laissez jamais un chien dans une voiture fermée. Signes : halètement excessif, bave, titubation. Refroidissez progressivement.', category: 'sante', author: 'VetBook' },
-    { id: 15, title: 'Enrichissement mental', content: 'Jouets distributeurs, jeux de flair, tricks : un chien mentalement stimulé est un chien équilibré et heureux.', category: 'comportement', author: 'VetBook' }
+    { id: 1, title: 'Vérifiez les gencives régulièrement', content: 'Des gencives roses et humides sont signe de bonne santé. Des gencives pâles, bleues ou jaunes nécessitent une visite vétérinaire.', category: 'sante', author: 'App\'lika' },
+    { id: 2, title: 'Rappels de vaccins annuels', content: 'N\'oubliez pas les rappels annuels (DHPPi, Leptospirose, Rage). Consultez votre vétérinaire pour le protocole adapté.', category: 'sante', author: 'App\'lika' },
+    { id: 3, title: 'Évitez les aliments toxiques', content: 'Chocolat, raisins, oignons, ail, xylitol et noix de macadamia sont toxiques pour les chiens. Gardez-les hors de portée.', category: 'alimentation', author: 'App\'lika' },
+    { id: 4, title: 'Transition alimentaire progressive', content: 'Changez la nourriture sur 7 à 10 jours en mélangeant progressivement l\'ancien et le nouveau aliment.', category: 'alimentation', author: 'App\'lika' },
+    { id: 5, title: 'Eau fraîche toujours disponible', content: 'Un chien doit boire environ 50-70 ml d\'eau par kg de poids par jour. Renouvelez l\'eau régulièrement.', category: 'alimentation', author: 'App\'lika' },
+    { id: 6, title: 'Socialisation avant 4 mois', content: 'La période critique de socialisation est entre 3 et 14 semaines. Exposez votre chiot à différentes personnes, animaux et environnements.', category: 'education', author: 'App\'lika' },
+    { id: 7, title: 'Renforcement positif', content: 'Récompensez les bons comportements plutôt que de punir les mauvais. Friandises, caresses et jeu sont vos meilleurs outils.', category: 'education', author: 'App\'lika' },
+    { id: 8, title: 'Brossage dentaire 2-3 fois/semaine', content: 'Le tartre s\'accumule vite. Utilisez un dentifrice spécial chien (jamais de dentifrice humain) et une brosse adaptée.', category: 'hygiene', author: 'App\'lika' },
+    { id: 9, title: 'Coupe des griffes régulière', content: 'Coupez les griffes toutes les 2-4 semaines. Si vous entendez les griffes cliquer sur le sol, elles sont trop longues.', category: 'hygiene', author: 'App\'lika' },
+    { id: 10, title: 'Nettoyage des oreilles', content: 'Nettoyez les oreilles toutes les semaines, surtout pour les races à oreilles tombantes. Utilisez un produit auriculaire vétérinaire.', category: 'hygiene', author: 'App\'lika' },
+    { id: 11, title: 'Signes de stress à surveiller', content: 'Bâillements fréquents, léchage des babines, queue entre les pattes, oreilles plaquées : votre chien peut être stressé.', category: 'comportement', author: 'App\'lika' },
+    { id: 12, title: 'Exercice quotidien adapté', content: 'Un chien adulte a besoin de 30 min à 2h d\'exercice par jour selon sa race. Variez les activités : marche, jeu, nage.', category: 'comportement', author: 'App\'lika' },
+    { id: 13, title: 'Protection anti-parasitaire toute l\'année', content: 'Les puces et tiques sont actives même en hiver. Maintenez un traitement antiparasitaire régulier toute l\'année.', category: 'sante', author: 'App\'lika' },
+    { id: 14, title: 'Attention au coup de chaleur', content: 'Ne laissez jamais un chien dans une voiture fermée. Signes : halètement excessif, bave, titubation. Refroidissez progressivement.', category: 'sante', author: 'App\'lika' },
+    { id: 15, title: 'Enrichissement mental', content: 'Jouets distributeurs, jeux de flair, tricks : un chien mentalement stimulé est un chien équilibré et heureux.', category: 'comportement', author: 'App\'lika' }
   ];
 
   // ——— LOF/LOMAD validation patterns ———
@@ -222,6 +226,83 @@
     ],
     Autre: []
   };
+
+  // Curated breed reference (adult weight range in kg) for weight guidance.
+  // Approximate values based on FCI/SCC breed standards — informational only,
+  // not a substitute for veterinary advice.
+  var BREED_DB = {
+    Canine: [
+      { name: 'Labrador Retriever', weightMin: 25, weightMax: 36 },
+      { name: 'Golden Retriever', weightMin: 25, weightMax: 34 },
+      { name: 'Berger Allemand', weightMin: 22, weightMax: 40 },
+      { name: 'Berger Australien', weightMin: 16, weightMax: 32 },
+      { name: 'Border Collie', weightMin: 12, weightMax: 20 },
+      { name: 'Bouledogue Français', weightMin: 8, weightMax: 14 },
+      { name: 'Bouledogue Anglais', weightMin: 18, weightMax: 25 },
+      { name: 'Cavalier King Charles', weightMin: 5, weightMax: 8 },
+      { name: 'Chihuahua', weightMin: 1.5, weightMax: 3 },
+      { name: 'Cocker Spaniel', weightMin: 12, weightMax: 16 },
+      { name: 'Beagle', weightMin: 9, weightMax: 13 },
+      { name: 'Jack Russell Terrier', weightMin: 5, weightMax: 8 },
+      { name: 'Yorkshire Terrier', weightMin: 2, weightMax: 3.5 },
+      { name: 'Shih Tzu', weightMin: 4, weightMax: 7.5 },
+      { name: 'Caniche (Toy)', weightMin: 3, weightMax: 4 },
+      { name: 'Caniche (Moyen)', weightMin: 8, weightMax: 15 },
+      { name: 'Caniche (Standard)', weightMin: 20, weightMax: 32 },
+      { name: 'Rottweiler', weightMin: 35, weightMax: 60 },
+      { name: 'Boxer', weightMin: 25, weightMax: 32 },
+      { name: 'Dogue Allemand', weightMin: 50, weightMax: 90 },
+      { name: 'Saint-Bernard', weightMin: 55, weightMax: 90 },
+      { name: 'Husky Sibérien', weightMin: 16, weightMax: 27 },
+      { name: 'Malamute d\'Alaska', weightMin: 34, weightMax: 43 },
+      { name: 'Dalmatien', weightMin: 20, weightMax: 32 },
+      { name: 'Shar Pei', weightMin: 18, weightMax: 30 },
+      { name: 'Akita Inu', weightMin: 30, weightMax: 45 },
+      { name: 'Bichon Frisé', weightMin: 3, weightMax: 6 },
+      { name: 'Teckel (Standard)', weightMin: 7, weightMax: 15 },
+      { name: 'Teckel (Nain)', weightMin: 3.5, weightMax: 6.5 },
+      { name: 'Setter Anglais', weightMin: 20, weightMax: 32 },
+      { name: 'Épagneul Breton', weightMin: 13, weightMax: 20 },
+      { name: 'Braque Allemand', weightMin: 20, weightMax: 32 },
+      { name: 'Berger Belge Malinois', weightMin: 20, weightMax: 30 },
+      { name: 'Terre-Neuve', weightMin: 45, weightMax: 68 },
+      { name: 'Bull Terrier', weightMin: 20, weightMax: 32 },
+      { name: 'Staffordshire Bull Terrier', weightMin: 11, weightMax: 17 },
+      { name: 'American Staffordshire Terrier', weightMin: 25, weightMax: 40 },
+      { name: 'Pug (Carlin)', weightMin: 6, weightMax: 8 },
+      { name: 'Pékinois', weightMin: 3, weightMax: 6 },
+      { name: 'Whippet', weightMin: 9, weightMax: 19 },
+      { name: 'Lévrier Afghan', weightMin: 22, weightMax: 27 },
+      { name: 'Bichon Maltais', weightMin: 2, weightMax: 4 },
+      { name: 'Spitz Nain (Poméranien)', weightMin: 1.5, weightMax: 3 },
+      { name: 'Colley', weightMin: 18, weightMax: 30 },
+      { name: 'Fox Terrier', weightMin: 7, weightMax: 9 },
+      { name: 'Épagneul Cavalier', weightMin: 5, weightMax: 8 }
+    ],
+    'Féline': [
+      { name: 'Européen', weightMin: 3, weightMax: 6 },
+      { name: 'Maine Coon', weightMin: 4.5, weightMax: 11 },
+      { name: 'Persan', weightMin: 3, weightMax: 6 },
+      { name: 'Siamois', weightMin: 2.5, weightMax: 5 },
+      { name: 'Bengal', weightMin: 3.5, weightMax: 7 },
+      { name: 'British Shorthair', weightMin: 3.5, weightMax: 8 },
+      { name: 'Ragdoll', weightMin: 4.5, weightMax: 9 },
+      { name: 'Sacré de Birmanie', weightMin: 3, weightMax: 6 },
+      { name: 'Sphynx', weightMin: 2.5, weightMax: 5.5 },
+      { name: 'Abyssin', weightMin: 3, weightMax: 5 },
+      { name: 'Norvégien', weightMin: 3.5, weightMax: 9 },
+      { name: 'Chartreux', weightMin: 3, weightMax: 7 }
+    ],
+    Autre: []
+  };
+
+  // Common symptom types suggested in the health journal
+  var SYMPTOM_TYPES = [
+    'Vomissements', 'Diarrhée', 'Perte d\'appétit', 'Léthargie / fatigue',
+    'Toux', 'Éternuements', 'Boiterie', 'Démangeaisons', 'Perte de poils',
+    'Soif excessive', 'Difficulté à uriner', 'Halètement excessif',
+    'Gonflement', 'Douleur apparente', 'Changement de comportement', 'Autre'
+  ];
 
   var state = {
     animals: [],
@@ -320,6 +401,13 @@
     var parts = isoDate.split('-').map(function (x) { return parseInt(x, 10); });
     if (parts.length !== 3 || parts.some(isNaN)) return null;
     return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function calculateAgeMonths(dob) {
+    if (!dob) return null;
+    var d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((new Date() - d) / (864e5 * 30.44));
   }
 
   // ——— Toast system ————————————————————————————————————————
@@ -451,10 +539,11 @@
         if (a.animal.height === undefined) a.animal.height = null;
         if (!a.notifications) a.notifications = {};
         if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
+        if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
       });
       return true;
     } catch (e) {
-      console.warn('VetBook: erreur lecture localStorage', e);
+      console.warn('App\'lika: erreur lecture localStorage', e);
       return false;
     }
   }
@@ -467,7 +556,7 @@
         currentAnimalId: state.currentAnimalId
       }));
     } catch (e) {
-      console.warn('VetBook: erreur écriture localStorage', e);
+      console.warn('App\'lika: erreur écriture localStorage', e);
     }
   }
 
@@ -617,7 +706,7 @@
           var avatarKey = state.nextId++;
           await putPhotoBlob(avatarKey, blob, blob.type);
           a.avatar = avatarKey;
-        } catch (err) { console.warn('VetBook: migration avatar échouée', err); }
+        } catch (err) { console.warn('App\'lika: migration avatar échouée', err); }
       }
       if (Array.isArray(wrap.photos)) {
         for (var p of wrap.photos) {
@@ -628,7 +717,7 @@
             p.id = key;
             await putPhotoBlob(key, blob2, blob2.type);
             delete p.src;
-          } catch (err) { console.warn('VetBook: migration photo échouée', err); }
+          } catch (err) { console.warn('App\'lika: migration photo échouée', err); }
         }
       }
     }
@@ -681,6 +770,8 @@
   function computeHealthStatus(data) {
     var items = [].concat(data.vaccines || [], data.dewormings || [], data.hygiene || []);
     var trackable = items.filter(function (x) { return !!x.next; });
+    var activeMeds = (data.medications || []).filter(function (m) { return m.active !== false && !!m.endDate; });
+    trackable = trackable.concat(activeMeds.map(function (m) { return { next: m.endDate }; }));
     var overdue = 0, soon = 0;
     trackable.forEach(function (x) {
       var st = getStatus(x.next);
@@ -697,7 +788,8 @@
     var items = [].concat(
       (data.vaccines || []).map(function (v) { return { name: v.name, next: v.next, kind: 'Vaccin' }; }),
       (data.dewormings || []).map(function (d) { return { name: d.name, next: d.next, kind: 'Déparasitage' }; }),
-      (data.hygiene || []).map(function (h) { return { name: h.type, next: h.next, kind: 'Soin' }; })
+      (data.hygiene || []).map(function (h) { return { name: h.type, next: h.next, kind: 'Soin' }; }),
+      (data.medications || []).filter(function (m) { return m.active !== false; }).map(function (m) { return { name: m.name, next: m.endDate, kind: 'Médicament' }; })
     ).filter(function (x) { return !!x.next; });
     if (!items.length) return null;
     items.sort(function (a, b) { return isoToLocalDate(a.next) - isoToLocalDate(b.next); });
@@ -897,6 +989,16 @@
       }).join('') +
       xLabels +
       '</svg>';
+
+    var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
+    var ageMonths = calculateAgeMonths(data.animal.dob);
+    if (breedRange && ageMonths != null && ageMonths >= 12) {
+      var lastW = weights[weights.length - 1];
+      var inRange = lastW >= breedRange.min && lastW <= breedRange.max;
+      container.innerHTML += '<div class="breed-weight-badge ' + (inRange ? 'in-range' : 'out-of-range') + '">' +
+        'Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' +
+        (inRange ? ' ✓' : ' ⚠') + '</div>';
+    }
   }
 
   function collectProfileTasks(data) {
@@ -1034,19 +1136,51 @@
           }
         });
       });
+
+      (data.medications || []).forEach(function (m) {
+        if (m.active === false || !m.endDate) return;
+        var nd = isoToLocalDate(m.endDate);
+        if (nd && nd <= rangeEnd) {
+          reminders.push({
+            type: 'medication',
+            name: m.name || '—',
+            pet: petName,
+            date: m.endDate,
+            dateObj: nd,
+            overdue: nd < now
+          });
+        }
+      });
     });
 
     reminders.sort(function (a, b) { return a.dateObj - b.dateObj; });
 
+    var reminderTabs = document.querySelector('.home-reminders__tabs');
+    var seeAllReminders = document.getElementById('btn-see-all-reminders');
+    if (reminderTabs) reminderTabs.hidden = reminders.length === 0;
+    if (seeAllReminders) seeAllReminders.hidden = reminders.length === 0;
+
     if (reminders.length === 0) {
+      var hasAnimals = state.animals.length > 0;
+      var emptyCopy = !hasAnimals
+        ? 'Les prochains soins et rendez-vous apparaîtront ici une fois son carnet créé.'
+        : filterMode === 'week'
+          ? 'Aucun rappel prévu cette semaine.'
+          : filterMode === 'month'
+            ? 'Aucun rappel prévu ce mois-ci.'
+            : 'Aucun rappel à venir. Tout est à jour.';
+      var emptyAction = hasAnimals
+        ? '<button type="button" class="action-pill action-pill--primary" id="btn-add-reminder-empty">Créer un rappel</button>'
+        : '';
       list.innerHTML = '<div class="home-reminders__empty">' +
         '<div class="home-reminders__empty-icon">' + ico('clipboard', 18) + '</div>' +
-        '<p class="home-reminders__empty-text">Aucun rappel pour le moment.<br>Ajoutez des soins pour suivre vos animaux !</p>' +
-        '<button type="button" class="action-pill action-pill--primary" id="btn-add-reminder-empty">+ Ajouter un rappel</button>' +
+        '<p class="home-reminders__empty-text">' + emptyCopy + '</p>' +
+        emptyAction +
         '</div>';
       var addBtn = document.getElementById('btn-add-reminder-empty');
       if (addBtn) addBtn.addEventListener('click', function () {
-        if (state.animals.length > 0) { showDetail(); openModal('addVaccin'); }
+        showDetail();
+        switchTab('alertes');
       });
       return;
     }
@@ -1054,6 +1188,7 @@
     list.innerHTML = reminders.slice(0, 5).map(function (r) {
       var icon = r.type === 'vaccine' ? ico('vaccine', 18) : ico('pill', 18);
       var iconClass = r.type === 'vaccine' ? 'vaccine' : 'deworming';
+      if (r.type === 'medication') { icon = ico('pill', 18); iconClass = 'deworming'; }
       var dateStr = fmtDate(r.date);
       return '<div class="home-reminder-card">' +
         '<div class="home-reminder-card__icon home-reminder-card__icon--' + iconClass + '">' + icon + '</div>' +
@@ -1100,6 +1235,7 @@
   function renderHome() {
     var grid = document.getElementById('home-pet-grid');
     var emptyEl = document.getElementById('home-empty');
+    var actionPills = document.getElementById('home-action-pills');
     if (!grid) return;
 
     renderHomeReminders('all');
@@ -1108,9 +1244,11 @@
     if (state.animals.length === 0) {
       grid.innerHTML = '';
       if (emptyEl) emptyEl.hidden = false;
+      if (actionPills) actionPills.hidden = true;
       return;
     }
     if (emptyEl) emptyEl.hidden = true;
+    if (actionPills) actionPills.hidden = false;
 
     grid.innerHTML = state.animals.map(function (data, idx) {
       var a = data.animal;
@@ -1224,8 +1362,7 @@
     viewHome.classList.remove('view-enter');
     void viewHome.offsetWidth;
     viewHome.classList.add('view-enter');
-    document.getElementById('animal-select').style.display = 'none';
-    document.getElementById('btn-accueil').hidden = true;
+    document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
     setBottomNavActive('home');
     renderHome();
@@ -1245,8 +1382,6 @@
     viewDetail.classList.remove('view-enter');
     void viewDetail.offsetWidth;
     viewDetail.classList.add('view-enter');
-    document.getElementById('animal-select').style.display = '';
-    document.getElementById('btn-accueil').hidden = false;
     document.getElementById('fab-container').hidden = false;
     renderAnimalSelect();
     uiState.petChartMode = 'weight';
@@ -1340,7 +1475,7 @@
 
     var ageEl = document.getElementById('age-display');
     if (a.dob) {
-      var months = Math.floor((new Date() - new Date(a.dob)) / (864e5 * 30.44));
+      var months = calculateAgeMonths(a.dob);
       if (ageEl) ageEl.textContent = months < 24 ? months + ' mois' : Math.floor(months / 12) + ' ans';
     } else {
       if (ageEl) ageEl.textContent = '—';
@@ -1586,7 +1721,7 @@
         }
       }
     } catch (e) {
-      console.warn('VetBook: QR generation failed', e);
+      console.warn('App\'lika: QR generation failed', e);
       section.hidden = true;
     }
   }
@@ -1599,8 +1734,7 @@
       var name = escapeHtml(an.animal.name || 'Sans nom');
       return '<option value="' + an.id + '"' + (an.id === state.currentAnimalId ? ' selected' : '') + '>' + name + '</option>';
     }).join('');
-    if (state.animals.length <= 1) sel.style.display = 'none';
-    else sel.style.display = '';
+    sel.hidden = state.animals.length <= 1;
   }
 
   function onAnimalSelectChange() {
@@ -1626,10 +1760,35 @@
     }).join('');
   }
 
+  // ——— Breed suggestions & weight reference ——————————————————
+  function getBreedList(species) {
+    return BREED_DB[species] || BREED_DB.Canine;
+  }
+
+  function populateBreedSuggestions(species) {
+    var datalist = document.getElementById('breed-suggestions');
+    if (!datalist) return;
+    var breeds = getBreedList(species);
+    datalist.innerHTML = breeds.map(function (b) {
+      return '<option value="' + escapeHtml(b.name) + '">';
+    }).join('');
+  }
+
+  function findBreedWeightRange(species, race) {
+    if (!race) return null;
+    var breeds = getBreedList(species);
+    var match = breeds.find(function (b) { return b.name.toLowerCase() === race.trim().toLowerCase(); });
+    return match ? { min: match.weightMin, max: match.weightMax } : null;
+  }
+
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
     var data = getCurrent();
     if (!data && name !== 'addAnimal' && name !== 'onboarding') return;
+
+    if (name === 'addAnimal') {
+      populateBreedSuggestions(document.getElementById('aa-species').value || 'Canine');
+    }
 
     if (name === 'editAnimal') {
       var a = data.animal;
@@ -1638,10 +1797,11 @@
         var el = document.getElementById('ea-' + f);
         if (el) el.value = a[f] != null && a[f] !== '' ? a[f] : '';
       });
+      populateBreedSuggestions(a.species || 'Canine');
       var hEl = document.getElementById('ea-height');
       if (hEl) hEl.value = a.height != null && a.height !== '' ? a.height : '';
       var colorEl = document.getElementById('ea-themeColor');
-      if (colorEl) colorEl.value = a.themeColor || '#4F46E5';
+      if (colorEl) colorEl.value = a.themeColor || '#0B5450';
       var prev = document.getElementById('edit-avatar-preview');
       if (prev) {
         prev.innerHTML = '';
@@ -1744,6 +1904,10 @@
       document.getElementById('n-category').value = 'sante';
       document.getElementById('n-title').value = '';
       document.getElementById('n-content').value = '';
+      var nSymptomGroup = document.getElementById('n-symptom-group');
+      if (nSymptomGroup) nSymptomGroup.hidden = false;
+      document.getElementById('n-symptom-type').value = SYMPTOM_TYPES[0];
+      setSeverityValue(nSymptomGroup, document.getElementById('n-severity'), 'Normal');
     }
 
     if (name === 'editNote') {
@@ -1755,6 +1919,10 @@
       document.getElementById('en-category').value = n.category || 'autre';
       document.getElementById('en-title').value = n.title || '';
       document.getElementById('en-content').value = n.content || '';
+      var enSymptomGroup = document.getElementById('en-symptom-group');
+      if (enSymptomGroup) enSymptomGroup.hidden = (n.category !== 'sante');
+      document.getElementById('en-symptom-type').value = n.symptomType || SYMPTOM_TYPES[0];
+      setSeverityValue(enSymptomGroup, document.getElementById('en-severity'), n.severity || 'Normal');
     }
 
     // Hygiene modals
@@ -1904,6 +2072,15 @@
       if (fileNameEl) fileNameEl.textContent = 'Aucun fichier sélectionné';
     }
 
+    if (name === 'pushSettings') {
+      refreshPushSettingsUI();
+      refreshDogEventsToggleUI();
+    }
+
+    if (name === 'monthlySummary') {
+      renderMonthlySummary();
+    }
+
     if (name === 'editVaccin') {
       var vid = uiState.editVaccineId;
       var v = Array.isArray(data.vaccines) ? data.vaccines.find(function (x) { return x.id === vid; }) : null;
@@ -1984,7 +2161,7 @@
       a.height = hIn.value.trim() === '' || isNaN(hv) ? null : hv;
     }
     var colorEl = document.getElementById('ea-themeColor');
-    if (colorEl) a.themeColor = colorEl.value === '#4F46E5' ? '' : colorEl.value;
+    if (colorEl) a.themeColor = colorEl.value === '#0B5450' ? '' : colorEl.value;
     closeModal('editAnimal');
     saveState();
     renderProfile();
@@ -2095,7 +2272,7 @@
       },
       owner: JSON.parse(JSON.stringify((getCurrent() || {}).owner || { name: '', phone: '', email: '', clinic: '', address: '' })),
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
-      notifications: { vaccineReminder: true, dewormingReminder: true, birthdayReminder: true, monthlySummary: false }
+      notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
     };
     state.animals.push(newAnimal);
     state.currentAnimalId = newAnimal.id;
@@ -2133,7 +2310,7 @@
       if (oldKey != null && oldKey !== inputKey) deletePhotoBlob(oldKey).catch(function () {});
       saveState();
       renderProfile();
-    }).catch(function (err) { console.warn('VetBook: avatar upload échoué', err); })
+    }).catch(function (err) { console.warn('App\'lika: avatar upload échoué', err); })
     .finally(function () { e.target.value = ''; });
   }
 
@@ -2166,7 +2343,7 @@
       renderGallery();
       renderProfile();
       showToast(results.filter(Boolean).length + ' photo(s) ajoutée(s)', 'success');
-    }).catch(function (err) { console.warn('VetBook: upload photos échoué', err); });
+    }).catch(function (err) { console.warn('App\'lika: upload photos échoué', err); });
   }
 
   function renderGallery() {
@@ -2175,10 +2352,10 @@
     if (!data || !grid) return;
 
     if (data.photos.length === 0) {
-      grid.innerHTML = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></div>' +
+      grid.innerHTML = '<button type="button" class="gallery-add" id="gallery-add-trigger"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></button>' +
         '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:4px solid var(--border)">' + ico('camera') + '</div><p>' + t('noPhotos', escapeHtml(data.animal.name || '')) + '</p></div>';
     } else {
-      var addBtn = '<div class="gallery-add" id="gallery-add-trigger" role="button" tabindex="0"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></div>';
+      var addBtn = '<button type="button" class="gallery-add" id="gallery-add-trigger"><span class="gallery-add-icon">' + ico('camera', 18) + '</span><span>Ajouter une photo</span></button>';
       var items = data.photos.map(function (p) {
         var photoId = p.id;
         var legacySrc = (p && typeof p.src === 'string') ? escapeHtml(p.src) : '';
@@ -2296,11 +2473,18 @@
   }
 
   // ——— Vaccines ————————————————————————————————————————
+  // Markup partagée pour l'état vide des 5 écrans "tableaux santé" (Vaccins,
+  // Déparasitage, Consultations, Médicaments, Hygiène) — un seul rendu au
+  // lieu de deux implémentations divergentes.
+  function medicalEmptyStateHtml(iconName, text) {
+    return '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border);margin-left:auto;margin-right:auto">' + ico(iconName) + '</div><p>' + text + '</p></div>';
+  }
+
   function renderVaccines() {
     var data = getCurrent();
-    var tbody = document.getElementById('vaccine-table');
+    var cardsContainer = document.getElementById('vaccine-cards');
     var alertsEl = document.getElementById('vaccine-alerts');
-    if (!data || !tbody) return;
+    if (!data || !cardsContainer) return;
 
     var searchQ = (document.getElementById('vaccine-search')?.value || '').toLowerCase().trim();
     var statusFilter = document.getElementById('vaccine-status-filter')?.value || 'all';
@@ -2336,19 +2520,10 @@
       return dateB - dateA;
     });
 
-    // Render as cards (Pawly style) inside the tbody's parent
-    var cardsContainer = document.getElementById('vaccine-cards');
-    var tableScroll = tbody.closest('.table-scroll');
-    if (!cardsContainer) {
-      cardsContainer = document.createElement('div');
-      cardsContainer.id = 'vaccine-cards';
-      cardsContainer.className = 'medical-cards';
-      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
-    }
-    if (tableScroll) tableScroll.style.display = 'none';
-
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('vaccine') + '</div><p>' + t('noVaccines', escapeHtml(data.animal.name || '')) + '</p></div>';
+      cardsContainer.innerHTML = medicalEmptyStateHtml('vaccine', t('noVaccines', escapeHtml(data.animal.name || '')));
+    } else if (list.length === 0) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('search', 'Aucun résultat pour cette recherche.');
     } else {
       cardsContainer.innerHTML = list.map(function (v) {
         var st = getStatus(v.next);
@@ -2462,8 +2637,8 @@
   // ——— Dewormings ————————————————————————————————————
   function renderDewormings() {
     var data = getCurrent();
-    var tbody = document.getElementById('deworming-table');
-    if (!data || !tbody) return;
+    var cardsContainer = document.getElementById('deworming-cards');
+    if (!data || !cardsContainer) return;
 
     var searchQ = (document.getElementById('deworming-search')?.value || '').toLowerCase().trim();
     var statusFilter = document.getElementById('deworming-status-filter')?.value || 'all';
@@ -2499,19 +2674,10 @@
       return dateB - dateA;
     });
 
-    // Render as cards (Pawly style)
-    var cardsContainer = document.getElementById('deworming-cards');
-    var tableScroll = tbody.closest('.table-scroll');
-    if (!cardsContainer) {
-      cardsContainer = document.createElement('div');
-      cardsContainer.id = 'deworming-cards';
-      cardsContainer.className = 'medical-cards';
-      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
-    }
-    if (tableScroll) tableScroll.style.display = 'none';
-
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('pill') + '</div><p>' + t('noDewormings', escapeHtml(data.animal.name || '')) + '</p></div>';
+      cardsContainer.innerHTML = medicalEmptyStateHtml('pill', t('noDewormings', escapeHtml(data.animal.name || '')));
+    } else if (list.length === 0) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('search', 'Aucun résultat pour cette recherche.');
     } else {
       cardsContainer.innerHTML = list.map(function (d) {
         var st = d.next ? getStatus(d.next) : null;
@@ -2615,9 +2781,8 @@
   // ——— Consultations ————————————————————————————————————
   function renderConsultations() {
     var data = getCurrent();
-    var tbody = document.getElementById('consult-table');
-    var emptyEl = document.getElementById('consult-empty');
-    if (!data || !tbody) return;
+    var cardsContainer = document.getElementById('consult-cards');
+    if (!data || !cardsContainer) return;
 
     var list = Array.isArray(data.consultations) ? data.consultations.slice() : [];
     var searchQ = (document.getElementById('consult-search')?.value || '').toLowerCase().trim();
@@ -2646,24 +2811,34 @@
     }
 
     if (list.length === 0 && !searchQ) {
-      tbody.innerHTML = '';
-      if (emptyEl) {
-        emptyEl.hidden = false;
-        var emptyText = document.getElementById('consult-empty-text');
-        if (emptyText) emptyText.textContent = t('noConsultations', escapeHtml(data.animal.name || ''));
-      }
+      cardsContainer.innerHTML = medicalEmptyStateHtml('stethoscope', t('noConsultations', escapeHtml(data.animal.name || '')));
+    } else if (list.length === 0) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('search', 'Aucun résultat pour cette recherche.');
     } else {
-      if (emptyEl) emptyEl.hidden = true;
-      tbody.innerHTML = list.map(function (c) {
-        return '<tr><td>' + fmtDate(c.date) + '</td>' +
-          '<td><strong>' + escapeHtml(c.reason || '') + '</strong>' + (c.diagnosis ? '<br><span class="table-muted">' + escapeHtml(c.diagnosis) + '</span>' : '') + '</td>' +
-          '<td>' + escapeHtml(c.vet || '—') + '</td>' +
-          '<td>' + (c.cost != null && c.cost !== '' ? fmtCost(c.cost) : '—') + '</td>' +
-          '<td><button type="button" class="btn-edit" data-consult-id="' + c.id + '">Modifier</button> <button type="button" class="btn-delete" data-consult-id="' + c.id + '">✕</button></td></tr>';
+      cardsContainer.innerHTML = list.map(function (c) {
+        var hasCost = c.cost != null && c.cost !== '';
+        return '<div class="med-record-card">' +
+          '<div class="med-record-card__icon med-record-card__icon--consult">' + ico('stethoscope', 18) + '</div>' +
+          '<div class="med-record-card__body">' +
+            '<div class="med-record-card__header">' +
+              '<div class="med-record-card__title">' + escapeHtml(c.reason || '') + '</div>' +
+              (hasCost ? '<span class="med-record-card__status status-neutral">' + fmtCost(c.cost) + '</span>' : '') +
+            '</div>' +
+            (c.diagnosis ? '<div class="med-record-card__meta">' + escapeHtml(c.diagnosis) + '</div>' : '') +
+            '<div class="med-record-card__dates">' +
+              '<span>Le ' + fmtDate(c.date) + '</span>' +
+              (c.vet ? '<span>Dr. ' + escapeHtml(c.vet) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="med-record-card__actions">' +
+            '<button type="button" class="med-record-card__btn" data-consult-id="' + c.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-consult-id="' + c.id + '" data-action="delete" title="Supprimer">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
-    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = parseInt(btn.getAttribute('data-consult-id'), 10);
         confirmDelete('Supprimer cette consultation ?', function () {
@@ -2680,7 +2855,7 @@
       });
     });
 
-    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         uiState.editConsultId = parseInt(btn.getAttribute('data-consult-id'), 10);
         openModal('editConsult');
@@ -2734,34 +2909,53 @@
   // ——— Medications ———————————————————————————————————————
   function renderMedications() {
     var data = getCurrent();
-    var tbody = document.getElementById('medication-table');
-    var emptyEl = document.getElementById('medication-empty');
-    if (!data || !tbody) return;
+    var cardsContainer = document.getElementById('medication-cards');
+    if (!data || !cardsContainer) return;
 
+    var searchQ = (document.getElementById('medication-search')?.value || '').toLowerCase().trim();
     var list = Array.isArray(data.medications) ? data.medications.slice() : [];
+
+    if (searchQ) {
+      list = list.filter(function (m) {
+        return (m.name || '').toLowerCase().includes(searchQ) || (m.dosage || '').toLowerCase().includes(searchQ) || (m.frequency || '').toLowerCase().includes(searchQ);
+      });
+    }
+
     list.sort(function (a, b) { return new Date(b.startDate || 0) - new Date(a.startDate || 0); });
 
-    if (list.length === 0) {
-      tbody.innerHTML = '';
-      if (emptyEl) emptyEl.hidden = false;
+    if (list.length === 0 && !searchQ) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('pill', 'Aucun médicament enregistré');
+    } else if (list.length === 0) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('search', 'Aucun résultat pour cette recherche.');
     } else {
-      if (emptyEl) emptyEl.hidden = true;
       var todayDt = new Date();
-      tbody.innerHTML = list.map(function (m) {
+      cardsContainer.innerHTML = list.map(function (m) {
         var isActive = m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= todayDt);
         var statusHtml = isActive
-          ? '<span class="status status-ok"><span class="status-dot"></span>En cours</span>'
-          : '<span class="status"><span class="status-dot"></span>Terminé</span>';
-        return '<tr><td><strong>' + escapeHtml(m.name || '') + '</strong></td>' +
-          '<td>' + escapeHtml(m.dosage || '—') + '<br><span class="table-muted">' + escapeHtml(m.frequency || '') + '</span></td>' +
-          '<td>' + fmtDate(m.startDate) + '</td>' +
-          '<td>' + fmtDate(m.endDate) + '</td>' +
-          '<td>' + statusHtml + '</td>' +
-          '<td><button type="button" class="btn-edit" data-med-id="' + m.id + '">Modifier</button> <button type="button" class="btn-delete" data-med-id="' + m.id + '">✕</button></td></tr>';
+          ? '<span class="med-record-card__status status-ok">En cours</span>'
+          : '<span class="med-record-card__status status-neutral">Terminé</span>';
+        return '<div class="med-record-card">' +
+          '<div class="med-record-card__icon med-record-card__icon--medication">' + ico('pill', 18) + '</div>' +
+          '<div class="med-record-card__body">' +
+            '<div class="med-record-card__header">' +
+              '<div class="med-record-card__title">' + escapeHtml(m.name || '') + '</div>' +
+              statusHtml +
+            '</div>' +
+            (m.dosage || m.frequency ? '<div class="med-record-card__meta">' + escapeHtml([m.dosage, m.frequency].filter(Boolean).join(' · ')) + '</div>' : '') +
+            '<div class="med-record-card__dates">' +
+              '<span>Début : ' + fmtDate(m.startDate) + '</span>' +
+              (m.endDate ? '<span>Fin : ' + fmtDate(m.endDate) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="med-record-card__actions">' +
+            '<button type="button" class="med-record-card__btn" data-med-id="' + m.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-med-id="' + m.id + '" data-action="delete" title="Supprimer">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
-    tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = parseInt(btn.getAttribute('data-med-id'), 10);
         confirmDelete('Supprimer ce médicament ?', function () {
@@ -2778,7 +2972,7 @@
       });
     });
 
-    tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+    cardsContainer.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         uiState.editMedicationId = parseInt(btn.getAttribute('data-med-id'), 10);
         openModal('editMedication');
@@ -2847,13 +3041,20 @@
     } else {
       if (emptyEl) emptyEl.hidden = true;
       var catLabels = { sante: 'Santé', comportement: 'Comportement', alimentation: 'Alimentation', autre: 'Autre' };
+      var severityCls = { 'Normal': 'checkup-ok', 'À surveiller': 'checkup-warn', 'Préoccupant': 'checkup-bad' };
       container.innerHTML = list.map(function (n) {
+        var symptomHtml = n.symptomType ? (
+          '<div class="journal-card-symptom ' + (severityCls[n.severity] || '') + '">' +
+          escapeHtml(n.symptomType) + (n.severity ? ' — ' + escapeHtml(n.severity) : '') +
+          '</div>'
+        ) : '';
         return '<div class="journal-card">' +
           '<div class="journal-card-header">' +
           '<div class="journal-card-title">' + escapeHtml(n.title || 'Sans titre') + '</div>' +
           '<span class="journal-card-cat">' + escapeHtml(catLabels[n.category] || n.category || 'Autre') + '</span>' +
           '</div>' +
           '<div class="journal-card-date">' + fmtDate(n.date) + ' · ' + escapeHtml(relativeDate(n.date)) + '</div>' +
+          symptomHtml +
           '<div class="journal-card-content">' + escapeHtml(n.content || '') + '</div>' +
           '<div class="journal-card-actions">' +
           '<button type="button" class="btn-edit" data-note-id="' + n.id + '">Modifier</button> ' +
@@ -2895,10 +3096,13 @@
     if (!data) return;
     if (!Array.isArray(data.notes)) data.notes = [];
 
+    var category = document.getElementById('n-category').value || 'autre';
     data.notes.push({
       id: state.nextId++, date: date, title: title,
       content: document.getElementById('n-content').value.trim(),
-      category: document.getElementById('n-category').value || 'autre'
+      category: category,
+      symptomType: category === 'sante' ? (document.getElementById('n-symptom-type').value || '') : '',
+      severity: category === 'sante' ? (document.getElementById('n-severity').value || 'Normal') : ''
     });
     closeModal('addNote');
     saveState(); renderJournal();
@@ -2916,6 +3120,8 @@
     n.title = document.getElementById('en-title').value.trim();
     n.content = document.getElementById('en-content').value.trim();
     n.category = document.getElementById('en-category').value || 'autre';
+    n.symptomType = n.category === 'sante' ? (document.getElementById('en-symptom-type').value || '') : '';
+    n.severity = n.category === 'sante' ? (document.getElementById('en-severity').value || 'Normal') : '';
 
     closeModal('editNote');
     uiState.editNoteId = null;
@@ -2923,13 +3129,52 @@
     showToast('Note modifiée', 'success');
   }
 
+  function populateSymptomSelect(selectEl) {
+    if (!selectEl) return;
+    selectEl.innerHTML = SYMPTOM_TYPES.map(function (s) {
+      return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+    }).join('');
+  }
+
+  function setSeverityValue(groupEl, hiddenInput, value) {
+    hiddenInput.value = value;
+    groupEl.querySelectorAll('.checkup-level').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+    });
+  }
+
+  function setupSymptomFields() {
+    populateSymptomSelect(document.getElementById('n-symptom-type'));
+    populateSymptomSelect(document.getElementById('en-symptom-type'));
+
+    [
+      { catSel: 'n-category', groupSel: 'n-symptom-group', hiddenSel: 'n-severity' },
+      { catSel: 'en-category', groupSel: 'en-symptom-group', hiddenSel: 'en-severity' }
+    ].forEach(function (cfg) {
+      var catEl = document.getElementById(cfg.catSel);
+      var groupEl = document.getElementById(cfg.groupSel);
+      var hiddenEl = document.getElementById(cfg.hiddenSel);
+      if (!catEl || !groupEl || !hiddenEl) return;
+
+      catEl.addEventListener('change', function () {
+        groupEl.hidden = catEl.value !== 'sante';
+      });
+
+      groupEl.querySelectorAll('[data-severity-target]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          setSeverityValue(groupEl, hiddenEl, btn.getAttribute('data-value'));
+        });
+      });
+    });
+  }
+
   // ——— Hygiene ————————————————————————————————————————
   var HYGIENE_TYPES = ['Brossage dents', 'Coupe griffes', 'Bain', 'Toilettage', 'Nettoyage oreilles', 'Nettoyage yeux'];
 
   function renderHygiene() {
     var data = getCurrent();
-    var tbody = document.getElementById('hygiene-table');
-    if (!data || !tbody) return;
+    var cardsContainer = document.getElementById('hygiene-cards');
+    if (!data || !cardsContainer) return;
 
     var searchQ = (document.getElementById('hygiene-search')?.value || '').toLowerCase().trim();
     var statusFilter = document.getElementById('hygiene-status-filter')?.value || 'all';
@@ -2962,19 +3207,10 @@
       return dateB - dateA;
     });
 
-    // Render as cards (Pawly style)
-    var cardsContainer = document.getElementById('hygiene-cards');
-    var tableScroll = tbody.closest('.table-scroll');
-    if (!cardsContainer) {
-      cardsContainer = document.createElement('div');
-      cardsContainer.id = 'hygiene-cards';
-      cardsContainer.className = 'medical-cards';
-      if (tableScroll) tableScroll.parentNode.insertBefore(cardsContainer, tableScroll);
-    }
-    if (tableScroll) tableScroll.style.display = 'none';
-
     if (list.length === 0 && !searchQ && statusFilter === 'all') {
-      cardsContainer.innerHTML = '<div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('droplet') + '</div><p>Aucun soin d\'hygiène enregistré</p></div>';
+      cardsContainer.innerHTML = medicalEmptyStateHtml('droplet', 'Aucun soin d\'hygiène enregistré');
+    } else if (list.length === 0) {
+      cardsContainer.innerHTML = medicalEmptyStateHtml('search', 'Aucun résultat pour cette recherche.');
     } else {
       cardsContainer.innerHTML = list.map(function (h) {
         var st = h.next ? getStatus(h.next) : null;
@@ -3301,6 +3537,18 @@
   // ——— Activities ————————————————————————————————————————
   var ACTIVITY_TYPES = ['Promenade', 'Course', 'Jeu', 'Natation', 'Agility', 'Autre'];
 
+  // Approximate MET (Metabolic Equivalent of Task) values per activity type,
+  // used only for a rough calorie estimate — not veterinary-grade data.
+  var MET_TABLE = { 'Promenade': 3.0, 'Course': 8.0, 'Jeu': 4.0, 'Natation': 6.0, 'Agility': 5.5, 'Autre': 3.5 };
+
+  function estimateActivityCalories(activity, weightKg) {
+    if (!weightKg || !activity.duration) return null;
+    var hours = parseFloat(activity.duration) / 60;
+    if (!hours || isNaN(hours)) return null;
+    var met = MET_TABLE[activity.type] != null ? MET_TABLE[activity.type] : MET_TABLE.Autre;
+    return met * weightKg * hours;
+  }
+
   function renderActivities() {
     var data = getCurrent();
     var tbody = document.getElementById('activity-table');
@@ -3320,10 +3568,13 @@
         var typeCounts = {};
         list.forEach(function (a) { typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
         var topType = Object.keys(typeCounts).sort(function (a, b) { return typeCounts[b] - typeCounts[a]; })[0] || '—';
+        var weightKg = data.animal && data.animal.weight != null && data.animal.weight !== '' ? Number(data.animal.weight) : null;
+        var totalCalories = list.reduce(function (s, a) { return s + (estimateActivityCalories(a, weightKg) || 0); }, 0);
         statsEl.innerHTML =
           '<div class="stat-card"><span class="stat-number">' + list.length + '</span><span class="stat-label">Sessions</span></div>' +
           '<div class="stat-card"><span class="stat-number">' + Math.round(totalDuration) + '</span><span class="stat-label">min totales</span></div>' +
           '<div class="stat-card"><span class="stat-number">' + totalDistance.toFixed(1) + '</span><span class="stat-label">km parcourus</span></div>' +
+          '<div class="stat-card"><span class="stat-number">' + (weightKg ? Math.round(totalCalories) : '—') + '</span><span class="stat-label">kcal estimées</span></div>' +
           '<div class="stat-card"><span class="stat-number stat-accent">' + escapeHtml(topType) + '</span><span class="stat-label">Activité favorite</span></div>';
       }
     }
@@ -3850,8 +4101,7 @@
     viewCommunity.classList.remove('view-enter');
     void viewCommunity.offsetWidth;
     viewCommunity.classList.add('view-enter');
-    document.getElementById('animal-select').style.display = 'none';
-    document.getElementById('btn-accueil').hidden = true;
+    document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
 
     document.getElementById('community-events').hidden = (panel !== 'events');
@@ -4119,7 +4369,7 @@
       });
     })
     .catch(function (err) {
-      console.warn('VetBook: Overpass search failed', err);
+      console.warn('App\'lika: Overpass search failed', err);
       listEl.innerHTML = '<p class="empty-state">Erreur lors de la recherche. Vérifiez votre connexion internet.</p>';
       if (statusEl) statusEl.textContent = 'Erreur de recherche';
       showToast('Recherche échouée : ' + err.message, 'error');
@@ -4204,6 +4454,9 @@
       }))
       .concat((data.hygiene || []).filter(function (h) { return h.next; }).map(function (h) {
         return { type: 'hygiene', date: h.next, icon: ico('droplet', 18), title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
+      }))
+      .concat((data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).map(function (m) {
+        return { type: 'medication', date: m.endDate, icon: ico('pill', 18), title: 'Fin de traitement : ' + escapeHtml(m.name || ''), sub: m.dosage ? escapeHtml(m.dosage) : '—' };
       }));
 
     // Heat cycle prediction
@@ -4262,6 +4515,7 @@
       { key: 'vaccineReminder', label: 'Rappels vaccins', desc: '30 jours avant la date de rappel' },
       { key: 'dewormingReminder', label: 'Rappels déparasitage', desc: '7 jours avant la date de rappel' },
       { key: 'hygieneReminder', label: 'Rappels hygiène', desc: '7 jours avant la date de rappel' },
+      { key: 'medicationReminder', label: 'Fin de traitement', desc: '7 jours avant la fin d\'un médicament en cours' },
       { key: 'birthdayReminder', label: 'Anniversaire de ' + animalName, desc: data.animal.dob ? 'Le ' + fmtDate(data.animal.dob) + ' chaque année' : 'Date de naissance à renseigner' },
       { key: 'monthlySummary', label: 'Résumé mensuel', desc: 'Récapitulatif de santé chaque mois' }
     ].map(function (item) {
@@ -4305,9 +4559,9 @@
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff < 0) {
-            new Notification('VetBook — Vaccin en retard', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' (' + Math.abs(diff) + 'j de retard)', icon: 'icons/icon-192.png' });
+            new Notification('App\'lika — Vaccin en retard', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' (' + Math.abs(diff) + 'j de retard)', icon: 'icons/icon-192.png' });
           } else if (diff <= 7) {
-            new Notification('VetBook — Rappel vaccin', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+            new Notification('App\'lika — Rappel vaccin', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
       }
@@ -4319,7 +4573,7 @@
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff >= 0 && diff <= 7) {
-            new Notification('VetBook — Rappel déparasitage', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(d.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+            new Notification('App\'lika — Rappel déparasitage', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(d.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
       }
@@ -4331,7 +4585,7 @@
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff >= 0 && diff <= 7) {
-            new Notification('VetBook — Rappel hygiène', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(h.type) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+            new Notification('App\'lika — Rappel hygiène', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(h.type) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
       }
@@ -4339,10 +4593,66 @@
       if (n.birthdayReminder && data.animal.dob) {
         var dob = isoToLocalDate(data.animal.dob);
         if (dob && today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
-          new Notification('VetBook — Anniversaire !', { body: 'Joyeux anniversaire ' + escapeHtml(data.animal.name) + ' !', icon: 'icons/icon-192.png' });
+          new Notification('App\'lika — Anniversaire !', { body: 'Joyeux anniversaire ' + escapeHtml(data.animal.name) + ' !', icon: 'icons/icon-192.png' });
         }
       }
+
+      if (n.medicationReminder) {
+        (data.medications || []).forEach(function (m) {
+          if (m.active === false || !m.endDate) return;
+          var dt = isoToLocalDate(m.endDate);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff >= 0 && diff <= 7) {
+            new Notification('App\'lika — Fin de traitement', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(m.name) + ' se termine dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
+      if (n.monthlySummary) {
+        checkMonthlySummary(data, todayMid);
+      }
     });
+
+    checkDogEventsReminder(todayMid);
+  }
+
+  // ——— Résumé mensuel : déclenchement une fois par frontière de mois ———
+  function checkMonthlySummary(data, todayMid) {
+    var currentMonthKey = todayMid.getFullYear() + '-' + String(todayMid.getMonth() + 1).padStart(2, '0');
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem(MONTHLY_SUMMARY_SEEN_KEY) || '{}'); } catch (e) { seen = {}; }
+    var animalKey = String(data.id);
+    if (seen[animalKey] === currentMonthKey) return;
+
+    // On ne notifie que si le mois précédent a des données (évite un
+    // résumé vide au tout premier mois d'utilisation).
+    var prevDate = new Date(todayMid.getFullYear(), todayMid.getMonth() - 1, 1);
+    var summary = computeMonthlySummary(data, prevDate.getFullYear(), prevDate.getMonth());
+    seen[animalKey] = currentMonthKey;
+    localStorage.setItem(MONTHLY_SUMMARY_SEEN_KEY, JSON.stringify(seen));
+    if (!summary.hasActivity) return;
+
+    new Notification('App\'lika — Résumé mensuel', {
+      body: 'Le résumé du mois de ' + escapeHtml(data.animal.name) + ' est prêt.',
+      icon: 'icons/icon-192.png'
+    });
+  }
+
+  // ——— Événements canins : rappel groupé une fois par mois (compte, pas par animal) ———
+  function checkDogEventsReminder(todayMid) {
+    var pref = localStorage.getItem(DOG_EVENTS_REMINDER_PREF_KEY);
+    if (pref === 'false') return;
+
+    var currentMonthKey = todayMid.getFullYear() + '-' + String(todayMid.getMonth() + 1).padStart(2, '0');
+    if (localStorage.getItem(DOG_EVENTS_NOTIF_KEY) === currentMonthKey) return;
+    localStorage.setItem(DOG_EVENTS_NOTIF_KEY, currentMonthKey);
+
+    var monthEvents = DEFAULT_DOG_EVENTS.filter(function (e) { return e.month === todayMid.getMonth() + 1; });
+    if (monthEvents.length === 0) return;
+
+    var titles = monthEvents.map(function (e) { return e.title; }).join(', ');
+    new Notification('App\'lika — Événements canins du mois', { body: titles, icon: 'icons/icon-192.png' });
   }
 
   // ——— Calendar view ————————————————————————————————————
@@ -4544,6 +4854,23 @@
       trendHtml = ' · Tendance : ' + (delta > 0 ? '📈 hausse' : (delta < 0 ? '📉 baisse' : '→ stable'));
     }
 
+    // Breed-based weight reference band (adult dogs/cats only)
+    var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
+    var ageMonths = calculateAgeMonths(data.animal.dob);
+    var breedBandSvg = '';
+    var breedHintTxt = '';
+    if (breedRange && ageMonths != null && ageMonths >= 12) {
+      var bandMinW = Math.max(breedRange.min, minW);
+      var bandMaxW = Math.min(breedRange.max, maxW);
+      if (bandMaxW > bandMinW) {
+        var bandYTop = yFor(bandMaxW);
+        var bandYBottom = yFor(bandMinW);
+        breedBandSvg = '<rect x="' + padL + '" y="' + bandYTop.toFixed(2) + '" width="' + (W - padL - padR) + '" height="' + (bandYBottom - bandYTop).toFixed(2) + '" fill="#22c55e" opacity="0.12"/>';
+      }
+      var outOfRange = last < breedRange.min || last > breedRange.max;
+      breedHintTxt = ' · Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' + (outOfRange ? ' ⚠' : ' ✓');
+    }
+
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
       var wTxt = Number(e.weight).toFixed(1).replace(/\.0$/, '');
@@ -4553,12 +4880,13 @@
     container.innerHTML =
       '<div style="position:relative">' +
       '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+      breedBandSvg +
       gridLines +
       '<path d="' + areaPath + '" fill="var(--teal)" opacity="0.1"/>' +
       '<polyline fill="none" stroke="var(--teal-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
       circles +
       '</svg></div>' +
-      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' kg · Variation: ' + deltaTxt + trendHtml + '</div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' kg · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
 
     container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
@@ -4590,6 +4918,76 @@
         if (tip) tip.remove();
       });
     });
+  }
+
+  // ——— Résumé mensuel ——————————————————————————————————————
+  var MONTH_NAMES_FULL = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+  function computeMonthlySummary(data, year, month) {
+    var monthStart = new Date(year, month, 1);
+    var monthEnd = new Date(year, month + 1, 0);
+    var inMonth = function (dateStr) {
+      var d = isoToLocalDate(dateStr);
+      return !!d && d >= monthStart && d <= monthEnd;
+    };
+
+    var vaccinesDone = (data.vaccines || []).filter(function (v) { return inMonth(v.date); });
+    var dewormingsDone = (data.dewormings || []).filter(function (d) { return inMonth(d.date); });
+    var hygieneDone = (data.hygiene || []).filter(function (h) { return inMonth(h.date); });
+
+    var weightEntries = (data.animal.weightHistory || []).filter(function (w) { return inMonth(w.date); });
+    var weightTrend = null;
+    if (weightEntries.length > 0) {
+      var sorted = weightEntries.slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+      var first = Number(sorted[0].weight);
+      var last = Number(sorted[sorted.length - 1].weight);
+      weightTrend = { first: first, last: last, delta: last - first };
+    }
+
+    var activitiesInMonth = (data.activities || []).filter(function (a) { return inMonth(a.date); });
+    var totalDuration = activitiesInMonth.reduce(function (s, a) { return s + (parseFloat(a.duration) || 0); }, 0);
+    var totalDistance = activitiesInMonth.reduce(function (s, a) { return s + (parseFloat(a.distance) || 0); }, 0);
+
+    var hasActivity = vaccinesDone.length + dewormingsDone.length + hygieneDone.length + activitiesInMonth.length > 0 || weightEntries.length > 0;
+
+    return {
+      year: year, month: month,
+      vaccinesDone: vaccinesDone, dewormingsDone: dewormingsDone, hygieneDone: hygieneDone,
+      weightTrend: weightTrend,
+      activityCount: activitiesInMonth.length, totalDuration: totalDuration, totalDistance: totalDistance,
+      nextDue: getNextDueItem(data),
+      hasActivity: hasActivity
+    };
+  }
+
+  function renderMonthlySummary() {
+    var data = getCurrent();
+    var container = document.getElementById('monthly-summary-content');
+    if (!data || !container) return;
+
+    var now = new Date();
+    var s = computeMonthlySummary(data, now.getFullYear(), now.getMonth());
+    var monthLabel = MONTH_NAMES_FULL[s.month] + ' ' + s.year;
+
+    var rows = [];
+    rows.push({ label: 'Vaccins', value: s.vaccinesDone.length });
+    rows.push({ label: 'Vermifuges', value: s.dewormingsDone.length });
+    rows.push({ label: 'Soins d\'hygiène', value: s.hygieneDone.length });
+    rows.push({ label: 'Activités', value: s.activityCount + (s.totalDuration ? ' (' + Math.round(s.totalDuration) + ' min, ' + s.totalDistance.toFixed(1) + ' km)' : '') });
+
+    var weightHtml = s.weightTrend
+      ? '<div class="monthly-summary-row"><span>Poids</span><span>' + s.weightTrend.first.toFixed(1) + ' → ' + s.weightTrend.last.toFixed(1) + ' kg (' + (s.weightTrend.delta >= 0 ? '+' : '') + s.weightTrend.delta.toFixed(1) + ' kg)</span></div>'
+      : '';
+
+    var nextDueHtml = s.nextDue
+      ? '<div class="monthly-summary-row"><span>Prochaine échéance</span><span>' + escapeHtml(s.nextDue.label) + ' — ' + fmtDate(s.nextDue.date) + '</span></div>'
+      : '';
+
+    container.innerHTML =
+      '<h3 class="monthly-summary-title">' + escapeHtml(data.animal.name || 'Animal') + ' — ' + monthLabel + '</h3>' +
+      (s.hasActivity ? '' : '<p class="monthly-summary-empty">Aucune activité enregistrée ce mois-ci pour le moment.</p>') +
+      rows.map(function (r) { return '<div class="monthly-summary-row"><span>' + r.label + '</span><span>' + r.value + '</span></div>'; }).join('') +
+      weightHtml + nextDueHtml;
   }
 
   function renderHistory() {
@@ -4664,11 +5062,13 @@
     if (santeBtn) {
       santeBtn.classList.toggle('active', onSante);
       santeBtn.setAttribute('aria-selected', onSante ? 'true' : 'false');
+      santeBtn.setAttribute('tabindex', onSante ? '0' : '-1');
     }
     if (moreBtn) {
       moreBtn.classList.toggle('active', onMore);
       moreBtn.setAttribute('aria-selected', onMore ? 'true' : 'false');
       moreBtn.setAttribute('aria-expanded', onMore ? 'true' : 'false');
+      moreBtn.setAttribute('tabindex', onMore ? '0' : '-1');
     }
   }
 
@@ -4677,12 +5077,21 @@
     var root = document.getElementById('view-detail');
     if (!root) return;
     root.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); s.hidden = true; });
-    root.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    root.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+    });
 
     var section = document.getElementById('section-' + tabName);
     var tab = root.querySelector('.tab[data-tab="' + tabName + '"]');
     if (section) { section.classList.add('active'); section.hidden = false; }
-    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
+    if (tab) {
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      tab.setAttribute('tabindex', '0');
+      tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
 
     root.classList.toggle('is-pet-profile', tabName === 'profil');
 
@@ -4742,6 +5151,96 @@
       var activeTab = document.querySelector('#view-detail .tab.active');
       var tabName = activeTab && activeTab.getAttribute('data-tab') ? activeTab.getAttribute('data-tab') : 'profil';
       switchTab(tabName);
+    }, 500);
+  }
+
+  function printVetView() {
+    var data = getCurrent();
+    if (!data) return;
+    var a = data.animal;
+    var container = document.getElementById('vet-view-print');
+    if (!container) return;
+
+    var section = function (title, rowsHtml) {
+      return '<div class="vet-view-section"><h2>' + escapeHtml(title) + '</h2>' +
+        (rowsHtml || '<p class="vet-view-empty">Aucune donnée</p>') + '</div>';
+    };
+    var byDateDesc = function (x, y) { return new Date(y.date) - new Date(x.date); };
+
+    var identityHtml =
+      '<table class="vet-view-table"><tbody>' +
+      '<tr><th>Nom</th><td>' + escapeHtml(a.name || '—') + '</td></tr>' +
+      '<tr><th>Espèce</th><td>' + escapeHtml(a.species || '—') + '</td></tr>' +
+      '<tr><th>Race</th><td>' + escapeHtml(a.race || '—') + '</td></tr>' +
+      '<tr><th>Sexe</th><td>' + escapeHtml(a.sex || '—') + '</td></tr>' +
+      '<tr><th>Date de naissance</th><td>' + (a.dob ? fmtDate(a.dob) : '—') + '</td></tr>' +
+      '<tr><th>Puce électronique</th><td>' + escapeHtml(a.chip || '—') + '</td></tr>' +
+      '<tr><th>Stérilisé(e)</th><td>' + escapeHtml(a.sterilise || 'Non') + '</td></tr>' +
+      '<tr><th>Poids actuel</th><td>' + (a.weight != null && a.weight !== '' ? a.weight + ' kg' : '—') + '</td></tr>' +
+      '</tbody></table>';
+
+    var vaccinesRows = (data.vaccines || []).slice().sort(byDateDesc).map(function (v) {
+      return '<tr><td>' + fmtDate(v.date) + '</td><td>' + escapeHtml(v.name || '') + '</td><td>' + (v.next ? fmtDate(v.next) : '—') + '</td><td>' + escapeHtml(v.vet || '') + '</td></tr>';
+    }).join('');
+    var vaccinesTable = vaccinesRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Nom</th><th>Prochain rappel</th><th>Vétérinaire</th></tr></thead><tbody>' + vaccinesRows + '</tbody></table>' : '';
+
+    var dewormingsRows = (data.dewormings || []).slice().sort(byDateDesc).map(function (d) {
+      return '<tr><td>' + fmtDate(d.date) + '</td><td>' + escapeHtml(d.name || '') + '</td><td>' + escapeHtml(d.type || '') + '</td><td>' + (d.next ? fmtDate(d.next) : '—') + '</td></tr>';
+    }).join('');
+    var dewormingsTable = dewormingsRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Nom</th><th>Type</th><th>Prochain rappel</th></tr></thead><tbody>' + dewormingsRows + '</tbody></table>' : '';
+
+    var consultationsRows = (data.consultations || []).slice().sort(byDateDesc).map(function (c) {
+      return '<tr><td>' + fmtDate(c.date) + '</td><td>' + escapeHtml(c.vet || '') + '</td><td>' + escapeHtml(c.reason || '') + '</td><td>' + escapeHtml(c.diagnosis || '') + '</td><td>' + escapeHtml(c.treatment || '') + '</td></tr>';
+    }).join('');
+    var consultationsTable = consultationsRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Vétérinaire</th><th>Motif</th><th>Diagnostic</th><th>Traitement</th></tr></thead><tbody>' + consultationsRows + '</tbody></table>' : '';
+
+    var activeMeds = (data.medications || []).filter(function (m) { return m.active !== false && (!m.endDate || m.endDate >= todayISO()); });
+    var medsRows = activeMeds.map(function (m) {
+      return '<tr><td>' + escapeHtml(m.name || '') + '</td><td>' + escapeHtml(m.dosage || '') + '</td><td>' + escapeHtml(m.frequency || '') + '</td><td>' + (m.endDate ? fmtDate(m.endDate) : '—') + '</td></tr>';
+    }).join('');
+    var medsTable = medsRows ? '<table class="vet-view-table"><thead><tr><th>Nom</th><th>Dosage</th><th>Fréquence</th><th>Fin de traitement</th></tr></thead><tbody>' + medsRows + '</tbody></table>' : '';
+
+    var symptomNotes = (data.notes || []).filter(function (n) { return n.category === 'sante' && n.symptomType; })
+      .slice().sort(byDateDesc).slice(0, 15);
+    var symptomsRows = symptomNotes.map(function (n) {
+      return '<tr><td>' + fmtDate(n.date) + '</td><td>' + escapeHtml(n.symptomType) + '</td><td>' + escapeHtml(n.severity || '') + '</td><td>' + escapeHtml(n.content || '') + '</td></tr>';
+    }).join('');
+    var symptomsTable = symptomsRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Symptôme</th><th>Sévérité</th><th>Notes</th></tr></thead><tbody>' + symptomsRows + '</tbody></table>' : '';
+
+    var weightRows = (Array.isArray(a.weightHistory) ? a.weightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (w) {
+      return '<tr><td>' + fmtDate(w.date) + '</td><td>' + w.weight + ' kg</td></tr>';
+    }).join('');
+    var weightTable = weightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Poids</th></tr></thead><tbody>' + weightRows + '</tbody></table>' : '';
+
+    var ped = data.pedigree || {};
+    var pedigreeTable = (ped.registry && ped.registry !== 'Non inscrit') ? (
+      '<table class="vet-view-table"><tbody>' +
+      '<tr><th>Registre</th><td>' + escapeHtml(ped.registry || '—') + '</td></tr>' +
+      '<tr><th>Numéro d\'enregistrement</th><td>' + escapeHtml(ped.registryNumber || '—') + '</td></tr>' +
+      '<tr><th>Numéro de puce</th><td>' + escapeHtml(ped.chipNumber || '—') + '</td></tr>' +
+      '<tr><th>Père</th><td>' + escapeHtml((ped.sire && ped.sire.name) || '—') + '</td></tr>' +
+      '<tr><th>Mère</th><td>' + escapeHtml((ped.dam && ped.dam.name) || '—') + '</td></tr>' +
+      '</tbody></table>'
+    ) : '';
+
+    container.innerHTML =
+      '<div class="vet-view-header"><h1>Carnet de santé — ' + escapeHtml(a.name || 'Animal') + '</h1>' +
+      '<p>Document généré le ' + fmtDate(todayISO()) + ' via App\'lika</p></div>' +
+      section('Identité', identityHtml) +
+      section('Vaccins', vaccinesTable) +
+      section('Vermifuges / antiparasitaires', dewormingsTable) +
+      section('Consultations', consultationsTable) +
+      section('Médicaments en cours', medsTable) +
+      section('Symptômes récents', symptomsTable) +
+      section('Historique de poids', weightTable) +
+      (pedigreeTable ? section('Pedigree', pedigreeTable) : '');
+
+    container.hidden = false;
+    document.body.classList.add('printing-vet-view');
+    window.print();
+    setTimeout(function () {
+      container.hidden = true;
+      document.body.classList.remove('printing-vet-view');
     }, 500);
   }
 
@@ -4985,10 +5484,169 @@
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
-      if (reg.installing) console.log('VetBook: SW en cours d\'installation');
-      else if (reg.waiting) console.log('VetBook: SW en attente');
-      else if (reg.active) console.log('VetBook: SW actif');
-    }).catch(function (err) { console.warn('VetBook: SW non enregistré', err); });
+      if (reg.installing) console.log('App\'lika: SW en cours d\'installation');
+      else if (reg.waiting) console.log('App\'lika: SW en attente');
+      else if (reg.active) console.log('App\'lika: SW actif');
+    }).catch(function (err) { console.warn('App\'lika: SW non enregistré', err); });
+  }
+
+  // ——— Notifications push (Web Push) ——————————————————————————
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+
+  function getPushSubscriptionState() {
+    if (!pushSupported()) return Promise.resolve({ supported: false });
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) {
+        return { supported: true, permission: Notification.permission, subscription: sub };
+      });
+    });
+  }
+
+  function refreshPushSettingsUI() {
+    var statusEl = document.getElementById('push-settings-status');
+    var hintEl = document.getElementById('push-settings-hint');
+    var toggleBtn = document.getElementById('btn-push-toggle');
+    if (!statusEl || !toggleBtn) return;
+
+    var cfg = window.__SUPABASE_CONFIG__;
+    var cloudReady = window.cloudSync && window.cloudSync.isConfigured();
+
+    if (!pushSupported()) {
+      statusEl.textContent = 'Ton navigateur ne supporte pas les notifications push.';
+      if (hintEl) {
+        hintEl.hidden = false;
+        hintEl.textContent = 'Sur iPhone/iPad : ajoute App\'lika à l\'écran d\'accueil (Safari → Partager → Sur l\'écran d\'accueil), les notifications ne fonctionnent que depuis l\'app installée, jamais depuis un onglet Safari classique.';
+      }
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = 'Non disponible';
+      return;
+    }
+
+    if (!cfg || !cfg.vapidPublicKey) {
+      statusEl.textContent = 'Configuration push manquante (vapidPublicKey absente de config.js).';
+      toggleBtn.disabled = true;
+      return;
+    }
+
+    if (!cloudReady) {
+      statusEl.textContent = 'Active d\'abord la synchronisation cloud (onglet Cloud & synchronisation) : les notifications push en ont besoin pour savoir à qui envoyer les rappels.';
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = 'Activer les notifications push';
+      return;
+    }
+
+    toggleBtn.disabled = false;
+    window.cloudSync.getSession().then(function (session) {
+      if (!session) {
+        statusEl.textContent = 'Connecte-toi (onglet Cloud & synchronisation) pour activer les notifications push.';
+        toggleBtn.disabled = true;
+        toggleBtn.textContent = 'Activer les notifications push';
+        return;
+      }
+      getPushSubscriptionState().then(function (state2) {
+        if (state2.subscription) {
+          statusEl.textContent = 'Notifications push activées sur cet appareil.';
+          toggleBtn.textContent = 'Désactiver les notifications push';
+        } else if (state2.permission === 'denied') {
+          statusEl.textContent = 'Notifications bloquées pour App\'lika dans les réglages de ton navigateur.';
+          toggleBtn.disabled = true;
+          toggleBtn.textContent = 'Bloquées par le navigateur';
+        } else {
+          statusEl.textContent = 'Notifications push désactivées sur cet appareil.';
+          toggleBtn.textContent = 'Activer les notifications push';
+        }
+      });
+    });
+  }
+
+  function subscribeToPush() {
+    return Notification.requestPermission().then(function (permission) {
+      if (permission !== 'granted') throw new Error('Permission refusée.');
+      return navigator.serviceWorker.ready;
+    }).then(function (reg) {
+      return reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(window.__SUPABASE_CONFIG__.vapidPublicKey)
+      });
+    }).then(function (sub) {
+      return window.cloudSync.subscribeToPush(sub.toJSON());
+    });
+  }
+
+  function unsubscribeFromPush() {
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription();
+    }).then(function (sub) {
+      if (!sub) return true;
+      var endpoint = sub.endpoint;
+      return sub.unsubscribe().then(function () {
+        return window.cloudSync.unsubscribeFromPush(endpoint);
+      });
+    });
+  }
+
+  function togglePushSubscription() {
+    var toggleBtn = document.getElementById('btn-push-toggle');
+    var statusEl = document.getElementById('push-settings-status');
+    if (toggleBtn) toggleBtn.disabled = true;
+
+    getPushSubscriptionState().then(function (state2) {
+      var action = state2.subscription ? unsubscribeFromPush() : subscribeToPush();
+      return action;
+    }).then(function () {
+      refreshPushSettingsUI();
+      showToast('Préférences de notifications push mises à jour', 'success');
+    }).catch(function (err) {
+      if (statusEl) statusEl.textContent = 'Erreur : ' + err.message;
+      if (toggleBtn) toggleBtn.disabled = false;
+    });
+  }
+
+  // ——— Préférence globale (compte) : rappel des événements canins ———
+  function refreshDogEventsToggleUI() {
+    var btn = document.getElementById('btn-dog-events-toggle');
+    if (!btn) return;
+    var pref = localStorage.getItem(DOG_EVENTS_REMINDER_PREF_KEY);
+    var isOn = pref !== 'false'; // activé par défaut tant que rien n'est enregistré
+    btn.classList.toggle('on', isOn);
+    btn.setAttribute('aria-pressed', isOn);
+
+    if (window.cloudSync && window.cloudSync.isConfigured()) {
+      window.cloudSync.getSession().then(function (session) {
+        if (!session) return;
+        return window.cloudSync.getDogEventsReminderPref().then(function (serverValue) {
+          localStorage.setItem(DOG_EVENTS_REMINDER_PREF_KEY, String(serverValue));
+          btn.classList.toggle('on', serverValue);
+          btn.setAttribute('aria-pressed', serverValue);
+        });
+      }).catch(function () { /* repli sur la valeur locale déjà affichée */ });
+    }
+  }
+
+  function toggleDogEventsReminder() {
+    var btn = document.getElementById('btn-dog-events-toggle');
+    if (!btn) return;
+    var next = !btn.classList.contains('on');
+    btn.classList.toggle('on', next);
+    btn.setAttribute('aria-pressed', next);
+    localStorage.setItem(DOG_EVENTS_REMINDER_PREF_KEY, String(next));
+
+    if (window.cloudSync && window.cloudSync.isConfigured()) {
+      window.cloudSync.setDogEventsReminderPref(next).catch(function () {
+        showToast('Préférence enregistrée localement uniquement (hors ligne ou non connecté)', 'warning');
+      });
+    }
   }
 
   // ——— Export / Import ——————————————————————————————————
@@ -5023,7 +5681,7 @@
     exportState.vetDirectory = loadVetDirectory();
     exportState.community = loadCommunity();
 
-    downloadText('vetbook-backup.json', JSON.stringify(exportState), 'application/json');
+    downloadText('applika-backup.json', JSON.stringify(exportState), 'application/json');
     showToast('Sauvegarde téléchargée', 'success');
   }
 
@@ -5051,6 +5709,7 @@
       if (a.animal && !a.animal.themeColor) a.animal.themeColor = '';
       if (!a.notifications) a.notifications = {};
       if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
+      if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
     });
 
     // Restore vet directory & community if present
@@ -5061,7 +5720,7 @@
       saveCommunity(parsed.community);
     }
 
-    try { await clearPhotoStore(); } catch (e) { console.warn('VetBook: clearPhotoStore échoué', e); }
+    try { await clearPhotoStore(); } catch (e) { console.warn('App\'lika: clearPhotoStore échoué', e); }
     await migrateLegacyImagesToIndexedDB();
     saveState();
     closeModal('backup');
@@ -5116,6 +5775,13 @@
       events.push({ uid: 'vetbook-hygiene-' + h.id, summary: 'Hygiène : ' + (h.type || ''), desc: h.notes || '', isoDate: h.next });
     });
 
+    (wrap.medications || []).forEach(function (m) {
+      if (m.active === false || !m.endDate) return;
+      var dt = isoToLocalDate(m.endDate);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-med-' + m.id, summary: 'Fin de traitement : ' + (m.name || ''), desc: m.dosage || '', isoDate: m.endDate });
+    });
+
     var dob = wrap?.animal?.dob;
     if (wrap?.notifications?.birthdayReminder && dob) {
       var dobParts = dob.split('-');
@@ -5130,7 +5796,20 @@
       }
     }
 
-    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//VetBook//FR', 'CALSCALE:GREGORIAN'];
+    DEFAULT_DOG_EVENTS.forEach(function (evt) {
+      for (var ey = from.getFullYear() - 1; ey <= to.getFullYear() + 1; ey++) {
+        var edt = new Date(ey, evt.month - 1, evt.day);
+        if (edt < from || edt > to) continue;
+        events.push({
+          uid: 'vetbook-dogevent-' + evt.id + '-' + ey,
+          summary: evt.title,
+          desc: evt.description || '',
+          isoDate: ey + '-' + String(evt.month).padStart(2, '0') + '-' + String(evt.day).padStart(2, '0')
+        });
+      }
+    });
+
+    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//App\'lika//FR', 'CALSCALE:GREGORIAN'];
     var stamp = formatIcsStampUTC();
     events.forEach(function (e) {
       var dt = icsDateFromISO(e.isoDate);
@@ -5140,7 +5819,7 @@
       lines.push('DTSTART;VALUE=DATE:' + dt, 'END:VEVENT');
     });
     lines.push('END:VCALENDAR');
-    downloadText('vetbook-rappels.ics', lines.join('\r\n'), 'text/calendar');
+    downloadText('applika-rappels.ics', lines.join('\r\n'), 'text/calendar');
     showToast('Calendrier exporté', 'success');
   }
 
@@ -5152,10 +5831,12 @@
     try {
       await openPhotoDb();
       await migrateLegacyImagesToIndexedDB();
-    } catch (e) { console.warn('VetBook: IndexedDB indisponible', e); }
+    } catch (e) { console.warn('App\'lika: IndexedDB indisponible', e); }
 
     // Onboarding
     if (!hasData && !localStorage.getItem(ONBOARDING_KEY)) {
+      // Prepare a complete, useful home view behind the onboarding modal.
+      showHome();
       showOnboarding();
     } else {
       if (!hasData) {
@@ -5176,16 +5857,37 @@
 
     // Bindings
     document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });
-    document.getElementById('btn-accueil').addEventListener('click', showHome);
     var btnAddHome = document.getElementById('btn-add-animal-home');
     if (btnAddHome) btnAddHome.addEventListener('click', function () { openModal('addAnimal'); });
-    document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
+    var btnThemeToggle = document.getElementById('btn-theme-toggle');
+    if (btnThemeToggle) btnThemeToggle.addEventListener('click', toggleTheme);
 
     document.querySelectorAll('.tab').forEach(function (t) {
       t.addEventListener('click', function () {
         var name = t.getAttribute('data-tab');
         if (!name) return;
         switchTab(name);
+      });
+    });
+
+    // Navigation clavier standard des groupes d'onglets.
+    document.querySelectorAll('[role="tablist"]').forEach(function (tablist) {
+      tablist.addEventListener('keydown', function (e) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+        var tabs = Array.from(tablist.querySelectorAll('[role="tab"]')).filter(function (item) {
+          return !item.disabled && item.offsetParent !== null;
+        });
+        if (!tabs.length) return;
+        var current = tabs.indexOf(document.activeElement);
+        if (current < 0) current = Math.max(0, tabs.findIndex(function (item) { return item.getAttribute('aria-selected') === 'true'; }));
+        var next = current;
+        if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        else if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+        else next = (current - 1 + tabs.length) % tabs.length;
+        e.preventDefault();
+        tabs[next].focus();
+        tabs[next].click();
       });
     });
 
@@ -5209,7 +5911,8 @@
 
     document.getElementById('animal-select').addEventListener('change', onAnimalSelectChange);
     document.getElementById('btn-add-animal').addEventListener('click', function () { openModal('addAnimal'); });
-    document.getElementById('btn-backup').addEventListener('click', function () { openModal('backup'); });
+    var btnBackup = document.getElementById('btn-backup');
+    if (btnBackup) btnBackup.addEventListener('click', function () { openModal('backup'); });
     var btnUserNav = document.getElementById('btn-user-nav');
     if (btnUserNav) btnUserNav.addEventListener('click', function () { showUserProfile(); });
     document.getElementById('btn-add-photo').addEventListener('click', triggerPhotoUpload);
@@ -5234,9 +5937,11 @@
       petMenuPop.addEventListener('click', function (e) { e.stopPropagation(); });
     }
     var petMenuPrint = document.getElementById('pet-menu-print');
+    var petMenuVetView = document.getElementById('pet-menu-vet-view');
     var petMenuShare = document.getElementById('pet-menu-share');
     var petMenuDelete = document.getElementById('pet-menu-delete');
     if (petMenuPrint) petMenuPrint.addEventListener('click', function () { if (petMenuPop) petMenuPop.hidden = true; printAnimalRecord(); });
+    if (petMenuVetView) petMenuVetView.addEventListener('click', function () { if (petMenuPop) petMenuPop.hidden = true; printVetView(); });
     if (petMenuShare) petMenuShare.addEventListener('click', function () { if (petMenuPop) petMenuPop.hidden = true; shareRecord(); });
     if (petMenuDelete) petMenuDelete.addEventListener('click', function () {
       if (petMenuPop) petMenuPop.hidden = true;
@@ -5335,6 +6040,12 @@
     document.getElementById('form-edit-medication').addEventListener('submit', function (e) { e.preventDefault(); updateMedication(); });
     document.getElementById('form-add-note').addEventListener('submit', function (e) { e.preventDefault(); addNote(); });
     document.getElementById('form-edit-note').addEventListener('submit', function (e) { e.preventDefault(); updateNote(); });
+    setupSymptomFields();
+
+    var eaSpecies = document.getElementById('ea-species');
+    if (eaSpecies) eaSpecies.addEventListener('change', function () { populateBreedSuggestions(eaSpecies.value); });
+    var aaSpecies = document.getElementById('aa-species');
+    if (aaSpecies) aaSpecies.addEventListener('change', function () { populateBreedSuggestions(aaSpecies.value); });
     document.getElementById('form-edit-caption').addEventListener('submit', function (e) { e.preventDefault(); saveCaption(); });
 
     // New feature forms
@@ -5380,6 +6091,11 @@
     var consultSearch = document.getElementById('consult-search');
     if (consultSearch) {
       consultSearch.addEventListener('input', function () { renderConsultations(); });
+    }
+
+    var medicationSearch = document.getElementById('medication-search');
+    if (medicationSearch) {
+      medicationSearch.addEventListener('input', function () { renderMedications(); });
     }
 
     var journalFilter = document.getElementById('journal-cat-filter');
@@ -5430,15 +6146,21 @@
     var btnExportIcs = document.getElementById('btn-export-ics');
     if (btnExportIcs) btnExportIcs.addEventListener('click', function () {
       exportUpcomingRemindersIcs().catch(function (err) {
-        console.warn('VetBook: export ICS échoué', err);
+        console.warn('App\'lika: export ICS échoué', err);
         showToast('Erreur export calendrier.', 'error');
       });
     });
 
+    var btnMonthlySummary = document.getElementById('btn-monthly-summary');
+    if (btnMonthlySummary) btnMonthlySummary.addEventListener('click', function () { openModal('monthlySummary'); });
+
+    var btnDogEventsToggle = document.getElementById('btn-dog-events-toggle');
+    if (btnDogEventsToggle) btnDogEventsToggle.addEventListener('click', toggleDogEventsReminder);
+
     var btnExportJson = document.getElementById('btn-export-json');
     if (btnExportJson) btnExportJson.addEventListener('click', function () {
       exportBackupJson().catch(function (err) {
-        console.warn('VetBook: export JSON échoué', err);
+        console.warn('App\'lika: export JSON échoué', err);
         showToast('Erreur export JSON.', 'error');
       });
     });
@@ -5460,7 +6182,7 @@
         var file = backupImportFile.files && backupImportFile.files[0] ? backupImportFile.files[0] : null;
         if (!file) { showToast('Choisis un fichier JSON.', 'warning'); return; }
         importBackupJson(file).catch(function (err) {
-          console.warn('VetBook: import JSON échoué', err);
+          console.warn('App\'lika: import JSON échoué', err);
           showToast("Erreur d'importation.", 'error');
         });
       });
@@ -5563,8 +6285,14 @@
     // ——— Home Reminders Tabs ————————————————————————————
     document.querySelectorAll('.home-reminders__tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
-        document.querySelectorAll('.home-reminders__tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.home-reminders__tab').forEach(function (t) {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+          t.setAttribute('tabindex', '-1');
+        });
         tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        tab.setAttribute('tabindex', '0');
         renderHomeReminders(tab.getAttribute('data-filter'));
       });
     });
@@ -5577,6 +6305,12 @@
     // ——— User Profile ——————————————————————————————————
     var btnUserBackup = document.getElementById('btn-user-backup');
     if (btnUserBackup) btnUserBackup.addEventListener('click', function () { openModal('backup'); });
+
+    var btnUserNotifications = document.getElementById('btn-user-notifications');
+    if (btnUserNotifications) btnUserNotifications.addEventListener('click', function () { openModal('pushSettings'); });
+
+    var btnPushToggle = document.getElementById('btn-push-toggle');
+    if (btnPushToggle) btnPushToggle.addEventListener('click', togglePushSubscription);
 
     var btnUserEditProfile = document.getElementById('btn-user-edit-profile');
     if (btnUserEditProfile) btnUserEditProfile.addEventListener('click', function () {
@@ -5621,17 +6355,26 @@
       void viewProfile.offsetWidth;
       viewProfile.classList.add('view-enter');
     }
-    document.getElementById('animal-select').style.display = 'none';
-    document.getElementById('btn-accueil').hidden = false;
+    document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
 
-    // Populate user profile info from owner data
+    // Populate user profile info: local owner profile takes priority (c'est
+    // la fiche propriétaire de l'animal), sinon on retombe sur le compte
+    // cloud connecté (Google/lien magique) pour ne pas laisser le
+    // placeholder statique de index.html affiché indéfiniment.
     var data = getCurrent();
-    if (data && data.owner) {
-      var nameEl = document.getElementById('user-profile-name');
-      var emailEl = document.getElementById('user-profile-email');
-      if (nameEl) nameEl.textContent = data.owner.name || 'Utilisateur';
-      if (emailEl) emailEl.textContent = data.owner.email || '';
+    var ownerName = data && data.owner && data.owner.name;
+    var ownerEmail = data && data.owner && data.owner.email;
+    var nameEl = document.getElementById('user-profile-name');
+    var emailEl = document.getElementById('user-profile-email');
+    if (nameEl) nameEl.textContent = ownerName || 'Utilisateur';
+    if (emailEl) emailEl.textContent = ownerEmail || '';
+    if ((!ownerName || !ownerEmail) && window.cloudSync && window.cloudSync.isConfigured()) {
+      window.cloudSync.getSession().then(function (session) {
+        if (!session) return;
+        if (nameEl && !ownerName && session.user.name) nameEl.textContent = session.user.name;
+        if (emailEl && !ownerEmail && session.user.email) emailEl.textContent = session.user.email;
+      });
     }
 
     // Sync dark mode toggle

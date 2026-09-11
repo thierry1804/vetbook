@@ -9,11 +9,24 @@ export default [
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'script',
-      globals: { ...globals.browser, ...globals.serviceworker, qrcode: 'readonly', supabaseSdk: 'readonly' },
+      globals: { ...globals.browser, ...globals.serviceworker, qrcode: 'readonly' },
     },
     rules: {
       ...js.configs.recommended.rules,
       'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-unused-vars': ['error', { caughtErrors: 'none' }],
+    },
+  },
+  {
+    ...js.configs.recommended,
+    files: ['api/**/*.js', 'server.js', 'scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
       'no-unused-vars': ['error', { caughtErrors: 'none' }],
     },
   },

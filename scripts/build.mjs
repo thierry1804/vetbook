@@ -55,7 +55,7 @@ async function main() {
 
   const buildVersion = shortHash(jsHash + cssHash + dataLayerHash);
   let sw = await readFile(path.join(root, 'sw.js'), 'utf8');
-  sw = sw.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = 'vetbook-${buildVersion}';`);
+  sw = sw.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = 'applika-${buildVersion}';`);
   sw = sw.replace("'./styles.css',", `'./${cssName}',`);
   sw = sw.replace("'./app.js',", `'./${jsName}',`);
   sw = sw.replace("'./data-layer.js'", `'./${dataLayerName}'`);
