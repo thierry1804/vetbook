@@ -50,7 +50,12 @@ export function toRow(obj, fields, extra) {
 export function fromRow(row, fields, idAsLocalId) {
   const obj = {};
   fields.forEach(([localKey, column]) => { obj[localKey] = row[column] == null ? '' : row[column]; });
-  if (idAsLocalId) obj.id = row.local_id;
+  // `local_id` est un bigint Postgres : le driver le renvoie en string pour
+  // préserver la précision. Le client (app.js) compare/assigne ces id en
+  // tant que number (parseInt, ===) partout — sans ce Number(), un animal
+  // ou un enregistrement venu du cloud a un id qui ne matche plus jamais
+  // (getCurrent() retombe silencieusement sur state.animals[0]).
+  if (idAsLocalId) obj.id = Number(row.local_id);
   return obj;
 }
 

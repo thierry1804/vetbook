@@ -53,13 +53,23 @@ export default async function handler(req, res) {
           client.query('select * from notification_prefs where pet_id = $1', [petId]),
         ]);
 
-        const wrapper = { id: pet.local_id, owner: ownerObj, photos: [] };
+        // pet.local_id (bigint) et pet.weight/height (numeric) reviennent en
+        // string du driver Postgres — Number() pour matcher la convention
+        // JS number utilisée partout côté client (comparaisons ===, calculs).
+        const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos: [] };
         wrapper.animal = fromRow(pet, ANIMAL_FIELDS);
-        wrapper.animal.weightHistory = weightRes.rows.map((w) => ({ id: w.local_id, date: w.date, weight: w.weight }));
+        wrapper.animal.weight = pet.weight != null ? Number(pet.weight) : null;
+        wrapper.animal.height = pet.height != null ? Number(pet.height) : null;
+        wrapper.animal.weightHistory = weightRes.rows.map((w) => ({ id: Number(w.local_id), date: w.date, weight: Number(w.weight) }));
 
         CHILD_ARRAYS.forEach(([localKey, , fields], i) => {
           wrapper[localKey] = childResults[i].rows.map((row) => fromRow(row, fields, true));
         });
+        // consultations.cost (numeric) : même souci de string renvoyée par
+        // le driver Postgres que local_id/weight/height ci-dessus.
+        if (Array.isArray(wrapper.consultations)) {
+          wrapper.consultations.forEach((c) => { c.cost = c.cost === '' ? null : Number(c.cost); });
+        }
 
         const planRow = planRes.rows[0];
         wrapper.nutrition = {
