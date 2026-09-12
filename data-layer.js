@@ -268,7 +268,9 @@
     if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     var state = readLocal();
-    if (!state || !Array.isArray(state.animals) || state.animals.length === 0) {
+    var hasAnimals = state && Array.isArray(state.animals) && state.animals.length > 0;
+    var hasOwner = !!(state && state.owner && Object.keys(state.owner).some(function (k) { return state.owner[k]; }));
+    if (!hasAnimals && !hasOwner) {
       return Promise.reject(new Error('Rien à synchroniser localement.'));
     }
     if (onProgress) onProgress('Synchronisation en cours...');

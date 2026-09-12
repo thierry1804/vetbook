@@ -29,9 +29,13 @@ export default async function handler(req, res) {
       ]);
 
       const pets = petsRes.rows;
-      if (pets.length === 0) return null;
-
       const ownerRow = ownerRes.rows[0];
+      // Le profil propriétaire (table `owners`, global au compte) peut
+      // exister avant tout animal — ne pas traiter "aucun pet" comme
+      // "rien à récupérer" sinon un compte tout juste créé perd son profil
+      // au premier pull sur un nouvel appareil.
+      if (pets.length === 0 && !ownerRow) return null;
+
       const ownerObj = ownerRow ? fromRow(ownerRow, OWNER_FIELDS) : { name: '', phone: '', email: '', clinic: '', address: '' };
 
       const wrappers = await Promise.all(pets.map(async (pet) => {
@@ -92,7 +96,7 @@ export default async function handler(req, res) {
         (w.nutrition.meals || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
       });
 
-      const state = { animals: wrappers, nextId: maxId + 1, currentAnimalId: wrappers[0] ? wrappers[0].id : null };
+      const state = { animals: wrappers, nextId: maxId + 1, currentAnimalId: wrappers[0] ? wrappers[0].id : null, owner: ownerObj };
 
       let vetDirectory = null;
       if (vetsRes.rows.length) {

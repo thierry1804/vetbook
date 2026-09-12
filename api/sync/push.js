@@ -22,7 +22,9 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const state = body.state;
   const vetDirectory = body.vetDirectory;
-  if (!state || !Array.isArray(state.animals) || state.animals.length === 0) {
+  const hasAnimals = Array.isArray(state && state.animals) && state.animals.length > 0;
+  const hasOwner = !!(state && state.owner && Object.values(state.owner).some((v) => v));
+  if (!state || (!hasAnimals && !hasOwner)) {
     res.status(400).json({ error: 'Rien à synchroniser.' });
     return;
   }
@@ -31,11 +33,15 @@ export default async function handler(req, res) {
 
   try {
     await withTransaction(async (client) => {
-      const ownerSource = (state.animals[0] && state.animals[0].owner) || {};
+      // Le profil propriétaire est global au compte (table `owners`, clé
+      // user_id) : state.owner en est la source depuis la refonte "profil
+      // unique" ; fallback sur l'ancien modèle (owner dupliqué par animal)
+      // pour les payloads envoyés par un client pas encore à jour.
+      const ownerSource = state.owner || (state.animals[0] && state.animals[0].owner) || {};
       const ownerRow = toRow(ownerSource, OWNER_FIELDS, { user_id: userId });
       await upsertOne(client, 'owners', ['user_id', ...OWNER_FIELDS.map((f) => f[1])], ownerRow, ['user_id']);
 
-      for (const wrapper of state.animals) {
+      for (const wrapper of (state.animals || [])) {
         const petRow = toRow(wrapper.animal || {}, ANIMAL_FIELDS, { user_id: userId, local_id: wrapper.id });
         const petColumns = ['user_id', 'local_id', ...ANIMAL_FIELDS.map((f) => f[1])];
         const pet = await upsertOne(client, 'pets', petColumns, petRow, ['user_id', 'local_id']);

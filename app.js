@@ -122,6 +122,7 @@
   var MONTHLY_SUMMARY_SEEN_KEY = 'vetbook_monthly_summary_seen';
   var DOG_EVENTS_NOTIF_KEY = 'vetbook_dog_events_notif_last_month';
   var DOG_EVENTS_REMINDER_PREF_KEY = 'vetbook_dog_events_reminder_enabled';
+  var ROUTE_KEY = 'vetbook_last_route';
 
   var DEFAULT_ANIMAL = {
     id: 1,
@@ -308,7 +309,10 @@
     animals: [],
     nextId: 20,
     currentAnimalId: null,
-    viewMode: 'home'
+    viewMode: 'home',
+    // Profil propriétaire : un seul compte = une seule identité, partagée
+    // par tous les animaux (pas un sous-objet par animal, voir getOwner()).
+    owner: { name: '', phone: '', email: '', clinic: '', address: '' }
   };
 
   var uiState = {
@@ -514,6 +518,13 @@
         state.animals = parsed.animals || [];
         state.nextId = Math.max(state.nextId, parsed.nextId || 20);
         state.currentAnimalId = parsed.currentAnimalId != null ? parsed.currentAnimalId : (state.animals[0]?.id ?? null);
+        // Le profil propriétaire est global au compte, indépendant du nombre
+        // d'animaux — anciennes sauvegardes : reprendre l'owner du premier
+        // animal (ancien modèle, dupliqué par animal) à défaut.
+        state.owner = Object.assign(
+          { name: '', phone: '', email: '', clinic: '', address: '' },
+          parsed.owner || (state.animals[0] && state.animals[0].owner) || {}
+        );
       }
       if (state.animals.length === 0) {
         return false; // Signal that we need onboarding
@@ -553,15 +564,60 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         animals: state.animals,
         nextId: state.nextId,
-        currentAnimalId: state.currentAnimalId
+        currentAnimalId: state.currentAnimalId,
+        owner: state.owner
       }));
     } catch (e) {
       console.warn('App\'lika: erreur écriture localStorage', e);
     }
   }
 
+  // Retient la dernière page affichée pour la restaurer après un rechargement
+  // (F5 / réouverture PWA) au lieu de revenir systématiquement à l'accueil.
+  function saveRoute(route) {
+    try { localStorage.setItem(ROUTE_KEY, JSON.stringify(route)); } catch (e) {}
+  }
+
+  function loadRoute() {
+    try {
+      var raw = localStorage.getItem(ROUTE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Rejoue la dernière page connue au démarrage. Retombe sur l'accueil si
+  // rien n'est mémorisé ou si l'animal visé a été supprimé entretemps.
+  function restoreRoute() {
+    var route = loadRoute();
+    if (!route) { showHome(); return; }
+    if (route.view === 'detail') {
+      var exists = state.animals.some(function (a) { return a.id === route.animalId; });
+      if (exists) {
+        state.currentAnimalId = route.animalId;
+        showDetail({ tab: route.tab });
+        return;
+      }
+    } else if (route.view === 'community') {
+      showCommunity(route.panel);
+      return;
+    } else if (route.view === 'profile') {
+      showUserProfile();
+      return;
+    }
+    showHome();
+  }
+
   function getCurrent() {
     return state.animals.find(function (a) { return a.id === state.currentAnimalId; }) || state.animals[0];
+  }
+
+  // Profil propriétaire global au compte (voir state.owner) — indépendant
+  // de la présence ou non d'un animal.
+  function getOwner() {
+    if (!state.owner) state.owner = { name: '', phone: '', email: '', clinic: '', address: '' };
+    return state.owner;
   }
 
   // ——— Photos : IndexedDB ——————————————————————————————
@@ -1366,6 +1422,7 @@
     document.getElementById('fab-container').hidden = true;
     setBottomNavActive('home');
     renderHome();
+    saveRoute({ view: 'home' });
   }
 
   function showDetail(opts) {
@@ -1397,6 +1454,7 @@
     } else {
       setBottomNavActive(opts.nav);
     }
+    saveRoute({ view: 'detail', animalId: state.currentAnimalId, tab: tab });
   }
 
   // ——— Profile ———————————————————————————————————————————
@@ -1404,7 +1462,7 @@
     var data = getCurrent();
     if (!data) return;
     var a = data.animal;
-    var o = data.owner;
+    var o = getOwner();
 
     var hero = document.getElementById('animal-hero');
     if (hero) {
@@ -1588,7 +1646,7 @@
     if (!el || !data) return;
 
     var a = data.animal;
-    var o = data.owner;
+    var o = getOwner();
     var fields = [a.name, a.dob, a.weight, a.height, a.race, a.color, a.chip, a.sterilise !== 'Non' ? a.sterilise : '', o.name, a.avatar];
     var filled = fields.filter(function (f) { return f != null && f !== '' && f !== false; }).length;
     var pct = Math.round((filled / fields.length) * 100);
@@ -1678,7 +1736,7 @@
     if (!section || !canvas || !data) { if (section) section.hidden = true; return; }
 
     var a = data.animal;
-    var o = data.owner;
+    var o = getOwner();
     if (!a.name && !a.chip) { section.hidden = true; return; }
     if (typeof qrcode === 'undefined') { section.hidden = true; return; }
 
@@ -1784,7 +1842,7 @@
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
     var data = getCurrent();
-    if (!data && name !== 'addAnimal' && name !== 'onboarding') return;
+    if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner') return;
 
     if (name === 'addAnimal') {
       populateBreedSuggestions(document.getElementById('aa-species').value || 'Canine');
@@ -1820,7 +1878,7 @@
     }
 
     if (name === 'editOwner') {
-      var o = data.owner;
+      var o = getOwner();
       ['name', 'phone', 'email', 'clinic', 'address'].forEach(function (f) {
         var el = document.getElementById('eo-' + f);
         if (el) el.value = o[f] || '';
@@ -2170,9 +2228,7 @@
   }
 
   function saveOwner() {
-    var data = getCurrent();
-    if (!data) return;
-    var o = data.owner;
+    var o = getOwner();
     ['name', 'phone', 'email', 'clinic', 'address'].forEach(function (f) {
       var el = document.getElementById('eo-' + f);
       if (el) o[f] = el.value.trim();
@@ -2180,6 +2236,12 @@
     closeModal('editOwner');
     saveState();
     renderProfile();
+    // "Mon compte" affiche aussi ce nom/email (voir showUserProfile) : les
+    // mettre à jour même si cette vue n'est pas visible à l'instant T.
+    var nameEl = document.getElementById('user-profile-name');
+    var emailEl = document.getElementById('user-profile-email');
+    if (nameEl) nameEl.textContent = o.name || 'Utilisateur';
+    if (emailEl) emailEl.textContent = o.email || '';
     showToast('Propriétaire modifié', 'success');
   }
 
@@ -2270,7 +2332,6 @@
         weight: parseFloat(document.getElementById('aa-weight').value, 10) || null,
         weightHistory: [], height: null, color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
       },
-      owner: JSON.parse(JSON.stringify((getCurrent() || {}).owner || { name: '', phone: '', email: '', clinic: '', address: '' })),
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
       notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
     };
@@ -4109,6 +4170,7 @@
 
     if (panel === 'events') renderCommunityEvents();
     if (panel === 'tips') renderCommunityTips();
+    saveRoute({ view: 'community', panel: panel });
   }
 
   function renderCommunityEvents() {
@@ -5119,6 +5181,9 @@
     } else if (tabName === 'profil') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    if (state.viewMode === 'detail') {
+      saveRoute({ view: 'detail', animalId: state.currentAnimalId, tab: tabName });
+    }
   }
 
   function refreshAll() {
@@ -5660,7 +5725,7 @@
   }
 
   async function exportBackupJson() {
-    var exportState = { version: 2, nextId: state.nextId, currentAnimalId: state.currentAnimalId, animals: [] };
+    var exportState = { version: 2, nextId: state.nextId, currentAnimalId: state.currentAnimalId, owner: getOwner(), animals: [] };
 
     for (var wrap of state.animals) {
       var a = wrap?.animal;
@@ -5694,6 +5759,10 @@
     state.animals = parsed.animals || [];
     state.nextId = parsed.nextId != null ? parsed.nextId : 20;
     state.currentAnimalId = parsed.currentAnimalId != null ? parsed.currentAnimalId : (state.animals[0]?.id ?? null);
+    state.owner = Object.assign(
+      { name: '', phone: '', email: '', clinic: '', address: '' },
+      parsed.owner || (state.animals[0] && state.animals[0].owner) || {}
+    );
 
     // Backward compat
     state.animals.forEach(function (a) {
@@ -5847,7 +5916,7 @@
         state.currentAnimalId = def.id;
         saveState();
       }
-      showHome();
+      restoreRoute();
     }
 
     registerSW();
@@ -5951,8 +6020,7 @@
 
     var petEmerg = document.getElementById('pet-profile-emergency');
     if (petEmerg) petEmerg.addEventListener('click', function () {
-      var data = getCurrent();
-      var phone = data && data.owner && data.owner.phone ? String(data.owner.phone).replace(/\s/g, '') : '';
+      var phone = getOwner().phone ? String(getOwner().phone).replace(/\s/g, '') : '';
       if (phone) window.location.href = 'tel:' + phone;
       else showToast('Ajoutez un numéro dans le profil propriétaire.', 'error');
     });
@@ -6314,7 +6382,24 @@
 
     var btnUserEditProfile = document.getElementById('btn-user-edit-profile');
     if (btnUserEditProfile) btnUserEditProfile.addEventListener('click', function () {
-      if (state.animals.length > 0) { showDetail(); openModal('editOwner'); }
+      // Profil propriétaire global au compte (voir getOwner()) : reste sur
+      // "Mon compte", la modale s'ouvre par-dessus, aucun animal requis.
+      openModal('editOwner');
+    });
+
+    var btnUserFavorites = document.getElementById('btn-user-favorites');
+    if (btnUserFavorites) btnUserFavorites.addEventListener('click', function () {
+      showToast('Favoris : bientôt disponible', 'info');
+    });
+
+    var btnUserLanguage = document.getElementById('btn-user-language');
+    if (btnUserLanguage) btnUserLanguage.addEventListener('click', function () {
+      showToast('Changement de langue : bientôt disponible', 'info');
+    });
+
+    var btnUserHelp = document.getElementById('btn-user-help');
+    if (btnUserHelp) btnUserHelp.addEventListener('click', function () {
+      showToast('Centre d\'aide : bientôt disponible', 'info');
     });
 
     var userDarkToggle = document.getElementById('user-dark-toggle');
@@ -6358,13 +6443,12 @@
     document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
 
-    // Populate user profile info: local owner profile takes priority (c'est
-    // la fiche propriétaire de l'animal), sinon on retombe sur le compte
-    // cloud connecté (Google/lien magique) pour ne pas laisser le
+    // Populate user profile info: le profil propriétaire local (global au
+    // compte, voir getOwner()) est prioritaire, sinon on retombe sur le
+    // compte cloud connecté (Google/lien magique) pour ne pas laisser le
     // placeholder statique de index.html affiché indéfiniment.
-    var data = getCurrent();
-    var ownerName = data && data.owner && data.owner.name;
-    var ownerEmail = data && data.owner && data.owner.email;
+    var ownerName = getOwner().name;
+    var ownerEmail = getOwner().email;
     var nameEl = document.getElementById('user-profile-name');
     var emailEl = document.getElementById('user-profile-email');
     if (nameEl) nameEl.textContent = ownerName || 'Utilisateur';
@@ -6382,6 +6466,7 @@
     if (userDarkToggle) {
       userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
     }
+    saveRoute({ view: 'profile' });
   }
 
   window.app = {
