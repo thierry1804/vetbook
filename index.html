@@ -397,7 +397,7 @@
             <div class="pet-weight-chart" id="pet-profile-weight-chart"></div>
           </div>
           <div class="pet-height-chart-wrap" id="pet-height-chart-wrap" hidden>
-            <p class="pet-height-hint" id="pet-height-chart-hint">Indiquez la taille dans la fiche pour suivre son évolution.</p>
+            <div class="pet-weight-chart" id="pet-profile-height-chart"></div>
           </div>
         </section>
 
@@ -443,6 +443,7 @@
               <div class="pet-profile-extra__cell"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
               <div class="pet-profile-extra__cell"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
               <button type="button" class="pet-profile-extra__weight-btn" onclick="app.openModal('addWeight')" title="Ajouter une pesée">+ Pesée</button>
+              <button type="button" class="pet-profile-extra__weight-btn" onclick="app.openModal('addHeight')" title="Ajouter une mesure de taille">+ Taille</button>
             </div>
           </div>
           <span id="info-race" hidden></span><span id="info-weight" hidden></span><span id="info-chip" hidden></span><span id="info-sterilise" hidden></span>
@@ -850,6 +851,7 @@
             <option value="deworming">Déparasitage</option>
             <option value="hygiene">Hygiène</option>
             <option value="weight">Pesées</option>
+            <option value="height">Tailles</option>
             <option value="consultations">Consultations</option>
             <option value="nutrition">Repas</option>
             <option value="activities">Activités</option>
@@ -859,6 +861,7 @@
         </div>
       </div>
       <div class="weight-evolution" id="weight-evolution"></div>
+      <div class="weight-evolution" id="height-evolution" hidden></div>
       <div class="timeline" id="history-timeline"></div>
     </section>
     </div>
@@ -1037,6 +1040,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-addHeight" aria-hidden="true" role="dialog" aria-labelledby="modal-addHeight-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addHeight-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6H3"/><path d="M3 12h18"/><path d="M21 18H3"/></svg> Ajouter une mesure de taille</h2>
+      <form id="form-add-height" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="hh-date">Date</label><input class="form-input" id="hh-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="hh-height">Taille au garrot (cm)</label><input class="form-input" id="hh-height" type="number" step="0.1" min="0" required></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addHeight">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-editVaccin" aria-hidden="true" role="dialog" aria-labelledby="modal-editVaccin-title">
     <div class="modal" role="document" aria-modal="true">
       <h2 class="modal-title" id="modal-editVaccin-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2l4 4"/><path d="M17.4 6.6l-3.4-3.4"/><path d="M20.6 3.4L14 10l-4-4-6 6 8 8 6-6-4-4 6.6-6.6z"/><path d="M2 22l4-4"/></svg> Modifier un vaccin</h2>
@@ -1088,6 +1107,23 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="editWeight">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editHeight" aria-hidden="true" role="dialog" aria-labelledby="modal-editHeight-title">
+    <div class="modal" role="document" aria-modal="true">
+      <h2 class="modal-title" id="modal-editHeight-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6H3"/><path d="M3 12h18"/><path d="M21 18H3"/></svg> Modifier une mesure de taille</h2>
+      <form id="form-edit-height" class="modal-form">
+        <input type="hidden" id="eh-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="eh-date">Date</label><input class="form-input" id="eh-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="eh-height">Taille au garrot (cm)</label><input class="form-input" id="eh-height" type="number" step="0.1" min="0" required></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editHeight">Annuler</button>
           <button type="submit" class="btn-primary">Enregistrer</button>
         </div>
       </form>

@@ -45,8 +45,9 @@ export default async function handler(req, res) {
           CHILD_ARRAYS.map(([, table]) =>
             client.query(`select * from ${table} where pet_id = $1 order by local_id asc`, [petId]))
         );
-        const [weightRes, mealsRes, planRes, pedRes, notifRes] = await Promise.all([
+        const [weightRes, heightRes, mealsRes, planRes, pedRes, notifRes] = await Promise.all([
           client.query('select * from weight_history where pet_id = $1 order by local_id asc', [petId]),
+          client.query('select * from height_history where pet_id = $1 order by local_id asc', [petId]),
           client.query('select * from nutrition_meals where pet_id = $1 order by local_id asc', [petId]),
           client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]),
           client.query('select * from pedigree where pet_id = $1', [petId]),
@@ -61,6 +62,7 @@ export default async function handler(req, res) {
         wrapper.animal.weight = pet.weight != null ? Number(pet.weight) : null;
         wrapper.animal.height = pet.height != null ? Number(pet.height) : null;
         wrapper.animal.weightHistory = weightRes.rows.map((w) => ({ id: Number(w.local_id), date: w.date, weight: Number(w.weight) }));
+        wrapper.animal.heightHistory = heightRes.rows.map((h) => ({ id: Number(h.local_id), date: h.date, height: Number(h.height) }));
 
         CHILD_ARRAYS.forEach(([localKey, , fields], i) => {
           wrapper[localKey] = childResults[i].rows.map((row) => fromRow(row, fields, true));
@@ -103,6 +105,7 @@ export default async function handler(req, res) {
         maxId = Math.max(maxId, w.id || 0);
         CHILD_ARRAYS.forEach(([localKey]) => { (w[localKey] || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); }); });
         (w.animal.weightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
+        (w.animal.heightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
         (w.nutrition.meals || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
       });
 

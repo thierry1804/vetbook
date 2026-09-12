@@ -212,6 +212,19 @@ create table if not exists weight_history (
   unique (pet_id, local_id)
 );
 
+-- Suivi de la taille au garrot dans le temps (même principe que
+-- weight_history) — pets.height reste la dernière valeur connue.
+create table if not exists height_history (
+  id uuid primary key default gen_random_uuid(),
+  pet_id uuid not null references pets(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  local_id bigint not null,
+  date date not null,
+  height numeric not null,
+  created_at timestamptz not null default now(),
+  unique (pet_id, local_id)
+);
+
 -- Métadonnées uniquement (le fichier reste local en IndexedDB pour
 -- l'instant — voir data-layer.js, sync photo = amélioration future).
 create table if not exists photos (
@@ -337,6 +350,7 @@ create index if not exists idx_activities_pet on activities(pet_id);
 create index if not exists idx_heat_cycles_pet on heat_cycles(pet_id);
 create index if not exists idx_journal_notes_pet on journal_notes(pet_id);
 create index if not exists idx_weight_history_pet on weight_history(pet_id);
+create index if not exists idx_height_history_pet on height_history(pet_id);
 create index if not exists idx_photos_pet on photos(pet_id);
 create index if not exists idx_nutrition_meals_pet on nutrition_meals(pet_id);
 create index if not exists idx_pets_user on pets(user_id);

@@ -134,6 +134,8 @@
       dob: '',
       weight: null,
       weightHistory: [],
+      height: null,
+      heightHistory: [],
       color: '',
       chip: '',
       sterilise: 'Non',
@@ -319,6 +321,7 @@
     editVaccineId: null,
     editDewormingId: null,
     editWeightEntryId: null,
+    editHeightEntryId: null,
     editConsultId: null,
     editMedicationId: null,
     editNoteId: null,
@@ -536,6 +539,7 @@
       state.animals.forEach(function (a) {
         if (!a || !a.animal) return;
         if (!Array.isArray(a.animal.weightHistory)) a.animal.weightHistory = [];
+        if (!Array.isArray(a.animal.heightHistory)) a.animal.heightHistory = [];
         if (!Array.isArray(a.consultations)) a.consultations = [];
         if (!Array.isArray(a.medications)) a.medications = [];
         if (!Array.isArray(a.notes)) a.notes = [];
@@ -1083,23 +1087,118 @@
     }
   }
 
+  // Miroir de renderPetProfileWeightChart pour la taille au garrot — même
+  // mise en page, sans ligne "Surpoids" ni fourchette de race (données
+  // non disponibles pour la taille).
+  function renderPetProfileHeightChart(data) {
+    var container = document.getElementById('pet-profile-height-chart');
+    if (!container) return;
+    if (!data || !data.animal) { container.innerHTML = ''; return; }
+
+    var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
+    var entries = entriesRaw.filter(function (e) { return e && e.date && e.height != null && !isNaN(Number(e.height)); })
+      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+
+    if (entries.length === 0) {
+      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des mesures pour afficher la courbe de taille.</p>';
+      return;
+    }
+
+    if (entries.length > 6) entries = entries.slice(entries.length - 6);
+
+    var heights = entries.map(function (e) { return Number(e.height); });
+    var minH = Math.min.apply(null, heights);
+    var maxH = Math.max.apply(null, heights);
+    var pad = Math.max(1, (maxH - minH) * 0.2);
+    minH = Math.max(0, Math.floor(minH - pad));
+    maxH = Math.ceil(maxH + pad);
+    var range = maxH - minH;
+    if (range < 1) { minH = Math.max(0, minH - 1); maxH = maxH + 1; range = maxH - minH; }
+
+    var W = 360;
+    var H = 150;
+    var padL = 28;
+    var padR = 10;
+    var padT = 18;
+    var padB = 28;
+    var chartH = H - padT - padB;
+    var chartW = W - padL - padR;
+
+    var xFor = function (i, n) {
+      if (n === 1) return padL + chartW / 2;
+      return padL + (chartW * i) / (n - 1);
+    };
+    var yFor = function (h) { return padT + (1 - (h - minH) / range) * chartH; };
+
+    var n = entries.length;
+    var pts = entries.map(function (e, i) {
+      return { x: xFor(i, n), y: yFor(Number(e.height)) };
+    });
+
+    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
+    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
+      linePts + ' ' +
+      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
+
+    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var xLabels = '';
+    entries.forEach(function (e, i) {
+      var d = new Date(e.date);
+      var label = monthLabels[d.getMonth()] || '';
+      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
+        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
+      }
+    });
+
+    var gridLines = '';
+    var steps = 4;
+    for (var i = 0; i <= steps; i++) {
+      var hVal = minH + (range * i / steps);
+      var yVal = yFor(hVal);
+      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(hVal) + '</text>';
+    }
+
+    container.innerHTML =
+      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
+      '<defs><linearGradient id="petHeightFill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#2563eb" stop-opacity="0.28"/>' +
+      '<stop offset="100%" stop-color="#2563eb" stop-opacity="0.02"/>' +
+      '</linearGradient></defs>' +
+      gridLines +
+      '<polygon fill="url(#petHeightFill)" points="' + areaPts + '"/>' +
+      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
+      pts.map(function (p) {
+        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#2563eb" stroke="#fff" stroke-width="2"/>';
+      }).join('') +
+      xLabels +
+      '</svg>';
+  }
+
   function collectProfileTasks(data) {
     var out = [];
     var now = new Date();
     var horizon = new Date();
     horizon.setDate(horizon.getDate() + 21);
     var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Un animal suivi depuis longtemps accumule des rappels passés (`next`)
+    // sur chaque ancien vaccin/déparasitage, supplantés depuis par une dose
+    // plus récente. Sans borne basse, ces rappels obsolètes (parfois vieux
+    // de plusieurs années) noient ceux réellement d'actualité — même fenêtre
+    // de grâce que renderAlerts (30 jours) pour rester cohérent.
+    var pastLimit = new Date(todayMid);
+    pastLimit.setDate(pastLimit.getDate() - 30);
 
     (data.vaccines || []).forEach(function (v) {
       if (!v.next) return;
       var d = isoToLocalDate(v.next);
-      if (!d || d > horizon) return;
+      if (!d || d > horizon || d < pastLimit) return;
       out.push({ kind: 'vaccine', title: v.name || 'Vaccin', sub: v.next ? 'Rappel le ' + fmtDate(v.next) : '', dateObj: d, filter: 'vaccine' });
     });
     (data.dewormings || []).forEach(function (d0) {
       if (!d0.next) return;
       var d = isoToLocalDate(d0.next);
-      if (!d || d > horizon) return;
+      if (!d || d > horizon || d < pastLimit) return;
       out.push({ kind: 'deworm', title: d0.name || 'Déparasitage', sub: d0.next ? 'Rappel le ' + fmtDate(d0.next) : '', dateObj: d, filter: 'deworm' });
     });
     (data.medications || []).forEach(function (m) {
@@ -1115,9 +1214,12 @@
       out.push({ kind: kind, title: m.name || 'Médicament', sub: m.dosage || 'Traitement en cours', dateObj: todayMid, filter: filter });
     });
 
-    // Also include nutrition items as meals
+    // Also include nutrition items as meals — un journal alimentaire garde
+    // plusieurs jours d'historique, donc ne remonter ici que ceux du jour
+    // (sans quoi chaque repas des derniers jours se répète comme "à faire").
     if (data.nutrition) {
       (data.nutrition.meals || []).forEach(function (meal) {
+        if (meal.date !== todayISO()) return;
         out.push({ kind: 'meal', title: meal.name || meal.brand || 'Repas', sub: meal.quantity || meal.dosage || '', dateObj: todayMid, filter: 'meal' });
       });
     }
@@ -1199,6 +1301,11 @@
     if (filterMode === 'week') rangeEnd.setDate(rangeEnd.getDate() + 7);
     else if (filterMode === 'month') rangeEnd.setDate(rangeEnd.getDate() + 30);
     else rangeEnd.setDate(rangeEnd.getDate() + 7); // default: next 7 days
+    // Voir le commentaire dans collectProfileTasks : sans borne basse, un
+    // animal avec un long historique remonte ici des rappels obsolètes
+    // (vieux de plusieurs années) au lieu des rappels actuels.
+    var rangeStart = new Date(now);
+    rangeStart.setDate(rangeStart.getDate() - 30);
 
     state.animals.forEach(function (data) {
       var petName = data.animal.name || 'Animal';
@@ -1206,7 +1313,7 @@
         (data[type] || []).forEach(function (item) {
           if (!item.next) return;
           var nd = isoToLocalDate(item.next);
-          if (nd <= rangeEnd) {
+          if (nd <= rangeEnd && nd >= rangeStart) {
             reminders.push({
               type: type === 'vaccines' ? 'vaccine' : 'deworming',
               name: item.name || item.treatment || '—',
@@ -1627,14 +1734,9 @@
       if (pctH) { pctH.classList.add('active'); pctH.setAttribute('aria-selected', 'true'); }
       var hw = document.getElementById('pet-weight-chart-wrap');
       var hh = document.getElementById('pet-height-chart-wrap');
-      var hint = document.getElementById('pet-height-chart-hint');
       if (hw) hw.hidden = true;
       if (hh) hh.hidden = false;
-      if (hint) {
-        hint.textContent = a.height != null && a.height !== ''
-          ? 'Taille actuelle : ' + a.height + ' cm (historique à venir).'
-          : 'Indiquez la taille au garrot dans la fiche pour le suivi.';
-      }
+      renderPetProfileHeightChart(data);
     } else {
       if (pctW) { pctW.classList.add('active'); pctW.setAttribute('aria-selected', 'true'); }
       if (pctH) { pctH.classList.remove('active'); pctH.setAttribute('aria-selected', 'false'); }
@@ -1945,6 +2047,15 @@
       if (wEl) wEl.value = aw.weight != null ? aw.weight : '';
     }
 
+    if (name === 'addHeight') {
+      var todayStrH = todayISO();
+      var ah = data.animal || {};
+      var dateElH = document.getElementById('hh-date');
+      var hEl = document.getElementById('hh-height');
+      if (dateElH) dateElH.value = todayStrH;
+      if (hEl) hEl.value = ah.height != null ? ah.height : '';
+    }
+
     if (name === 'addConsult') {
       document.getElementById('c-date').value = todayISO();
       document.getElementById('c-vet').value = '';
@@ -2208,6 +2319,16 @@
       document.getElementById('ew-weight').value = wEntry.weight != null ? String(wEntry.weight) : '';
     }
 
+    if (name === 'editHeight') {
+      var hid = uiState.editHeightEntryId;
+      var hEntries = Array.isArray(data.animal?.heightHistory) ? data.animal.heightHistory : [];
+      var hEntry = hEntries.find(function (x) { return x.id === hid; }) || null;
+      if (!hEntry) return;
+      document.getElementById('eh-id').value = String(hEntry.id);
+      document.getElementById('eh-date').value = hEntry.date || '';
+      document.getElementById('eh-height').value = hEntry.height != null ? String(hEntry.height) : '';
+    }
+
     var overlay = document.getElementById('modal-' + name);
     if (overlay) {
       modalLastFocused = document.activeElement;
@@ -2351,6 +2472,78 @@
     });
   }
 
+  // ——— Height (taille au garrot) ————————————————————————————
+  function addHeightEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    if (!data.animal) data.animal = {};
+    if (!Array.isArray(data.animal.heightHistory)) data.animal.heightHistory = [];
+
+    var date = document.getElementById('hh-date')?.value;
+    var h = parseFloat(document.getElementById('hh-height')?.value, 10);
+
+    if (!date) { showToast('Veuillez choisir une date.', 'error'); return; }
+    if (isNaN(h) || h <= 0) { showToast('Veuillez saisir une taille valide (cm).', 'error'); return; }
+
+    data.animal.heightHistory.push({ id: state.nextId++, date: date, height: h });
+    data.animal.height = h;
+    closeModal('addHeight');
+    saveState();
+    refreshAll();
+    showToast('Mesure ajoutée', 'success');
+  }
+
+  function syncAnimalHeightFromHistory(wrap) {
+    if (!wrap || !wrap.animal) return;
+    var entries = Array.isArray(wrap.animal.heightHistory) ? wrap.animal.heightHistory : [];
+    if (entries.length === 0) return;
+    var latest = entries.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); })[0];
+    wrap.animal.height = latest && latest.height != null ? Number(latest.height) : wrap.animal.height;
+  }
+
+  function updateHeightEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editHeightEntryId;
+    var entries = Array.isArray(data.animal?.heightHistory) ? data.animal.heightHistory : [];
+    var entry = entries.find(function (x) { return x.id === id; }) || null;
+    if (!entry) return;
+
+    var date = document.getElementById('eh-date').value;
+    var height = parseFloat(document.getElementById('eh-height').value, 10);
+    if (!date) { showToast('Veuillez choisir une date.', 'error'); return; }
+    if (isNaN(height) || height <= 0) { showToast('Veuillez saisir une taille valide (cm).', 'error'); return; }
+
+    entry.date = date;
+    entry.height = height;
+    syncAnimalHeightFromHistory(data);
+    closeModal('editHeight');
+    uiState.editHeightEntryId = null;
+    saveState();
+    refreshAll();
+    showToast('Mesure modifiée', 'success');
+  }
+
+  function deleteHeightEntry(entryId) {
+    var data = getCurrent();
+    if (!data || !data.animal || !Array.isArray(data.animal.heightHistory)) return;
+    confirmDelete('Supprimer cette mesure ?', function () {
+      var idx = data.animal.heightHistory.findIndex(function (h) { return h.id === entryId; });
+      if (idx === -1) return;
+      var removed = data.animal.heightHistory[idx];
+      data.animal.heightHistory.splice(idx, 1);
+      syncAnimalHeightFromHistory(data);
+      saveState();
+      refreshAll();
+      showUndoToast('Mesure supprimée', function () {
+        data.animal.heightHistory.splice(idx, 0, removed);
+        syncAnimalHeightFromHistory(data);
+        saveState();
+        refreshAll();
+      });
+    });
+  }
+
   // ——— Add animal ———————————————————————————————————————
   function addAnimal() {
     var name = document.getElementById('aa-name').value.trim();
@@ -2364,7 +2557,7 @@
         sex: document.getElementById('aa-sex').value || 'Mâle',
         dob: document.getElementById('aa-dob').value || '',
         weight: parseFloat(document.getElementById('aa-weight').value, 10) || null,
-        weightHistory: [], height: null, color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
+        weightHistory: [], height: null, heightHistory: [], color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
       },
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
       notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
@@ -5083,6 +5276,116 @@
     });
   }
 
+  // Miroir de renderWeightEvolution pour la taille au garrot (sans
+  // fourchette de race, données non disponibles pour la taille).
+  function renderHeightEvolution(data) {
+    var container = document.getElementById('height-evolution');
+    if (!container) return;
+    if (!data || !data.animal) { container.innerHTML = ''; return; }
+
+    var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
+    var entries = entriesRaw.filter(function (e) { return e && e.date && e.height != null && !isNaN(Number(e.height)); })
+      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+
+    if (entries.length === 0) { container.innerHTML = ''; return; }
+
+    var heights = entries.map(function (e) { return Number(e.height); });
+    var minH = Math.min.apply(null, heights);
+    var maxH = Math.max.apply(null, heights);
+    if (minH === maxH) { minH -= 1; maxH += 1; }
+
+    var range = maxH - minH;
+    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
+
+    var xFor = function (i, n) {
+      if (n === 1) return W / 2;
+      return padL + ((W - padL - padR) * i) / (n - 1);
+    };
+    var yFor = function (h) { return padT + (1 - (h - minH) / range) * (H - padT - padB); };
+
+    var n = entries.length;
+
+    var areaPoints = entries.map(function (e, i) {
+      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
+    });
+    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
+
+    var points = entries.map(function (e, i) {
+      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
+    }).join(' ');
+
+    var circles = entries.map(function (e, i) {
+      var x = xFor(i, n), y = yFor(Number(e.height));
+      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="#2563eb" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.height).toFixed(1) + ' cm"></circle>';
+    }).join('');
+
+    var gridLines = '';
+    var steps = 4;
+    for (var i = 0; i <= steps; i++) {
+      var hVal = minH + (range * i / steps);
+      var yVal = yFor(hVal);
+      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + hVal.toFixed(1) + '</text>';
+    }
+
+    var first = Number(entries[0].height);
+    var last = Number(entries[entries.length - 1].height);
+    var delta = last - first;
+    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' cm';
+    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+
+    var trendHtml = '';
+    if (entries.length > 2) {
+      trendHtml = ' · Tendance : ' + (delta > 0 ? '📈 hausse' : (delta < 0 ? '📉 baisse' : '→ stable'));
+    }
+
+    var listEntries = entries.slice(-6).reverse();
+    var list = listEntries.map(function (e) {
+      var hTxt = Number(e.height).toFixed(1).replace(/\.0$/, '');
+      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' cm</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-height" data-height-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-height" data-height-entry-id="' + e.id + '">✕</button></div></div></div>';
+    }).join('');
+
+    container.innerHTML =
+      '<div style="position:relative">' +
+      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+      gridLines +
+      '<path d="' + areaPath + '" fill="#2563eb" opacity="0.1"/>' +
+      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
+      circles +
+      '</svg></div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' cm · Variation: ' + deltaTxt + trendHtml + '</div>' +
+      '<div class="weight-evolution-list">' + list + '</div>';
+
+    container.querySelectorAll('[data-action="edit-height"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editHeightEntryId = parseInt(btn.getAttribute('data-height-entry-id'), 10);
+        openModal('editHeight');
+      });
+    });
+    container.querySelectorAll('[data-action="delete-height"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        deleteHeightEntry(parseInt(btn.getAttribute('data-height-entry-id'), 10));
+      });
+    });
+
+    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
+      circle.style.cursor = 'pointer';
+      circle.addEventListener('mouseenter', function (e) {
+        var tooltip = document.createElement('div');
+        tooltip.className = 'weight-tooltip';
+        tooltip.textContent = circle.getAttribute('data-tooltip');
+        tooltip.style.left = e.pageX + 'px';
+        tooltip.style.top = (e.pageY - 30) + 'px';
+        tooltip.id = 'weight-tip';
+        document.body.appendChild(tooltip);
+      });
+      circle.addEventListener('mouseleave', function () {
+        var tip = document.getElementById('weight-tip');
+        if (tip) tip.remove();
+      });
+    });
+  }
+
   // ——— Résumé mensuel ——————————————————————————————————————
   var MONTH_NAMES_FULL = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
@@ -5162,6 +5465,9 @@
     var weightContainer = document.getElementById('weight-evolution');
     if (weightContainer) weightContainer.hidden = !(historyType === 'all' || historyType === 'weight');
     if (weightContainer && !weightContainer.hidden) renderWeightEvolution(data);
+    var heightContainer = document.getElementById('height-evolution');
+    if (heightContainer) heightContainer.hidden = !(historyType === 'all' || historyType === 'height');
+    if (heightContainer && !heightContainer.hidden) renderHeightEvolution(data);
 
     var all = []
       .concat((historyType === 'all' || historyType === 'vaccins') ? data.vaccines.map(function (v) {
@@ -5172,6 +5478,9 @@
       }) : [])
       .concat(((historyType === 'all' || historyType === 'weight') && data.animal && Array.isArray(data.animal.weightHistory)) ? data.animal.weightHistory.map(function (w) {
         return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: ico('scale', 16) };
+      }) : [])
+      .concat(((historyType === 'all' || historyType === 'height') && data.animal && Array.isArray(data.animal.heightHistory)) ? data.animal.heightHistory.map(function (h) {
+        return { date: h.date, title: (h.height != null ? h.height : '') + ' cm', sub: 'Taille', icon: ico('scale', 16) };
       }) : [])
       .concat((historyType === 'all' || historyType === 'consultations') ? (Array.isArray(data.consultations) ? data.consultations : []).map(function (c) {
         return { date: c.date, title: escapeHtml(c.reason || ''), sub: 'Consultation · ' + escapeHtml(c.vet || ''), icon: ico('stethoscope', 16) };
@@ -5378,6 +5687,11 @@
     }).join('');
     var weightTable = weightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Poids</th></tr></thead><tbody>' + weightRows + '</tbody></table>' : '';
 
+    var heightRows = (Array.isArray(a.heightHistory) ? a.heightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (h) {
+      return '<tr><td>' + fmtDate(h.date) + '</td><td>' + h.height + ' cm</td></tr>';
+    }).join('');
+    var heightTable = heightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Taille</th></tr></thead><tbody>' + heightRows + '</tbody></table>' : '';
+
     var ped = data.pedigree || {};
     var pedigreeTable = (ped.registry && ped.registry !== 'Non inscrit') ? (
       '<table class="vet-view-table"><tbody>' +
@@ -5399,6 +5713,7 @@
       section('Médicaments en cours', medsTable) +
       section('Symptômes récents', symptomsTable) +
       section('Historique de poids', weightTable) +
+      section('Historique de taille', heightTable) +
       (pedigreeTable ? section('Pedigree', pedigreeTable) : '');
 
     container.hidden = false;
@@ -6216,6 +6531,8 @@
     if (formEditDeworming) formEditDeworming.addEventListener('submit', function (e) { e.preventDefault(); updateDewormingEntry(); });
     var formEditWeight = document.getElementById('form-edit-weight');
     if (formEditWeight) formEditWeight.addEventListener('submit', function (e) { e.preventDefault(); updateWeightEntry(); });
+    var formEditHeight = document.getElementById('form-edit-height');
+    if (formEditHeight) formEditHeight.addEventListener('submit', function (e) { e.preventDefault(); updateHeightEntry(); });
 
     document.getElementById('form-add-vaccin').addEventListener('submit', function (e) { e.preventDefault(); addVaccine(); });
     document.getElementById('form-add-deworming').addEventListener('submit', function (e) { e.preventDefault(); addDeworming(); });
@@ -6223,6 +6540,8 @@
 
     var formAddWeight = document.getElementById('form-add-weight');
     if (formAddWeight) formAddWeight.addEventListener('submit', function (e) { e.preventDefault(); addWeightEntry(); });
+    var formAddHeight = document.getElementById('form-add-height');
+    if (formAddHeight) formAddHeight.addEventListener('submit', function (e) { e.preventDefault(); addHeightEntry(); });
 
     document.getElementById('form-add-consult').addEventListener('submit', function (e) { e.preventDefault(); addConsultation(); });
     document.getElementById('form-edit-consult').addEventListener('submit', function (e) { e.preventDefault(); updateConsultation(); });

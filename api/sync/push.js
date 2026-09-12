@@ -61,6 +61,12 @@ export default async function handler(req, res) {
           await upsertRows(client, 'weight_history', ['pet_id', 'user_id', 'local_id', 'date', 'weight'], rows, ['pet_id', 'local_id']);
         }
 
+        const heightHistory = (wrapper.animal && Array.isArray(wrapper.animal.heightHistory)) ? wrapper.animal.heightHistory : [];
+        if (heightHistory.length) {
+          const rows = heightHistory.map((h) => ({ pet_id: petId, user_id: userId, local_id: h.id, date: h.date, height: h.height }));
+          await upsertRows(client, 'height_history', ['pet_id', 'user_id', 'local_id', 'date', 'height'], rows, ['pet_id', 'local_id']);
+        }
+
         const meals = (wrapper.nutrition && Array.isArray(wrapper.nutrition.meals)) ? wrapper.nutrition.meals : [];
         if (meals.length) {
           const rows = meals.map((m) => toRow(m, MEAL_FIELDS, { pet_id: petId, user_id: userId, local_id: m.id }));

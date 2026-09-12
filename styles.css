@@ -419,6 +419,8 @@ body {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-family: var(--font-ui);
   font-weight: 700;
   font-size: 13px;
@@ -2706,6 +2708,7 @@ textarea.form-input {
   font-weight: 600;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   box-shadow: none;
 }
@@ -6716,6 +6719,12 @@ body {
 
   #view-detail:not(.is-pet-profile):has(#subnav-sante:not([hidden])) .detail-main {
     padding-top: 52px;
+  }
+
+  /* "Plus" garde l'onglet principal visible (plusieurs destinations) : le
+     menu déroulé est plus haut que celui de Santé, il faut plus de marge. */
+  #view-detail:not(.is-pet-profile):has(#subnav-more:not([hidden])) .detail-main {
+    padding-top: 230px;
   }
 
   #view-detail .detail-nav .subnav {
