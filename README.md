@@ -95,3 +95,5 @@ Le dossier `supabase/` (ancienne intégration Supabase — Postgres+RLS, Auth, E
    ```
    0 8 * * *  cd /chemin/vers/applika && node scripts/send-reminders.mjs >> logs/reminders.log 2>&1
    ```
+
+**Déploiement Docker (VPS, alternative à l'étape 3-4) :** `Dockerfile` (multi-stage : build esbuild + runtime Node minimal, port interne `3000`) et `docker-compose.yml` (mappe `3020:3000`, charge `.env` s'il existe). `docker compose up -d --build` suffit ; le conteneur redémarre seul (`restart: unless-stopped`) au crash ou au reboot du daemon Docker — pas besoin d'unité systemd séparée pour le process Node. HTTPS et exposition publique sont délégués à un **Cloudflare Tunnel** (aucun port ouvert côté routeur) : voir `infra/cloudflared/config.yml` pour le modèle d'ingress (hostname `vetbook.boss-etech.net` → `http://localhost:3020`) — installation en une fois avec `cloudflared tunnel route dns` puis `cloudflared service install`, voir commentaires du fichier. Le port `3020` est arbitraire (à adapter si déjà pris sur le VPS) ; les rappels quotidiens (étape 5) restent à planifier hors conteneur (crontab de l'hôte), le conteneur ne fait tourner que `server.js`.

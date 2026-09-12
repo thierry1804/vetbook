@@ -1,0 +1,22 @@
+# Cloudflare Tunnel — pas de port ouvert côté routeur VPS. Ce projet
+# partage le tunnel "alterra-dev" (boss-etech.net) avec les autres apps
+# hébergées sur ce serveur : une seule route ajoutée ici (vetbook), les
+# autres hostnames viennent d'autres projets, ne pas les retirer.
+#
+# Installation sur un nouveau serveur (une fois) :
+#   sudo cloudflared tunnel login
+#   sudo cloudflared tunnel create alterra-dev   # ou réutiliser un tunnel existant
+#   sudo cloudflared tunnel route dns alterra-dev vetbook.boss-etech.net
+#   sudo cp infra/cloudflared/config.yml /etc/cloudflared/config.yml
+#   # adapter tunnel + credentials-file avec l'ID réel
+#   sudo systemctl restart cloudflared
+#
+# Le fichier de credentials (<tunnel-id>.json) n'est jamais versionné.
+
+tunnel: c262f85e-9d41-4dd9-80af-9544744cb591
+credentials-file: /etc/cloudflared/c262f85e-9d41-4dd9-80af-9544744cb591.json
+
+ingress:
+  - hostname: vetbook.boss-etech.net
+    service: http://localhost:3020
+  - service: http_status:404

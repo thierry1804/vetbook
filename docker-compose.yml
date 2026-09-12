@@ -1,0 +1,22 @@
+name: vetbook
+
+# Conteneur unique : app statique + API Express (server.js). Pas de DB locale,
+# pas de reverse proxy — Cloudflare Tunnel termine le HTTPS côté edge et
+# forwarde en clair vers ce port (voir /etc/cloudflared/config.yml,
+# hostname vetbook.boss-etech.net -> http://localhost:3020).
+#
+# Sync cloud (Neon) optionnelle : sans .env (DATABASE_URL, JWT_SECRET, ...),
+# l'app reste 100% locale (localStorage/IndexedDB) — voir README.md.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3020:3000"
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
