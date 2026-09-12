@@ -605,6 +605,12 @@
     } else if (route.view === 'profile') {
       showUserProfile();
       return;
+    } else if (route.view === 'favorites') {
+      showFavorites();
+      return;
+    } else if (route.view === 'help') {
+      showHelp();
+      return;
     }
     showHome();
   }
@@ -618,6 +624,26 @@
   function getOwner() {
     if (!state.owner) state.owner = { name: '', phone: '', email: '', clinic: '', address: '' };
     return state.owner;
+  }
+
+  // Complète le profil propriétaire avec les infos du compte cloud connecté
+  // (Google ou lien magique) quand elles manquent en local — jamais l'inverse
+  // (une saisie locale existante n'est jamais écrasée). Google Identity
+  // Services ne fournit que nom/email/photo, jamais téléphone ni adresse :
+  // ces deux champs restent toujours à saisir manuellement.
+  function fillOwnerFromCloudSession(session) {
+    if (!session || !session.user) return;
+    var o = getOwner();
+    var changed = false;
+    if (!o.name && session.user.name) { o.name = session.user.name; changed = true; }
+    if (!o.email && session.user.email) { o.email = session.user.email; changed = true; }
+    if (!changed) return;
+    saveState();
+    renderProfile();
+    var nameEl = document.getElementById('user-profile-name');
+    var emailEl = document.getElementById('user-profile-email');
+    if (nameEl) nameEl.textContent = o.name || 'Utilisateur';
+    if (emailEl) emailEl.textContent = o.email || '';
   }
 
   // ——— Photos : IndexedDB ——————————————————————————————
@@ -1410,10 +1436,14 @@
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
     var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
     viewDetail.hidden = true;
     if (viewDetail) viewDetail.classList.remove('is-pet-profile');
     if (viewCommunity) viewCommunity.hidden = true;
     if (viewProfile) viewProfile.hidden = true;
+    if (viewFavorites) viewFavorites.hidden = true;
+    if (viewHelp) viewHelp.hidden = true;
     viewHome.hidden = false;
     viewHome.classList.remove('view-enter');
     void viewHome.offsetWidth;
@@ -1432,9 +1462,13 @@
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
     var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
     viewHome.hidden = true;
     if (viewCommunity) viewCommunity.hidden = true;
     if (viewProfile) viewProfile.hidden = true;
+    if (viewFavorites) viewFavorites.hidden = true;
+    if (viewHelp) viewHelp.hidden = true;
     viewDetail.hidden = false;
     viewDetail.classList.remove('view-enter');
     void viewDetail.offsetWidth;
@@ -1842,7 +1876,7 @@
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
     var data = getCurrent();
-    if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner') return;
+    if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner' && name !== 'language') return;
 
     if (name === 'addAnimal') {
       populateBreedSuggestions(document.getElementById('aa-species').value || 'Canine');
@@ -3883,18 +3917,32 @@
       html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span></div>';
     }
 
-    // Tree
+    // Tree — 2 branches (paternelle / maternelle) pour que chaque
+    // grand-parent reste visuellement rattaché au bon parent, y compris
+    // quand les branches s'empilent sur mobile (voir CSS .pedigree-branches).
     var gp = p.grandparents || {};
     html += '<div class="pedigree-tree">' +
-      '<div class="pedigree-generation pedigree-gp">' +
-        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGrandsire || '?') + '</div>' +
-        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGranddam || '?') + '</div>' +
-        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGrandsire || '?') + '</div>' +
-        '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGranddam || '?') + '</div>' +
-      '</div>' +
-      '<div class="pedigree-generation pedigree-parents">' +
-        '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
-        '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
+      '<div class="pedigree-branches">' +
+        '<div class="pedigree-branch pedigree-branch--paternal">' +
+          '<span class="pedigree-branch__label">Branche paternelle</span>' +
+          '<div class="pedigree-generation pedigree-gp">' +
+            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGrandsire || '?') + '</div>' +
+            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGranddam || '?') + '</div>' +
+          '</div>' +
+          '<div class="pedigree-generation pedigree-parents">' +
+            '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pedigree-branch pedigree-branch--maternal">' +
+          '<span class="pedigree-branch__label">Branche maternelle</span>' +
+          '<div class="pedigree-generation pedigree-gp">' +
+            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGrandsire || '?') + '</div>' +
+            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGranddam || '?') + '</div>' +
+          '</div>' +
+          '<div class="pedigree-generation pedigree-parents">' +
+            '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div class="pedigree-generation pedigree-subject">' +
         '<div class="pedigree-node pedigree-node-subject">' + name + '</div>' +
@@ -4048,6 +4096,55 @@
     });
   }
 
+  // "Favoris" (Mon compte) : mêmes contacts vétérinaires que l'annuaire,
+  // filtrés sur favorite=true — pas une liste séparée, une vue sur la même
+  // source (vetDirectory) pour ne jamais désynchroniser les deux écrans.
+  function renderFavorites() {
+    var container = document.getElementById('favorites-content');
+    if (!container) return;
+
+    var dir = loadVetDirectory();
+    var favs = (dir.entries || []).filter(function (e) { return e.favorite; });
+    favs.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+    if (favs.length === 0) {
+      container.innerHTML = '<p class="empty-state">Aucun favori pour l\'instant. Marque un vétérinaire d\'un ' + ico('star', 14) + ' depuis l\'annuaire (fiche animal → onglet Annuaire).</p>';
+      return;
+    }
+
+    container.innerHTML = '<div class="vet-cards">' + favs.map(function (e) { return renderVetCard(e, dir); }).join('') + '</div>';
+
+    container.querySelectorAll('[data-vet-fav]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-vet-fav'), 10);
+        var entry = dir.entries.find(function (e) { return e.id === id; });
+        if (entry) { entry.favorite = !entry.favorite; saveVetDirectory(dir); renderFavorites(); }
+      });
+    });
+    container.querySelectorAll('[data-vet-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editVetContactId = parseInt(btn.getAttribute('data-vet-edit'), 10);
+        openModal('editVetContact');
+      });
+    });
+    container.querySelectorAll('[data-vet-delete]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-vet-delete'), 10);
+        confirmDelete('Supprimer ce contact ?', function () {
+          var idx = dir.entries.findIndex(function (e) { return e.id === id; });
+          if (idx === -1) return;
+          var removed = dir.entries[idx];
+          dir.entries.splice(idx, 1);
+          saveVetDirectory(dir); renderFavorites();
+          showUndoToast('Contact supprimé', function () {
+            dir.entries.splice(idx, 0, removed);
+            saveVetDirectory(dir); renderFavorites();
+          });
+        });
+      });
+    });
+  }
+
   function renderVetCard(e) {
     var distHtml = (e._distance != null) ? '<span class="vet-card__distance">' + ico('mapPin', 14) + ' ' + e._distance.toFixed(1) + ' km</span>' : '';
     var initial = (e.name || '?').charAt(0).toUpperCase();
@@ -4155,9 +4252,13 @@
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
     var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
     viewHome.hidden = true;
     viewDetail.hidden = true;
     if (viewProfile) viewProfile.hidden = true;
+    if (viewFavorites) viewFavorites.hidden = true;
+    if (viewHelp) viewHelp.hidden = true;
     viewCommunity.hidden = false;
     viewCommunity.classList.remove('view-enter');
     void viewCommunity.offsetWidth;
@@ -5497,6 +5598,17 @@
   // ——— Onboarding ————————————————————————————————————
   function showOnboarding() {
     openModal('onboarding');
+    // Repart toujours de l'étape 1 (un replay depuis Centre d'aide peut
+    // survenir après un premier passage déjà arrivé à l'étape 3).
+    document.getElementById('onboarding-step-1').hidden = false;
+    document.getElementById('onboarding-step-2').hidden = true;
+    document.getElementById('onboarding-step-3').hidden = true;
+    // Rejouable depuis Centre d'aide ("Revoir l'introduction") : les
+    // écouteurs ci-dessous visent des éléments statiques du DOM, jamais
+    // recréés — sans ce garde-fou, chaque replay les empilerait (double
+    // création d'animal au submit, transitions d'étape dupliquées).
+    if (uiState.onboardingBound) return;
+    uiState.onboardingBound = true;
 
     document.getElementById('onboarding-next-1').addEventListener('click', function () {
       document.getElementById('onboarding-step-1').hidden = true;
@@ -5548,7 +5660,10 @@
   // ——— PWA ————————————————————————————————————————
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
+    // updateViaCache:'none' — le navigateur doit toujours revérifier
+    // sw.js sur le réseau (jamais via son propre cache HTTP local), sinon
+    // une nouvelle version peut mettre des heures à être détectée.
+    navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).then(function (reg) {
       if (reg.installing) console.log('App\'lika: SW en cours d\'installation');
       else if (reg.waiting) console.log('App\'lika: SW en attente');
       else if (reg.active) console.log('App\'lika: SW actif');
@@ -5924,6 +6039,15 @@
     // Check browser notifications
     checkBrowserNotifications();
 
+    // Préremplit le profil propriétaire depuis le compte cloud connecté
+    // (nom/email Google ou lien magique) s'il est vide localement.
+    if (window.cloudSync && window.cloudSync.isConfigured()) {
+      window.cloudSync.getSession().then(fillOwnerFromCloudSession);
+      window.cloudSync.onAuthChange(function (event, session) {
+        if (event === 'SIGNED_IN') fillOwnerFromCloudSession(session);
+      });
+    }
+
     // Bindings
     document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });
     var btnAddHome = document.getElementById('btn-add-animal-home');
@@ -5984,8 +6108,6 @@
     if (btnBackup) btnBackup.addEventListener('click', function () { openModal('backup'); });
     var btnUserNav = document.getElementById('btn-user-nav');
     if (btnUserNav) btnUserNav.addEventListener('click', function () { showUserProfile(); });
-    document.getElementById('btn-add-photo').addEventListener('click', triggerPhotoUpload);
-
     document.getElementById('photo-input').addEventListener('change', handlePhotoUpload);
     document.getElementById('btn-avatar-upload').addEventListener('click', function () { document.getElementById('avatar-input').click(); });
     document.getElementById('avatar-input').addEventListener('change', handleAvatarUpload);
@@ -6388,19 +6510,22 @@
     });
 
     var btnUserFavorites = document.getElementById('btn-user-favorites');
-    if (btnUserFavorites) btnUserFavorites.addEventListener('click', function () {
-      showToast('Favoris : bientôt disponible', 'info');
-    });
+    if (btnUserFavorites) btnUserFavorites.addEventListener('click', function () { showFavorites(); });
+
+    var btnFavoritesBack = document.getElementById('btn-favorites-back');
+    if (btnFavoritesBack) btnFavoritesBack.addEventListener('click', function () { showUserProfile(); });
 
     var btnUserLanguage = document.getElementById('btn-user-language');
-    if (btnUserLanguage) btnUserLanguage.addEventListener('click', function () {
-      showToast('Changement de langue : bientôt disponible', 'info');
-    });
+    if (btnUserLanguage) btnUserLanguage.addEventListener('click', function () { openModal('language'); });
 
     var btnUserHelp = document.getElementById('btn-user-help');
-    if (btnUserHelp) btnUserHelp.addEventListener('click', function () {
-      showToast('Centre d\'aide : bientôt disponible', 'info');
-    });
+    if (btnUserHelp) btnUserHelp.addEventListener('click', function () { showHelp(); });
+
+    var btnHelpBack = document.getElementById('btn-help-back');
+    if (btnHelpBack) btnHelpBack.addEventListener('click', function () { showUserProfile(); });
+
+    var btnHelpOnboarding = document.getElementById('btn-help-onboarding');
+    if (btnHelpOnboarding) btnHelpOnboarding.addEventListener('click', function () { showOnboarding(); });
 
     var userDarkToggle = document.getElementById('user-dark-toggle');
     if (userDarkToggle) {
@@ -6430,10 +6555,14 @@
     var viewDetail = document.getElementById('view-detail');
     var viewCommunity = document.getElementById('view-community');
     var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
 
     if (viewHome) viewHome.hidden = true;
     if (viewDetail) viewDetail.hidden = true;
     if (viewCommunity) viewCommunity.hidden = true;
+    if (viewFavorites) viewFavorites.hidden = true;
+    if (viewHelp) viewHelp.hidden = true;
     if (viewProfile) {
       viewProfile.hidden = false;
       viewProfile.classList.remove('view-enter');
@@ -6467,6 +6596,53 @@
       userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
     }
     saveRoute({ view: 'profile' });
+  }
+
+  function showFavorites() {
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
+    if (viewHome) viewHome.hidden = true;
+    if (viewDetail) viewDetail.hidden = true;
+    if (viewCommunity) viewCommunity.hidden = true;
+    if (viewProfile) viewProfile.hidden = true;
+    if (viewHelp) viewHelp.hidden = true;
+    if (viewFavorites) {
+      viewFavorites.hidden = false;
+      viewFavorites.classList.remove('view-enter');
+      void viewFavorites.offsetWidth;
+      viewFavorites.classList.add('view-enter');
+    }
+    document.getElementById('animal-select').hidden = true;
+    document.getElementById('fab-container').hidden = true;
+    renderFavorites();
+    saveRoute({ view: 'favorites' });
+  }
+
+  function showHelp() {
+    var viewHome = document.getElementById('view-home');
+    var viewDetail = document.getElementById('view-detail');
+    var viewCommunity = document.getElementById('view-community');
+    var viewProfile = document.getElementById('view-user-profile');
+    var viewFavorites = document.getElementById('view-favorites');
+    var viewHelp = document.getElementById('view-help');
+    if (viewHome) viewHome.hidden = true;
+    if (viewDetail) viewDetail.hidden = true;
+    if (viewCommunity) viewCommunity.hidden = true;
+    if (viewProfile) viewProfile.hidden = true;
+    if (viewFavorites) viewFavorites.hidden = true;
+    if (viewHelp) {
+      viewHelp.hidden = false;
+      viewHelp.classList.remove('view-enter');
+      void viewHelp.offsetWidth;
+      viewHelp.classList.add('view-enter');
+    }
+    document.getElementById('animal-select').hidden = true;
+    document.getElementById('fab-container').hidden = true;
+    saveRoute({ view: 'help' });
   }
 
   window.app = {

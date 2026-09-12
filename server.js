@@ -40,7 +40,24 @@ app.all('/api/sync/pull', syncPull);
 app.all('/api/push/subscription', pushSubscription);
 app.all('/api/user/dog-events-reminder', dogEventsReminder);
 
-app.use(express.static(staticDir));
+app.use(express.static(staticDir, {
+  setHeaders(res, filePath) {
+    // sw.js doit toujours être revalidé : sans ça, Cloudflare (et le cache
+    // HTTP du navigateur) lui appliquent une TTL par défaut (4h côté
+    // Cloudflare en l'absence de directive forte) qui retarde d'autant la
+    // détection d'une nouvelle version par les appareils déjà installés.
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
+    // app.<hash>.js / styles.<hash>.css / data-layer.<hash>.js (voir
+    // scripts/build.mjs) : le nom change à chaque contenu différent, donc
+    // aucune revalidation n'est jamais nécessaire — cache long + immutable.
+    if (/\.[0-9a-f]{8}\.(js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
 
 app.listen(PORT, () => {
   console.log(`App'lika écoute sur http://localhost:${PORT} (statique : ${staticDir})`);

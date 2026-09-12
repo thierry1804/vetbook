@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0B5450">
   <meta name="description" content="Carnet de santé pour vos animaux : profil, vaccins, déparasitage, photos et rappels.">
   <title>App'lika — Carnet de Santé Animal</title>
@@ -175,6 +175,67 @@
           <button type="button" class="btn-icon" id="btn-add-tip">+ Ajouter une astuce</button>
         </div>
         <div id="community-tips-list"></div>
+      </div>
+    </div>
+
+    <!-- Vue Favoris -->
+    <div id="view-favorites" class="view" hidden>
+      <button type="button" class="btn-accueil" id="btn-favorites-back">← Retour</button>
+      <div class="user-profile">
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Favoris</h2>
+        <p class="table-muted">Tes contacts vétérinaires marqués d'un ★ dans l'annuaire.</p>
+        <div id="favorites-content"></div>
+      </div>
+    </div>
+
+    <!-- Vue Centre d'aide -->
+    <div id="view-help" class="view" hidden>
+      <button type="button" class="btn-accueil" id="btn-help-back">← Retour</button>
+      <div class="user-profile">
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Centre d'aide</h2>
+
+        <div class="user-profile__section">
+          <button type="button" class="user-profile__row" id="btn-help-onboarding">
+            <span class="user-profile__row-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            </span>
+            <span class="user-profile__row-label">Revoir l'introduction</span>
+            <span class="user-profile__row-arrow">›</span>
+          </button>
+        </div>
+
+        <div class="user-profile__section">
+          <h3 class="user-profile__section-title">Questions fréquentes</h3>
+          <details class="help-faq">
+            <summary class="help-faq__summary">Comment activer la sauvegarde dans le cloud ?</summary>
+            <div class="help-faq__body">Dans « Mon compte », connecte-toi avec Google ou reçois un lien de connexion par email. Une fois connecté, utilise « Sauvegarder dans le cloud » pour envoyer tes données, ou « Restaurer depuis le cloud » pour les récupérer sur un autre appareil.</div>
+          </details>
+          <details class="help-faq">
+            <summary class="help-faq__summary">Mes données sont-elles conservées si je ne me connecte pas ?</summary>
+            <div class="help-faq__body">Oui. Sans connexion, l'application reste 100&nbsp;% locale : tout est stocké sur cet appareil, rien n'est envoyé ailleurs.</div>
+          </details>
+          <details class="help-faq">
+            <summary class="help-faq__summary">Comment ajouter un rappel de vaccin ou de déparasitage ?</summary>
+            <div class="help-faq__body">Dans la fiche de l'animal, onglet « Vaccins » ou « Déparasitage », bouton « + ». Renseigne la date du prochain rappel pour qu'il apparaisse dans les Alertes et le Calendrier.</div>
+          </details>
+          <details class="help-faq">
+            <summary class="help-faq__summary">Comment recevoir des notifications de rappel ?</summary>
+            <div class="help-faq__body">Dans « Mon compte » → « Notifications », active les notifications du navigateur. Un compte cloud connecté est nécessaire pour les recevoir même app fermée.</div>
+          </details>
+          <details class="help-faq">
+            <summary class="help-faq__summary">Comment exporter mes données ?</summary>
+            <div class="help-faq__body">Dans « Mon compte » → « Sauvegarde / Import », télécharge une sauvegarde complète au format JSON. Depuis l'onglet « Alertes » d'un animal, tu peux aussi exporter les rappels à venir au format calendrier (.ics).</div>
+          </details>
+          <details class="help-faq">
+            <summary class="help-faq__summary">J'ai supprimé un animal par erreur, puis-je le récupérer ?</summary>
+            <div class="help-faq__body">Non, la suppression d'un animal est définitive. Pense à exporter une sauvegarde régulièrement (« Mon compte » → « Sauvegarde / Import ») pour pouvoir restaurer en cas d'erreur.</div>
+          </details>
+        </div>
+
+        <div class="user-profile__section">
+          <h3 class="user-profile__section-title">Signaler un problème</h3>
+          <p class="user-profile__hint">Un bug ou une suggestion&nbsp;? <a href="https://github.com/thierry1804/vetbook/issues" target="_blank" rel="noopener">Ouvre un ticket sur GitHub</a>.</p>
+        </div>
       </div>
     </div>
 
@@ -425,7 +486,6 @@
       <div class="gallery-section">
         <div class="gallery-header">
           <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Album Photo</h2>
-          <button type="button" class="btn-icon" id="btn-add-photo"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Ajouter des photos</button>
         </div>
         <div class="gallery-grid" id="gallery-grid">
           <button type="button" class="gallery-add" id="gallery-add-trigger">
@@ -889,6 +949,20 @@
           <button type="submit" class="btn-primary">Enregistrer</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-language" aria-hidden="true" role="dialog" aria-labelledby="modal-language-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-language-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> Langue</h2>
+      <div class="user-profile__row">
+        <span class="user-profile__row-label">Français</span>
+        <span class="user-profile__row-value">✓ Actif</span>
+      </div>
+      <p class="user-profile__hint">L'application est disponible en français uniquement pour l'instant. D'autres langues arriveront dans une prochaine mise à jour.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" data-close="language">OK</button>
+      </div>
     </div>
   </div>
 

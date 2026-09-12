@@ -34,12 +34,40 @@ self.addEventListener('activate', function (event) {
   );
 });
 
+// app.<hash>.js / styles.<hash>.css / data-layer.<hash>.js (voir
+// scripts/build.mjs) : le nom encode le contenu, jamais réutilisé pour un
+// contenu différent — cache-first est donc à la fois plus rapide (aucun
+// aller-retour réseau nécessaire une fois en cache) et sans risque de
+// servir une version périmée.
+function isHashedAsset(url) {
+  return /\.[0-9a-f]{8}\.(js|css)$/.test(url);
+}
+
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
   // Cross-origin requests (Overpass API, Google Fonts, ...) are left to the
   // network/browser cache; nothing to vendor locally beyond app assets.
   if (event.request.url.indexOf(self.location.origin) !== 0) return;
 
+  if (isHashedAsset(event.request.url)) {
+    event.respondWith(
+      caches.match(event.request).then(function (cached) {
+        if (cached) return cached;
+        return fetch(event.request).then(function (res) {
+          if (res && res.status === 200 && res.type === 'basic') {
+            var clone = res.clone();
+            caches.open(CACHE_NAME).then(function (c) { c.put(event.request, clone); });
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // Tout le reste (HTML, API, manifest...) : network-first — contenu qui
+  // peut changer à chaque déploiement ou à chaque requête — avec repli sur
+  // le cache hors-ligne.
   event.respondWith(
     fetch(event.request).then(function (res) {
       if (!res || res.status !== 200 || res.type !== 'basic') return res;
