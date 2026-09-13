@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  doc-page:not(:defined) { visibility: hidden; }
+  body { margin: 0; }
+  a { color: #14463c; }
+  a:hover { color: #0d3a31; }
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page margin="0.8in">
+
+  <div slot="header" style="display:flex;justify-content:space-between;align-items:baseline;font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.08em;text-transform:uppercase;color:#8a7a63;padding-bottom:6pt;border-bottom:0.5pt solid #e6d7c0">
+    <span>App'lika · Product &amp; Design Book</span>
+    <span>Version 1.0 — 13 septembre 2026</span>
+  </div>
+
+  <div slot="footer" style="display:flex;justify-content:space-between;align-items:baseline;font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#8a7a63;padding-top:6pt;border-top:0.5pt solid #e6d7c0">
+    <span>ETECH · confidentiel</span>
+    <span>Carnet de santé animal</span>
+  </div>
+
+  <div style="font-family:'Bricolage Grotesque',system-ui,sans-serif;color:#1f3d34">
+
+    <div style="padding:36pt 0 24pt">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9pt;letter-spacing:.14em;text-transform:uppercase;color:#7a6a55">Référentiel produit et design</div>
+      <h1 style="margin:10pt 0 0;font-size:40pt;line-height:1.02;font-weight:800;letter-spacing:-0.02em">App'lika</h1>
+      <div style="font-size:18pt;font-weight:500;color:#3f5f54;margin-top:6pt">Le carnet de santé qui rend ce qu'on y met</div>
+      <p style="font-size:11pt;line-height:1.6;color:#5c5243;margin:18pt 0 0;max-width:34em">Ce document est la référence unique pour concevoir et développer App'lika. Il fixe la promesse produit, l'architecture des écrans, le système visuel et les règles de rédaction. Toute décision d'interface doit pouvoir être justifiée par une règle de ce livre — et toute exception doit y être ajoutée.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10pt;margin-top:26pt">
+        <div style="background:#f7f3ea;border:0.5pt solid #e6d7c0;border-radius:8pt;padding:11pt 12pt;break-inside:avoid"><div style="font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55">Portée</div><div style="font-size:11pt;font-weight:700;margin-top:3pt;line-height:1.35">8 écrans principaux, web responsive et mobile</div></div>
+        <div style="background:#f7f3ea;border:0.5pt solid #e6d7c0;border-radius:8pt;padding:11pt 12pt;break-inside:avoid"><div style="font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55">Utilisateurs</div><div style="font-size:11pt;font-weight:700;margin-top:3pt;line-height:1.35">Propriétaires, éleveurs, vétérinaires, admin</div></div>
+        <div style="background:#f7f3ea;border:0.5pt solid #e6d7c0;border-radius:8pt;padding:11pt 12pt;break-inside:avoid"><div style="font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55">Statut</div><div style="font-size:11pt;font-weight:700;margin-top:3pt;line-height:1.35">Directions validées, prêt pour le développement</div></div>
+      </div>
+    </div>
+
+    <div style="border-top:1pt solid #1f3d34;padding-top:14pt;margin-top:10pt">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:10pt">Sommaire</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4pt 28pt;font-size:10.5pt;line-height:1.7;color:#3f5f54">
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">A</span> &nbsp;Le produit — promesse, utilisateurs, principes</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">E</span> &nbsp;Composants d'interface</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">B</span> &nbsp;Architecture et navigation</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">F</span> &nbsp;Contenu, ton et formats</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">C</span> &nbsp;Les huit écrans, écran par écran</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">G</span> &nbsp;Accessibilité et qualité</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">D</span> &nbsp;Système visuel — couleur, type, espace</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;color:#8a7a63">H</span> &nbsp;Priorités de mise en œuvre</div>
+      </div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">A — Le produit</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Promesse, utilisateurs, principes</div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 6pt">Le problème</h3>
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 8pt">Les propriétaires oublient les rappels. C'est le seul problème que tout le monde reconnaît, et la version actuelle d'App'lika ne le résout qu'à moitié : elle permet de <em>saisir</em> des actes, mais ne restitue rien. Les données rentrent et ne ressortent jamais — pas de document, pas de partage, pas de sortie exploitable chez le vétérinaire. L'écran d'accueil affiche huit anneaux rouges identiques : impossible de savoir lequel des huit animaux a besoin de quoi.</p>
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 14pt">Le diagnostic recueilli auprès de l'équipe tenait en trois mots : « assez vide et plat ». La cause n'est pas décorative. Elle est structurelle : une colonne droite systématiquement morte, une sous-navigation en accordéon à trois niveaux, et des listes de cartes toutes identiques quel que soit le contenu.</p>
+
+    <div style="background:#1f3d34;color:#fdf6ec;border-radius:10pt;padding:18pt 20pt;break-inside:avoid;margin-bottom:16pt">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8pt;letter-spacing:.12em;text-transform:uppercase;color:#9fc0b3">La promesse</div>
+      <div style="font-size:17pt;font-weight:700;line-height:1.35;margin-top:6pt">App'lika sait toujours quel animal a besoin de quoi, et le prouve en un document qu'on peut montrer à son vétérinaire.</div>
+      <div style="font-size:10pt;line-height:1.6;color:#cfe0d6;margin-top:10pt">Deux moitiés indissociables. La première dit ce qu'il faut faire. La seconde transforme ce qui a été fait en preuve utilisable. Une fonctionnalité qui ne sert ni l'une ni l'autre n'entre pas dans le produit.</div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Les quatre utilisateurs</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:16pt">
+      <thead>
+        <tr style="background:#f7f3ea">
+          <th style="text-align:left;padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55;width:20%">Profil</th>
+          <th style="text-align:left;padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55;width:26%">Ce qu'il vient faire</th>
+          <th style="text-align:left;padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Ce que le produit lui doit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="break-inside:avoid"><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Propriétaire</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Ne rien oublier, de un à trois animaux</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Une seule chose à faire à l'ouverture, cochable au pouce</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Éleveur</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Piloter huit dossiers et plus, comparer, agir en lot</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Rail permanent, tri par urgence, saisie sans modale</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Vétérinaire</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Lire un historique fiable en trente secondes</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Synthèse datée, vocabulaire clinique, accès en lecture à durée limitée</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Admin plateforme</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Surveiller la qualité des données et les comptes</td><td style="padding:7pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Détection de doublons, états d'erreur explicites, journaux d'accès</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Sept principes de conception</h3>
+    <div style="display:flex;flex-direction:column;gap:8pt">
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">1 · Une page, une réponse</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Chaque écran répond à une question formulable en une phrase. Si deux questions se disputent le haut de l'écran, l'écran est à scinder.</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">2 · L'urgence porte un nom et un nombre</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Jamais un point rouge seul. Toujours « Rage — échue depuis 31 jours », avec l'animal et le vétérinaire concernés.</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">3 · Agir depuis la liste</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Valider, reporter, appeler se font sur la ligne. Ouvrir un détail pour agir est un échec de conception. Les modales sont réservées à la création d'un objet entier.</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">4 · Aucune colonne morte</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Toute zone d'écran porte de l'information réelle ou disparaît. Le vide se règle par une mesure de texte plus étroite, jamais par du décor.</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">5 · Deux niveaux de navigation, pas trois</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Nav globale, puis onglets de dossier. L'accordéon est proscrit. Toute vue est adressable par une URL.
+</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">6 · Rien ne se saisit deux fois</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Un geste coché alimente le dossier. Une pesée recalcule la ration. Un acte validé crée son rappel. Les doublons sont détectés et proposés à la fusion, jamais empilés.</div></div>
+      <div style="border-left:2.5pt solid #b4501f;padding:2pt 0 2pt 12pt;break-inside:avoid"><div style="font-size:11.5pt;font-weight:700">7 · Les données doivent pouvoir sortir</div><div style="font-size:10pt;line-height:1.55;color:#3f3a30;margin-top:2pt">Tout dossier produit un PDF et un lien de consultation à durée limitée. C'est la contrepartie de chaque minute de saisie demandée à l'utilisateur.</div></div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">B — Architecture et navigation</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Carte de l'application</div>
+
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 14pt">Quatre destinations globales. Une seule d'entre elles, <strong>Animaux</strong>, contient un second niveau : les six onglets du dossier. Les cinq sous-pages « Santé » de l'ancienne version (Vaccins, Déparasitage, Hygiène, Consultations, Médicaments) fusionnent dans l'onglet <strong>Actes</strong>, et les quatre sous-pages « Plus » utiles (Repas, Activités, Journal, Check-up) se répartissent entre <strong>Nutrition</strong>, <strong>Suivi</strong> et <strong>Check-up</strong>.</p>
+
+    <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;overflow:hidden;break-inside:avoid;margin-bottom:16pt">
+      <div style="background:#1f3d34;color:#fdf6ec;padding:9pt 12pt;font-family:'JetBrains Mono',monospace;font-size:8pt;letter-spacing:.1em;text-transform:uppercase">Niveau 1 — navigation globale</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5pt;background:#e6d7c0">
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11.5pt;font-weight:700">Accueil</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Ce qu'il faut faire maintenant</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11.5pt;font-weight:700">Animaux</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Rail + dossier, 6 onglets</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11.5pt;font-weight:700">Agenda</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Échéances datées, tous animaux</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11.5pt;font-weight:700">Annuaire</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Praticiens et urgences</div></div>
+      </div>
+      <div style="background:#f7f3ea;color:#7a6a55;padding:9pt 12pt;font-family:'JetBrains Mono',monospace;font-size:8pt;letter-spacing:.1em;text-transform:uppercase;border-top:0.5pt solid #e6d7c0">Niveau 2 — onglets du dossier animal</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5pt;background:#e6d7c0">
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Fiche</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Constantes et état des protections</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Actes</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Vaccins, déparasitage, hygiène, consultations, traitements</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Nutrition</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Journal des repas et ration</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Poids</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Pesée express et courbe de race</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Suivi</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Habitudes sur six semaines</div></div>
+        <div style="background:#fff;padding:11pt 12pt"><div style="font-size:11pt;font-weight:700">Check-up</div><div style="font-size:9pt;color:#5c5243;margin-top:3pt;line-height:1.45">Évaluer → par zone → synthèse véto</div></div>
+      </div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 6pt">Règles de navigation</h3>
+    <ul style="font-size:10.5pt;line-height:1.6;color:#3f3a30;margin:0 0 14pt;padding-left:16pt">
+      <li style="margin-bottom:4pt">Le rail d'animaux est <strong>toujours visible</strong> sur desktop dans la section Animaux, groupé en « Demandent une action » puis « À jour », et trié par gravité décroissante à l'intérieur de chaque groupe.</li>
+      <li style="margin-bottom:4pt">Sur mobile, le rail devient une rangée de pastilles horizontale avec compteur, et les six onglets un ruban défilant. Aucun menu déroulant caché en haut à droite.</li>
+      <li style="margin-bottom:4pt">Les réglages, les conseils et le profil utilisateur vivent dans le menu du compte, pas dans la navigation principale.</li>
+      <li>Changer d'animal conserve l'onglet courant : on compare deux dossiers sans repasser par la fiche.</li>
+    </ul>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">C — Les huit écrans</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Direction retenue et règles de mise en œuvre</div>
+
+    <div style="display:flex;flex-direction:column;gap:12pt">
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">1 · Accueil</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">A1 · une seule chose à faire</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Le tiers haut est un bloc vert profond qui énonce l'urgence la plus grave en une phrase, avec trois actions : action principale en miel, « C'est déjà fait » et « Plus tard » en surfaces translucides. Puis la liste « Ensuite » — cinq échéances maximum, chacune avec son délai en mono et son action de ligne. Enfin la rangée de pastilles d'animaux avec anneau de gravité.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">À ne pas faire :</strong> empiler plusieurs bannières d'alerte, afficher un compteur global sans nommer l'animal, ou dépasser cinq lignes dans « Ensuite » (au-delà, un lien vers l'Agenda).</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">2 · Liste des animaux</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">D2 · maître-détail</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">La liste n'est pas une page mais une colonne permanente de 250 px : recherche ⌘K, groupe « Demandent une action » avec le motif en clair sous le nom, groupe « À jour », puis « Ajouter un animal ». Le détail s'ouvre à droite sans transition de page.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">À ne pas faire :</strong> une grille de cartes photo ordonnée alphabétiquement, ou un anneau de couleur identique pour tous les animaux.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">3 · Fiche animal</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">A3 · constantes</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Quatre constantes en gros chiffres mono — poids, taille au garrot, score de check-up, dépenses sur douze mois — chacune avec sa tendance en une ligne. Puis la bannière d'urgence si elle existe, puis quatre blocs de domaine (vaccins, déparasitage, hygiène, traitement) qui résument sans lister.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">À ne pas faire :</strong> répéter en pied de page les six champs d'identité déjà affichés dans l'en-tête du dossier ; écrire « historique à venir » à la place d'une donnée.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">4 · Actes vétérinaires</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">A4 · barres de couverture</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Une ligne par protection, pas par acte : nom, périodicité et praticien, statut à droite, puis une barre de progression entre la date de réalisation et la date d'échéance. Rouge quand la barre dépasse l'échéance, vert tant que la couverture court. L'historique complet est un repli sous chaque ligne.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">Règle métier :</strong> les actes administrables ensemble (rage + CHPPi) proposent une visite groupée. Les doublons de source sont fusionnés en une ligne portant deux origines.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">5 · Nutrition</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">B5 · journal des repas</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Ce qui compte est la régularité, pas la théorie nutritionnelle : bandeau « qui a servi quoi, à quelle heure », puis tableau daté des repas avec la personne en dernière colonne, puis grille de régularité sur quatorze jours et bloc « ce que le journal a repéré ». La ration conseillée reste affichée en tête mais ne devient jamais un calculateur isolé.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">À ne pas faire :</strong> un calculateur de calories détaché du suivi ; masquer l'auteur d'un repas quand plusieurs personnes s'occupent de l'animal.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">6 · Poids et mesures</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">B6 + A6 · pesée et courbe</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Écran à deux moitiés. À gauche, la saisie : pavé numérique vert profond, valeur en très gros mono, écart avec la pesée précédente calculé en direct. À droite, la lecture : courbe sur toute la vie de l'animal avec la fourchette saine de sa race en bande verte superposée, et le bloc de détection de doublons.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">Règle métier :</strong> la taille au garrot d'un adulte ne se redemande plus après une mesure. Une valeur qui casse la courbe est signalée comme erreur probable, non supprimée d'office.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">7 · Suivi quotidien</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">B7 · régularité</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Une grille de quarante-deux cases par habitude — six semaines, trois états : tenu, partiel, manqué. Le score en clair à droite du nom (« 31 jours sur 42 »), et une conclusion écrite en bas de l'écran qui pointe l'habitude qui décroche et propose l'action correspondante.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">À ne pas faire :</strong> afficher une grille sans son score chiffré, ni un score sans la conclusion qui en découle.</div>
+      </div>
+
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:14pt;font-weight:800">8 · Check-up</div><div style="font-family:'JetBrains Mono',monospace;font-size:8pt;background:#1f3d34;color:#fdf6ec;border-radius:3pt;padding:2pt 5pt">A8 + C8 + D8 · trois étapes</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:7pt">Un parcours en trois étapes explicites, avec fil d'étapes cliquable. <strong>1 · Évaluer</strong> : les dix critères, chacun accompagné de ce qu'il faut observer. <strong>2 · Par zone</strong> : six zones du corps avec l'historique des six derniers check-ups en barres. <strong>3 · Synthèse véto</strong> : le document généré — motifs de consultation classés par gravité, contexte récent en quatre tuiles, questions à poser cochables, export PDF et envoi au praticien.</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#7a6a55;margin-top:7pt"><strong style="color:#1f3d34">Règle métier :</strong> un critère signalé trois fois de suite remonte automatiquement dans les motifs de consultation. La synthèse rappelle l'antécédent correspondant quand il existe.</div>
+      </div>
+
+    </div>
+
+    <div style="background:#fdeee7;border:0.5pt solid #f2cdb9;border-radius:8pt;padding:14pt 16pt;margin-top:14pt;break-inside:avoid">
+      <div style="font-size:11.5pt;font-weight:700;color:#8f3b1a">Mention obligatoire</div>
+      <div style="font-size:10pt;line-height:1.6;color:#6b4034;margin-top:4pt">Le check-up et toute aide à l'orientation sont des outils de prévention. Chaque écran concerné affiche : « Ne remplace pas un examen vétérinaire. » Aucune formulation diagnostique n'est permise dans l'interface.</div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">D — Système visuel</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Couleur, typographie, espace</div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Palette</h3>
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 10pt">Quatre couleurs de marque, trois couleurs sémantiques, une échelle de neutres chauds. Aucune autre couleur n'entre dans le produit. Le vert profond et le crème portent la structure ; le terracotta est réservé aux actions ; le miel aux actions sur fond sombre et aux états intermédiaires.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:10pt">
+      <div style="border:0.5pt solid #e6d7c0;border-radius:7pt;overflow:hidden;break-inside:avoid"><div style="height:46pt;background:#fdf6ec;border-bottom:0.5pt solid #e6d7c0"></div><div style="padding:8pt 9pt"><div style="font-size:10pt;font-weight:700">Crème</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">#FDF6EC</div><div style="font-size:8.5pt;color:#5c5243;margin-top:3pt;line-height:1.4">Fond d'application</div></div></div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:7pt;overflow:hidden;break-inside:avoid"><div style="height:46pt;background:#1f3d34"></div><div style="padding:8pt 9pt"><div style="font-size:10pt;font-weight:700">Vert profond</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">#1F3D34</div><div style="font-size:8.5pt;color:#5c5243;margin-top:3pt;line-height:1.4">Texte, blocs d'urgence, sélection</div></div></div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:7pt;overflow:hidden;break-inside:avoid"><div style="height:46pt;background:#b4501f"></div><div style="padding:8pt 9pt"><div style="font-size:10pt;font-weight:700">Terracotta</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">#B4501F</div><div style="font-size:8.5pt;color:#5c5243;margin-top:3pt;line-height:1.4">Action principale sur fond clair</div></div></div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:7pt;overflow:hidden;break-inside:avoid"><div style="height:46pt;background:#f2c14e"></div><div style="padding:8pt 9pt"><div style="font-size:10pt;font-weight:700">Miel</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">#F2C14E</div><div style="font-size:8.5pt;color:#5c5243;margin-top:3pt;line-height:1.4">Action sur fond sombre, état partiel</div></div></div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:14pt">
+      <thead>
+        <tr style="background:#f7f3ea">
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Rôle</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Texte / trait</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Fond</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Bordure</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Emploi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">À jour</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#3F7A5F</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#F6FBF7</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#D9EBE0</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Couverture active, geste fait, habitude tenue</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">À surveiller</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#8A6A1F</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#FAEED6</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#F0DCB4</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Échéance proche, critère à surveiller, doublon</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">En retard</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#A8482A</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#FDEEE7</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#F2CDB9</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Acte échu, observation préoccupante</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Neutres</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#1F3D34 · #3F3A30 · #7A6A55 · #6B5C46</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#FFF · #FAF2E4</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">#EFE3D0</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Titre, corps, secondaire, étiquette mono</td></tr>
+      </tbody>
+    </table>
+
+    <div style="background:#f7f3ea;border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid;margin-bottom:16pt">
+      <div style="font-size:11pt;font-weight:700">Trois règles de couleur non négociables</div>
+      <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:5pt">Le terracotta ne sert jamais à un statut, seulement à une action. Le rouge sémantique ne sert jamais à une action, seulement à un statut. Aucun texte ne descend sous 4,5:1 de contraste, ce qui interdit les verts et ambres clairs sur fond crème — d'où les valeurs foncées du tableau ci-dessus.</div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Typographie</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin-bottom:12pt">
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55">Bricolage Grotesque</div>
+        <div style="font-size:24pt;font-weight:800;letter-spacing:-0.02em;line-height:1.1;margin-top:4pt">Titres et corps</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#3f3a30;margin-top:6pt">Graisses 400, 500, 700, 800. Le 800 est réservé aux titres d'écran et aux noms d'animaux ; le 700 aux titres de bloc et aux valeurs fortes ; le 500–600 aux libellés d'action ; le 400 au corps.</div>
+      </div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55">JetBrains Mono</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:22pt;line-height:1.15;margin-top:4pt">32,0 kg · J+31</div>
+        <div style="font-size:9.5pt;line-height:1.55;color:#3f3a30;margin-top:6pt">Toutes les valeurs mesurées, dates courtes, délais, montants, identifiants, et les étiquettes de section en capitales espacées. Jamais de phrase en mono.</div>
+      </div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:16pt">
+      <thead>
+        <tr style="background:#f7f3ea">
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Niveau</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Taille / graisse</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">Emploi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Titre d'écran</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">26 / 800 / −0,02em</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Nom de l'animal, titre de section</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Message d'urgence</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">30 / 800</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Bloc vert de l'accueil, une seule occurrence par écran</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Titre de bloc</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">16–20 / 800</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Carte, panneau, en-tête de tableau riche</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Valeur mesurée</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">22–46 / mono 400</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Constantes, score, montant, saisie de pesée</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Ligne de liste</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">14–15 / 600–700</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Intitulé d'acte, de repas, de geste</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Secondaire</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">12–13 / 400</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">Précision sous un intitulé, praticien, date longue</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-weight:700">Étiquette</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:9pt">10 / mono / .1em / caps</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#3f3a30">En-tête de colonne, titre de panneau latéral</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Espace, rayons, élévation</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10pt;margin-bottom:16pt">
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid"><div style="font-size:11pt;font-weight:700">Échelle d'espace</div><div style="font-family:'JetBrains Mono',monospace;font-size:9pt;color:#3f3a30;margin-top:5pt;line-height:1.7">2 · 4 · 6 · 8 · 10<br />12 · 14 · 18 · 22 · 28</div><div style="font-size:9pt;color:#5c5243;margin-top:5pt;line-height:1.45">Gouttière de grille 10–14. Padding de carte 14–22. Padding d'écran 24–28.</div></div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid"><div style="font-size:11pt;font-weight:700">Rayons</div><div style="font-family:'JetBrains Mono',monospace;font-size:9pt;color:#3f3a30;margin-top:5pt;line-height:1.7">6 pastille · 9 case<br />11 bouton · 14 carte<br />18 bloc · 999 pilule</div><div style="font-size:9pt;color:#5c5243;margin-top:5pt;line-height:1.45">Les pilules sont réservées à la navigation et aux filtres.</div></div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid"><div style="font-size:11pt;font-weight:700">Élévation</div><div style="font-size:9pt;color:#3f3a30;margin-top:5pt;line-height:1.5">Une seule ombre dans tout le produit, réservée aux surfaces flottantes (modale, menu) :<br /><span style="font-family:'JetBrains Mono',monospace;font-size:8.5pt">0 20pt 50pt −32pt rgba(31,61,52,.45)</span></div><div style="font-size:9pt;color:#5c5243;margin-top:5pt;line-height:1.45">Les cartes se distinguent par leur bordure, pas par une ombre.</div></div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">E — Composants</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Inventaire et règles d'emploi</div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Actions</h3>
+    <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid;margin-bottom:12pt">
+      <div style="display:flex;gap:8pt;flex-wrap:wrap;align-items:center">
+        <span style="background:#b4501f;color:#fff;font-size:10pt;font-weight:600;border-radius:11pt;padding:8pt 14pt">Action principale</span>
+        <span style="border:0.5pt solid #efe3d0;color:#1f3d34;font-size:10pt;font-weight:600;border-radius:11pt;padding:8pt 14pt">Action secondaire</span>
+        <span style="border:0.5pt solid #f2cdb9;color:#a8482a;font-size:10pt;font-weight:600;border-radius:11pt;padding:8pt 14pt">Action sensible</span>
+        <span style="background:#1f3d34;color:#fdf6ec;font-size:10pt;font-weight:600;border-radius:999pt;padding:7pt 15pt">Onglet actif</span>
+        <span style="color:#7a6a55;font-size:10pt;font-weight:600;padding:7pt 15pt">Onglet inactif</span>
+        <span style="font-size:10pt;font-weight:600;color:#b4501f">Action de ligne</span>
+      </div>
+      <div style="font-size:9.5pt;line-height:1.55;color:#3f3a30;margin-top:10pt">Une seule action principale par écran, et une par bloc d'urgence. Sur fond vert profond, l'action principale passe en miel avec texte vert. L'action de ligne est un libellé seul en terracotta, sans bordure : « Valider », « Ouvrir », « Reporter ». Cible tactile minimale 44 px de haut, y compris pour les actions de ligne.</div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Statuts et mesures</h3>
+    <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid;margin-bottom:12pt">
+      <div style="display:flex;gap:14pt;flex-wrap:wrap;align-items:center;margin-bottom:10pt">
+        <span style="font-size:9.5pt;font-weight:600;color:#3f7a5f">à jour</span>
+        <span style="font-size:9.5pt;font-weight:700;color:#8a6a1f">à surveiller</span>
+        <span style="font-size:9.5pt;font-weight:700;color:#a8482a">retard 31 j</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9.5pt;color:#a8482a">J+31</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9.5pt;color:#8a6a1f">J−1</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9.5pt;color:#3f7a5f">J−12</span>
+        <span style="font-size:8.5pt;font-weight:700;color:#8f3b1a;background:#fdeee7;border:0.5pt solid #f2cdb9;border-radius:4pt;padding:2pt 6pt">2 ÉCHUS</span>
+      </div>
+      <div style="height:9pt;border-radius:5pt;background:#f3e6da;position:relative;overflow:hidden;margin-bottom:4pt"><span style="position:absolute;left:0;top:0;bottom:0;width:94%;background:#b4501f;border-radius:5pt"></span></div>
+      <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#6b5c46;margin-bottom:10pt"><span>13.08.2025 · fait</span><span style="color:#a8482a">13.08.2026 · échu</span></div>
+      <div style="display:grid;grid-template-columns:repeat(21,1fr);gap:2pt;margin-bottom:10pt">
+        <span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#e9eee9"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#f2c14e"></span><span style="aspect-ratio:1;border-radius:2pt;background:#e9eee9"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#e9eee9"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#f2c14e"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#e9eee9"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#e9eee9"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#3f7a5f"></span><span style="aspect-ratio:1;border-radius:2pt;background:#1f3d34"></span>
+      </div>
+      <div style="font-size:9.5pt;line-height:1.55;color:#3f3a30">Trois représentations, trois usages stricts. Le <strong>statut textuel</strong> qualifie un objet. Le <strong>délai mono</strong> (J+ pour un retard, J− pour une échéance à venir) chiffre le temps. La <strong>barre de couverture</strong> montre une période de protection. La <strong>grille de régularité</strong> montre une série de jours : trois états seulement, jamais de dégradé.</div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Listes, tableaux, saisie</h3>
+    <ul style="font-size:10.5pt;line-height:1.6;color:#3f3a30;margin:0 0 14pt;padding-left:16pt">
+      <li style="margin-bottom:4pt"><strong>Ligne de liste</strong> : délai ou heure en mono à gauche (largeur fixe), intitulé et précision au centre, statut ou action à droite. La ligne entière est cliquable ; l'action de droite ne déclenche pas la navigation.</li>
+      <li style="margin-bottom:4pt"><strong>Tableau</strong> : en-tête en mono capitales sur fond <span style="font-family:'JetBrains Mono',monospace;font-size:9pt">#FAF2E4</span>, lignes séparées par un trait <span style="font-family:'JetBrains Mono',monospace;font-size:9pt">#F5ECDD</span>, ligne en retard sur fond <span style="font-family:'JetBrains Mono',monospace;font-size:9pt">#FDF3EF</span>. Toute valeur numérique est en mono.</li>
+      <li style="margin-bottom:4pt"><strong>Saisie en ligne</strong> : la dernière ligne d'un tableau est une ligne vide en vert clair, avec valeurs suggérées en gris. Entrée valide et crée le rappel associé.</li>
+      <li><strong>Modale</strong> : réservée à la création d'un animal ou d'un acte complet depuis mobile. Jamais pour cocher, valider ou reporter.</li>
+    </ul>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">États vides et erreurs</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin-bottom:16pt">
+      <div style="background:#f6fbf7;border:0.5pt solid #d9ebe0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid"><div style="font-size:11pt;font-weight:700">Vide utile</div><div style="font-size:9.5pt;line-height:1.55;color:#3f3a30;margin-top:4pt">« Tout est à jour pour Bella. Prochaine échéance le 20 mai 2027. » Un état vide nomme toujours la prochaine date connue. Jamais « aucune donnée », jamais « historique à venir ».</div></div>
+      <div style="background:#fdeee7;border:0.5pt solid #f2cdb9;border-radius:8pt;padding:12pt 14pt;break-inside:avoid"><div style="font-size:11pt;font-weight:700;color:#8f3b1a">Erreur explicite</div><div style="font-size:9.5pt;line-height:1.55;color:#6b4034;margin-top:4pt">L'échec de synchronisation actuel (413) devient : « Photo trop lourde — 8,4 Mo pour 5 Mo autorisés », avec le bouton de réessai et l'option de compression. Toute erreur dit la cause, la limite et l'issue.</div></div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">F — Contenu et ton</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Rédaction, formats, vocabulaire</div>
+
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 12pt">Ton chaud et tourné vers l'animal côté propriétaire, précis et clinique côté document vétérinaire. Jamais familier, jamais inquiétant. L'animal est nommé, le temps est chiffré, l'action est un verbe.</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:16pt">
+      <thead>
+        <tr style="background:#f7f3ea">
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55;width:48%">À écrire</th>
+          <th style="text-align:left;padding:6pt 9pt;border:0.5pt solid #e6d7c0;font-family:'JetBrains Mono',monospace;font-size:7.5pt;letter-spacing:.08em;text-transform:uppercase;color:#7a6a55">À ne pas écrire</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#1f3d34">« Rex attend son rappel de rage depuis 31 jours. »</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#7a6a55">« 1 rappel en retard »</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#1f3d34">« Les deux se font en une visite chez Dr Camille Fabre. »</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#7a6a55">« Contactez votre vétérinaire. »</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#1f3d34">« Hanta a servi le repas du matin à 08:45. »</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#7a6a55">« Repas enregistré ✓ »</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#1f3d34">« Rappel antirabique échu depuis 31 jours » <span style="color:#7a6a55">(synthèse véto)</span></td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#7a6a55">« Rex a besoin de son vaccin 🐶 »</td></tr>
+        <tr style="break-inside:avoid"><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#1f3d34">« Rex est dans sa fourchette depuis 18 mois. »</td><td style="padding:6pt 9pt;border:0.5pt solid #e6d7c0;color:#7a6a55">« Poids : OK »</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 8pt">Formats</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin-bottom:16pt">
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid">
+        <div style="font-size:11pt;font-weight:700">Dates et délais</div>
+        <div style="font-size:9.5pt;line-height:1.65;color:#3f3a30;margin-top:5pt">Date longue dans une phrase : <strong>13 septembre 2026</strong>. Date courte en tableau : <span style="font-family:'JetBrains Mono',monospace">13.09.2026</span>. Délai : <span style="font-family:'JetBrains Mono',monospace">J+31</span> pour un retard, <span style="font-family:'JetBrains Mono',monospace">J−12</span> pour une échéance. Heure : <span style="font-family:'JetBrains Mono',monospace">08:45</span>. Aucune date relative au-delà de « hier » et « aujourd'hui ».</div>
+      </div>
+      <div style="border:0.5pt solid #e6d7c0;border-radius:8pt;padding:12pt 14pt;break-inside:avoid">
+        <div style="font-size:11pt;font-weight:700">Nombres et unités</div>
+        <div style="font-size:9.5pt;line-height:1.65;color:#3f3a30;margin-top:5pt">Virgule décimale, espace insécable avant l'unité : <span style="font-family:'JetBrains Mono',monospace">32,0 kg</span>, <span style="font-family:'JetBrains Mono',monospace">58 cm</span>, <span style="font-family:'JetBrains Mono',monospace">320 g</span>, <span style="font-family:'JetBrains Mono',monospace">1 741 €</span>, <span style="font-family:'JetBrains Mono',monospace">8,4/10</span>. Une unité n'est jamais doublée : « 45 min », pas « 45 min min ». Une valeur mesurée porte toujours son unité.</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:14pt;font-weight:700;margin:0 0 6pt">Vocabulaire figé</h3>
+    <p style="font-size:10.5pt;line-height:1.65;color:#3f3a30;margin:0 0 16pt">Six types d'actes, jamais d'autres libellés : <strong>vaccin</strong>, <strong>déparasitage</strong>, <strong>hygiène</strong>, <strong>consultation</strong>, <strong>médicament</strong>, <strong>mesure</strong>. Trois statuts : <strong>à jour</strong>, <strong>à surveiller</strong>, <strong>en retard</strong>. Trois réponses de check-up : <strong>Normal</strong>, <strong>À surveiller</strong>, <strong>Préoccupant</strong>. Quatre rôles de partage : <strong>propriétaire</strong>, <strong>famille</strong>, <strong>pet-sitter</strong>, <strong>vétérinaire</strong>.</p>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">G — Accessibilité et qualité</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Critères de recette</div>
+
+    <ul style="font-size:10.5pt;line-height:1.6;color:#3f3a30;margin:0 0 14pt;padding-left:16pt">
+      <li style="margin-bottom:4pt"><strong>Contraste</strong> : 4,5:1 minimum pour tout texte, 3:1 seulement à partir de 24 px. Les valeurs du tableau de la partie D sont les seules autorisées — les teintes claires d'origine (#5B9A7D, #D96B3F, #9A7420) sont retirées du produit.</li>
+      <li style="margin-bottom:4pt"><strong>Couleur jamais seule</strong> : chaque statut porte un mot. Une pastille colorée sans texte est un défaut bloquant.</li>
+      <li style="margin-bottom:4pt"><strong>Cibles tactiles</strong> : 44 px minimum en hauteur sur mobile, y compris les cases à cocher de geste et les actions de ligne.</li>
+      <li style="margin-bottom:4pt"><strong>Clavier</strong> : toute action de ligne est atteignable au clavier ; ⌘K ouvre la recherche ; Entrée valide une saisie en ligne ; Échap ferme une modale.</li>
+      <li style="margin-bottom:4pt"><strong>Réflow</strong> : aucune largeur fixe hors mobile simulé. Les grilles utilisent <span style="font-family:'JetBrains Mono',monospace;font-size:9pt">minmax(0,1fr)</span> et se replient sous 900 px puis sous 600 px.</li>
+      <li><strong>Hors-ligne</strong> : la fiche d'identité vitale et les gestes du jour restent consultables sans réseau ; les validations se synchronisent au retour.</li>
+    </ul>
+
+    <div style="background:#f7f3ea;border:0.5pt solid #e6d7c0;border-radius:8pt;padding:14pt 16pt;break-inside:avoid;margin-bottom:16pt">
+      <div style="font-size:11.5pt;font-weight:700">Six questions de recette, pour chaque écran livré</div>
+      <div style="font-size:10pt;line-height:1.7;color:#3f3a30;margin-top:6pt">1 · Quelle est la question à laquelle cet écran répond ?<br />2 · L'urgence la plus grave est-elle nommée, chiffrée et actionnable sans ouvrir un détail ?<br />3 · Reste-t-il une zone qui ne porte aucune information ?<br />4 · Chaque statut est-il lisible sans la couleur ?<br />5 · Cette saisie existe-t-elle déjà ailleurs dans le produit ?<br />6 · Que produit cet écran que l'utilisateur peut montrer à son vétérinaire ?</div>
+    </div>
+
+    <h2 style="break-before:page;font-size:26pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4pt">H — Priorités de mise en œuvre</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#7a6a55;margin-bottom:16pt">Trois vagues</div>
+
+    <div style="display:flex;flex-direction:column;gap:12pt;margin-bottom:16pt">
+      <div style="border:0.5pt solid #e6d7c0;border-left:3pt solid #b4501f;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:13pt;font-weight:800">Vague 1 — la promesse tient</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">Écrans 1, 2, 3, 4</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:6pt">Accueil orienté action, rail maître-détail, fiche à constantes, barres de couverture avec fusion des doublons. Correction du contraste et suppression de l'accordéon. À l'issue de cette vague, un utilisateur sait quel animal a besoin de quoi.</div>
+      </div>
+      <div style="border:0.5pt solid #e6d7c0;border-left:3pt solid #f2c14e;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:13pt;font-weight:800">Vague 2 — la preuve sort</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">Écran 8, export, partage</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:6pt">Check-up en trois étapes, synthèse vétérinaire, export PDF et lien de consultation à durée limitée avec journal d'accès. C'est la vague qui différencie App'lika du marché.</div>
+      </div>
+      <div style="border:0.5pt solid #e6d7c0;border-left:3pt solid #1f3d34;border-radius:8pt;padding:14pt 16pt;break-inside:avoid">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10pt"><div style="font-size:13pt;font-weight:800">Vague 3 — la régularité s'installe</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:#7a6a55">Écrans 5, 6, 7</div></div>
+        <div style="font-size:10pt;line-height:1.6;color:#3f3a30;margin-top:6pt">Journal des repas multi-personnes, pesée express et courbe de race, grilles d'habitudes. Ces écrans nourrissent la synthèse de la vague 2 : les livrer avant elle reviendrait à demander de la saisie sans rien rendre.</div>
+      </div>
+    </div>
+
+    <div style="border-top:1pt solid #1f3d34;padding-top:12pt;font-size:9.5pt;line-height:1.6;color:#5c5243">
+      <strong style="color:#1f3d34">Tenue à jour.</strong> Ce livre est un document vivant. Toute exception acceptée en revue de design y est ajoutée avec sa raison, sans quoi elle fera jurisprudence sans être écrite. Les maquettes de référence vivent dans le même projet : huit fichiers d'exploration par écran, et le prototype navigable « App'lika — Parcours complet ».
+    </div>
+
+  </div>
+</doc-page></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

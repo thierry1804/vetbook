@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #e8e4da; }
+  a { color: #14463c; }
+  a:hover { color: #0d3a31; }
+</style>
+</helmet>
+
+<div style="font-family:'Bricolage Grotesque',system-ui,sans-serif;max-width:1280px;margin:0 auto;background:#fdf6ec;min-height:100vh;display:flex;flex-direction:column">
+
+  <div style="background:#fff;border-bottom:1px solid #efe3d0;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <span style="font-size:19px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">App'lika</span>
+      <div style="display:flex;gap:4px;font-size:14px;font-weight:600">
+        <span onClick="{{ goAccueil }}" style="{{ navAccueil }}">Accueil</span>
+        <span onClick="{{ goAnimaux }}" style="{{ navAnimaux }}">Animaux</span>
+        <span onClick="{{ goAgenda }}" style="{{ navAgenda }}">Agenda</span>
+        <span onClick="{{ goAnnuaire }}" style="{{ navAnnuaire }}">Annuaire</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="background:#b4501f;color:#fff;font-size:14px;font-weight:600;border-radius:999px;padding:8px 16px">+ Animal</span>
+      <span style="width:32px;height:32px;border-radius:50%;background:repeating-linear-gradient(135deg,#efe3d0 0 5px,#e6d7c0 5px 10px)"></span>
+    </div>
+  </div>
+
+  <sc-if value="{{ isAccueil }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:28px;display:flex;flex-direction:column;gap:22px">
+      <div style="background:#1f3d34;border-radius:18px;padding:26px 28px;color:#fdf6ec">
+        <div style="font-size:13px;color:#9fc0b3">À faire maintenant</div>
+        <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-top:8px;text-wrap:pretty">Rex attend son rappel de rage depuis 31 jours.</div>
+        <div style="font-size:14px;color:#9fc0b3;margin-top:8px">Son CHPPi est échu aussi. Les deux se font en une visite chez Dr Camille Fabre.</div>
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <span style="background:#f2c14e;color:#1f3d34;font-size:15px;font-weight:700;border-radius:13px;padding:13px 20px">Appeler la clinique</span>
+          <span style="background:rgba(253,246,236,.14);font-size:15px;font-weight:600;border-radius:13px;padding:13px 20px">C'est déjà fait</span>
+          <span style="background:rgba(253,246,236,.14);font-size:15px;font-weight:600;border-radius:13px;padding:13px 20px">Plus tard</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;font-weight:700;color:#1f3d34;letter-spacing:.06em;text-transform:uppercase">Ensuite</span><span style="flex:1;height:1px;background:#eadfcc"></span><span style="font-size:12px;color:#7a6a55">5 éléments</span></div>
+        <div style="display:flex;flex-direction:column;gap:1px;background:#efe3d0;border:1px solid #efe3d0;border-radius:12px;overflow:hidden">
+          <div style="background:#fff;display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a8482a">J+12</span><span style="font-size:14px;color:#1f3d34">Déparasitage Milbemax — Nino</span><span style="font-size:12px;font-weight:600;color:#b4501f">Valider</span></div>
+          <div style="background:#fff;display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a6a1f">J−1</span><span style="font-size:14px;color:#1f3d34">Fin de traitement pancréatine — Rex</span><span style="font-size:12px;color:#7a6a55">Ouvrir</span></div>
+          <div style="background:#fff;display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#3f7a5f">J−7</span><span style="font-size:14px;color:#1f3d34">Bain peau sensible — Rex</span><span style="font-size:12px;color:#7a6a55">Ouvrir</span></div>
+          <div style="background:#fff;display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#3f7a5f">J−9</span><span style="font-size:14px;color:#1f3d34">Déparasitage Milbemax — Luna</span><span style="font-size:12px;color:#7a6a55">Ouvrir</span></div>
+          <div style="background:#fff;display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#3f7a5f">J−12</span><span style="font-size:14px;color:#1f3d34">Primo CHPPI 1 — Max</span><span style="font-size:12px;color:#7a6a55">Ouvrir</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;font-weight:700;color:#1f3d34;letter-spacing:.06em;text-transform:uppercase">Mes animaux</span><span style="flex:1;height:1px;background:#eadfcc"></span><span onClick="{{ goAnimaux }}" style="font-size:12px;font-weight:600;color:#b4501f;cursor:pointer">Tout voir</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-for list="{{ animals }}" as="a" hint-placeholder-count="6">
+            <div onClick="{{ a.open }}" style="width:74px;text-align:center;cursor:pointer">
+              <div style="{{ a.avatar }}"></div>
+              <div style="font-size:12px;font-weight:600;color:#1f3d34;margin-top:6px">{{ a.name }}</div>
+              <div style="font-size:11px;color:#7a6a55">{{ a.short }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAgenda }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:28px">
+      <div style="font-size:24px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Agenda</div>
+      <div style="font-size:13px;color:#7a6a55;margin-top:2px;margin-bottom:18px">Septembre 2026 · 8 animaux</div>
+      <div style="display:flex;flex-direction:column;gap:1px;background:#efe3d0;border:1px solid #efe3d0;border-radius:12px;overflow:hidden">
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a8482a">dim. 13</span><span style="font-size:14px;color:#1f3d34">3 actes en retard · 2 gestes du jour</span><span style="font-size:12px;font-weight:600;color:#b4501f">aujourd'hui</span></div>
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">lun. 14</span><span style="font-size:14px;color:#1f3d34">Fin de traitement pancréatine — Rex</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">J−1</span></div>
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">dim. 20</span><span style="font-size:14px;color:#1f3d34">Bain peau sensible — Rex</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">J−7</span></div>
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">mar. 22</span><span style="font-size:14px;color:#1f3d34">Déparasitage Milbemax — Luna</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">J−9</span></div>
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">ven. 25</span><span style="font-size:14px;color:#1f3d34">Primo CHPPI 1 — Max</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">J−12</span></div>
+        <div style="background:#fff;display:grid;grid-template-columns:96px 1fr auto;gap:12px;padding:13px 15px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">ven. 02.10</span><span style="font-size:14px;color:#1f3d34">Coupe des griffes — Rex</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">J−19</span></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAnnuaire }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:28px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px"><div><div style="font-size:24px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Annuaire</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">3 praticiens · 1 service d'urgence</div></div><span style="background:#b4501f;color:#fff;font-size:13px;font-weight:600;border-radius:999px;padding:8px 15px">+ Ajouter</span></div>
+      <div style="background:#fdeee7;border:1px solid #f2cdb9;border-radius:14px;padding:16px 18px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:#a8482a;letter-spacing:.05em;text-transform:uppercase">Urgences 24 h/24</div>
+        <div style="font-size:17px;font-weight:800;color:#1f3d34;margin-top:4px">Urgences Vétérinaires Nantes Atlantique</div>
+        <div style="font-size:13px;color:#7a5646;margin-top:3px">02 40 68 77 40 · route de Vannes, 44800 Saint-Herblain · garde de nuit et week-end</div>
+        <span style="display:inline-block;background:#b4501f;color:#fff;font-size:13px;font-weight:600;border-radius:11px;padding:10px 15px;margin-top:12px">Appeler</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:15px 17px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap"><span style="font-size:16px;font-weight:800;color:#1f3d34">Dr Camille Fabre</span><span style="font-size:12px;font-weight:600;color:#3f7a5f">vétérinaire habituel</span></div><div style="font-size:13px;color:#7a6a55;margin-top:3px">Clinique Vétérinaire des Halles · 12 rue de la Paix, 44000 Nantes · 02 40 12 34 56 · Lun–Sam 9h–19h</div></div>
+        <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:15px 17px"><div style="font-size:16px;font-weight:800;color:#1f3d34">Dr Julien Perrot</div><div style="font-size:13px;color:#7a6a55;margin-top:3px">Clinique du Parc · 5 avenue du Parc, 44100 Nantes · 02 40 22 11 09 · spécialiste orthopédie</div></div>
+        <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:15px 17px"><div style="font-size:16px;font-weight:800;color:#1f3d34">Dr Rasoanaivo</div><div style="font-size:13px;color:#7a6a55;margin-top:3px">Cabinet Antananarivo · 034 12 345 67</div></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAnimaux }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:stretch;flex-wrap:wrap">
+      <div style="width:250px;flex:none;background:#fff;border-right:1px solid #efe3d0;padding:16px 12px">
+        <div style="display:flex;align-items:center;gap:8px;background:#faf2e4;border-radius:9px;padding:8px 10px;margin-bottom:14px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5c46">⌘K</span><span style="font-size:12px;color:#6b5c46">Rechercher</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#6b5c46;padding:0 8px 7px">Demandent une action · 4</div>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:14px">
+          <sc-for list="{{ needAction }}" as="a" hint-placeholder-count="4">
+            <div onClick="{{ a.open }}" style="{{ a.row }}"><span style="{{ a.dot }}"></span><span style="flex:1;min-width:0"><span style="{{ a.nameStyle }}">{{ a.name }}</span><span style="display:block;font-size:10px;color:#a8482a">{{ a.issue }}</span></span></div>
+          </sc-for>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#6b5c46;padding:0 8px 7px">À jour · 4</div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ upToDate }}" as="a" hint-placeholder-count="4">
+            <div onClick="{{ a.open }}" style="{{ a.row }}"><span style="{{ a.dot }}"></span><span style="{{ a.nameStyle }}">{{ a.name }}</span></div>
+          </sc-for>
+        </div>
+        <div style="border-top:1px solid #f5ecdd;margin-top:12px;padding-top:12px;font-size:13px;font-weight:600;color:#b4501f;padding-left:8px">+ Ajouter un animal</div>
+      </div>
+
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="padding:20px 24px 0">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <span style="width:56px;height:56px;flex:none;border-radius:50%;background:repeating-linear-gradient(135deg,#efe3d0 0 5px,#e6d7c0 5px 10px)"></span>
+            <div style="flex:1;min-width:200px"><div style="font-size:26px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">{{ sel.name }}</div><div style="font-size:13px;color:#7a6a55">{{ sel.line }}</div></div>
+            <div style="display:flex;gap:8px;font-size:13px;font-weight:600;flex-wrap:wrap"><span style="border:1px solid #efe3d0;color:#1f3d34;border-radius:999px;padding:9px 14px">Modifier</span><span style="border:1px solid #f2cdb9;color:#a8482a;border-radius:999px;padding:9px 14px">Urgence</span><span style="background:#b4501f;color:#fff;border-radius:999px;padding:9px 14px">+ Acte</span></div>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:18px;border-bottom:1px solid #efe3d0;font-size:14px;font-weight:600;overflow:hidden;flex-wrap:wrap">
+            <span onClick="{{ tabFiche }}" style="{{ tFiche }}">Fiche</span>
+            <span onClick="{{ tabActes }}" style="{{ tActes }}">Actes</span>
+            <span onClick="{{ tabNutrition }}" style="{{ tNutrition }}">Nutrition</span>
+            <span onClick="{{ tabPoids }}" style="{{ tPoids }}">Poids</span>
+            <span onClick="{{ tabSuivi }}" style="{{ tSuivi }}">Suivi</span>
+            <span onClick="{{ tabCheck }}" style="{{ tCheck }}">Check-up</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ onFiche }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:22px 24px 30px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:13px;padding:14px"><div style="font-size:12px;color:#7a6a55">Poids</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;color:#1f3d34;margin-top:2px">32,0 kg</div><div style="font-size:11px;color:#3f7a5f">+0,5 kg / 8 mois</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:13px;padding:14px"><div style="font-size:12px;color:#7a6a55">Taille au garrot</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;color:#1f3d34;margin-top:2px">58 cm</div><div style="font-size:11px;color:#7a6a55">standard 56–62 cm</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:13px;padding:14px"><div style="font-size:12px;color:#7a6a55">Check-up</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;color:#3f7a5f;margin-top:2px">8,4</div><div style="font-size:11px;color:#7a6a55">12.09.2026</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:13px;padding:14px"><div style="font-size:12px;color:#7a6a55">Dépenses 12 mois</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;color:#1f3d34;margin-top:2px">452 €</div><div style="font-size:11px;color:#7a6a55">7 consultations</div></div>
+            </div>
+            <div style="background:#fdeee7;border:1px solid #f2cdb9;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:14px;flex-wrap:wrap"><div><div style="font-size:16px;font-weight:700;color:#a8482a">Deux vaccins en retard</div><div style="font-size:13px;color:#7a5646;margin-top:2px">Rage depuis 31 jours, CHPPi depuis 6. Une seule visite suffit.</div></div><span style="flex:none;background:#b4501f;color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:11px 16px">Appeler Dr Fabre</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px">
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:16px;font-weight:800;color:#1f3d34">Vaccins</span><span style="font-size:12px;font-weight:700;color:#a8482a">2 retards</span></div><div style="font-size:13px;color:#7a6a55;margin-top:6px;line-height:1.55">Rage et CHPPi échus. Toux du chenil et CHPPi 2026 à jour.</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:16px;font-weight:800;color:#1f3d34">Déparasitage</span><span style="font-size:12px;font-weight:600;color:#3f7a5f">à jour</span></div><div style="font-size:13px;color:#7a6a55;margin-top:6px;line-height:1.55">Milbemax le 01.03.2026. Prochain le 22.09.2026.</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:16px;font-weight:800;color:#1f3d34">Hygiène</span><span style="font-size:12px;font-weight:600;color:#8a6a1f">bain J−7</span></div><div style="font-size:13px;color:#7a6a55;margin-top:6px;line-height:1.55">Coupe des griffes le 02.09. Détartrage le 24.02.2026.</div></div>
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:16px;font-weight:800;color:#1f3d34">Traitement</span><span style="font-size:12px;font-weight:600;color:#8a6a1f">en cours</span></div><div style="font-size:13px;color:#7a6a55;margin-top:6px;line-height:1.55">Pancréatine, 1 sachet par repas. Fin demain.</div><div style="height:6px;border-radius:3px;background:linear-gradient(90deg,#f2c14e 0 92%,#f0e4cf 92%);margin-top:9px"></div></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onActes }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 24px 30px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Protection de Rex</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">Cinq protections suivies · 2 à rattraper</div></div><span style="background:#b4501f;color:#fff;font-size:13px;font-weight:600;border-radius:999px;padding:8px 15px">+ Acte</span></div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ protections }}" as="p" hint-placeholder-count="5">
+                <div style="{{ p.card }}">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:17px;font-weight:800;color:#1f3d34">{{ p.name }}</div><div style="font-size:12px;color:#7a6a55;margin-top:1px">{{ p.sub }}</div></div><span style="{{ p.statusStyle }}">{{ p.status }}</span></div>
+                  <div style="{{ p.track }}"><span style="{{ p.fill }}"></span></div>
+                  <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b5c46;margin-top:5px"><span>{{ p.from }}</span><span style="{{ p.toStyle }}">{{ p.to }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#fdeee7;border:1px solid #f2cdb9;border-radius:14px;padding:14px 16px;margin-top:14px;gap:14px;flex-wrap:wrap"><div style="font-size:14px;color:#7a5646;line-height:1.5"><span style="font-weight:700;color:#a8482a">Rage et CHPPi s'administrent ensemble.</span> Une seule visite remet les deux barres au vert.</div><span style="flex:none;background:#b4501f;color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:11px 16px">Prendre RDV</span></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onNutrition }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 24px 30px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Repas de Rex</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">2 repas par jour · 640 g répartis · Royal Canin Labrador</div></div><span style="background:#b4501f;color:#fff;font-size:13px;font-weight:600;border-radius:999px;padding:8px 15px">Servir maintenant</span></div>
+            <div style="background:#f6fbf7;border:1px solid #d9ebe0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap"><span style="width:32px;height:32px;flex:none;border-radius:50%;background:#3f7a5f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">H</span><div style="flex:1;min-width:180px"><div style="font-size:15px;font-weight:700;color:#1f3d34">Hanta a servi le repas du matin à 08:45.</div><div style="font-size:12px;color:#4c6b5c;margin-top:2px">320 g · photo de la gamelle jointe</div></div></div>
+            <div style="display:flex;flex-direction:column;gap:1px;background:#efe3d0;border:1px solid #efe3d0;border-radius:13px;overflow:hidden">
+              <div style="background:#faf2e4;display:grid;grid-template-columns:96px 62px 1fr 96px 88px;gap:10px;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#6b5c46"><span>Date</span><span>Heure</span><span>Aliment</span><span>Quantité</span><span>Par</span></div>
+              <sc-for list="{{ meals }}" as="m" hint-placeholder-count="5">
+                <div style="background:#fff;display:grid;grid-template-columns:96px 62px 1fr 96px 88px;gap:10px;padding:11px 14px;align-items:center"><span style="{{ m.dateStyle }}">{{ m.date }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7a6a55">{{ m.time }}</span><span style="font-size:13px;color:#1f3d34">{{ m.food }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#1f3d34">{{ m.qty }}</span><span style="font-size:12px;color:#7a6a55">{{ m.by }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px">
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:15px;padding:18px">
+                <div style="font-size:16px;font-weight:800;color:#1f3d34">Régularité sur 14 jours</div>
+                <div style="display:flex;gap:4px;margin-top:12px"><sc-for list="{{ mealDays }}" as="d" hint-placeholder-count="14"><span style="{{ d.style }}"></span></sc-for></div>
+                <div style="font-size:13px;color:#7a6a55;margin-top:10px;line-height:1.5">12 jours conformes, 2 écarts de quantité, 1 repas non enregistré.</div>
+              </div>
+              <div style="background:#faeed6;border:1px solid #f0dcb4;border-radius:15px;padding:18px">
+                <div style="font-size:16px;font-weight:800;color:#1f3d34">Ce que le journal a repéré</div>
+                <div style="font-size:13px;color:#6b5a3a;margin-top:8px;line-height:1.55">Le 10 septembre, un reste de poulet a été ajouté au repas du soir. Rex a fait une gastro-entérite le 7. Les deux méritent d'être signalés au vétérinaire.</div>
+                <span style="display:inline-block;background:#1f3d34;color:#fdf6ec;font-size:13px;font-weight:600;border-radius:11px;padding:10px 14px;margin-top:12px">Ajouter au dossier</span>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onPoids }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 24px 30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start">
+            <div style="background:#1f3d34;border-radius:18px;padding:22px;color:#fdf6ec">
+              <div style="font-size:13px;color:#9fc0b3">Nouvelle pesée · Rex</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:46px;line-height:1.1;margin-top:10px">{{ weighIn }}<span style="font-size:20px;color:#9fc0b3"> kg</span></div>
+              <div style="font-size:13px;color:#9fc0b3;margin-top:4px">Précédente : 32,0 kg le 1er septembre</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:18px">
+                <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+                  <span onClick="{{ k.press }}" style="text-align:center;background:rgba(253,246,236,.12);border-radius:11px;padding:15px 0;font-size:20px;font-weight:600;cursor:pointer">{{ k.label }}</span>
+                </sc-for>
+              </div>
+              <span onClick="{{ saveWeight }}" style="display:block;text-align:center;background:#f2c14e;color:#1f3d34;font-size:16px;font-weight:700;border-radius:13px;padding:15px 0;margin-top:14px;cursor:pointer">Enregistrer</span>
+              <div style="font-size:12px;color:#9fc0b3;margin-top:10px;text-align:center">{{ weighHint }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="background:#fff;border:1px solid #efe3d0;border-radius:16px;padding:20px 22px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="font-size:17px;font-weight:800;color:#1f3d34">Courbe de poids</span><span style="font-size:12px;color:#7a6a55">fourchette saine 29–36 kg</span></div>
+                <div style="display:flex;gap:12px;margin-top:14px">
+                  <div style="width:42px;flex:none;display:flex;flex-direction:column;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7a6a55;height:170px;text-align:right"><span>40</span><span>30</span><span>20</span><span>10</span><span>0</span></div>
+                  <div style="flex:1;min-width:0;height:170px;position:relative;border-left:1px solid #efe3d0;border-bottom:1px solid #efe3d0">
+                    <span style="position:absolute;left:0;right:0;top:10%;height:17.5%;background:#e9f2ec;border-top:1px dashed #b6d2c1;border-bottom:1px dashed #b6d2c1"></span>
+                    <div style="position:absolute;inset:0;display:flex;align-items:flex-end;gap:4px;padding:0 6px">
+                      <sc-for list="{{ weightBars }}" as="b" hint-placeholder-count="13"><span style="{{ b.style }}"></span></sc-for>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:#7a6a55;margin-top:8px;padding-left:54px"><span>juin 2021</span><span>2023</span><span>2025</span><span>sept. 2026</span></div>
+                <div style="background:#f6fbf7;border:1px solid #d9ebe0;border-radius:11px;padding:12px 14px;margin-top:12px;font-size:14px;color:#1f3d34;line-height:1.55"><span style="font-weight:700">Rex est dans sa fourchette depuis 18 mois.</span> +0,5 kg depuis janvier, variation normale. Prochaine pesée conseillée en décembre.</div>
+              </div>
+              <div style="background:#faeed6;border:1px solid #f0dcb4;border-radius:15px;padding:16px">
+                <div style="font-size:15px;font-weight:800;color:#1f3d34">Doublons détectés</div>
+                <div style="font-size:13px;color:#6b5a3a;margin-top:5px;line-height:1.55">Deux pesées de 32,0 kg au 1er septembre, deux de 31,5 kg au 1er janvier. Et 24,1 kg au 17 septembre 2025 casse la courbe : probable erreur de saisie.</div>
+                <div style="display:flex;gap:8px;margin-top:11px;flex-wrap:wrap"><span style="background:#1f3d34;color:#fdf6ec;font-size:13px;font-weight:600;border-radius:11px;padding:9px 14px">Fusionner</span><span style="border:1px solid #e0cfad;color:#1f3d34;font-size:13px;font-weight:600;border-radius:11px;padding:9px 14px">Garder les deux</span></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onSuivi }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 24px 30px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Habitudes de Rex</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">Six semaines · du 3 août au 13 septembre</div></div><span style="background:#b4501f;color:#fff;font-size:13px;font-weight:600;border-radius:999px;padding:8px 15px">+ Habitude</span></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ habits }}" as="h" hint-placeholder-count="3">
+                <div style="background:#fff;border:1px solid #efe3d0;border-radius:15px;padding:16px 18px">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px;gap:10px;flex-wrap:wrap"><div><span style="font-size:16px;font-weight:800;color:#1f3d34">{{ h.name }}</span><span style="font-size:12px;color:#7a6a55;margin-left:8px">{{ h.goal }}</span></div><span style="{{ h.scoreStyle }}">{{ h.score }}</span></div>
+                  <div style="display:grid;grid-template-columns:repeat(21,1fr);gap:3px"><sc-for list="{{ h.cells }}" as="c" hint-placeholder-count="42"><span style="{{ c.style }}"></span></sc-for></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:#fdeee7;border:1px solid #f2cdb9;border-radius:14px;padding:14px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><div style="font-size:14px;color:#7a5646;line-height:1.5"><span style="font-weight:700;color:#a8482a">Le brossage dentaire décroche.</span> Une fois par semaine au lieu de deux à trois. Le détartrage précédent date de février.</div><span style="flex:none;background:#b4501f;color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:11px 16px">Programmer</span></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onCheck }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 24px 30px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:13px;font-weight:600;flex-wrap:wrap">
+              <span onClick="{{ stepGrille }}" style="{{ sGrille }}">1 · Évaluer</span>
+              <span style="color:#c4b9a4">→</span>
+              <span onClick="{{ stepZones }}" style="{{ sZones }}">2 · Par zone</span>
+              <span style="color:#c4b9a4">→</span>
+              <span onClick="{{ stepSynth }}" style="{{ sSynth }}">3 · Synthèse véto</span>
+            </div>
+
+            <sc-if value="{{ onGrille }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Check-up de Rex</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">10 critères · environ 2 minutes</div></div><div style="display:flex;align-items:center;gap:10px"><span style="width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,#3f7a5f 0 40%,#efe3d0 40%)"></span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#7a6a55">4/10</span></div></div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ criteria }}" as="c" hint-placeholder-count="5">
+                    <div style="{{ c.card }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+                        <div style="flex:1;min-width:220px"><div style="font-size:16px;font-weight:800;color:#1f3d34">{{ c.name }}</div><div style="font-size:12px;color:#7a6a55;margin-top:2px">{{ c.hint }}</div></div>
+                        <div style="display:flex;gap:6px;flex:none"><span style="{{ c.s1 }}">Normal</span><span style="{{ c.s2 }}">À surveiller</span><span style="{{ c.s3 }}">Préoccupant</span></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#1f3d34;border-radius:14px;padding:15px 18px;margin-top:14px;gap:12px;flex-wrap:wrap"><div style="color:#fdf6ec"><div style="font-size:13px;color:#9fc0b3">Score en cours</div><div style="font-family:'JetBrains Mono',monospace;font-size:26px;line-height:1.2">8,4 / 10</div></div><span onClick="{{ stepZones }}" style="background:#f2c14e;color:#1f3d34;font-size:14px;font-weight:700;border-radius:12px;padding:12px 18px;cursor:pointer">Continuer par zone</span></div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ onZones }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Où ça ne va pas ?</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">Chaque zone garde son historique sur les six derniers check-ups</div></div></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">
+                  <sc-for list="{{ zones }}" as="z" hint-placeholder-count="6">
+                    <div style="{{ z.card }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:16px;font-weight:800;color:#1f3d34">{{ z.name }}</span><span style="{{ z.statusStyle }}">{{ z.status }}</span></div>
+                      <div style="font-size:12px;color:#7a6a55;margin-top:4px;line-height:1.5">{{ z.hint }}</div>
+                      <div style="display:flex;gap:3px;margin-top:10px"><sc-for list="{{ z.history }}" as="h" hint-placeholder-count="6"><span style="{{ h.style }}"></span></sc-for></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#fdeee7;border:1px solid #f2cdb9;border-radius:14px;padding:14px 16px;margin-top:14px;gap:14px;flex-wrap:wrap"><div style="font-size:14px;color:#7a5646;line-height:1.5"><span style="font-weight:700;color:#a8482a">Deux zones convergent :</span> la patte arrière droite boite à nouveau, et le vaccin de rage est échu. Un seul rendez-vous règle les deux.</div><span onClick="{{ stepSynth }}" style="flex:none;background:#b4501f;color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:11px 16px;cursor:pointer">Préparer la visite</span></div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ onSynth }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap"><div><div style="font-size:20px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Synthèse pour le vétérinaire</div><div style="font-size:13px;color:#7a6a55;margin-top:2px">Rex · générée le 13 septembre 2026</div></div><div style="display:flex;gap:7px;font-size:13px;font-weight:600;flex-wrap:wrap"><span style="border:1px solid #efe3d0;color:#1f3d34;border-radius:999px;padding:8px 14px">PDF</span><span style="background:#b4501f;color:#fff;border-radius:999px;padding:8px 14px">Envoyer à Dr Fabre</span></div></div>
+                <div style="background:#fff;border:1px solid #efe3d0;border-radius:16px;padding:22px 24px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #f5ecdd;padding-bottom:14px;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+                    <div><div style="font-size:19px;font-weight:800;color:#1f3d34;letter-spacing:-.02em">Rex — labrador, mâle, 5 ans</div><div style="font-size:12px;color:#7a6a55;margin-top:3px">32,0 kg · 58 cm · non stérilisé · puce 250 26 900 123 456</div></div>
+                    <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;color:#3f7a5f">8,4/10</div><div style="font-size:11px;color:#7a6a55">check-up du 12.09</div></div>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55;margin-bottom:8px">Motifs de consultation</div>
+                  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px">
+                    <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#b4501f;margin-top:7px;flex:none"></span><span style="font-size:14px;color:#1f3d34;line-height:1.5">Rappel antirabique échu depuis 31 jours et CHPPi échu depuis 6 jours.</span></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#b4501f;margin-top:7px;flex:none"></span><span style="font-size:14px;color:#1f3d34;line-height:1.5">Boiterie de la patte arrière droite observée le 11.09 après une promenade, même patte que l'entorse du 09.06.2026.</span></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#f2c14e;margin-top:7px;flex:none"></span><span style="font-size:14px;color:#1f3d34;line-height:1.5">Oreilles signalées « à surveiller » sur les trois derniers check-ups. Otite externe en novembre 2025.</span></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#f2c14e;margin-top:7px;flex:none"></span><span style="font-size:14px;color:#1f3d34;line-height:1.5">Gencives « à surveiller » depuis deux évaluations. Dernier détartrage le 24.02.2026.</span></div>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55;margin-bottom:8px">Contexte récent</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:18px">
+                    <div style="background:#faf2e4;border-radius:10px;padding:11px 13px"><div style="font-size:12px;color:#7a6a55">Traitement en cours</div><div style="font-size:14px;font-weight:700;color:#1f3d34;margin-top:2px">Pancréatine, 1 sachet/repas</div><div style="font-size:12px;color:#7a6a55">depuis le 07.09, fin demain</div></div>
+                    <div style="background:#faf2e4;border-radius:10px;padding:11px 13px"><div style="font-size:12px;color:#7a6a55">Alimentation</div><div style="font-size:14px;font-weight:700;color:#1f3d34;margin-top:2px">Écart le 10.09</div><div style="font-size:12px;color:#7a6a55">reste de poulet au repas du soir</div></div>
+                    <div style="background:#faf2e4;border-radius:10px;padding:11px 13px"><div style="font-size:12px;color:#7a6a55">Poids</div><div style="font-size:14px;font-weight:700;color:#1f3d34;margin-top:2px">32,0 kg, +0,5 kg / 8 mois</div><div style="font-size:12px;color:#7a6a55">dans la fourchette 29–36 kg</div></div>
+                    <div style="background:#faf2e4;border-radius:10px;padding:11px 13px"><div style="font-size:12px;color:#7a6a55">Habitudes</div><div style="font-size:14px;font-weight:700;color:#1f3d34;margin-top:2px">Brossage 1 fois/semaine</div><div style="font-size:12px;color:#7a6a55">objectif 2 à 3 fois</div></div>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7a6a55;margin-bottom:8px">Questions à poser</div>
+                  <div style="display:flex;flex-direction:column;gap:7px">
+                    <div style="display:flex;align-items:center;gap:10px;border:1px solid #efe3d0;border-radius:11px;padding:11px 13px"><span style="width:18px;height:18px;border-radius:6px;border:2px solid #d6c6ad;flex:none"></span><span style="font-size:14px;color:#1f3d34">Faut-il une radio de contrôle de la patte arrière droite ?</span></div>
+                    <div style="display:flex;align-items:center;gap:10px;border:1px solid #efe3d0;border-radius:11px;padding:11px 13px"><span style="width:18px;height:18px;border-radius:6px;border:2px solid #d6c6ad;flex:none"></span><span style="font-size:14px;color:#1f3d34">Un nettoyage auriculaire préventif est-il justifié ?</span></div>
+                    <div style="display:flex;align-items:center;gap:10px;border:1px solid #efe3d0;border-radius:11px;padding:11px 13px"><span style="width:18px;height:18px;border-radius:6px;border:2px solid #d6c6ad;flex:none"></span><span style="font-size:14px;color:#1f3d34">Prolonger la pancréatine au-delà du 14 septembre ?</span></div>
+                    <div style="display:flex;align-items:center;gap:10px;border:1px dashed #d6c6ad;border-radius:11px;padding:11px 13px"><span style="font-size:18px;color:#8a7a63;flex:none;width:18px;text-align:center">+</span><span style="font-size:14px;color:#7a6a55">Ajouter une question</span></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { page: 'accueil', animal: 'Rex', tab: 'fiche', step: 'grille', weight: '32,4' };
+
+  navStyle(active) {
+    return active
+      ? 'background:#1f3d34;color:#fdf6ec;border-radius:999px;padding:7px 15px;cursor:pointer'
+      : 'color:#7a6a55;padding:7px 15px;cursor:pointer';
+  }
+  tabStyle(active) {
+    return active
+      ? 'padding:11px 0;color:#1f3d34;border-bottom:3px solid #b4501f;cursor:pointer'
+      : 'padding:11px 0;color:#7a6a55;cursor:pointer';
+  }
+  stepStyle(active) {
+    return active
+      ? 'background:#1f3d34;color:#fdf6ec;border-radius:999px;padding:8px 14px;cursor:pointer'
+      : 'background:#fff;border:1px solid #efe3d0;color:#7a6a55;border-radius:999px;padding:8px 14px;cursor:pointer';
+  }
+  cell(kind) {
+    const bg = kind === 'ok' ? '#3f7a5f' : kind === 'partial' ? '#f2c14e' : '#e9eee9';
+    return 'aspect-ratio:1;border-radius:3px;background:' + bg;
+  }
+  chip(kind) {
+    const map = {
+      ok: 'font-size:12px;font-weight:600;color:#3f7a5f',
+      warn: 'font-size:12px;font-weight:700;color:#8a6a1f',
+      bad: 'font-size:12px;font-weight:700;color:#a8482a'
+    };
+    return map[kind];
+  }
+  card(kind) {
+    const border = kind === 'bad' ? '#f2cdb9' : kind === 'warn' ? '#f0dcb4' : '#efe3d0';
+    return 'background:#fff;border:1px solid ' + border + ';border-radius:15px;padding:15px 17px';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const setTab = (tab) => () => this.setState({ tab });
+    const setPage = (page) => () => this.setState({ page });
+    const openAnimal = (animal) => () => this.setState({ page: 'animaux', animal, tab: 'fiche' });
+
+    const roster = [
+      { name: 'Rex', issue: '2 vaccins échus', short: '2 retards', flag: 'bad' },
+      { name: 'Oscar', issue: '2 déparasitages', short: '2 retards', flag: 'bad' },
+      { name: 'Nino', issue: 'Milbemax 12 j', short: '1 retard', flag: 'bad' },
+      { name: 'Max', issue: 'Primo J−12', short: 'à venir', flag: 'warn' },
+      { name: 'Luna', issue: '', short: 'à jour', flag: 'ok' },
+      { name: 'Bella', issue: '', short: 'à jour', flag: 'ok' },
+      { name: 'Fifi', issue: '', short: 'à jour', flag: 'ok' },
+      { name: 'Titi', issue: '', short: 'à jour', flag: 'ok' }
+    ];
+    const decorate = (a) => {
+      const active = a.name === s.animal;
+      const ring = a.flag === 'bad' ? '#b4501f' : a.flag === 'warn' ? '#f2c14e' : '#e6d7c0';
+      return Object.assign({}, a, {
+        open: openAnimal(a.name),
+        row: 'display:flex;align-items:center;gap:9px;padding:8px;border-radius:9px;cursor:pointer;background:' + (active ? '#1f3d34' : 'transparent'),
+        dot: 'width:26px;height:26px;flex:none;border-radius:50%;background:repeating-linear-gradient(135deg,#efe3d0 0 5px,#e6d7c0 5px 10px);border:2px solid ' + ring,
+        nameStyle: 'display:block;font-size:13px;font-weight:' + (active ? '700' : '600') + ';color:' + (active ? '#fdf6ec' : '#1f3d34'),
+        avatar: 'width:52px;height:52px;margin:0 auto;border-radius:50%;background:repeating-linear-gradient(135deg,#efe3d0 0 5px,#e6d7c0 5px 10px);border:3px solid ' + ring
+      });
+    };
+
+    const selMeta = {
+      Rex: { name: 'Rex', line: 'Labrador · mâle non stérilisé · 5 ans · 32 kg · 58 cm' },
+      Oscar: { name: 'Oscar', line: 'Golden retriever · mâle · 4 ans · 28,4 kg' },
+      Nino: { name: 'Nino', line: 'Croisé · mâle · 10 ans · 14 kg' },
+      Max: { name: 'Max', line: 'Beagle · mâle · 1 mois · 3,1 kg' },
+      Luna: { name: 'Luna', line: 'Croisé · femelle · 4 ans · 21 kg' },
+      Bella: { name: 'Bella', line: 'Berger australien · femelle · 3 ans · 19,5 kg' },
+      Fifi: { name: 'Fifi', line: 'Siamois · femelle · 5 ans · 4,2 kg' },
+      Titi: { name: 'Titi', line: 'Lapin nain · femelle · 2 ans · 1,6 kg' }
+    };
+
+    const bar = (pct, color) => 'position:absolute;left:0;top:0;bottom:0;width:' + pct + '%;background:' + color + ';border-radius:5px';
+    const protections = [
+      { name: 'Rage', sub: 'Annuel · obligatoire pour voyager · Dr C. Fabre', status: 'échue depuis 31 jours', kind: 'bad', pct: 94, from: '13.08.2025 · fait', to: '13.08.2026 · échu' },
+      { name: 'CHPPi polyvalent', sub: 'Annuel · carré, hépatite, parvovirose, parainfluenza', status: 'échu depuis 6 jours', kind: 'bad', pct: 90, from: '20.09.2025 · fait', to: '07.09.2026 · échu' },
+      { name: 'Déparasitage interne', sub: 'Tous les 3 mois · Milbemax', status: 'couvert encore 9 jours', kind: 'ok', pct: 90, from: '01.03.2026 · fait', to: '22.09.2026 · prochain' },
+      { name: 'Antiparasitaire externe', sub: 'Tous les 3 mois · Frontline Combo', status: 'couvert encore 6 semaines', kind: 'ok', pct: 54, from: '07.06.2026 · fait', to: '07.12.2026 · prochain' },
+      { name: 'Toux du chenil', sub: 'Annuel · Dr Rasoanaivo', status: 'couvert jusqu\u2019en janvier', kind: 'ok', pct: 67, from: '15.01.2026 · fait', to: '15.01.2027 · prochain' }
+    ].map((p) => Object.assign({}, p, {
+      card: this.card(p.kind),
+      statusStyle: this.chip(p.kind === 'bad' ? 'bad' : 'ok'),
+      track: 'height:9px;border-radius:5px;background:' + (p.kind === 'bad' ? '#f3e6da' : '#e4efe7') + ';margin-top:12px;position:relative;overflow:hidden',
+      fill: bar(p.pct, p.kind === 'bad' ? '#b4501f' : '#3f7a5f'),
+      toStyle: 'color:' + (p.kind === 'bad' ? '#a8482a' : '#6b5c46')
+    }));
+
+    const meals = [
+      { date: "Aujourd'hui", time: '08:45', food: 'Royal Canin Labrador', qty: '320 g', by: 'Hanta', today: true },
+      { date: '12 sept.', time: '19:30', food: 'Royal Canin Labrador', qty: '320 g', by: 'Tsiory' },
+      { date: '12 sept.', time: '08:50', food: 'Royal Canin Labrador', qty: '320 g', by: 'Mialy' },
+      { date: '11 sept.', time: '19:15', food: 'Royal Canin + reste de poulet', qty: '380 g', by: 'Tsiory' },
+      { date: '11 sept.', time: '08:40', food: 'Royal Canin Labrador', qty: '320 g', by: 'Mialy' }
+    ].map((m) => Object.assign({}, m, {
+      dateStyle: 'font-size:13px;font-weight:' + (m.today ? '700' : '400') + ';color:' + (m.today ? '#1f3d34' : '#7a6a55')
+    }));
+
+    const mealPattern = ['ok','ok','ok','partial','ok','ok','ok','ok','none','ok','ok','partial','ok','ok'];
+    const mealDays = mealPattern.map((k) => ({ style: 'flex:1;height:34px;border-radius:5px;background:' + (k === 'ok' ? '#3f7a5f' : k === 'partial' ? '#f2c14e' : '#e9eee9') }));
+
+    const mk = (str) => str.split('').map((ch) => ({ style: this.cell(ch === 'o' ? 'ok' : ch === 'p' ? 'partial' : 'none') }));
+    const habits = [
+      { name: 'Repas', goal: '2 par jour', score: '40 jours sur 42', kind: 'ok',
+        cells: mk('oooooxooooooooooooooo' + 'ooox ooooooooooooooooo'.replace(/ /g, '')) },
+      { name: 'Promenade', goal: 'objectif 45 min/jour', score: '31 jours sur 42', kind: 'warn',
+        cells: mk('ooxopxooxoopoxooox ooo'.replace(/ /g, '') + 'oxoopooxooooxoooxooo') },
+      { name: 'Brossage dentaire', goal: 'objectif 2–3 fois/semaine', score: '7 fois sur 6 semaines', kind: 'bad',
+        cells: mk('oxxxoxxxoxxxxxoxxxxox' + 'xxoxxxxxoxxxxxxxxxxxx') }
+    ].map((h) => Object.assign({}, h, { scoreStyle: 'font-size:13px;font-weight:700;color:' + (h.kind === 'ok' ? '#3f7a5f' : h.kind === 'warn' ? '#8a6a1f' : '#a8482a') }));
+
+    const answerStyle = (state) => ({
+      on: 'font-size:12px;font-weight:700;background:#1f3d34;color:#fdf6ec;border-radius:9px;padding:9px 14px;cursor:pointer',
+      warn: 'font-size:12px;font-weight:700;background:#f2c14e;color:#1f3d34;border-radius:9px;padding:9px 14px;cursor:pointer',
+      off: 'font-size:12px;color:#7a6a55;border:1px solid #efe3d0;border-radius:9px;padding:9px 14px;cursor:pointer'
+    })[state];
+    const criteria = [
+      { name: 'Appétit', hint: 'Finit-il ses gamelles dans les dix minutes ?', pick: 1 },
+      { name: 'Énergie', hint: 'Se lève-t-il spontanément pour la promenade ?', pick: 1 },
+      { name: 'Oreilles', hint: 'Odeur, rougeur, cérumen foncé, grattage répété ?', pick: 2 },
+      { name: 'Gencives', hint: 'Roses et fermes ? Pâles, bleutées ou jaunes = consultation.', pick: 2 },
+      { name: 'Mobilité', hint: 'Monte-t-il les escaliers sans hésiter ?', pick: 0 }
+    ].map((c) => Object.assign({}, c, {
+      card: this.card(c.pick === 2 ? 'warn' : 'ok'),
+      s1: answerStyle(c.pick === 1 ? 'on' : 'off'),
+      s2: answerStyle(c.pick === 2 ? 'warn' : 'off'),
+      s3: answerStyle('off')
+    }));
+
+    const hist = (str) => str.split('').map((ch) => ({
+      style: 'flex:1;height:6px;border-radius:3px;background:' + (ch === 'o' ? '#3f7a5f' : ch === 'p' ? '#f2c14e' : '#b4501f')
+    }));
+    const zones = [
+      { name: 'Yeux', hint: 'Écoulement, rougeur, œil fermé', status: 'normal', kind: 'ok', history: hist('oooooo') },
+      { name: 'Oreilles', hint: 'Odeur, cérumen foncé, grattage · otite en nov. 2025', status: 'à surveiller', kind: 'warn', history: hist('ooopppp'.slice(0, 6)) },
+      { name: 'Bouche et dents', hint: 'Tartre, gencives pâles, haleine · détartrage févr. 2026', status: 'à surveiller', kind: 'warn', history: hist('oooopp') },
+      { name: 'Peau et pelage', hint: 'Perte de poils, rougeurs, parasites', status: 'normal', kind: 'ok', history: hist('oooooo') },
+      { name: 'Pattes et démarche', hint: 'Boiterie notée le 11.09 · entorse arrière droite en juin', status: 'signalé hier', kind: 'bad', history: hist('oopoob') },
+      { name: 'Digestion', hint: 'Selles, vomissements · gastro-entérite le 07.09', status: 'normal', kind: 'ok', history: hist('oooopo') }
+    ].map((z) => Object.assign({}, z, {
+      card: 'background:#fff;border:1px solid ' + (z.kind === 'bad' ? '#f2cdb9' : z.kind === 'warn' ? '#f0dcb4' : '#efe3d0') + ';border-radius:14px;padding:16px',
+      statusStyle: this.chip(z.kind === 'bad' ? 'bad' : z.kind === 'warn' ? 'warn' : 'ok')
+    }));
+
+    const weightPattern = [6.5, 16, 30, 44, 56, 64, 70, 74, 77, 79, 76, 79, 80];
+    const weightBars = weightPattern.map((h, i) => ({
+      style: 'flex:1;height:' + h + '%;background:' + (i === weightPattern.length - 1 ? '#1f3d34' : '#cfe0d6') + ';border-radius:3px 3px 0 0'
+    }));
+
+    const keys = ['1','2','3','4','5','6','7','8','9',',','0','⌫'].map((label) => ({
+      label,
+      press: () => this.setState((st) => {
+        if (label === '⌫') return { weight: st.weight.slice(0, -1) };
+        if (st.weight.length >= 5) return null;
+        return { weight: st.weight + label };
+      })
+    }));
+
+    return {
+      animals: roster.map(decorate),
+      needAction: roster.filter((a) => a.flag !== 'ok').map(decorate),
+      upToDate: roster.filter((a) => a.flag === 'ok').map(decorate),
+      sel: selMeta[s.animal] || selMeta.Rex,
+
+      isAccueil: s.page === 'accueil',
+      isAnimaux: s.page === 'animaux',
+      isAgenda: s.page === 'agenda',
+      isAnnuaire: s.page === 'annuaire',
+      goAccueil: setPage('accueil'),
+      goAnimaux: setPage('animaux'),
+      goAgenda: setPage('agenda'),
+      goAnnuaire: setPage('annuaire'),
+      navAccueil: this.navStyle(s.page === 'accueil'),
+      navAnimaux: this.navStyle(s.page === 'animaux'),
+      navAgenda: this.navStyle(s.page === 'agenda'),
+      navAnnuaire: this.navStyle(s.page === 'annuaire'),
+
+      tabFiche: setTab('fiche'),
+      tabActes: setTab('actes'),
+      tabNutrition: setTab('nutrition'),
+      tabPoids: setTab('poids'),
+      tabSuivi: setTab('suivi'),
+      tabCheck: setTab('check'),
+      tFiche: this.tabStyle(s.tab === 'fiche'),
+      tActes: this.tabStyle(s.tab === 'actes'),
+      tNutrition: this.tabStyle(s.tab === 'nutrition'),
+      tPoids: this.tabStyle(s.tab === 'poids'),
+      tSuivi: this.tabStyle(s.tab === 'suivi'),
+      tCheck: this.tabStyle(s.tab === 'check'),
+      onFiche: s.tab === 'fiche',
+      onActes: s.tab === 'actes',
+      onNutrition: s.tab === 'nutrition',
+      onPoids: s.tab === 'poids',
+      onSuivi: s.tab === 'suivi',
+      onCheck: s.tab === 'check',
+
+      stepGrille: () => this.setState({ step: 'grille' }),
+      stepZones: () => this.setState({ step: 'zones' }),
+      stepSynth: () => this.setState({ step: 'synth' }),
+      sGrille: this.stepStyle(s.step === 'grille'),
+      sZones: this.stepStyle(s.step === 'zones'),
+      sSynth: this.stepStyle(s.step === 'synth'),
+      onGrille: s.step === 'grille',
+      onZones: s.step === 'zones',
+      onSynth: s.step === 'synth',
+
+      protections,
+      meals,
+      mealDays,
+      habits,
+      criteria,
+      zones,
+      weightBars,
+      keys,
+      weighIn: s.weight || '—',
+      weighHint: 'Précédente 32,0 kg · variation +' + ((parseFloat((s.weight || '0').replace(',', '.')) - 32).toFixed(1)).replace('.', ',') + ' kg',
+      saveWeight: () => this.setState({ weight: '32,4' })
+    };
+  }
+}
+</script>
+</body>
+</html>
