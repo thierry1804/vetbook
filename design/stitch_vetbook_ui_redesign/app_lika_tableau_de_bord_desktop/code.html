@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed-dim": "#80d5cb", "secondary-fixed": "#71f8e4", "surface-container-lowest": "#ffffff", "on-background": "#0d1c2e", "on-tertiary": "#ffffff", "on-secondary-fixed": "#00201c", "inverse-surface": "#233144", "on-error": "#ffffff", "surface-container": "#e6eeff", "tertiary": "#893a00", "surface-container-low": "#eff4ff", "on-primary-container": "#a3faef", "surface-tint": "#006a63", "on-tertiary-fixed": "#341100", "outline-variant": "#bdc9c6", "on-secondary-fixed-variant": "#005048", "on-tertiary-fixed-variant": "#783200", "secondary": "#006b5f", "error": "#ba1a1a", "error-container": "#ffdad6", "tertiary-fixed-dim": "#ffb690", "surface-dim": "#ccdbf3", "surface-container-high": "#dce9ff", "on-secondary-container": "#006f64", "inverse-on-surface": "#eaf1ff", "primary": "#005c55", "on-primary": "#ffffff", "background": "#f8f9ff", "on-surface": "#0d1c2e", "primary-container": "#0f766e", "on-primary-fixed": "#00201d", "tertiary-fixed": "#ffdbca", "outline": "#6e7977", "tertiary-container": "#af4c00", "inverse-primary": "#80d5cb", "secondary-fixed-dim": "#4fdbc8", "on-primary-fixed-variant": "#00504a", "on-secondary": "#ffffff", "on-surface-variant": "#3e4947", "on-tertiary-container": "#ffe6da", "on-error-container": "#93000a", "surface": "#f8f9ff", "surface-bright": "#f8f9ff", "primary-fixed": "#9cf2e8", "surface-container-highest": "#d5e3fc", "secondary-container": "#6df5e1", "surface-variant": "#d5e3fc" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "space-2xs": "0.25rem", "space-lg": "1.5rem", "margin": "1rem", "space-xl": "2rem", "space-sm": "0.75rem", "gutter-tablet": "1.5rem", "margin-desktop": "2.5rem", "margin-tablet": "1.5rem", "gutter": "1rem", "gutter-desktop": "2rem", "space-2xl": "3rem", "space-xs": "0.5rem" }, "fontFamily": { "headline-xl": [ "Plus Jakarta Sans" ], "headline-md": [ "Plus Jakarta Sans" ], "body-lg": [ "Plus Jakarta Sans" ], "headline-lg-mobile": [ "Plus Jakarta Sans" ], "title-md": [ "Plus Jakarta Sans" ], "headline-lg": [ "Plus Jakarta Sans" ], "label-lg": [ "Inter" ], "label-sm": [ "Inter" ], "label-md": [ "Inter" ], "headline-xl-mobile": [ "Plus Jakarta Sans" ], "body-md": [ "Plus Jakarta Sans" ] }, "fontSize": { "headline-xl": [ "36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "headline-md": [ "20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "body-lg": [ "16px", { "lineHeight": "26px", "fontWeight": "400" } ], "headline-lg-mobile": [ "22px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "title-md": [ "16px", { "lineHeight": "24px", "fontWeight": "600" } ], "headline-lg": [ "28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700" } ], "label-lg": [ "14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" } ], "label-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "headline-xl-mobile": [ "28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700" } ], "body-md": [ "14px", { "lineHeight": "22px", "fontWeight": "400" } ] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col shadow-[0_1px_8px_rgba(0,0,0,0.04)] overflow-y-auto"><div class="p-space-lg flex items-center gap-space-sm"><img alt="Minimalist modern vector icon of a cute dog and cat silhouette combined with a medical cross and a caring heart, clean geometric lines, vibrant teal #0F766E and warm coral #F97316 accents, white background, app icon style. Design context: - Primary color: #0f766e
+- Font: plusJakartaSans
+- Mode: light
+- Roundness: rounded-md
+. The logo should be visually consistent with these brand tokens." class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XudzIi2saJ35rTiHg7uOcHZ1ce02QeVn7d4rF2QzEIwLyMxOsnxCAPmrXQJY42IdQkbKS6hyK5nFD3WyUj7zqeUbcMalANHI0Oin-4scgdEtI9NqXolfjr679cYcA8NsobtAbPp54hGJ0H2Zijgu81gDMOOVdo3CzqXc3UvzvHFtNry32FU4-UhfuFUfdlz6RvSE2cSVguQ8wtW949f3Y-_L4bnLs9PboU6Jgdo-tWNoMPSPujo5EuBbw"/><div class="flex flex-col"><span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">App'lika</span><span class="font-label-sm text-label-sm text-on-surface-variant">Santé &amp; Bien-être Animal</span></div></div><div class="px-space-md mb-space-md"><div class="bg-surface-container-low rounded-xl p-space-xs flex items-center justify-between shadow-[0_1px_4px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-colors"><div class="flex items-center gap-space-xs"><div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-headline-md text-title-md font-bold">🐕</div><div class="flex flex-col"><span class="font-title-md text-title-md text-on-surface">Rio</span><span class="font-label-sm text-label-sm text-on-surface-variant">Golden Retriever • 3 ans</span></div></div><span class="material-symbols-outlined text-on-surface-variant text-lg">unfold_more</span></div></div><div class="flex-1 px-space-md pb-space-lg space-y-space-lg"><nav class="space-y-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-xl"><div class="px-space-xs py-space-2xs font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Vue d'ensemble</div><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs transition-all bg-primary-container text-on-primary-container font-semibold rounded-xl" data-path="tableau-de-bord" href="#"><span class="material-symbols-outlined text-lg">dashboard</span><span class="font-label-lg text-label-lg">Tableau de bord</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="calendrier-et-rappels" href="#"><span class="material-symbols-outlined text-lg">calendar_month</span><span class="font-label-lg text-label-lg">Calendrier &amp; Rappels</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="annuaire-et-urgences" href="#"><span class="material-symbols-outlined text-lg">emergency</span><span class="font-label-lg text-label-lg">Annuaire &amp; Urgences</span></a></nav><nav class="space-y-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-xl"><div class="px-space-xs py-space-2xs font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Carnet de Santé</div><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="vaccins-et-traitements" href="#"><span class="material-symbols-outlined text-lg">vaccines</span><span class="font-label-lg text-label-lg">Vaccins &amp; Traitements</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="deparasitage" href="#"><span class="material-symbols-outlined text-lg">bug_report</span><span class="font-label-lg text-label-lg">Déparasitage</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="hygiene" href="#"><span class="material-symbols-outlined text-lg">clean_hands</span><span class="font-label-lg text-label-lg">Hygiène</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="consultations-et-budget" href="#"><span class="material-symbols-outlined text-lg">receipt_long</span><span class="font-label-lg text-label-lg">Consultations &amp; Budget</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="courbe-de-poids" href="#"><span class="material-symbols-outlined text-lg">monitor_weight</span><span class="font-label-lg text-label-lg">Courbe de Poids</span></a></nav><nav class="space-y-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-xl"><div class="px-space-xs py-space-2xs font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Suivi Quotidien</div><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="nutrition-et-repas" href="#"><span class="material-symbols-outlined text-lg">restaurant</span><span class="font-label-lg text-label-lg">Nutrition &amp; Repas</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="activites-et-balades" href="#"><span class="material-symbols-outlined text-lg">directions_run</span><span class="font-label-lg text-label-lg">Activités &amp; Balades</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="journal-et-check-up" href="#"><span class="material-symbols-outlined text-lg">edit_note</span><span class="font-label-lg text-label-lg">Journal &amp; Check-up</span></a></nav><nav class="space-y-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-xl"><div class="px-space-xs py-space-2xs font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Compte &amp; Paramètres</div><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="profil-proprietaire" href="#"><span class="material-symbols-outlined text-lg">manage_accounts</span><span class="font-label-lg text-label-lg">Profil Propriétaire</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="cloud-et-synchro" href="#"><span class="material-symbols-outlined text-lg">cloud_sync</span><span class="font-label-lg text-label-lg">Cloud &amp; Synchro</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="sauvegardes" href="#"><span class="material-symbols-outlined text-lg">backup</span><span class="font-label-lg text-label-lg">Sauvegardes</span></a></nav></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-md w-96"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">search</span><input class="w-full pl-9 pr-4 py-2 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary shadow-[0_1px_3px_rgba(0,0,0,0.02)]" placeholder="Rechercher vaccin, rappel, clinique..." type="search"/></div></div><div class="flex items-center gap-space-md"><a class="flex items-center gap-space-xs px-space-sm py-2 bg-error text-on-error rounded-xl font-label-md text-label-md hover:bg-error-container hover:text-on-error-container transition-all active:scale-[0.98] shadow-[0_2px_8px_rgba(186,26,26,0.2)]" href="tel:3115"><span class="material-symbols-outlined text-base">e911_emergency</span><span>SAMU 3115 Gratuit</span></a><button class="relative p-2 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"><span class="material-symbols-outlined">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary-container"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1WNZH7O02RKbAMru_aPI1yRRIHfVRSY5AUxvx43-x9O3zhDWRE-wAjXJEdkdlwaOXme-HTuCz2hYKmE8_deUicoWpTiEbxFXvgu0ysd0Cd_ys7_KUxl_ZEwTstbBkjimwvCsGdU8eNS3QoBUMLWDQOSVade7Cnni1nSuJo973rL2f9fhMLPn_DZpUB3SXA1Po_jc4bbgNjIZK64jxvk-1Vtf3xCRL5JALyfBJsxixDilkJHIq0uFBUvGlk"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-tight">Sarah Dupont</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Propriétaire</span></div></div></div></header><main class="relative pt-16 bg-surface min-h-screen w-full px-space-lg py-space-lg"><div class="flex flex-col w-full gap-space-lg">
+<!-- EMERGENCY NOTICE STRIP -->
+<div class="flex items-center justify-between px-space-md py-space-xs bg-surface-container rounded-xl shadow-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="flex h-2.5 w-2.5 rounded-full bg-error animate-pulse"></span>
+<span class="font-label-md text-label-md uppercase tracking-wider text-error font-bold">Urgences 24/7</span>
+<span class="text-outline text-xs">/</span>
+<p class="font-body-md text-body-md text-on-surface truncate">
+        Clinique des Alisiers ouverte à <strong class="font-semibold text-primary">1.2 km</strong> • SAMU Vétérinaire d'astreinte
+      </p>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<a class="flex items-center gap-space-2xs px-space-sm py-1 bg-surface-container-lowest text-error rounded-lg font-label-md text-label-md hover:bg-error-container hover:text-on-error-container transition-all" href="tel:3115">
+<span class="material-symbols-outlined text-sm">call</span>
+<span>Ligne d'urgence 3115</span>
+</a>
+</div>
+</div>
+<!-- GREETING & HERO PROFILE BANNER -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-space-lg relative overflow-hidden">
+<div class="absolute -top-12 -right-12 w-64 h-64 bg-primary-fixed/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-space-md min-w-0 z-10">
+<div class="relative shrink-0">
+<img class="w-20 h-20 rounded-2xl object-cover shadow-sm bg-surface-container-low" data-alt="A happy purebred Golden Retriever dog with shiny golden fur and warm amber eyes smiling peacefully in a bright airy sunlit room, gentle teal and natural tones, soft studio pet portrait style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb-XDsSXba_7Hy65s4_h7NnSFT9XqpypJWpyeOnDFNVm98Q1_WPAiJaLHr0rYq0_FDPAJyykT65ekvYsrbOfw7gkquKMf_WOn8zWVvatVwC8WEc6a0I6_UeEoNtA4NH_y9CpRQe9icQGWLUXI_STj3z7egqS0-wWGjqkkFQp7X6-QXe9syrqQj0bPuZIQmHRB6jfUMpZtmGrZFBEQhek6K6BbM1JLZqj6Jbaj74ChxHCAkS41jyRDA"/>
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-xs">verified</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs flex-wrap">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Bonjour Sarah</h1>
+<span class="px-space-xs py-0.5 bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm rounded-full font-bold">Rio en pleine forme</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">
+          Golden Retriever • 3 ans • Mâle stérilisé • Puce I-CAD : <span class="font-mono text-xs">250269608945123</span>
+</p>
+<div class="flex items-center gap-space-md mt-space-xs flex-wrap text-on-surface-variant text-xs">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-primary">event_available</span>
+            Dernier check-up : <strong>12 Fév 2025</strong>
+</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary">update</span>
+            Prochain bilan annuel : <strong>12 Fév 2026</strong>
+</span>
+</div>
+</div>
+</div>
+<!-- QUICK ACTIONS -->
+<div class="flex items-center gap-space-xs flex-wrap shrink-0 z-10">
+<button class="flex items-center gap-space-2xs px-space-md py-2.5 bg-primary text-on-primary rounded-xl font-label-lg text-label-lg hover:bg-primary-container transition-all active:scale-[0.98] shadow-sm">
+<span class="material-symbols-outlined text-base">medical_services</span>
+<span>+ Enregistrer un soin</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-sm py-2.5 bg-surface-container-low text-primary rounded-xl font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-base">scale</span>
+<span>Pesée</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-sm py-2.5 bg-surface-container-low text-primary rounded-xl font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-base">restaurant</span>
+<span>Repas</span>
+</button>
+<button class="flex items-center gap-space-2xs px-space-sm py-2.5 bg-surface-container-low text-on-surface-variant rounded-xl font-label-md text-label-md hover:bg-surface-container transition-colors" title="Imprimer carnet officiel">
+<span class="material-symbols-outlined text-base">print</span>
+<span class="hidden md:inline">Fiche clinique</span>
+</button>
+</div>
+</div>
+<!-- 4 HIGH-IMPACT METRIC CARDS -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
+<!-- Card 1: Score & Immunité -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Protection globale</span>
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold mt-1">100%</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+</div>
+<div class="mt-space-md space-y-space-xs">
+<div class="flex items-center justify-between text-xs">
+<span class="font-label-sm text-on-surface-variant">CHPLR + Rage</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-low text-secondary font-label-sm text-label-sm font-semibold">À jour</span>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="font-label-sm text-on-surface-variant">Toux du chenil</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-tertiary font-label-sm text-label-sm font-semibold">Dans 14 jours</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden mt-2">
+<div class="bg-primary h-full rounded-full" style="width: 92%"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Poids & Forme -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Poids actuel</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">31.4</span>
+<span class="font-title-md text-title-md text-on-surface-variant">kg</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center">+0.2 kg</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">monitor_weight</span>
+</div>
+</div>
+<div class="mt-space-md">
+<div class="flex justify-between items-center text-xs text-on-surface-variant mb-1">
+<span>Gabarit idéal vétérinaire</span>
+<span class="font-semibold text-on-surface">31.0 - 32.0 kg</span>
+</div>
+<div class="relative w-full bg-surface-container h-2 rounded-full">
+<div class="absolute left-1/4 right-1/4 bg-primary-fixed h-full rounded-full opacity-60"></div>
+<div class="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-primary rounded-full shadow-sm" style="left: 58%;"></div>
+</div>
+<div class="flex justify-between text-[10px] text-outline mt-1 font-label-sm">
+<span>29 kg</span>
+<span class="font-semibold text-primary">Idéal</span>
+<span>34 kg</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Nutrition -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Ration quotidienne</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">250</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ 500 g</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">set_meal</span>
+</div>
+</div>
+<div class="mt-space-md">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="font-label-sm text-on-surface-variant">Royal Canin Maxi Adult</span>
+<span class="font-bold text-on-surface">710 / 1 420 kcal</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 50%"></div>
+</div>
+<p class="text-xs text-on-surface-variant mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary">check_circle</span>
+          Ration du matin validée (08:15)
+        </p>
+</div>
+</div>
+<!-- Card 4: Budget Santé Mutuelle -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Budget &amp; Mutuelle (12m)</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">435€</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">80% couvert</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">shield</span>
+</div>
+</div>
+<div class="mt-space-md space-y-1">
+<div class="flex justify-between text-xs">
+<span class="text-on-surface-variant">SantéVet Formule Confort</span>
+<span class="font-bold text-on-surface">348,00 € remboursés</span>
+</div>
+<div class="flex justify-between text-xs text-outline">
+<span>Reste à charge réel</span>
+<span class="font-semibold text-on-surface">87,00 €</span>
+</div>
+<div class="w-full bg-surface-container-low h-2 rounded-full overflow-hidden mt-1 flex">
+<div class="bg-primary h-full" style="width: 80%"></div>
+<div class="bg-surface-container-highest h-full" style="width: 20%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- MAIN 2-COLUMN SECTION -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- LEFT COLUMN: MAIN CHARTS & LISTS (65% -> col-span-8) -->
+<div class="lg:col-span-8 flex flex-col gap-space-lg">
+<!-- WEIGHT EVOLUTION CHART (Inline SVG Sparkline with target corridor) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm mb-space-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface">Courbe de Poids &amp; Croissance</span>
+<span class="px-2 py-0.5 bg-surface-container-low text-secondary font-label-sm text-label-sm rounded-full font-semibold">Stabilisé</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Suivi mensuel vétérinaire sur les 6 derniers mois</p>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-1 px-space-sm py-1.5 bg-surface-container-low text-primary rounded-xl font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>Ajouter une pesée</span>
+</button>
+</div>
+</div>
+<!-- SVG Weight Graph -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md relative overflow-hidden">
+<div class="flex items-center justify-between text-xs text-on-surface-variant mb-2">
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded bg-primary/20 inline-block"></span>
+              Couloir de poids recommandé (31.0 - 32.0 kg)
+            </span>
+<span class="font-mono font-semibold text-on-surface">Dernière pesée : 31.4 kg (12 Fév)</span>
+</div>
+<div class="w-full h-48">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 600 160">
+<defs>
+<lineargradient id="weightGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#005c55" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#005c55" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Target Safe Zone (31.0 - 32.0 kg) -->
+<rect fill="#005c55" fill-opacity="0.07" height="40" rx="6" width="600" x="0" y="40"></rect>
+<line stroke="#005c55" stroke-dasharray="4 4" stroke-opacity="0.2" x1="0" x2="600" y1="40" y2="40"></line>
+<line stroke="#005c55" stroke-dasharray="4 4" stroke-opacity="0.2" x1="0" x2="600" y1="80" y2="80"></line>
+<!-- Area Fill -->
+<path d="M 40,130 Q 150,122 260,115 T 420,70 T 560,52 L 560,150 L 40,150 Z" fill="url(#weightGrad)"></path>
+<!-- Trend Line -->
+<path d="M 40,130 Q 150,122 260,115 T 420,70 T 560,52" fill="none" stroke="#005c55" stroke-linecap="round" stroke-width="3"></path>
+<!-- Data Points -->
+<circle cx="40" cy="130" fill="#ffffff" r="4" stroke="#005c55" stroke-width="2"></circle>
+<text fill="#6e7977" font-family="Plus Jakarta Sans" font-size="10" text-anchor="middle" x="40" y="152">Nov (27.8)</text>
+<circle cx="150" cy="122" fill="#ffffff" r="4" stroke="#005c55" stroke-width="2"></circle>
+<text fill="#6e7977" font-family="Plus Jakarta Sans" font-size="10" text-anchor="middle" x="150" y="152">Déc (28.1)</text>
+<circle cx="260" cy="115" fill="#ffffff" r="4" stroke="#005c55" stroke-width="2"></circle>
+<text fill="#6e7977" font-family="Plus Jakarta Sans" font-size="10" text-anchor="middle" x="260" y="152">Jan (28.4)</text>
+<circle cx="420" cy="70" fill="#ffffff" r="4" stroke="#005c55" stroke-width="2"></circle>
+<text fill="#0d1c2e" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="420" y="95">Fév (30.2)</text>
+<!-- Current point -->
+<circle cx="560" cy="52" fill="#005c55" r="6" stroke="#ffffff" stroke-width="3"></circle>
+<text fill="#005c55" font-family="Plus Jakarta Sans" font-size="11" font-weight="700" text-anchor="middle" x="560" y="38">31.4 kg ★</text>
+</svg>
+</div>
+</div>
+</div>
+<!-- UPCOMING CARE & REMINDERS (INTERACTIVE FILTER TABLE) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm mb-space-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Soins à venir &amp; Rappels</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Actions préventives synchronisées avec l'agenda</p>
+</div>
+<!-- Filter Tabs -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl">
+<button class="px-space-xs py-1 rounded-lg bg-surface-container-lowest font-label-sm text-label-sm font-bold text-primary shadow-xs">Tous (4)</button>
+<button class="px-space-xs py-1 rounded-lg text-on-surface-variant font-label-sm text-label-sm hover:text-on-surface">Vaccins</button>
+<button class="px-space-xs py-1 rounded-lg text-on-surface-variant font-label-sm text-label-sm hover:text-on-surface">Parasites</button>
+<button class="px-space-xs py-1 rounded-lg text-on-surface-variant font-label-sm text-label-sm hover:text-on-surface">Hygiène</button>
+</div>
+</div>
+<div class="space-y-space-xs">
+<!-- Row 1: Urgent Vaccine -->
+<div class="p-space-sm rounded-xl bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">vaccines</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-title-md text-title-md text-on-surface font-semibold truncate">Vaccin Toux du Chenil (BbPi)</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary font-label-sm text-label-sm font-bold">Dans 14 jours</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Indispensable pour séjour pension estivale • Injection intranasale</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0 self-end sm:self-center">
+<span class="font-label-md text-label-md text-outline">Échéance 08/04/2025</span>
+<button class="px-space-sm py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm font-semibold hover:bg-primary-container transition-all">Prendre RDV</button>
+</div>
+</div>
+<!-- Row 2: Antiparasitic -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm shadow-[0_1px_4px_rgba(0,0,0,0.02)] hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">bug_report</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-title-md text-title-md text-on-surface font-semibold truncate">Comprimé Bravecto (Tiques &amp; Puces)</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold">Trimestriel</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Administration orale avec repas • Boîte disponible en pharmacie</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0 self-end sm:self-center">
+<span class="font-label-md text-label-md text-on-surface-variant">01/05/2025</span>
+<button class="p-1.5 rounded-lg text-primary hover:bg-surface-container-high transition-colors" title="Valider comme fait">
+<span class="material-symbols-outlined text-base">check</span>
+</button>
+</div>
+</div>
+<!-- Row 3: Hygiene Grooming -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm shadow-[0_1px_4px_rgba(0,0,0,0.02)] hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">shower</span>
+</div>
+<div class="min-w-0">
+<span class="font-title-md text-title-md text-on-surface font-semibold truncate">Bain antipelliculaire &amp; Brossage sous-poil</span>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Période de mue printanière intense</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0 self-end sm:self-center">
+<span class="font-label-md text-label-md text-on-surface-variant">15/04/2025</span>
+<button class="p-1.5 rounded-lg text-outline hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Row 4: Dental check -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm shadow-[0_1px_4px_rgba(0,0,0,0.02)] hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">dentistry</span>
+</div>
+<div class="min-w-0">
+<span class="font-title-md text-title-md text-on-surface font-semibold truncate">Contrôle dentaire préventif &amp; tartre</span>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Vérification prémolaires supérieures</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0 self-end sm:self-center">
+<span class="font-label-md text-label-md text-outline">Juin 2025</span>
+<button class="p-1.5 rounded-lg text-outline hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base">calendar_add_on</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- RECENT CONSULTATIONS & CLINICAL ACTS -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex items-center justify-between mb-space-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Historique des Actes &amp; Soins Récents</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Consultations, ordonnances et factures remboursées</p>
+</div>
+<a class="font-label-md text-label-md text-primary hover:underline font-semibold flex items-center gap-1" href="#">
+            Voir tout l'historique
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="space-y-space-sm">
+<!-- Act 1 -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="p-2.5 rounded-xl bg-surface-container-lowest text-primary mt-1 shadow-xs">
+<span class="material-symbols-outlined">vaccines</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-title-md text-title-md text-on-surface font-bold">Rappel vaccinal annuel &amp; Bilan digestif</span>
+<span class="font-label-sm text-label-sm text-outline">• 12 Fév 2025</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">
+                  Dr Camille Fabre • Clinique des Alisiers • Poids relevé 31.4 kg
+                </p>
+<div class="flex items-center gap-space-xs mt-space-xs flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-mono text-[11px]">Facture #2025-089</span>
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed text-[11px] font-semibold">Mutuelle : 44,00 € remboursés sur 55,00 €</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<button class="flex items-center gap-1 px-space-sm py-1.5 bg-surface-container-lowest text-on-surface rounded-lg font-label-sm text-label-sm hover:bg-surface-container transition-colors shadow-xs">
+<span class="material-symbols-outlined text-sm">description</span>
+<span>Ordonnance</span>
+</button>
+</div>
+</div>
+<!-- Act 2 -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-space-md shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-start gap-space-sm">
+<div class="p-2.5 rounded-xl bg-surface-container-low text-secondary mt-1">
+<span class="material-symbols-outlined">radiology</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-title-md text-title-md text-on-surface font-bold">Radiographie &amp; Anti-inflammatoire (Boiterie)</span>
+<span class="font-label-sm text-label-sm text-outline">• 18 Nov 2024</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">
+                  Dr Camille Fabre • Entorse patte arrière droite guérie sous Métacam
+                </p>
+<div class="flex items-center gap-space-xs mt-space-xs flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-mono text-[11px]">Radio N°RD-412</span>
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed text-[11px] font-semibold">Mutuelle : 72,00 € remboursés sur 90,00 €</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<button class="flex items-center gap-1 px-space-sm py-1.5 bg-surface-container-low text-on-surface rounded-lg font-label-sm text-label-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-sm">attach_file</span>
+<span>Radio HD</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: SIDEBAR WIDGETS (35% -> col-span-4) -->
+<div class="lg:col-span-4 flex flex-col gap-space-lg">
+<!-- WIDGET 1: IDENTITY & COLLAR QR PASS -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Médaille Connectée &amp; I-CAD</span>
+<span class="flex items-center gap-1 text-[11px] font-bold text-secondary bg-surface-container-low px-2 py-0.5 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+            Actif
+          </span>
+</div>
+<div class="flex items-center gap-space-md bg-surface-container-low p-space-sm rounded-xl">
+<!-- Stylized QR placeholder SVG -->
+<div class="w-20 h-20 bg-surface-container-lowest rounded-lg p-1.5 flex items-center justify-center shrink-0 shadow-xs">
+<svg class="w-full h-full text-on-surface" fill="currentColor" viewbox="0 0 24 24">
+<path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm14-2h4v2h-4v-2zm-4 0h2v4h-2v-4zm4 4h4v4h-4v-4zm-4 2h2v2h-2v-2zm-6-2h2v2h-2v-2zm-2-2h2v2h-2v-2zm4-4h2v2h-2v-2zm2 2h2v2h-2v-2z"></path>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-on-surface font-bold truncate">Pass Urgence Collier</span>
+<span class="font-mono text-xs text-primary font-semibold">ID: RIO-250269</span>
+<p class="text-[11px] text-on-surface-variant mt-1 leading-tight">
+              Scannable par toute personne retrouvant Rio sans application requise.
+            </p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-xs mt-space-sm">
+<button class="flex items-center justify-center gap-1 py-2 bg-surface-container text-on-surface rounded-xl font-label-sm text-label-sm font-semibold hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">share</span>
+<span>Partager</span>
+</button>
+<button class="flex items-center justify-center gap-1 py-2 bg-surface-container text-on-surface rounded-xl font-label-sm text-label-sm font-semibold hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">download</span>
+<span>Télécharger</span>
+</button>
+</div>
+</div>
+<!-- WIDGET 2: REFERRING VETERINARIAN -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Vétérinaire Référent</span>
+<span class="text-xs text-secondary font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Ouvert
+          </span>
+</div>
+<div class="flex items-start gap-space-sm">
+<img class="w-12 h-12 rounded-xl object-cover shrink-0 bg-surface-container" data-alt="Friendly female veterinarian doctor with glasses in modern clinical teal uniform smiling reassuringly, clean bright clinic interior background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAuUhL-o9JC8c-Sq7Uxjzz6WxdpFnLYWLf5lE-2s3FGIOtWK6fLKrX_xkV5U1dLSKrd8ngJBijvG1nrvA5Af1yaJrhvfzcyllbRcRY7jhu4lSSnsF7pVm5du0LExr3UFHAEveWX88voJUspaG63nheZIhIqAqxB2P4wHFjh-KfpZq0IAzTrCwrHe3SbvJZEMiPkseIQUz7_Tpv3yYrvz-pjCjeg2SdIiWLR0s-Kw_MqZK_Gsz3W0Bg"/>
+<div class="flex flex-col min-w-0">
+<h3 class="font-title-md text-title-md text-on-surface font-bold">Dr Camille Fabre</h3>
+<span class="font-body-md text-body-md text-on-surface-variant text-xs">Clinique des Alisiers</span>
+<p class="font-body-md text-body-md text-outline text-xs mt-0.5 truncate">12 Rue de la Paix, 44000 Nantes</p>
+<span class="text-[11px] text-on-surface-variant mt-1">Fermeture à 19h30</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-xs mt-space-md">
+<a class="flex items-center justify-center gap-1 py-2.5 bg-primary text-on-primary rounded-xl font-label-sm text-label-sm font-semibold hover:bg-primary-container transition-all" href="tel:0240123456">
+<span class="material-symbols-outlined text-base">call</span>
+<span>Appeler</span>
+</a>
+<button class="flex items-center justify-center gap-1 py-2.5 bg-surface-container-low text-primary rounded-xl font-label-sm text-label-sm font-semibold hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-base">navigation</span>
+<span>Itinéraire (6 min)</span>
+</button>
+</div>
+</div>
+<!-- WIDGET 3: DAILY TIMELINE (MEALS & ACTIVITY) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Aujourd'hui • Routine</span>
+<span class="text-xs font-semibold text-primary">Mardi 25 Mars</span>
+</div>
+<div class="relative pl-6 space-y-space-md before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container">
+<!-- Item 1: Morning meal -->
+<div class="relative">
+<div class="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-primary-fixed text-primary flex items-center justify-center text-[10px] font-bold">
+              ✓
+            </div>
+<div class="flex flex-col">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Repas du matin</span>
+<span class="font-mono text-[11px] text-outline">08:15</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">250g Royal Canin Maxi + Eau fraîche changée</p>
+</div>
+</div>
+<!-- Item 2: Walk -->
+<div class="relative">
+<div class="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-xs">directions_walk</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Grande balade au parc</span>
+<span class="font-mono text-[11px] text-outline">14:30</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">45 min • 3.2 km • Rythme actif &amp; jeux balle</p>
+</div>
+</div>
+<!-- Item 3: Evening meal -->
+<div class="relative">
+<div class="absolute -left-6 top-0.5 w-5 h-5 rounded-full bg-surface-container text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-xs">restaurant</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Repas du soir</span>
+<span class="font-mono text-[11px] text-tertiary font-bold">19:30</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">250g croquettes prévues</p>
+<button class="mt-2 w-full py-1.5 bg-surface-container-low text-primary rounded-lg font-label-sm text-label-sm font-semibold hover:bg-primary hover:text-on-primary transition-all">
+                Valider la distribution
+              </button>
+</div>
+</div>
+</div>
+</div>
+<!-- WIDGET 4: REGIONAL VET WEATHER & TICKS ALERT -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-space-xs text-tertiary mb-space-xs">
+<span class="material-symbols-outlined text-base">warning</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider font-bold">Vigilance Régionale Nantes</span>
+</div>
+<h4 class="font-title-md text-title-md text-on-surface font-bold">Alerte Tiques : Risque Élevé</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 leading-relaxed">
+          Le retour de l'humidité printanière intensifie la présence de tiques en sous-bois. Inspectez le pelage de Rio après chaque promenade aux parcs nantais.
+        </p>
+<div class="mt-space-sm p-space-xs bg-surface-container-low rounded-lg flex items-center justify-between text-xs">
+<span class="text-on-surface-variant">Protection Rio active :</span>
+<span class="font-semibold text-secondary">Bravecto (jusqu'au 01/05)</span>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

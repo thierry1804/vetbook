@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0B5450">
+  <meta name="theme-color" content="#0f766e">
   <meta name="description" content="Carnet de santé pour vos animaux : profil, vaccins, déparasitage, photos et rappels.">
   <title>App'lika — Carnet de Santé Animal</title>
   <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -32,8 +32,15 @@
         </span>
         <span class="logo-wordmark">App'<span>lika</span></span>
       </a>
+      <nav class="top-nav" id="top-nav" aria-label="Navigation principale">
+        <button type="button" class="top-nav__btn is-active" data-nav="home">Accueil</button>
+        <button type="button" class="top-nav__btn" data-nav="pets">Animaux</button>
+        <button type="button" class="top-nav__btn" data-nav="calendar">Agenda</button>
+        <button type="button" class="top-nav__btn" data-nav="directory">Annuaire</button>
+      </nav>
     </div>
     <div class="header-actions">
+      <button type="button" class="care-sos" data-care-route="directory">✚ <span>Urgences vétérinaires</span></button>
       <select class="animal-select" id="animal-select" aria-label="Choisir un animal" title="Animal actuel" hidden></select>
       <button type="button" class="btn-add btn-add-animal" id="btn-add-animal" aria-label="Ajouter un animal" title="Ajouter un animal"><span aria-hidden="true">+</span><span class="btn-add-animal__label"> Animal</span></button>
       <button type="button" class="btn-icon btn-icon--user" id="btn-user-nav" title="Mon compte" aria-label="Mon compte">
@@ -42,127 +49,83 @@
     </div>
   </header>
 
+  <aside class="care-sidebar" id="care-sidebar" aria-label="Navigation du carnet"></aside>
   <main class="container">
+    <label class="care-mobile-menu">Explorer le carnet<select id="care-mobile-route" aria-label="Choisir une rubrique"></select></label>
+    <div class="care-emergency"><span>Urgences vétérinaires · Un contact à portée de main</span><button type="button" data-care-route="directory">Trouver une clinique →</button></div>
     <!-- Page d'accueil : liste des animaux avec actions rapides -->
     <div id="view-home" class="view">
-      <header class="home-header">
-        <div class="home-header__intro">
-          <h1 class="home-title">Mes animaux</h1>
-          <p class="home-lead">Accès rapide aux carnets, rappels et soins.</p>
+      <div class="home-v1">
+        <div id="care-dashboard"></div>
+        <div id="home-urgency" class="home-urgency" hidden></div>
+        <div id="home-empty" class="home-empty" aria-labelledby="home-empty-title" hidden>
+          <span class="home-empty__icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="7" r="1.5"/><circle cx="16" cy="7" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/><circle cx="18.5" cy="11.5" r="1.5"/></svg>
+          </span>
+          <div class="home-empty__content">
+            <h2 id="home-empty-title" class="home-empty__title">Créez son carnet de santé</h2>
+            <p class="home-empty__text">Ajoutez votre animal pour centraliser ses soins, ses rendez-vous et ses rappels.</p>
+          </div>
+          <button type="button" class="btn-add home-empty__action" id="btn-add-animal-home">Ajouter mon animal</button>
         </div>
-      </header>
-
-      <!-- Cartes santé : un anneau par animal, le point focal de l'accueil -->
-      <div id="home-pet-grid" class="home-pet-grid"></div>
-      <section id="home-empty" class="home-empty" aria-labelledby="home-empty-title" hidden>
-        <svg class="home-empty__backdrop" viewBox="0 0 720 160" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-          <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <g transform="translate(326 46) rotate(-12 44 32)">
-              <path d="M22 46c-8 4-16-4-11-12-9-2-9-15 0-18 6-2 12 2 14 8l37 22c5-5 12-6 17-1 7 6 2 16-6 16 2 8-7 14-14 9-5-3-6-8-3-13L20 36"/>
-            </g>
-            <g transform="translate(620 52)">
-              <path d="M4 40h76l-9 27H14L4 40Z"/><path d="M16 40c4-15 14-23 26-23s23 8 27 23"/>
-              <path d="M32 10c0-6 5-10 11-10"/>
-            </g>
-          </g>
-          <g fill="currentColor" transform="translate(500 28) rotate(12 55 50)">
-            <ellipse cx="55" cy="65" rx="31" ry="25"/>
-            <circle cx="22" cy="37" r="11"/>
-            <circle cx="45" cy="19" r="11"/>
-            <circle cx="72" cy="19" r="11"/>
-            <circle cx="93" cy="39" r="11"/>
-          </g>
-        </svg>
-        <span class="home-empty__icon" aria-hidden="true">
-          <svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="7" r="1.5"/><circle cx="16" cy="7" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/><circle cx="18.5" cy="11.5" r="1.5"/></svg>
-        </span>
-        <div class="home-empty__content">
-          <h2 id="home-empty-title" class="home-empty__title">Créez son carnet de santé</h2>
-          <p class="home-empty__text">Ajoutez votre animal pour centraliser ses soins, ses rendez-vous et ses rappels.</p>
+        <div id="home-ensuite-wrap" hidden>
+          <div class="home-section-head">
+            <span class="label-caps">Soins à venir &amp; rappels</span>
+            <span class="home-section-head__line"></span>
+            <span class="home-section-head__meta" id="home-ensuite-count">0 éléments</span>
+          </div>
+          <div class="home-queue" id="home-ensuite-list"></div>
         </div>
-        <button type="button" class="btn-add home-empty__action" id="btn-add-animal-home">Ajouter mon animal</button>
-      </section>
-
-      <!-- Actions secondaires, discrètes -->
-      <div class="home-action-pills" id="home-action-pills">
-        <button type="button" class="action-pill action-pill--primary" id="pill-complete-profile">
-          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Complétez le profil
-        </button>
-        <button type="button" class="action-pill" id="pill-emergency">
-          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Urgence
-        </button>
-        <button type="button" class="action-pill" id="pill-add-reminder">
-          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span> Ajouter un rappel
-        </button>
-        <button type="button" class="action-pill" id="pill-calorie">
-          <span class="action-pill__icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></span> Calculateur calories
-        </button>
+        <div id="home-pets-wrap" hidden>
+          <div class="home-section-head">
+            <span class="label-caps">Mes animaux</span>
+            <span class="home-section-head__line"></span>
+            <button type="button" class="home-section-head__link" id="home-see-all-pets">Tout voir</button>
+          </div>
+          <div class="home-pets-strip" id="home-pets-strip"></div>
+        </div>
       </div>
-
-      <!-- Today's Reminders (Pawly style) -->
-      <div class="home-reminders" id="home-reminders">
-        <div class="home-reminders__header">
-          <h2 class="home-reminders__title">Rappels du jour</h2>
-          <button type="button" class="home-reminders__see-all" id="btn-see-all-reminders">Voir tout</button>
+      <!-- legacy hooks kept hidden for JS compatibility -->
+      <div id="home-pet-grid" class="home-pet-grid" hidden></div>
+      <div class="home-action-pills" id="home-action-pills" hidden></div>
+      <div class="home-reminders" id="home-reminders" hidden>
+        <div id="home-reminders-list"></div>
+        <button type="button" id="btn-see-all-reminders" hidden></button>
+        <div class="home-reminders__tabs" hidden>
+          <button type="button" class="home-reminders__tab active" id="reminders-tab-all" data-filter="all"></button>
+          <button type="button" class="home-reminders__tab" id="reminders-tab-week" data-filter="week"></button>
+          <button type="button" class="home-reminders__tab" id="reminders-tab-month" data-filter="month"></button>
         </div>
-        <div class="home-reminders__tabs" role="tablist" aria-label="Période des rappels">
-          <button type="button" class="home-reminders__tab active" id="reminders-tab-all" data-filter="all" role="tab" aria-selected="true" aria-controls="home-reminders-list" tabindex="0">Tous</button>
-          <button type="button" class="home-reminders__tab" id="reminders-tab-week" data-filter="week" role="tab" aria-selected="false" aria-controls="home-reminders-list" tabindex="-1">Semaine</button>
-          <button type="button" class="home-reminders__tab" id="reminders-tab-month" data-filter="month" role="tab" aria-selected="false" aria-controls="home-reminders-list" tabindex="-1">Mois</button>
-        </div>
-        <div id="home-reminders-list" aria-live="polite"></div>
       </div>
-
-      <!-- Recommended Vets -->
-      <div class="home-section" id="home-vets-section">
-        <div class="home-section-header">
-          <h2>Contacts vétérinaires utiles</h2>
-          <button type="button" class="see-all-btn" id="btn-see-all-vets">Voir tout</button>
-        </div>
+      <div class="home-section" id="home-vets-section" hidden>
+        <button type="button" class="see-all-btn" id="btn-see-all-vets"></button>
         <div class="home-hscroll" id="home-vets-scroll"></div>
       </div>
-
-      <!-- Perfect Tips -->
-      <div class="home-section" id="home-tips-section">
-        <div class="home-section-header">
-          <h2>Conseils pratiques</h2>
-          <button type="button" class="see-all-btn" id="btn-see-all-tips">Voir tout</button>
-        </div>
+      <div class="home-section" id="home-tips-section" hidden>
+        <button type="button" class="see-all-btn" id="btn-see-all-tips"></button>
         <div class="home-hscroll" id="home-tips-scroll"></div>
       </div>
-
-      <!-- Section Communauté (accueil) -->
-      <div id="home-community" class="home-community-section">
-        <h2 class="section-title">Communauté & Événements</h2>
-        <div class="community-cards">
-          <button type="button" class="community-card" id="btn-show-events">
-            <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-            <span class="community-label">Calendrier Événements Canins</span>
-          </button>
-          <button type="button" class="community-card" id="btn-show-tips">
-            <span class="community-icon"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg></span>
-            <span class="community-label">Astuces & Conseils</span>
-          </button>
-        </div>
+      <div id="home-community" class="home-community-section" hidden>
+        <button type="button" class="community-card" id="btn-show-events"></button>
+        <button type="button" class="community-card" id="btn-show-tips"></button>
       </div>
     </div>
 
-    <!-- Vue communauté -->
-    <div id="view-community" class="view" hidden>
+    <div id="view-community" class="view" hidden><nav class="stitch-community-nav" aria-label="Communauté et assistance"><button type="button" class="care-action" data-care-route="events">Événements</button><button type="button" class="care-action" data-care-route="tips">Astuces &amp; conseils</button><button type="button" class="care-action" data-care-route="help">Centre d’aide</button></nav>
       <button type="button" class="btn-accueil" id="btn-community-back">← Accueil</button>
 
       <div id="community-events" class="community-panel" hidden>
-        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Événements Canins</h2>
+        <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Événements canins &amp; calendrier annuel</h2>
         <p class="table-muted">Calendrier annuel des principaux événements canins en France. Les événements du mois sont mis en avant.</p>
         <div id="community-next-reminder" class="community-reminder-box"></div>
-        <div id="community-events-list"></div>
+        <div class="stitch-community-columns"><div><label class="stitch-search-label" for="events-search">Rechercher un événement</label><input type="search" class="form-input" id="events-search" placeholder="Adoption, exposition, sensibilisation…"><div id="community-events-list"></div></div><aside class="stitch-card"><h2>Mon agenda canin</h2><p>Retrouvez les événements du calendrier et vos rappels de soins.</p><button type="button" class="care-action" data-care-route="calendar">Ouvrir mon agenda</button><button type="button" class="care-action" data-stitch-action="export-ics">Exporter mes rappels</button><div class="stitch-inset"><h3>Avant de participer</h3><p>Consultez le carnet de votre compagnon pour retrouver les derniers soins enregistrés.</p><button type="button" class="care-action" data-care-route="vaccins">Voir les vaccins</button></div></aside></div>
       </div>
 
       <div id="community-tips" class="community-panel" hidden>
         <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg> Astuces & Conseils</h2>
         <div class="table-controls">
           <div class="table-control">
-            <label for="tips-category-filter">Catégorie</label>
+            <label for="tips-search">Rechercher un conseil</label><input class="form-input" type="search" id="tips-search" placeholder="Alimentation, hygiène, éducation…"></div><div class="table-control"><label for="tips-category-filter">Catégorie</label>
             <select id="tips-category-filter" class="table-select">
               <option value="all">Toutes</option>
               <option value="sante">Santé</option>
@@ -189,7 +152,7 @@
     </div>
 
     <!-- Vue Centre d'aide -->
-    <div id="view-help" class="view" hidden>
+    <div id="view-help" class="view" hidden><nav class="stitch-community-nav" aria-label="Communauté et assistance"><button type="button" class="care-action" data-care-route="events">Événements</button><button type="button" class="care-action" data-care-route="tips">Astuces &amp; conseils</button><button type="button" class="care-action" data-care-route="help">Centre d’aide</button></nav>
       <button type="button" class="btn-accueil" id="btn-help-back">← Retour</button>
       <div class="user-profile">
         <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Centre d'aide</h2>
@@ -265,47 +228,51 @@
 
     <!-- Vue détail : carnet d'un animal -->
     <div id="view-detail" class="view detail-layout" hidden>
-    <aside class="detail-sidebar" aria-label="Navigation du carnet">
-    <div class="detail-nav" id="detail-nav">
-      <nav class="tabs tabs--primary" role="tablist" aria-label="Navigation principale du carnet">
-        <button type="button" class="tab primary-nav__btn active" id="tab-profil" data-primary="profil" data-tab="profil" role="tab" aria-selected="true" aria-controls="section-profil" tabindex="0">Profil</button>
-        <button type="button" class="tab primary-nav__btn" id="tab-photos" data-primary="photos" data-tab="photos" role="tab" aria-selected="false" aria-controls="section-photos" tabindex="-1">Photos</button>
-        <button type="button" class="primary-nav__btn" data-primary="sante" id="btn-primary-sante" role="tab" aria-selected="false" aria-controls="section-vaccins" tabindex="-1">Santé</button>
-        <button type="button" class="tab primary-nav__btn" id="tab-alertes" data-primary="alertes" data-tab="alertes" role="tab" aria-selected="false" aria-controls="section-alertes" tabindex="-1">Rappels</button>
-        <button type="button" class="primary-nav__btn primary-nav__btn--more" id="btn-nav-more" role="tab" aria-expanded="false" aria-haspopup="true" aria-controls="subnav-more" aria-selected="false" tabindex="-1">Plus</button>
-      </nav>
-      <div id="subnav-sante" class="subnav subnav--sante" hidden>
-        <div class="subnav__inner" role="tablist" aria-label="Sous-sections santé">
-          <button type="button" class="tab subnav-tab" id="tab-vaccins" data-tab="vaccins" role="tab" aria-selected="false" aria-controls="section-vaccins" tabindex="-1">Vaccins</button>
-          <button type="button" class="tab subnav-tab" id="tab-deworming" data-tab="deworming" role="tab" aria-selected="false" aria-controls="section-deworming" tabindex="-1">Déparasitage</button>
-          <button type="button" class="tab subnav-tab" id="tab-hygiene" data-tab="hygiene" role="tab" aria-selected="false" aria-controls="section-hygiene" tabindex="-1">Hygiène</button>
-          <button type="button" class="tab subnav-tab" id="tab-consultations" data-tab="consultations" role="tab" aria-selected="false" aria-controls="section-consultations" tabindex="-1">Consultations</button>
-          <button type="button" class="tab subnav-tab" id="tab-medications" data-tab="medications" role="tab" aria-selected="false" aria-controls="section-medications" tabindex="-1">Médicaments</button>
-        </div>
+    <aside class="animal-rail" id="animal-rail" aria-label="Liste des animaux">
+      <div class="animal-rail__search">
+        <span class="mono" style="font-size:10px;color:var(--text-label)">⌘K</span>
+        <input type="search" id="animal-rail-search" placeholder="Rechercher" aria-label="Rechercher un animal">
       </div>
-      <div id="subnav-more" class="subnav subnav--more" hidden>
-        <div class="subnav__group">
-          <span class="subnav__group-label">Suivi quotidien</span>
-          <div class="subnav__inner" role="tablist" aria-label="Suivi quotidien">
-            <button type="button" class="tab subnav-tab" id="tab-nutrition" data-tab="nutrition" role="tab" aria-selected="false" aria-controls="section-nutrition" tabindex="-1">Repas</button>
-            <button type="button" class="tab subnav-tab" id="tab-activites" data-tab="activites" role="tab" aria-selected="false" aria-controls="section-activites" tabindex="-1">Activités</button>
-            <button type="button" class="tab subnav-tab" id="tab-chaleurs" data-tab="chaleurs" role="tab" aria-selected="false" aria-controls="section-chaleurs" tabindex="-1">Chaleurs</button>
-            <button type="button" class="tab subnav-tab" id="tab-journal" data-tab="journal" role="tab" aria-selected="false" aria-controls="section-journal" tabindex="-1">Journal</button>
-            <button type="button" class="tab subnav-tab" id="tab-checkup" data-tab="checkup" role="tab" aria-selected="false" aria-controls="section-checkup" tabindex="-1">Check-up</button>
-          </div>
-        </div>
-        <div class="subnav__group">
-          <span class="subnav__group-label">Vue d'ensemble</span>
-          <div class="subnav__inner" role="tablist" aria-label="Vue d'ensemble">
-            <button type="button" class="tab subnav-tab" id="tab-calendrier" data-tab="calendrier" role="tab" aria-selected="false" aria-controls="section-calendrier" tabindex="-1">Calendrier</button>
-            <button type="button" class="tab subnav-tab" id="tab-annuaire" data-tab="annuaire" role="tab" aria-selected="false" aria-controls="section-annuaire" tabindex="-1">Annuaire</button>
-            <button type="button" class="tab subnav-tab" id="tab-historique" data-tab="historique" role="tab" aria-selected="false" aria-controls="section-historique" tabindex="-1">Historique</button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div id="animal-rail-need" class="animal-rail__list"></div>
+      <div id="animal-rail-ok" class="animal-rail__list"></div>
+      <button type="button" class="animal-rail__add" id="animal-rail-add">+ Ajouter un animal</button>
     </aside>
     <div class="detail-main">
+      <div class="detail-pets-row-mobile" id="detail-pets-row" aria-label="Changer d'animal"></div>
+      <header class="dossier-header" id="dossier-header">
+        <div class="dossier-header__avatar" id="dossier-avatar"></div>
+        <div class="dossier-header__info">
+          <h1 class="dossier-header__name" id="dossier-name">—</h1>
+          <div class="dossier-header__line" id="dossier-line">—</div>
+        </div>
+        <div class="dossier-header__actions">
+          <button type="button" class="dossier-btn dossier-btn--ghost" onclick="app.openModal('editAnimal')">Modifier</button>
+          <button type="button" class="dossier-btn dossier-btn--danger" id="dossier-urgence">Urgence</button>
+          <button type="button" class="dossier-btn dossier-btn--primary" id="dossier-add-acte">+ Acte</button>
+        </div>
+      </header>
+      <nav class="dossier-tabs tabs" id="dossier-tabs" role="tablist" aria-label="Onglets du dossier">
+        <button type="button" class="tab active" id="tab-profil" data-tab="profil" role="tab" aria-selected="true" aria-controls="section-profil" tabindex="0">Fiche</button>
+        <button type="button" class="tab" id="tab-actes" data-tab="actes" role="tab" aria-selected="false" aria-controls="section-actes" tabindex="-1">Actes</button>
+        <button type="button" class="tab" id="tab-nutrition" data-tab="nutrition" role="tab" aria-selected="false" aria-controls="section-nutrition" tabindex="-1">Nutrition</button>
+        <button type="button" class="tab" id="tab-poids" data-tab="poids" role="tab" aria-selected="false" aria-controls="section-poids" tabindex="-1">Poids</button>
+        <button type="button" class="tab" id="tab-suivi" data-tab="suivi" role="tab" aria-selected="false" aria-controls="section-journal" tabindex="-1">Suivi</button>
+        <button type="button" class="tab" id="tab-checkup" data-tab="checkup" role="tab" aria-selected="false" aria-controls="section-checkup" tabindex="-1">Check-up</button>
+      <button type="button" class="tab" id="tab-vaccins" data-tab="vaccins" role="tab" aria-selected="false" aria-controls="section-vaccins" tabindex="-1">Vaccins</button>
+        <button type="button" class="tab" id="tab-deworming" data-tab="deworming" role="tab" aria-selected="false" aria-controls="section-deworming" tabindex="-1">Déparasitage</button>
+        <button type="button" class="tab" id="tab-medications" data-tab="medications" role="tab" aria-selected="false" aria-controls="section-medications" tabindex="-1">Traitements</button>
+        <button type="button" class="tab" id="tab-hygiene" data-tab="hygiene" role="tab" aria-selected="false" aria-controls="section-hygiene" tabindex="-1">Hygiène</button>
+        <button type="button" class="tab" id="tab-consultations" data-tab="consultations" role="tab" aria-selected="false" aria-controls="section-consultations" tabindex="-1">Consultations & budget</button>
+        <button type="button" class="tab" id="tab-photos" data-tab="photos" role="tab" aria-selected="false" aria-controls="section-photos" tabindex="-1">Photos</button>
+        <button type="button" class="tab" id="tab-activites" data-tab="activites" role="tab" aria-selected="false" aria-controls="section-activites" tabindex="-1">Activités</button>
+        <button type="button" class="tab" id="tab-chaleurs" data-tab="chaleurs" role="tab" aria-selected="false" aria-controls="section-chaleurs" tabindex="-1">Chaleurs</button>
+        <button type="button" class="tab" id="tab-alertes" data-tab="alertes" role="tab" aria-selected="false" aria-controls="section-alertes" tabindex="-1">Rappels</button>
+        <button type="button" class="tab" id="tab-historique" data-tab="historique" role="tab" aria-selected="false" aria-controls="section-historique" tabindex="-1">Historique</button>
+        </nav>
+      <!-- legacy detail-nav kept empty/hidden for any leftover JS -->
+      <aside class="detail-sidebar" hidden aria-hidden="true">
+        <div class="detail-nav" id="detail-nav"></div>
+      </aside>
 
     <!-- Section Profil -->
     <section id="section-profil" class="section active" role="tabpanel" aria-labelledby="tab-profil">
@@ -319,174 +286,92 @@
         <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
       </div>
 
-      <div class="pet-profile-sheet">
-        <h1 class="pet-profile-sheet__title" id="pet-profile-page-title">Profil</h1>
-        <div id="detail-pets-row" class="home-pets-row detail-pets-row" aria-label="Changer d’animal"></div>
-
-        <article class="pet-photo-card" id="animal-hero">
-          <div class="pet-photo-card__toolbar">
-            <div class="pet-photo-card__menu-wrap">
-              <button type="button" class="pet-photo-card__menu" id="pet-profile-menu-btn" aria-expanded="false" aria-haspopup="true" aria-label="Menu du profil">
-                <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-              </button>
-              <div class="pet-photo-card__menu-pop" id="pet-profile-menu-pop" hidden>
-                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-edit-photo" onclick="app.openModal('editAnimal')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier la photo</button>
-                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-print"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimer</button>
-                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-vet-view"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.655A.5.5 0 005 3v2a5 5 0 005 5 5 5 0 005-5V3a.5.5 0 01.5-.5"/><path d="M2 4h4"/><path d="M18 4h4"/><path d="M12 10v8a4 4 0 004 4h0a4 4 0 004-4v-3"/><circle cx="20" cy="15" r="2"/></svg> Imprimer pour le vétérinaire</button>
-                <button type="button" class="pet-photo-card__menu-item" id="pet-menu-share"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Partager</button>
-                <button type="button" class="pet-photo-card__menu-item pet-photo-card__menu-item--danger" id="pet-menu-delete"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Supprimer</button>
-              </div>
-            </div>
-          </div>
-          <div class="pet-photo-card__media">
-            <div class="animal-avatar animal-avatar--profile" id="hero-avatar" role="img" aria-label="Photo de l'animal">
-              <svg class="icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
-            </div>
-            <div class="pet-photo-card__chip" id="pet-profile-chip-wrap" hidden>
-              <span class="pet-photo-card__chip-label">Puce électronique :</span> <span id="pet-profile-chip-text">—</span>
-            </div>
-          </div>
-          <div class="pet-photo-card__dots" id="pet-profile-photo-dots" aria-hidden="true"></div>
+      <div class="identity-layout">
+        <article class="stitch-card" id="identity-passport"></article>
+        <article class="stitch-card identity-qr" id="qr-section" hidden>
+          <h2>Médaille &amp; QR code d’identité</h2>
+          <p>Coordonnées et informations utiles de votre compagnon.</p>
+          <canvas id="qr-canvas" aria-label="QR code contenant les informations de l’animal et du propriétaire"></canvas>
+          <p class="stitch-note">Ce code contient les informations de la fiche et votre numéro de téléphone. Vérifiez-les avant de le partager.</p>
+          <button type="button" class="care-action care-action--primary" data-stitch-action="download-qr">Télécharger le QR code</button>
         </article>
-
-        <div class="pet-vaccination-strip">
-          <span class="pet-vaccination-strip__badge" id="pet-vacc-status">Vaccination : —</span>
-          <span class="pet-vaccination-strip__meta" id="pet-last-visit">Basé sur la dernière visite : —</span>
-        </div>
-
-        <div class="pet-spec-grid" aria-label="Informations principales">
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Race</span><span class="pet-spec-tile__value" id="pet-tile-breed">—</span></div>
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Né(e) le</span><span class="pet-spec-tile__value" id="pet-tile-dob">—</span></div>
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Sexe</span><span class="pet-spec-tile__value" id="pet-tile-gender">—</span></div>
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Taille</span><span class="pet-spec-tile__value" id="pet-tile-height">—</span></div>
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Poids</span><span class="pet-spec-tile__value" id="pet-tile-weight">—</span></div>
-          <div class="pet-spec-tile"><span class="pet-spec-tile__label">Reproduction</span><span class="pet-spec-tile__value" id="pet-tile-repro">—</span></div>
-        </div>
-
-        <div class="pet-profile-actions">
-          <button type="button" class="pet-profile-actions__btn pet-profile-actions__btn--edit" onclick="app.openModal('editAnimal')">
-            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
-            Modifier
-          </button>
-          <button type="button" class="pet-profile-actions__btn pet-profile-actions__btn--emergency" id="pet-profile-emergency">
-            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-            Urgence
-          </button>
-        </div>
-
-        <section class="pet-health-block" aria-labelledby="pet-health-heading">
-          <div class="pet-block-header">
-            <h2 class="pet-block-header__title" id="pet-health-heading">Informations santé</h2>
-            <button type="button" class="pet-block-header__link" id="pet-health-view-all">Voir tout ›</button>
-          </div>
-          <div class="pet-health-tiles">
-            <button type="button" class="pet-health-tile" id="pet-tile-medical">
-              <span class="pet-health-tile__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14h6"/><path d="M12 11v6"/></svg></span>
-              <span class="pet-health-tile__label">Dossier médical</span>
-            </button>
-            <button type="button" class="pet-health-tile" id="pet-tile-nutrition-go">
-              <span class="pet-health-tile__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 11h16v2a6 6 0 01-6 6h-4a6 6 0 01-6-6v-2z"/><path d="M8 11V7a2 2 0 012-2h0a2 2 0 012 2v4"/><path d="M14 11V8a1.5 1.5 0 013 0v3"/><path d="M12 19v2"/></svg></span>
-              <span class="pet-health-tile__label">Nutrition</span>
-            </button>
-          </div>
-          <div class="pet-chart-toggle" role="tablist" aria-label="Courbe poids ou taille">
-            <button type="button" class="pet-chart-toggle__btn active" id="pet-chart-toggle-weight" role="tab" aria-selected="true">Courbe de poids</button>
-            <button type="button" class="pet-chart-toggle__btn" id="pet-chart-toggle-height" role="tab" aria-selected="false">Courbe de taille</button>
-          </div>
-          <div class="pet-weight-chart-wrap" id="pet-weight-chart-wrap">
-            <div class="pet-weight-chart" id="pet-profile-weight-chart"></div>
-          </div>
-          <div class="pet-height-chart-wrap" id="pet-height-chart-wrap" hidden>
-            <div class="pet-weight-chart" id="pet-profile-height-chart"></div>
-          </div>
-        </section>
-
-        <section class="pet-tasks-block" aria-labelledby="pet-tasks-heading">
-          <div class="pet-block-header">
-            <h2 class="pet-block-header__title" id="pet-tasks-heading">Tâches du jour</h2>
-            <button type="button" class="pet-block-header__link" id="pet-tasks-view-all">Voir tout ›</button>
-          </div>
-          <div class="pet-task-filters" role="group" aria-label="Filtrer les tâches">
-            <button type="button" class="pet-task-filter active" data-pet-task-filter="all">Tous</button>
-            <button type="button" class="pet-task-filter" data-pet-task-filter="meal">Repas</button>
-            <button type="button" class="pet-task-filter" data-pet-task-filter="vitamin">Vitamine</button>
-            <button type="button" class="pet-task-filter" data-pet-task-filter="med">Pilule <span class="pet-task-filter__count" data-filter-count="med" hidden></span></button>
-            <button type="button" class="pet-task-filter" data-pet-task-filter="drops">Gouttes <span class="pet-task-filter__count" data-filter-count="drops" hidden></span></button>
-            <button type="button" class="pet-task-filter" data-pet-task-filter="vaccine">Vac.</button>
-          </div>
-          <div class="pet-task-timeline" id="pet-profile-tasks-list"></div>
-          <button type="button" class="pet-tasks-add-btn" id="pet-profile-add-reminder">
-            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M16 4l2-1"/><path d="M19 6l1-1"/></svg>
-            Ajouter un rappel
-          </button>
-        </section>
+        <article class="stitch-card" id="identity-owner"></article>
+        <article class="stitch-card identity-backup"><h2>Sauvegarde &amp; synchronisation</h2><p>Gardez vos carnets à portée de main et retrouvez vos sauvegardes.</p><button type="button" class="care-action" data-care-route="account">Gérer mes sauvegardes</button><button type="button" class="care-action" data-stitch-action="export-ics">Exporter les rappels (.ics)</button></article>
+      </div>
+      <div class="fiche-v1" id="fiche-v1"><h2 class="stitch-section-title">Suivi santé de votre compagnon</h2>
+        <div class="fiche-metrics" id="fiche-metrics"></div>
+        <div class="fiche-banner" id="fiche-banner" hidden></div>
+        <div class="fiche-domains" id="fiche-domains"></div>
       </div>
 
-      <details class="pet-profile-more">
-        <summary class="pet-profile-more__summary">Plus d’informations</summary>
-        <div class="pet-profile-more__body">
-          <div class="profile-completeness" id="profile-completeness" hidden>
-            <div class="completeness-bar">
-              <div class="completeness-fill" id="completeness-fill" style="width:0%"></div>
-            </div>
-            <span class="completeness-text" id="completeness-text">0% complété</span>
-          </div>
-
-          <div class="qr-section" id="qr-section" hidden>
-            <h3 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><path d="M22 14h-4v4"/><path d="M22 22h-8v-4"/></svg> QR Code Identité</h3>
-            <canvas id="qr-canvas" class="qr-canvas" width="200" height="200"></canvas>
-            <p class="qr-hint">Scannez pour accéder aux informations de l'animal</p>
-          </div>
-
-          <div class="pet-profile-extra" aria-label="Détails complémentaires">
-            <div class="pet-profile-extra__grid">
-              <div class="pet-profile-extra__cell"><span class="info-label">Âge</span><span class="info-value" id="age-display">—</span></div>
-              <div class="pet-profile-extra__cell"><span class="info-label">Couleur</span><span class="info-value" id="info-color">—</span></div>
-              <button type="button" class="pet-profile-extra__weight-btn" onclick="app.openModal('addWeight')" title="Ajouter une pesée">+ Pesée</button>
-              <button type="button" class="pet-profile-extra__weight-btn" onclick="app.openModal('addHeight')" title="Ajouter une mesure de taille">+ Taille</button>
-            </div>
-          </div>
-          <span id="info-race" hidden></span><span id="info-weight" hidden></span><span id="info-chip" hidden></span><span id="info-sterilise" hidden></span>
-
-          <article class="owner-card">
-            <div class="card-header">
-              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg> Propriétaire</h2>
-              <button type="button" class="btn-icon" onclick="app.openModal('editOwner')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Modifier</button>
-            </div>
-            <div class="info-grid">
-              <div><span class="info-label">Nom</span><span class="info-value" id="owner-name">—</span></div>
-              <div><span class="info-label">Téléphone</span><span class="info-value" id="owner-phone">—</span></div>
-              <div><span class="info-label">Email</span><span class="info-value" id="owner-email">—</span></div>
-              <div><span class="info-label">Clinique</span><span class="info-value" id="owner-clinic">—</span></div>
-            </div>
-          </article>
-
-          <article class="owner-card" id="pedigree-card"></article>
-
-          <div class="checkup-shortcut">
-            <button type="button" class="btn-icon" onclick="app.switchTab('checkup')"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Check-up rapide</button>
-          </div>
-
-          <div class="active-meds-summary" id="active-meds-summary" hidden>
-            <h3 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg> Médicaments en cours</h3>
-            <div id="active-meds-list" class="active-meds-list"></div>
-          </div>
-
-          <div class="stats-grid">
-            <div class="stat-card"><span class="stat-number" id="stat-vax">0</span><span class="stat-label">Vaccins reçus</span></div>
-            <div class="stat-card"><span class="stat-number" id="stat-dew">0</span><span class="stat-label">Déparasitages</span></div>
-            <div class="stat-card"><span class="stat-number stat-accent" id="stat-photos">0</span><span class="stat-label">Photos</span></div>
-            <div class="stat-card"><span class="stat-number stat-accent" id="stat-next">0</span><span class="stat-label">Rappel à venir</span></div>
-          </div>
+      <!-- Legacy profile hooks (hidden) for remaining JS -->
+      <div hidden aria-hidden="true">
+        <h1 id="pet-profile-page-title"></h1>
+        <div id="animal-hero"><div id="hero-avatar"></div></div>
+        <span id="pet-profile-chip-wrap"><span id="pet-profile-chip-text"></span></span>
+        <div id="pet-profile-photo-dots"></div>
+        <span id="pet-vacc-status"></span>
+        <span id="pet-last-visit"></span>
+        <span id="pet-tile-breed"></span><span id="pet-tile-dob"></span><span id="pet-tile-gender"></span>
+        <span id="pet-tile-height"></span><span id="pet-tile-weight"></span><span id="pet-tile-repro"></span>
+        <span id="info-race"></span><span id="info-weight"></span><span id="info-chip"></span><span id="info-sterilise"></span>
+        <span id="age-display"></span><span id="info-color"></span>
+        <span id="owner-name"></span><span id="owner-phone"></span><span id="owner-email"></span><span id="owner-clinic"></span>
+        <span id="stat-vax"></span><span id="stat-dew"></span><span id="stat-photos"></span><span id="stat-next"></span>
+        <div id="profile-completeness"><div id="completeness-fill"></div><span id="completeness-text"></span></div>
+        <div id="active-meds-summary"></div>
+        <div id="qrcode"></div>
+        <button type="button" id="pet-chart-toggle-weight"></button>
+        <button type="button" id="pet-chart-toggle-height"></button>
+        <div id="pet-weight-chart-wrap"></div>
+        <div id="pet-height-chart-wrap" hidden></div>
+        <h2 id="pet-tasks-heading"></h2>
+        <div id="pet-tasks-list"></div>
+        <button type="button" id="pet-health-view-all"></button>
+        <button type="button" id="pet-tasks-view-all"></button>
+        <button type="button" id="pet-tile-medical"></button>
+        <button type="button" id="pet-tile-nutrition-go"></button>
+        <button type="button" id="pet-profile-emergency"></button>
+        <button type="button" id="pet-profile-menu-btn"></button>
+        <div id="pet-profile-menu-pop" hidden>
+          <button type="button" id="pet-menu-edit-photo"></button>
+          <button type="button" id="pet-menu-print"></button>
+          <button type="button" id="pet-menu-vet-view"></button>
+          <button type="button" id="pet-menu-share"></button>
+          <button type="button" id="pet-menu-delete"></button>
         </div>
-      </details>
+      </div>
     </section>
 
-    <!-- Section Photos -->
+    <section id="section-actes" class="section" role="tabpanel" aria-labelledby="tab-actes" hidden>
+      <div class="actes-v1">
+        <div class="actes-v1__head">
+          <div>
+            <h2 class="actes-v1__title" id="actes-title">Protection</h2>
+            <div class="actes-v1__sub" id="actes-sub"></div>
+          </div>
+          <button type="button" class="dossier-btn dossier-btn--primary" id="actes-add">+ Acte</button>
+        </div>
+        <div class="actes-list" id="actes-list"></div>
+        <div class="actes-group-banner" id="actes-group-banner" hidden></div>
+        <div class="actes-dup-banner" id="actes-dup-banner" hidden></div>
+      </div>
+    </section>
+
+    <section id="section-poids" class="section" role="tabpanel" aria-labelledby="tab-poids" hidden>
+      <div class="global-view">
+        <h2 class="global-view__title">Courbe de poids &amp; croissance</h2><button type="button" class="care-action care-action--primary" data-care-route="addWeight">Ajouter une pesée</button>
+        <p class="global-view__sub">Retrouvez les pesées et les mesures de votre compagnon au fil du temps.</p>
+        <div id="poids-weight-wrap"></div>
+        <div id="poids-height-wrap"></div>
+      </div>
+    </section>
+
     <section id="section-photos" class="section" role="tabpanel" aria-labelledby="tab-photos" hidden>
-      <div class="gallery-section">
+      <header class="stitch-page-head"><div><h2>Album photo &amp; moments de vie</h2><p id="gallery-summary">Vos souvenirs et le suivi de votre compagnon.</p></div><button type="button" class="care-action care-action--primary" data-stitch-action="upload-photo">Ajouter des photos</button></header>
+      <div class="stitch-split"><div class="gallery-section">
         <div class="gallery-header">
-          <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Album Photo</h2>
+          <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Mes photos</h2>
         </div>
         <div class="gallery-grid" id="gallery-grid">
           <button type="button" class="gallery-add" id="gallery-add-trigger">
@@ -495,11 +380,13 @@
           </button>
         </div>
       </div>
+      <aside class="stitch-card gallery-guide"><h2>Un album pour toute sa vie</h2><p>Conservez vos souvenirs et documentez les changements que vous souhaitez montrer à votre vétérinaire.</p><div class="stitch-inset"><h3>Photos de suivi</h3><p>Ajoutez une légende à chaque photo pour retrouver le contexte de la prise de vue.</p></div><div class="stitch-inset"><h3>Identité &amp; passeport</h3><p>Retrouvez ses informations d’identification et vos coordonnées.</p><button type="button" class="care-action" data-care-route="profil">Voir sa fiche</button></div><button type="button" class="care-action" data-stitch-action="export-json">Exporter les carnets et photos</button></aside></div>
       <input type="file" id="photo-input" accept="image/*" multiple hidden aria-label="Choisir des photos">
     </section>
 
     <!-- Section Vaccins -->
     <section id="section-vaccins" class="section" role="tabpanel" aria-labelledby="tab-vaccins" hidden>
+      <header class="stitch-health-overview" id="health-overview-vaccins"></header>
       <div id="vaccine-alerts" class="alerts-container"></div>
       <div class="data-table">
         <div class="table-header">
@@ -538,6 +425,7 @@
 
     <!-- Section Déparasitage -->
     <section id="section-deworming" class="section" role="tabpanel" aria-labelledby="tab-deworming" hidden>
+      <header class="stitch-health-overview" id="health-overview-deworming"></header>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -604,6 +492,7 @@
 
     <!-- Section Médicaments -->
     <section id="section-medications" class="section" role="tabpanel" aria-labelledby="tab-medications" hidden>
+      <header class="stitch-health-overview" id="health-overview-medications"></header>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -623,6 +512,7 @@
 
     <!-- Section Hygiène -->
     <section id="section-hygiene" class="section" role="tabpanel" aria-labelledby="tab-hygiene" hidden>
+      <header class="stitch-health-overview" id="health-overview-hygiene"></header>
       <div class="data-table">
         <div class="table-header">
           <div class="table-header-left">
@@ -692,16 +582,11 @@
         <div class="data-table">
           <div class="table-header">
             <div class="table-header-left">
-              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Périodes de Chaleur</h2>
+              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Historique des cycles enregistrés</h2>
             </div>
             <button type="button" class="btn-icon" onclick="app.openModal('addHeatCycle')">+ Ajouter</button>
           </div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Début</th><th>Fin</th><th>Durée</th><th>Intensité</th><th>Notes</th><th></th></tr></thead>
-              <tbody id="heat-table"></tbody>
-            </table>
-          </div>
+          <div id="heat-table" class="stitch-record-list"></div>
         </div>
       </div>
     </section>
@@ -801,29 +686,29 @@
         <div class="annuaire-search-row">
           <div class="annuaire-search">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="vet-search" class="annuaire-search__input" type="search" placeholder="Rechercher un vétérinaire...">
+            <input id="vet-search-legacy" class="annuaire-search__input" type="search" placeholder="Rechercher un vétérinaire...">
           </div>
-          <button type="button" class="action-pill" id="btn-geolocate-vets">
+          <button type="button" class="action-pill" id="btn-geolocate-vets-legacy">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             À proximité
           </button>
-          <span id="geo-status" class="table-muted" style="font-size:0.8rem" role="status" aria-live="polite"></span>
+          <span id="geo-status-legacy" class="table-muted" style="font-size:0.8rem" role="status" aria-live="polite"></span>
         </div>
       </div>
-      <div id="vet-nearby-results" hidden>
-        <h3 class="section-title" style="margin-top:16px">Cliniques à proximité <small class="table-muted" id="geo-radius-info"></small></h3>
-        <div id="vet-nearby-list"></div>
+      <div id="vet-nearby-results-legacy" hidden>
+        <h3 class="section-title" style="margin-top:16px">Cliniques à proximité <small class="table-muted" id="geo-radius-info-legacy"></small></h3>
+        <div id="vet-nearby-list-legacy"></div>
       </div>
-      <div id="vet-directory-content"></div>
+      <div id="vet-directory-content-legacy"></div>
     </section>
 
     <!-- Section Calendrier -->
     <section id="section-calendrier" class="section" role="tabpanel" aria-labelledby="tab-calendrier" hidden>
       <div class="calendar-wrapper">
         <div class="calendar-nav">
-          <button type="button" class="btn-icon" id="cal-prev">←</button>
-          <h2 class="section-title" id="cal-month-title">—</h2>
-          <button type="button" class="btn-icon" id="cal-next">→</button>
+          <button type="button" class="btn-icon" id="cal-prev-legacy">←</button>
+          <h2 class="section-title" id="cal-month-title-legacy">—</h2>
+          <button type="button" class="btn-icon" id="cal-next-legacy">→</button>
         </div>
         <div class="calendar-legend">
           <span class="cal-legend-item"><span class="cal-dot cal-dot-vaccine"></span> Vaccin</span>
@@ -834,8 +719,8 @@
           <span class="cal-legend-item"><span class="cal-dot cal-dot-birthday"></span> Anniversaire</span>
           <span class="cal-legend-item"><span class="cal-dot cal-dot-consult"></span> Consultation</span>
         </div>
-        <div class="calendar-grid" id="calendar-grid"></div>
-        <div class="calendar-day-detail" id="calendar-day-detail" hidden></div>
+        <div class="calendar-grid" id="calendar-grid-legacy"></div>
+        <div class="calendar-day-detail" id="calendar-day-detail-legacy" hidden></div>
       </div>
     </section>
 
@@ -866,6 +751,48 @@
     </section>
     </div>
     </div>
+
+    <!-- Vues globales Agenda / Annuaire -->
+    <div id="view-agenda" class="view global-view" hidden>
+      <h1 class="global-view__title">Agenda</h1>
+      <p class="global-view__sub" id="agenda-sub">Échéances tous animaux</p>
+      <div class="agenda-list" id="agenda-list"></div>
+      <div class="calendar-wrapper" style="margin-top:24px">
+        <div class="calendar-nav">
+          <button type="button" class="btn-icon" id="cal-prev">←</button>
+          <h2 class="section-title" id="cal-month-title">—</h2>
+          <button type="button" class="btn-icon" id="cal-next">→</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <div class="calendar-day-detail" id="calendar-day-detail" hidden></div>
+      </div>
+    </div>
+
+    <div id="view-annuaire" class="view global-view" hidden>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="global-view__title">Urgences &amp; annuaire</h1>
+          <p class="global-view__sub" id="annuaire-sub" style="margin-bottom:0">Praticiens et urgences</p>
+        </div>
+        <button type="button" class="dossier-btn dossier-btn--primary" onclick="app.openModal('addVetContact')">+ Ajouter</button>
+      </div>
+      <article class="stitch-sos"><div><h2>Urgence vétérinaire</h2><p>Un contact direct pour être orienté vers un vétérinaire de garde.</p></div><a href="tel:3115">Composer le 3115 <span>France</span></a></article>
+      <h2 class="stitch-section-title">Contacts d’urgence enregistrés</h2><div id="annuaire-emergency-slot"></div><h2 class="stitch-section-title">Cliniques &amp; proximité</h2>
+      <div class="annuaire-search-row" style="margin-bottom:14px">
+        <div class="annuaire-search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="vet-search" class="annuaire-search__input" type="search" placeholder="Rechercher un vétérinaire...">
+        </div>
+        <button type="button" class="action-pill" id="btn-geolocate-vets">À proximité</button>
+        <span id="geo-status" class="table-muted" style="font-size:0.8rem" role="status" aria-live="polite"></span>
+      </div>
+      <div id="vet-nearby-results" hidden>
+        <h3 class="section-title" style="margin-top:16px">Cliniques à proximité <small class="table-muted" id="geo-radius-info"></small></h3>
+        <div id="vet-nearby-list"></div>
+      </div>
+      <div id="vet-directory-content"></div>
+    </div>
+
   </main>
 
   <!-- Toast container -->
@@ -921,7 +848,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="ea-themeColor">Couleur du carnet</label>
-            <input class="form-input" id="ea-themeColor" type="color" value="#0B5450">
+            <input class="form-input" id="ea-themeColor" type="color" value="#0f766e">
           </div>
         </div>
         <div class="form-group">
@@ -1743,8 +1670,9 @@
 
   <div class="modal-overlay" id="modal-addAnimal" aria-hidden="true" role="dialog" aria-labelledby="modal-addAnimal-title">
     <div class="modal" role="document">
-      <h2 class="modal-title" id="modal-addAnimal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg> Ajouter un Animal</h2>
-      <form id="form-add-animal" class="modal-form">
+      <h2 class="modal-title" id="modal-addAnimal-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg> Ajouter un compagnon</h2>
+      <p class="stitch-modal-intro">Créez son carnet en quelques instants. Vous pourrez compléter ses informations à tout moment.</p><form id="form-add-animal" class="modal-form">
+        <label class="stitch-photo-picker" for="aa-photo"><span data-account-icon="camera" aria-hidden="true"></span><span><strong>Photo du compagnon</strong><small id="aa-photo-label" aria-live="polite">Choisir une photo JPG ou PNG</small></span><input id="aa-photo" type="file" accept="image/jpeg,image/png"></label>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="aa-name">Nom</label><input class="form-input" id="aa-name" placeholder="Nom" required></div>
           <div class="form-group"><label class="form-label" for="aa-species">Espèce</label><select class="form-input" id="aa-species"><option value="Canine">Canine</option><option value="Féline">Féline</option><option value="Autre">Autre</option></select></div>
@@ -1757,6 +1685,7 @@
           <div class="form-group"><label class="form-label" for="aa-dob">Date de naissance</label><input class="form-input" id="aa-dob" type="date"></div>
           <div class="form-group"><label class="form-label" for="aa-weight">Poids (kg)</label><input class="form-input" id="aa-weight" type="number" step="0.1" min="0" placeholder="0"></div>
         </div>
+        <div class="form-row"><div class="form-group"><label class="form-label" for="aa-sterilise">Stérilisé(e) ?</label><select class="form-input" id="aa-sterilise"><option>Non</option><option>Oui</option></select></div><div class="form-group"><label class="form-label" for="aa-chip">Puce / transpondeur</label><input class="form-input" id="aa-chip" inputmode="numeric" maxlength="15" pattern="[0-9]{15}" placeholder="15 chiffres"></div></div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="addAnimal">Annuler</button>
           <button type="submit" class="btn-primary">Enregistrer</button>
@@ -1849,44 +1778,54 @@
       <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span class="bottom-nav__label">Accueil</span>
     </button>
-    <button type="button" class="bottom-nav__item" data-nav="pets" aria-label="Profil animal">
+    <button type="button" class="bottom-nav__item" data-nav="pets" aria-label="Animaux">
       <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
-      <span class="bottom-nav__label">Profil</span>
-    </button>
-    <button type="button" class="bottom-nav__item" data-nav="nutrition" aria-label="Nutrition">
-      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11h16v2a6 6 0 01-6 6h-4a6 6 0 01-6-6v-2z"/><path d="M8 11V7a2 2 0 012-2h0a2 2 0 012 2v4"/><path d="M14 11V8a1.5 1.5 0 013 0v3"/></svg>
-      <span class="bottom-nav__label">Nutrition</span>
-    </button>
-    <button type="button" class="bottom-nav__item" data-nav="medical" aria-label="Santé">
-      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h2v4a4 4 0 004 4h0a4 4 0 004-4V4h2"/><path d="M12 12v8"/><circle cx="12" cy="20" r="1"/><path d="M8 4V2"/><path d="M16 4V2"/></svg>
-      <span class="bottom-nav__label">Santé</span>
+      <span class="bottom-nav__label">Animaux</span>
     </button>
     <button type="button" class="bottom-nav__item" data-nav="calendar" aria-label="Agenda">
       <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="bottom-nav__label">Agenda</span>
     </button>
+    <button type="button" class="bottom-nav__item" data-nav="directory" aria-label="Annuaire">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+      <span class="bottom-nav__label">Annuaire</span>
+    </button>
+    <button type="button" class="bottom-nav__item" data-nav="account" aria-label="Mon profil">
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/></svg>
+      <span class="bottom-nav__label">Profil</span>
+    </button>
   </nav>
 
-  <!-- Vue Profil Utilisateur -->
-  <div id="view-user-profile" class="view" hidden>
-    <div class="user-profile">
-      <div class="user-profile__header">
-        <div class="user-profile__avatar" id="user-avatar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  <!-- Compte : organisation issue de la maquette Stitch profil utilisateur. -->
+  <div id="view-user-profile" class="view account-view" hidden>
+    <div class="account-layout">
+      <section class="account-card account-identity" aria-labelledby="user-profile-name">
+        <div class="account-identity-top">
+          <div class="user-profile__avatar" id="user-avatar"><span class="account-icon" data-account-icon="user" aria-hidden="true"></span></div>
+          <div class="account-identity-copy">
+            <h1 id="user-profile-name">Mon profil</h1>
+            <span class="account-badge">Propriétaire</span>
+            <p id="user-profile-email"></p>
+            <small id="account-owner-summary">Vos informations et celles de vos compagnons</small>
+          </div>
         </div>
-        <h2 class="user-profile__name" id="user-profile-name">Utilisateur</h2>
-        <p class="user-profile__email" id="user-profile-email">email@exemple.com</p>
-      </div>
-
-      <div class="user-profile__section" id="cloud-sync-section">
-        <h3 class="user-profile__section-title">Cloud &amp; synchronisation</h3>
-
+        <button type="button" class="account-edit" id="btn-user-edit-profile"><span class="account-icon" data-account-icon="edit" aria-hidden="true"></span>Modifier mes infos</button>
+      </section>
+      <section class="account-companions" aria-labelledby="account-companions-title">
+        <div class="account-section-head"><h2 id="account-companions-title"><span class="account-icon" data-account-icon="paw" aria-hidden="true"></span>Mes compagnons</h2><span class="account-badge" id="account-pet-count"></span></div>
+        <div id="account-pets" class="account-pets"></div>
+        <button type="button" class="account-edit" data-care-route="addAnimal"><span class="account-icon" data-account-icon="plus" aria-hidden="true"></span>Ajouter un compagnon</button>
+      </section>
+      <section class="account-card account-backup" aria-labelledby="account-cloud-title">
+        <div class="account-section-head"><h2 id="account-cloud-title"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span>Cloud &amp; Synchronisation</h2></div>
+        <p class="account-caption" id="account-cloud-caption">Sauvegarde locale sur cet appareil</p>
+        <div id="cloud-sync-section" class="account-cloud-panel">
         <div id="cloud-sync-signedout">
           <p class="user-profile__hint">Connecte-toi pour sauvegarder tes données dans le cloud et les retrouver sur un autre appareil.</p>
           <div class="cloud-sync-google" id="google-signin-container" hidden></div>
           <p class="cloud-sync-divider" id="cloud-sync-divider" hidden>ou</p>
           <div class="cloud-sync-form">
-            <input type="email" id="cloud-sync-email" class="form-input" placeholder="ton@email.com" autocomplete="email">
+            <input type="email" id="cloud-sync-email" aria-label="Adresse e-mail de connexion" class="form-input" placeholder="ton@email.com" autocomplete="email">
             <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Recevoir un lien de connexion</button>
           </div>
           <p class="user-profile__hint" id="cloud-sync-signin-status" hidden></p>
@@ -1898,86 +1837,30 @@
             <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le cloud</button>
           </div>
           <p class="user-profile__hint" id="cloud-sync-status" hidden></p>
-          <button type="button" class="user-profile__row" id="btn-cloud-signout">
-            <span class="user-profile__row-label">Se déconnecter</span>
-          </button>
+
         </div>
-      </div>
 
-      <div class="user-profile__section">
-        <h3 class="user-profile__section-title">Compte</h3>
-        <button type="button" class="user-profile__row" id="btn-user-edit-profile">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </span>
-          <span class="user-profile__row-label">Modifier le profil</span>
-          <span class="user-profile__row-arrow">›</span>
-        </button>
-        <button type="button" class="user-profile__row" id="btn-user-favorites">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-          </span>
-          <span class="user-profile__row-label">Favoris</span>
-          <span class="user-profile__row-arrow">›</span>
-        </button>
-        <button type="button" class="user-profile__row" id="btn-user-backup">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </span>
-          <span class="user-profile__row-label">Sauvegarde / Import</span>
-          <span class="user-profile__row-arrow">›</span>
-        </button>
-      </div>
-
-      <div class="user-profile__section">
-        <h3 class="user-profile__section-title">Paramètres</h3>
-        <button type="button" class="user-profile__row" id="btn-user-notifications">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          </span>
-          <span class="user-profile__row-label">Notifications</span>
-          <span class="user-profile__row-arrow">›</span>
-        </button>
-        <button type="button" class="user-profile__row" id="btn-user-language">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-          </span>
-          <span class="user-profile__row-label">Langue</span>
-          <span class="user-profile__row-arrow">Français ›</span>
-        </button>
-        <div class="user-profile__row user-profile__row--toggle">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-          </span>
-          <span class="user-profile__row-label">Mode sombre</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="user-dark-toggle">
-            <span class="toggle-slider"></span>
-          </label>
         </div>
-      </div>
-
-      <div class="user-profile__section">
-        <h3 class="user-profile__section-title">Support</h3>
-        <button type="button" class="user-profile__row" id="btn-user-help">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </span>
-          <span class="user-profile__row-label">Centre d'aide</span>
-          <span class="user-profile__row-arrow">›</span>
-        </button>
-      </div>
-
-      <div class="user-profile__section">
-        <h3 class="user-profile__section-title">À propos</h3>
-        <div class="user-profile__row">
-          <span class="user-profile__row-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          </span>
-          <span class="user-profile__row-label">Version de l'app</span>
-          <span class="user-profile__row-value">1.0.0</span>
+        <p class="account-local-notice"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Vos carnets restent disponibles hors ligne sur cet appareil.</p>
+        <div class="account-data-actions">
+<button type="button" class="account-row" id="account-export-json"><span class="account-icon" data-account-icon="fileText" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter toutes les données</strong><small>Archive intégrale des carnets au format JSON</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="account-export-ics"><span class="account-icon" data-account-icon="calendar" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter les rappels (.ics)</strong><small>Ajouter les échéances à votre calendrier</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="btn-user-backup"><span class="account-icon" data-account-icon="download" aria-hidden="true"></span><span class="account-row-copy"><strong>Restaurer une sauvegarde</strong><small>Importer un fichier JSON depuis votre appareil</small></span><span aria-hidden="true">›</span></button>
         </div>
-      </div>
+      </section>
+      <section class="account-card account-preferences" aria-labelledby="account-preferences-title">
+        <div class="account-section-head"><h2 id="account-preferences-title"><span class="account-icon" data-account-icon="bell" aria-hidden="true"></span>Préférences &amp; Notifications</h2></div>
+<button type="button" class="account-row" id="btn-user-notifications"><span class="account-icon" data-account-icon="bell" aria-hidden="true"></span><span class="account-row-copy"><strong>Notifications push de santé</strong><small>Configurer les rappels de soins et rendez-vous</small></span><span aria-hidden="true">›</span></button>
+        <label class="account-preference"><span class="account-row-copy"><strong>Événements du mois</strong><small>Recevoir les rappels des événements canins</small></span><span class="toggle-switch"><input type="checkbox" id="account-events-toggle"><span class="toggle-slider"></span></span></label>
+        <label class="account-preference"><span class="account-row-copy"><strong>Mode sombre</strong><small>Un affichage plus doux en faible lumière</small></span><span class="toggle-switch"><input type="checkbox" id="user-dark-toggle"><span class="toggle-slider"></span></span></label>
+<button type="button" class="account-row" id="btn-user-language"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span><span class="account-row-copy"><strong>Langue de l’interface</strong><small>Français (France)</small></span><span aria-hidden="true">›</span></button>
+      </section>
+      <section class="account-card account-support" aria-labelledby="account-support-title">
+        <div class="account-section-head"><h2 id="account-support-title"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Assistance &amp; Sécurité</h2></div>
+<button type="button" class="account-row" id="btn-user-help"><span class="account-icon" data-account-icon="info" aria-hidden="true"></span><span class="account-row-copy"><strong>Centre d’aide & FAQ</strong></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="btn-user-favorites"><span class="account-icon" data-account-icon="hospital" aria-hidden="true"></span><span class="account-row-copy"><strong>Contacts vétérinaires favoris</strong></span><span aria-hidden="true">›</span></button>
+        <a class="account-row" href="https://github.com/thierry1804/vetbook/issues" target="_blank" rel="noopener noreferrer"><span class="account-icon" data-account-icon="lightbulb" aria-hidden="true"></span><span class="account-row-copy"><strong>Signaler un bug ou suggérer une idée</strong></span><span aria-hidden="true">↗</span></a>
+        <details class="account-privacy"><summary><span class="account-icon" data-account-icon="fileText" aria-hidden="true"></span>Confidentialité &amp; données des carnets</summary><p>Vos carnets sont conservés sur cet appareil. La sauvegarde cloud nécessite une connexion à votre compte. Vous pouvez exporter vos données au format JSON ou restaurer une sauvegarde depuis cette page.</p></details>
+        <button type="button" class="account-signout" id="btn-cloud-signout" hidden>Se déconnecter</button>
+      </section>
+      <footer class="account-footer">App’lika · Conçu avec soin pour la santé animale<br><span>Vos compagnons, leurs carnets, vos données.</span></footer>
     </div>
   </div>
 

@@ -357,6 +357,9 @@
 
     function renderAuthState(session) {
       var signedIn = !!session;
+      if (btnSignout) btnSignout.hidden = !signedIn;
+      var accountCaption = document.getElementById('account-cloud-caption');
+      if (accountCaption) accountCaption.textContent = signedIn ? 'Compte connecté · sauvegarde cloud disponible' : 'Connectez-vous pour retrouver vos carnets sur vos appareils';
       if (signedOutEl) signedOutEl.hidden = signedIn;
       if (signedInEl) signedInEl.hidden = !signedIn;
       // Avatar principal du profil (haut de l'écran) : app.js ne touche

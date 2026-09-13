@@ -538,6 +538,7 @@
       // Backward compatibility
       state.animals.forEach(function (a) {
         if (!a || !a.animal) return;
+        if (!Array.isArray(a.photos)) a.photos = [];
         if (!Array.isArray(a.animal.weightHistory)) a.animal.weightHistory = [];
         if (!Array.isArray(a.animal.heightHistory)) a.animal.heightHistory = [];
         if (!Array.isArray(a.consultations)) a.consultations = [];
@@ -603,6 +604,12 @@
         showDetail({ tab: route.tab });
         return;
       }
+    } else if (route.view === 'agenda') {
+      showAgenda();
+      return;
+    } else if (route.view === 'directory') {
+      showDirectory();
+      return;
     } else if (route.view === 'community') {
       showCommunity(route.panel);
       return;
@@ -884,6 +891,246 @@
     return { label: (next.name || next.kind), date: next.next, status: st };
   }
 
+
+  function daysUntil(isoDate) {
+    var dt = isoToLocalDate(isoDate);
+    if (!dt) return null;
+    var today = new Date();
+    var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.round((dt - todayMid) / 864e5);
+  }
+
+  function formatJDelay(isoDate) {
+    var d = daysUntil(isoDate);
+    if (d == null) return '—';
+    if (d < 0) return 'J+' + Math.abs(d);
+    if (d > 0) return 'J−' + d;
+    return "aujourd'hui";
+  }
+
+  function delayTone(isoDate) {
+    var d = daysUntil(isoDate);
+    if (d == null) return 'ok';
+    if (d < 0) return 'late';
+    if (d <= 30) return 'soon';
+    return 'ok';
+  }
+
+  function collectDueItemsForAnimal(data) {
+    var animalName = (data.animal && data.animal.name) || 'Animal';
+    var items = [];
+    (data.vaccines || []).forEach(function (v) {
+      if (!v.next) return;
+      items.push({ animalId: data.id, animalName: animalName, kind: 'vaccine', collection: 'vaccines', id: v.id, name: v.name || 'Vaccin', next: v.next, date: v.date, vet: v.vet, frequencyDays: v.frequencyDays });
+    });
+    (data.dewormings || []).forEach(function (d) {
+      if (!d.next) return;
+      items.push({ animalId: data.id, animalName: animalName, kind: 'deworming', collection: 'dewormings', id: d.id, name: d.name || 'Déparasitage', next: d.next, date: d.date, frequencyDays: d.frequencyDays });
+    });
+    (data.hygiene || []).forEach(function (h) {
+      if (!h.next) return;
+      items.push({ animalId: data.id, animalName: animalName, kind: 'hygiene', collection: 'hygiene', id: h.id, name: h.type || 'Hygiène', next: h.next, date: h.date, frequencyDays: h.frequencyDays });
+    });
+    (data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).forEach(function (m) {
+      items.push({ animalId: data.id, animalName: animalName, kind: 'medication', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate, date: m.startDate || m.date, endDate: m.endDate });
+    });
+    return items;
+  }
+
+  function collectAllDueItems() {
+    var all = [];
+    state.animals.forEach(function (data) {
+      all = all.concat(collectDueItemsForAnimal(data));
+    });
+    all.sort(function (a, b) { return isoToLocalDate(a.next) - isoToLocalDate(b.next); });
+    return all;
+  }
+
+  function getMostUrgentItem() {
+    var all = collectAllDueItems();
+    if (!all.length) return null;
+    var overdue = all.filter(function (x) { return daysUntil(x.next) < 0; });
+    if (overdue.length) {
+      overdue.sort(function (a, b) { return daysUntil(a.next) - daysUntil(b.next); });
+      return overdue[0];
+    }
+    return all[0];
+  }
+
+  function getPrimaryClinicPhone() {
+    var dir = loadVetDirectory();
+    var entries = (dir && dir.entries) || [];
+    var fav = entries.find(function (e) { return e.favorite && e.phone; });
+    if (fav) return { phone: fav.phone, name: fav.name || fav.clinic || 'la clinique' };
+    var first = entries.find(function (e) { return e.phone && !e.emergency; });
+    if (first) return { phone: first.phone, name: first.name || first.clinic || 'la clinique' };
+    var any = entries.find(function (e) { return e.phone; });
+    if (any) return { phone: any.phone, name: any.name || 'la clinique' };
+    var o = getOwner();
+    if (o && o.phone) return { phone: o.phone, name: o.clinic || 'votre clinique' };
+    return null;
+  }
+
+  function findAnimalData(animalId) {
+    return state.animals.find(function (a) { return a.id === animalId; }) || null;
+  }
+
+  function completeDueItem(item) {
+    var data = findAnimalData(item.animalId);
+    if (!data) return false;
+    var list = data[item.collection];
+    if (!Array.isArray(list)) return false;
+    var entry = list.find(function (x) { return x.id === item.id; });
+    if (!entry) return false;
+    var today = todayISO();
+    if (item.collection === 'medications') {
+      entry.endDate = today;
+      entry.active = false;
+    } else {
+      entry.date = today;
+      var freq = parseInt(entry.frequencyDays, 10);
+      if (!freq || freq <= 0) freq = item.collection === 'vaccines' ? 365 : 90;
+      entry.next = addDaysISO(today, freq);
+      entry.frequencyDays = freq;
+    }
+    saveState();
+    return true;
+  }
+
+  function snoozeDueItem(item, days) {
+    var data = findAnimalData(item.animalId);
+    if (!data) return false;
+    var list = data[item.collection];
+    if (!Array.isArray(list)) return false;
+    var entry = list.find(function (x) { return x.id === item.id; });
+    if (!entry) return false;
+    var base = item.collection === 'medications' ? entry.endDate : entry.next;
+    var next = addDaysISO(base || todayISO(), days || 7);
+    if (item.collection === 'medications') entry.endDate = next;
+    else entry.next = next;
+    saveState();
+    return true;
+  }
+
+  function animalIssueLine(data) {
+    var next = getNextDueItem(data);
+    if (!next) return '';
+    var st = next.status;
+    if (!st || st.cls === 'status-ok') return '';
+    var d = daysUntil(next.date);
+    if (d < 0) return (next.label || '') + ' · ' + Math.abs(d) + ' j de retard';
+    return (next.label || '') + ' · bientôt';
+  }
+
+  function healthTone(data) {
+    var h = computeHealthStatus(data);
+    if (h.overdue > 0) return 'late';
+    if (h.soon > 0) return 'soon';
+    return 'ok';
+  }
+
+  function summarizeDomain(items, nameKey, dateKey) {
+    dateKey = dateKey || 'next';
+    nameKey = nameKey || 'name';
+    var withNext = (items || []).filter(function (x) { return x[dateKey]; });
+    if (!withNext.length) return { status: 'ok', statusLabel: '—', body: 'Aucun suivi renseigné.' };
+    withNext.sort(function (a, b) { return isoToLocalDate(a[dateKey]) - isoToLocalDate(b[dateKey]); });
+    var overdue = withNext.filter(function (x) { return daysUntil(x[dateKey]) < 0; });
+    if (overdue.length) {
+      var names = overdue.map(function (x) { return x[nameKey] || x.type; }).slice(0, 2).join(' et ');
+      return { status: 'late', statusLabel: overdue.length + ' retard' + (overdue.length > 1 ? 's' : ''), body: names + ' échu' + (overdue.length > 1 ? 's' : '') + '.' };
+    }
+    var soon = withNext.filter(function (x) { var d = daysUntil(x[dateKey]); return d != null && d <= 0 && d >= -30; });
+    if (soon.length) {
+      var s = soon[0];
+      return { status: 'soon', statusLabel: formatJDelay(s[dateKey]), body: (s[nameKey] || s.type) + ' le ' + fmtDate(s[dateKey]) + '.' };
+    }
+    var next = withNext[withNext.length - 1];
+    // pick furthest? better pick nearest future
+    withNext.sort(function (a, b) { return isoToLocalDate(a[dateKey]) - isoToLocalDate(b[dateKey]); });
+    next = withNext[0];
+    return { status: 'ok', statusLabel: 'à jour', body: (next[nameKey] || next.type || 'Prochain') + ' le ' + fmtDate(next[dateKey]) + '.' };
+  }
+
+  function protectionKey(name) {
+    return String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+  }
+
+  function buildProtections(data) {
+    var groups = {};
+    function add(collection, item, label) {
+      var key = collection + ':' + protectionKey(label);
+      if (!groups[key]) groups[key] = { key: key, collection: collection, name: label, items: [] };
+      groups[key].items.push(item);
+    }
+    (data.vaccines || []).forEach(function (v) { add('vaccines', v, v.name || 'Vaccin'); });
+    (data.dewormings || []).forEach(function (d) { add('dewormings', d, d.name || 'Déparasitage'); });
+    (data.hygiene || []).forEach(function (h) { add('hygiene', h, h.type || 'Hygiène'); });
+    (data.medications || []).filter(function (m) { return m.active !== false; }).forEach(function (m) {
+      add('medications', m, m.name || 'Traitement');
+    });
+    return Object.keys(groups).map(function (k) {
+      var g = groups[k];
+      var items = g.items.slice().sort(function (a, b) {
+        var da = isoToLocalDate(a.date || a.startDate || '1970-01-01');
+        var db = isoToLocalDate(b.date || b.startDate || '1970-01-01');
+        return (db || 0) - (da || 0);
+      });
+      var latest = items[0];
+      var next = g.collection === 'medications' ? latest.endDate : latest.next;
+      var from = latest.date || latest.startDate || '';
+      var tone = next ? delayTone(next) : 'ok';
+      var statusLabel = !next ? '—' : (tone === 'late' ? ('échu ' + formatJDelay(next).replace('J+', '')) : (tone === 'soon' ? 'à surveiller' : 'à jour'));
+      // coverage bar: from date to next
+      var pct = 100;
+      if (from && next) {
+        var a = isoToLocalDate(from);
+        var b = isoToLocalDate(next);
+        var now = new Date();
+        var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (a && b && b > a) {
+          pct = Math.max(0, Math.min(110, ((todayMid - a) / (b - a)) * 100));
+        }
+      }
+      return {
+        key: g.key,
+        collection: g.collection,
+        name: g.name,
+        sub: (latest.vet ? latest.vet + ' · ' : '') + (latest.frequencyDays ? ('tous les ' + latest.frequencyDays + ' j') : ''),
+        from: from,
+        to: next,
+        tone: tone,
+        statusLabel: statusLabel,
+        pct: pct,
+        history: items,
+        latest: latest
+      };
+    }).sort(function (a, b) {
+      var rank = { late: 0, soon: 1, ok: 2 };
+      return (rank[a.tone] - rank[b.tone]) || ((a.to || '').localeCompare(b.to || ''));
+    });
+  }
+
+  function findDuplicates(data) {
+    var dups = [];
+    ['vaccines', 'dewormings', 'hygiene'].forEach(function (col) {
+      var list = data[col] || [];
+      var seen = {};
+      list.forEach(function (item) {
+        var label = item.name || item.type || '';
+        var key = protectionKey(label) + '|' + (item.date || '');
+        if (!item.date) return;
+        if (seen[key]) dups.push({ collection: col, a: seen[key], b: item, label: label, date: item.date });
+        else seen[key] = item;
+      });
+    });
+    return dups;
+  }
+
+  function isRageName(n) { return /rage|rabies/i.test(n || ''); }
+  function isChppiName(n) { return /chppi|chpp|dhppi|carr[eé]/i.test(n || ''); }
+
+
   // Anneau de progression SVG : porte le statut de santé d'un animal
   // (élément signature de l'accueil, pas décoratif — l'arc encode la
   // proportion réellement à jour, sa couleur le pire statut présent).
@@ -909,6 +1156,7 @@
   function renderDetailPetsRow() {
     var row = document.getElementById('detail-pets-row');
     if (!row) return;
+    row.hidden = state.animals.length <= 1;
     if (state.animals.length === 0) { row.innerHTML = ''; return; }
 
     row.innerHTML = state.animals.map(function (data) {
@@ -919,7 +1167,7 @@
         ? (typeof a.avatar === 'number'
             ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
             : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
-        : (a.species === 'Féline' ? '🐱' : '🐕');
+        : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
       return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
         '<div class="home-pet-bubble__avatar">' + avatarInner + '</div>' +
         '<span class="home-pet-bubble__name">' + name + '</span>' +
@@ -1421,136 +1669,596 @@
     }
   }
 
-  function renderHome() {
-    var grid = document.getElementById('home-pet-grid');
-    var emptyEl = document.getElementById('home-empty');
-    var actionPills = document.getElementById('home-action-pills');
-    if (!grid) return;
+  // Serene Pet Care shell — shares the existing routes and persisted records.
+  var careLinks = [
+    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Calendrier & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
+    ['Carnet de santé', [['profil', 'Identité & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
+    ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
+    ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
+  ];
+  function careButton(route, label, icon, primary) {
+    return '<button type="button" class="care-action' + (primary ? ' care-action--primary' : '') + '" data-care-route="' + route + '">' + ico(icon, 18) + '<span>' + label + '</span></button>';
+  }
+  function renderCareSidebar() {
+    var el = document.getElementById('care-sidebar');
+    if (!el) return;
+    el.innerHTML = '<div class="care-brand">' + ico('heart', 28) + '<div>App’lika<small>Santé & bien-être animal</small></div></div>' +
+      '<label class="care-pet-select">Mon compagnon<select id="care-pet-select" aria-label="Animal actif">' +
+      (state.animals.length ? state.animals.map(function (d) { return '<option value="' + d.id + '"' + (getCurrent().id === d.id ? ' selected' : '') + '>' + escapeHtml(d.animal.name || 'Sans nom') + '</option>'; }).join('') : '<option>Ajouter un animal</option>') + '</select></label>' +
+      careLinks.map(function (group) { return '<div class="care-nav-group"><p>' + group[0] + '</p>' + group[1].map(function (link) { return careButton(link[0], link[1], link[2]); }).join('') + '</div>'; }).join('') + '<div class="care-sidebar-foot">Un carnet, toute leur vie.' + careButton('addAnimal', 'Ajouter un animal', 'plus') + '</div>';
+    var mobileMenu = document.getElementById('care-mobile-route');
+    mobileMenu.innerHTML = '<option value="">Toutes les rubriques</option>' + careLinks.map(function (group) { return '<optgroup label="' + group[0] + '">' + group[1].map(function (link) { return '<option value="' + link[0] + '">' + link[1] + '</option>'; }).join('') + '</optgroup>'; }).join('');
+    mobileMenu.onchange = function () { var target = el.querySelector('[data-care-route="' + mobileMenu.value + '"]'); if (target) target.click(); };
+    document.getElementById('care-pet-select').addEventListener('change', function (e) {
+      state.currentAnimalId = Number(e.target.value); saveState(); refreshAll();
+      if (state.viewMode === 'home') renderHome(); else showDetail({ tab: 'profil', nav: 'pets' });
+    });
+  }
+  function markCareRoute(route) {
+    document.querySelectorAll('.stitch-community-nav [data-care-route]').forEach(function (button) {
+      var active = button.dataset.careRoute === route;
+      button.classList.toggle('care-action--primary', active);
+      if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+    });
+    var menu = document.getElementById('care-mobile-route');
+    if (menu) menu.value = route;
+    document.querySelectorAll('.care-sidebar [data-care-route]').forEach(function (b) {
+      var active = b.dataset.careRoute === route;
+      b.classList.toggle('is-active', active);
+      if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+  }
+  function renderCareDashboard() {
+    var el = document.getElementById('care-dashboard');
+    if (!el) return;
+    var data = getCurrent();
+    var owner = getOwner();
+    var greeting = 'Bonjour' + (owner.name ? ' ' + owner.name.split(' ')[0] : '') + ' !';
+    var a = data ? data.animal : {};
+    var portrait = data ? '<div class="care-portrait">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 38) + '</div>' : '';
+    var actions = careButton('addVaccin', 'Enregistrer un soin', 'plus', true) + careButton('addWeight', 'Pesée', 'scale') + careButton('addMeal', 'Repas', 'utensils');
+    el.innerHTML = '<div class="care-welcome">' + portrait + '<div class="care-welcome-copy"><h1>' + escapeHtml(greeting) + '</h1><p>' + (data ? 'Retrouvez le carnet de ' + escapeHtml(a.name || 'votre compagnon') + ' et ses prochains soins.' : 'Un petit geste aujourd’hui, une belle vie à leurs côtés.') + '</p></div><div class="care-actions">' + (data ? actions : careButton('addAnimal', 'Créer son carnet', 'plus', true)) + '</div></div>';
+    if (!data) {
+      el.innerHTML += '<div class="care-intro-grid">' + [['heart','Sa santé, au même endroit','Vaccins, consultations et traitements : gardez une trace de chaque soin.'],['bell','Les bons rappels','Retrouvez les prochaines échéances dans votre agenda.'],['paw','Chaque petit progrès','Poids, repas, activités et souvenirs accompagnent son quotidien.']].map(function (x) { return '<article class="care-card">' + ico(x[0],28) + '<h2>' + x[1] + '</h2><p>' + x[2] + '</p></article>'; }).join('') + '</div>';
+      return;
+    }
+    var due = collectDueItemsForAnimal(data);
+    var late = due.filter(function (x) { return daysUntil(x.next) < 0; }).length;
+    var weight = a.weight != null && a.weight !== '' ? String(a.weight).replace('.', ',') + ' kg' : 'À renseigner';
+    var meals = ((data.nutrition || {}).meals || []).filter(function (m) { return m.date === todayISO(); });
+    var since = new Date(); since.setFullYear(since.getFullYear() - 1);
+    var visits = (data.consultations || []).filter(function (c) { return c.date && isoToLocalDate(c.date) >= since; });
+    var spent = visits.reduce(function (sum,c) { return sum + (Number(c.cost) || 0); }, 0);
+    var metrics = [
+      ['vaccine','Suivi des rappels', late ? late + ' en retard' : due.length ? 'À jour' : 'À compléter', due.length + ' échéance(s) enregistrée(s)', 'vaccins'],
+      ['scale','Poids actuel',weight, a.race || 'Suivi de la croissance', 'poids'],
+      ['utensils','Repas du jour',String(meals.length), 'Repas consignés aujourd’hui', 'nutrition'],
+      ['stethoscope','Budget santé · 12 mois',spent.toLocaleString('fr-FR') + ' €',visits.length + ' consultation(s)', 'consultations']
+    ];
+    el.innerHTML += '<div class="care-metrics">' + metrics.map(function (m) { return '<button type="button" class="care-card care-metric" data-care-route="' + m[4] + '"><span class="care-metric-icon">' + ico(m[0],22) + '</span><span class="care-eyebrow">' + m[1] + '</span><strong>' + escapeHtml(m[2]) + '</strong><small>' + escapeHtml(m[3]) + '</small></button>'; }).join('') + '</div>';
+    var history = (a.weightHistory || []).filter(function (w) { return Number(w.weight) > 0 && w.date; }).sort(function (x,y) { return x.date.localeCompare(y.date); }).slice(-12);
+    var chart = '<div class="care-chart-empty">' + ico('activity',36) + '<p>Les pesées dessineront ici sa courbe de croissance.</p>' + careButton('addWeight','Ajouter une pesée','plus') + '</div>';
+    if (history.length) {
+      var values = history.map(function (w) { return Number(w.weight); });
+      var lo = Math.min.apply(null,values) - 1, hi = Math.max.apply(null,values) + 1;
+      var points = values.map(function (v,i) { return [35 + i * 530 / Math.max(1,values.length-1), 155 - (v-lo)/(hi-lo)*120]; });
+      chart = '<svg class="care-chart" viewBox="0 0 600 200" role="img" aria-label="Évolution des ' + history.length + ' dernières pesées"><path d="M35 35H565 M35 95H565 M35 155H565" fill="none" stroke="var(--border)" stroke-dasharray="4 4"/><polyline points="' + points.map(function (p) { return p.join(','); }).join(' ') + '" fill="none" stroke="var(--brand)" stroke-width="3"/>' + points.map(function (p,i) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" fill="var(--card-bg)" stroke="var(--brand)" stroke-width="2"><title>' + escapeHtml(fmtDate(history[i].date) + ' : ' + values[i] + ' kg') + '</title></circle>'; }).join('') + '<text x="35" y="185">' + escapeHtml(fmtDate(history[0].date)) + '</text><text x="565" y="185" text-anchor="end">' + escapeHtml(fmtDate(history[history.length-1].date)) + '</text></svg>';
+    }
+    el.innerHTML += '<div class="care-overview"><article class="care-card"><div class="care-card-head"><h2>Courbe de poids & croissance</h2>' + careButton('addWeight','Ajouter','plus') + '</div><p>Chaque mesure compte pour son bien-être.</p>' + chart + '</article><article class="care-card care-companion"><span class="care-eyebrow">Le carnet de votre compagnon</span><h2>' + escapeHtml(a.name || 'Mon animal') + '</h2><p>' + escapeHtml([a.species,a.race].filter(Boolean).join(' · ')) + '</p>' + careButton('profil','Identité & passeport','paw') + careButton('photos','Photos & souvenirs','camera') + careButton('calendar','Prochains rendez-vous','calendar') + '</article></div>';
+    el.innerHTML += '<div class="stitch-home-links"><article class="stitch-card"><h2>Astuces & conseils</h2><p>Retrouvez les conseils pour accompagner son quotidien.</p>' + careButton('tips', 'Explorer les conseils', 'lightbulb') + '</article><article class="stitch-card"><h2>Événements canins</h2><p>Adoption, rencontres et sensibilisation : explorez le calendrier.</p>' + careButton('events', 'Voir les événements', 'calendar') + '</article></div>';
+    if (a.avatar) {
+      var portraitEl = el.querySelector('.care-portrait');
+      var portraitImg = document.createElement('img');
+      portraitImg.alt = a.name || 'Votre compagnon';
+      portraitEl.replaceChildren(portraitImg);
+      if (typeof a.avatar === 'number') getPhotoObjectUrl(a.avatar).then(function (url) { if (url) portraitImg.src = url; }).catch(function () {});
+      else portraitImg.src = a.avatar;
+    }
 
-    renderHomeReminders('all');
-    renderHomeVetsAndTips();
+  }
+
+  function renderHome() {
+    renderCareDashboard();
+    var emptyEl = document.getElementById('home-empty');
+    var urgencyEl = document.getElementById('home-urgency');
+    var ensuiteWrap = document.getElementById('home-ensuite-wrap');
+    var ensuiteList = document.getElementById('home-ensuite-list');
+    var ensuiteCount = document.getElementById('home-ensuite-count');
+    var petsWrap = document.getElementById('home-pets-wrap');
+    var petsStrip = document.getElementById('home-pets-strip');
+    if (!urgencyEl) return;
 
     if (state.animals.length === 0) {
-      grid.innerHTML = '';
       if (emptyEl) emptyEl.hidden = false;
-      if (actionPills) actionPills.hidden = true;
+      urgencyEl.hidden = true;
+      if (ensuiteWrap) ensuiteWrap.hidden = true;
+      if (petsWrap) petsWrap.hidden = true;
       return;
     }
     if (emptyEl) emptyEl.hidden = true;
-    if (actionPills) actionPills.hidden = false;
 
-    grid.innerHTML = state.animals.map(function (data, idx) {
-      var a = data.animal;
-      var name = escapeHtml(a.name || 'Sans nom');
-      var meta = escapeHtml([a.race, a.sex].filter(Boolean).join(' · ') || a.species || '—');
-      var avatarHtml = a.avatar
-        ? (typeof a.avatar === 'number'
-            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="" />'
-            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
-        : (a.species === 'Féline' ? '🐱' : '🐕');
-      var activeMeds = Array.isArray(data.medications) ? data.medications.filter(function (m) {
-        return m.active !== false && (!m.endDate || isoToLocalDate(m.endDate) >= new Date());
-      }) : [];
-      var medBadge = activeMeds.length ? '<div class="pet-card-med-badge">' + ico('pill', 14) + ' ' + activeMeds.length + ' en cours</div>' : '';
+    var all = collectAllDueItems();
+    var urgent = getMostUrgentItem();
+    var clinic = getPrimaryClinicPhone();
 
-      var health = computeHealthStatus(data);
-      var next = getNextDueItem(data);
-      var statusLine;
-      if (health.total === 0) {
-        statusLine = '<span class="pet-card-status pet-card-status--neutral">Ajoutez un vaccin pour suivre sa santé</span>';
-      } else if (health.overdue === 0 && health.soon === 0) {
-        statusLine = '<span class="pet-card-status pet-card-status--ok">' + ico('check', 14) + ' Tout est à jour</span>';
+    if (!urgent) {
+      var nextFuture = all[0];
+      urgencyEl.hidden = false;
+      urgencyEl.className = 'home-urgency home-urgency--ok';
+      var nextCopy = nextFuture
+        ? ('Prochaine échéance le ' + fmtDate(nextFuture.next) + ' — ' + (nextFuture.name || '') + ' pour ' + nextFuture.animalName + '.')
+        : 'Ajoutez un vaccin ou un rappel pour démarrer le suivi.';
+      urgencyEl.innerHTML =
+        '<div class="home-urgency__eyebrow">À faire maintenant</div>' +
+        '<div class="home-urgency__title">Tout est à jour.</div>' +
+        '<div class="home-urgency__sub">' + escapeHtml(nextCopy) + '</div>';
+    } else {
+      var daysLate = daysUntil(urgent.next);
+      var title;
+      if (daysLate < 0) {
+        title = urgent.animalName + ' attend son ' + (urgent.name || 'rappel') + ' depuis ' + Math.abs(daysLate) + ' jour' + (Math.abs(daysLate) > 1 ? 's' : '') + '.';
+      } else if (daysLate === 0) {
+        title = urgent.animalName + ' — ' + (urgent.name || 'rappel') + " aujourd'hui.";
       } else {
-        var toneClass = health.overdue > 0 ? 'pet-card-status--overdue' : 'pet-card-status--soon';
-        var label = next ? escapeHtml(next.label) + ' · ' + fmtDate(next.date) : (health.overdue + health.soon) + ' à faire';
-        statusLine = '<span class="pet-card-status ' + toneClass + '">' + ico('bell', 14) + ' ' + label + '</span>';
+        title = urgent.animalName + ' — ' + (urgent.name || 'rappel') + ' dans ' + daysLate + ' jour' + (daysLate > 1 ? 's' : '') + '.';
       }
+      var sameAnimal = all.filter(function (x) {
+        return x.animalId === urgent.animalId && daysUntil(x.next) < 0 &&
+          !(x.collection === urgent.collection && x.id === urgent.id) &&
+          String(x.name || '').toLowerCase() !== String(urgent.name || '').toLowerCase();
+      });
+      var sub = sameAnimal.length
+        ? (sameAnimal[0].name + ' est échu aussi.' + (clinic ? ' Les deux se font en une visite chez ' + clinic.name + '.' : ''))
+        : (clinic ? ('Chez ' + clinic.name + '.') : 'Planifiez la visite dès que possible.');
+      var callLabel = clinic ? 'Appeler la clinique' : 'Voir l’annuaire';
+      urgencyEl.hidden = false;
+      urgencyEl.className = 'home-urgency';
+      urgencyEl.innerHTML =
+        '<div class="home-urgency__eyebrow">À faire maintenant</div>' +
+        '<div class="home-urgency__title">' + escapeHtml(title) + '</div>' +
+        '<div class="home-urgency__sub">' + escapeHtml(sub) + '</div>' +
+        '<div class="home-urgency__actions">' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--primary" id="home-urgency-call">' + escapeHtml(callLabel) + '</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">C\'est déjà fait</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later">Plus tard</button>' +
+        '</div>';
+      urgencyEl._urgentItem = urgent;
 
-      return '<article class="pet-card" data-animal-id="' + data.id + '" style="animation-delay:' + (idx * 0.05) + 's">' +
-        '<button type="button" class="pet-card-delete" data-delete-animal="' + data.id + '" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
-        '<div class="pet-card-header">' +
-        '<div class="pet-card-ring-wrap">' + buildHealthRing(health) + '<div class="pet-card-avatar">' + avatarHtml + '</div></div>' +
-        '<div class="pet-card-info">' +
-        '<div class="pet-card-name">' + name + medBadge + '</div>' +
-        '<div class="pet-card-meta">' + meta + '</div>' +
-        statusLine +
-        '</div></div>' +
-        '<div class="pet-card-actions">' +
-        '<button type="button" class="btn-card btn-card-primary" data-action="carnet" data-animal-id="' + data.id + '">' + ico('clipboard', 16) + ' <span>Carnet</span></button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="vaccin" data-animal-id="' + data.id + '" aria-label="Ajouter un vaccin" title="Ajouter un vaccin">' + ico('vaccine', 16) + '</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="deworming" data-animal-id="' + data.id + '" aria-label="Ajouter un déparasitage" title="Ajouter un déparasitage">' + ico('pill', 16) + '</button>' +
-        '<button type="button" class="btn-card btn-card-secondary" data-action="photos" data-animal-id="' + data.id + '" aria-label="Voir les photos" title="Voir les photos">' + ico('camera', 16) + '</button>' +
-        '</div></article>';
+      var callBtn = document.getElementById('home-urgency-call');
+      if (callBtn) callBtn.addEventListener('click', function () {
+        if (clinic && clinic.phone) window.location.href = 'tel:' + clinic.phone.replace(/\s+/g, '');
+        else showDirectory();
+      });
+      var doneBtn = document.getElementById('home-urgency-done');
+      if (doneBtn) doneBtn.addEventListener('click', function () {
+        if (completeDueItem(urgent)) {
+          showToast('Marqué comme fait', 'success');
+          renderHome();
+        }
+      });
+      var laterBtn = document.getElementById('home-urgency-later');
+      if (laterBtn) laterBtn.addEventListener('click', function () {
+        if (snoozeDueItem(urgent, 7)) {
+          showToast('Reporté de 7 jours', 'success');
+          renderHome();
+        }
+      });
+    }
+
+    var queue = all.filter(function (x) { return !urgent || x.id !== urgent.id || x.animalId !== urgent.animalId || x.collection !== urgent.collection; });
+    // Also exclude exact same urgent item
+    if (urgent) {
+      queue = all.filter(function (x) {
+        return !(x.animalId === urgent.animalId && x.collection === urgent.collection && x.id === urgent.id);
+      });
+    }
+    queue = queue.slice(0, 5);
+    if (ensuiteWrap && ensuiteList) {
+      if (!queue.length) {
+        ensuiteWrap.hidden = true;
+      } else {
+        ensuiteWrap.hidden = false;
+        if (ensuiteCount) ensuiteCount.textContent = queue.length + ' élément' + (queue.length > 1 ? 's' : '');
+        ensuiteList.innerHTML = queue.map(function (item) {
+          var tone = delayTone(item.next);
+          var actionLabel = tone === 'late' || tone === 'soon' ? 'Valider' : 'Ouvrir';
+          return '<div class="home-queue__row" data-animal-id="' + item.animalId + '" data-collection="' + item.collection + '" data-id="' + item.id + '">' +
+            '<span class="home-queue__delay home-queue__delay--' + tone + '">' + escapeHtml(formatJDelay(item.next)) + '</span>' +
+            '<span class="home-queue__label">' + escapeHtml((item.name || '') + ' — ' + item.animalName) + '</span>' +
+            '<button type="button" class="home-queue__action" data-action="' + (actionLabel === 'Valider' ? 'validate' : 'open') + '">' + actionLabel + '</button>' +
+            '</div>';
+        }).join('');
+        ensuiteList.querySelectorAll('.home-queue__row').forEach(function (row) {
+          var animalId = parseInt(row.getAttribute('data-animal-id'), 10);
+          var collection = row.getAttribute('data-collection');
+          var id = parseInt(row.getAttribute('data-id'), 10);
+          var item = all.find(function (x) { return x.animalId === animalId && x.collection === collection && x.id === id; });
+          row.addEventListener('click', function (e) {
+            if (e.target.closest('.home-queue__action')) return;
+            state.currentAnimalId = animalId;
+            saveState();
+            showDetail({ tab: 'actes', nav: 'pets' });
+          });
+          var act = row.querySelector('.home-queue__action');
+          if (act) act.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (act.getAttribute('data-action') === 'validate' && item) {
+              if (completeDueItem(item)) {
+                showToast('Validé', 'success');
+                renderHome();
+              }
+            } else {
+              state.currentAnimalId = animalId;
+              saveState();
+              showDetail({ tab: 'actes', nav: 'pets' });
+            }
+          });
+        });
+      }
+    }
+
+    if (petsWrap && petsStrip) {
+      petsWrap.hidden = false;
+      petsStrip.innerHTML = state.animals.map(function (data) {
+        var a = data.animal;
+        var tone = healthTone(data);
+        var short = animalIssueLine(data) || (a.race || a.species || '');
+        if (short.length > 18) short = short.slice(0, 16) + '…';
+        var avatarInner = a.avatar
+          ? (typeof a.avatar === 'number'
+              ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
+              : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
+          : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
+        return '<button type="button" class="home-pet-chip" data-animal-id="' + data.id + '">' +
+          '<div class="home-pet-chip__avatar home-pet-chip__avatar--' + tone + '">' + avatarInner + '</div>' +
+          '<div class="home-pet-chip__name">' + escapeHtml(a.name || 'Sans nom') + '</div>' +
+          '<div class="home-pet-chip__meta">' + escapeHtml(short) + '</div>' +
+          '</button>';
+      }).join('');
+      petsStrip.querySelectorAll('.home-pet-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          state.currentAnimalId = parseInt(chip.getAttribute('data-animal-id'), 10);
+          saveState();
+          showDetail({ tab: 'profil', nav: 'pets' });
+        });
+      });
+      petsStrip.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
+        var key = parseInt(img.getAttribute('data-avatar-key'), 10);
+        if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
+      });
+    }
+
+    var seeAll = document.getElementById('home-see-all-pets');
+    if (seeAll) seeAll.onclick = function () {
+      if (state.animals.length) showDetail({ tab: 'profil', nav: 'pets' });
+      else openModal('addAnimal');
+    };
+  }
+
+  function renderAnimalRail(filterQ) {
+    var needEl = document.getElementById('animal-rail-need');
+    var okEl = document.getElementById('animal-rail-ok');
+    if (!needEl || !okEl) return;
+    filterQ = (filterQ || '').toLowerCase().trim();
+    var need = [];
+    var ok = [];
+    state.animals.forEach(function (data) {
+      var name = (data.animal && data.animal.name) || '';
+      if (filterQ && name.toLowerCase().indexOf(filterQ) === -1) return;
+      var tone = healthTone(data);
+      var issue = animalIssueLine(data);
+      var entry = { data: data, tone: tone, issue: issue, severity: tone === 'late' ? 0 : (tone === 'soon' ? 1 : 2) };
+      if (tone === 'ok') ok.push(entry);
+      else need.push(entry);
+    });
+    need.sort(function (a, b) { return a.severity - b.severity; });
+    function renderGroup(el, items, title) {
+      if (!items.length) { el.innerHTML = ''; return; }
+      el.innerHTML = '<div class="animal-rail__group">' + title + ' · ' + items.length + '</div>' +
+        items.map(function (e) {
+          var a = e.data.animal;
+          var active = e.data.id === state.currentAnimalId;
+          return '<button type="button" class="animal-rail__row' + (active ? ' is-active' : '') + '" data-animal-id="' + e.data.id + '">' +
+            '<span class="animal-rail__dot animal-rail__dot--' + e.tone + '"></span>' +
+            '<span style="flex:1;min-width:0"><span class="animal-rail__name">' + escapeHtml(a.name || 'Sans nom') + '</span>' +
+            (e.issue ? '<span class="animal-rail__issue">' + escapeHtml(e.issue) + '</span>' : '') +
+            '</span></button>';
+        }).join('');
+      el.querySelectorAll('.animal-rail__row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          state.currentAnimalId = parseInt(row.getAttribute('data-animal-id'), 10);
+          saveState();
+          renderAnimalSelect();
+          refreshAll();
+          renderAnimalRail(document.getElementById('animal-rail-search') && document.getElementById('animal-rail-search').value);
+        });
+      });
+    }
+    renderGroup(needEl, need, 'Demandent une action');
+    renderGroup(okEl, ok, 'À jour');
+  }
+
+  function renderDossierHeader() {
+    var data = getCurrent();
+    if (!data) return;
+    var a = data.animal;
+    var nameEl = document.getElementById('dossier-name');
+    var lineEl = document.getElementById('dossier-line');
+    var avEl = document.getElementById('dossier-avatar');
+    if (nameEl) nameEl.textContent = a.name || 'Animal';
+    if (lineEl) {
+      var age = a.dob ? (function () {
+        var m = calculateAgeMonths(a.dob);
+        return m == null ? '' : (m < 24 ? m + ' mois' : Math.floor(m / 12) + ' ans');
+      })() : '';
+      lineEl.textContent = [a.race || a.species, a.sex, age, a.sterilise === 'Oui' ? 'stérilisé' : ''].filter(Boolean).join(' · ');
+    }
+    if (avEl) {
+      if (a.avatar && typeof a.avatar === 'number') {
+        avEl.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="">';
+        getPhotoObjectUrl(a.avatar).then(function (url) {
+          var img = avEl.querySelector('img');
+          if (img && url) img.src = url;
+        }).catch(function () {});
+      } else if (a.avatar) {
+        avEl.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="">';
+      } else {
+        avEl.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
+        avEl.style.fontSize = '28px';
+      }
+    }
+  }
+
+  function stitchInfo(label, value, icon) {
+    return '<div class="identity-field">' + ico(icon || 'fileText', 18) + '<div><span>' + label + '</span><strong>' + escapeHtml(value || 'Non renseigné') + '</strong></div></div>';
+  }
+  function renderHealthOverview() {
+    var data = getCurrent();
+    if (!data) return;
+    var due = collectDueItemsForAnimal(data);
+    var late = due.filter(function (x) { return daysUntil(x.next) < 0; }).length;
+    var soon = due.filter(function (x) { var days = daysUntil(x.next); return days >= 0 && days <= 14; }).length;
+    var text = late ? late + ' rappel(s) en retard' : soon ? soon + ' soin(s) à prévoir dans les 14 jours' : 'Vos soins, réunis dans un même carnet';
+    ['vaccins','deworming','hygiene','medications'].forEach(function (key) {
+      var el = document.getElementById('health-overview-' + key);
+      if (el) el.innerHTML = '<div><h2>Carnet de santé & soins</h2><p>' + escapeHtml(text) + '</p></div><div class="stitch-record-tags"><span>' + (data.vaccines || []).length + ' vaccin(s)</span><span>' + (data.dewormings || []).length + ' déparasitage(s)</span></div>';
+    });
+  }
+
+  function renderIdentity() {
+    var data = getCurrent();
+    if (!data) return;
+    var a = data.animal, o = getOwner(), pedigree = data.pedigree || {};
+    document.getElementById('identity-passport').innerHTML = '<h2>Identité & passeport</h2>' +
+      stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
+      stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
+      stitchInfo('Clinique référente', o.clinic, 'hospital') + '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>';
+    document.getElementById('identity-owner').innerHTML = '<h2>Fiche propriétaire</h2><p>Contact principal pour votre compagnon.</p>' +
+      stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
+  }
+
+  function renderFicheV1() {
+    renderIdentity();
+    renderHealthOverview();
+    var data = getCurrent();
+    var metrics = document.getElementById('fiche-metrics');
+    var banner = document.getElementById('fiche-banner');
+    var domains = document.getElementById('fiche-domains');
+    if (!data || !metrics) return;
+    var a = data.animal;
+    var tiles = [];
+    if (a.weight != null && a.weight !== '') {
+      tiles.push({ label: 'Poids', value: String(a.weight).replace('.', ',') + ' kg', trend: '', ok: false });
+    }
+    if (a.height != null && a.height !== '') {
+      tiles.push({ label: 'Taille au garrot', value: String(a.height).replace('.', ',') + ' cm', trend: '', ok: false });
+    }
+    // checkup score from last journal? skip if none — no fake data
+    var yearSpend = 0;
+    var consultCount = 0;
+    (data.consultations || []).forEach(function (c) {
+      if (!c.date) return;
+      var dt = isoToLocalDate(c.date);
+      if (!dt) return;
+      var yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      if (dt >= yearAgo) {
+        consultCount++;
+        var cost = parseFloat(c.cost || c.prix || c.amount || 0);
+        if (!isNaN(cost)) yearSpend += cost;
+      }
+    });
+    if (consultCount > 0 || yearSpend > 0) {
+      tiles.push({
+        label: 'Dépenses 12 mois',
+        value: (yearSpend ? Math.round(yearSpend).toLocaleString('fr-FR') + ' €' : '—'),
+        trend: consultCount ? (consultCount + ' consultation' + (consultCount > 1 ? 's' : '')) : '',
+        ok: false
+      });
+    }
+    metrics.innerHTML = tiles.map(function (t) {
+      return '<div class="fiche-metric"><div class="fiche-metric__label">' + escapeHtml(t.label) + '</div>' +
+        '<div class="fiche-metric__value">' + escapeHtml(t.value) + '</div>' +
+        (t.trend ? '<div class="fiche-metric__trend' + (t.ok ? ' fiche-metric__trend--ok' : '') + '">' + escapeHtml(t.trend) + '</div>' : '') +
+        '</div>';
+    }).join('') || '<p class="global-view__sub">Renseignez le poids et la taille pour afficher les constantes.</p>';
+
+    var overdueItems = collectDueItemsForAnimal(data).filter(function (x) { return daysUntil(x.next) < 0; });
+    if (banner) {
+      if (!overdueItems.length) {
+        banner.hidden = true;
+      } else {
+        banner.hidden = false;
+        var clinic = getPrimaryClinicPhone();
+        var names = overdueItems.slice(0, 2).map(function (x) { return x.name; }).join(', ');
+        banner.innerHTML = '<div><div class="fiche-banner__title">' + overdueItems.length + ' acte' + (overdueItems.length > 1 ? 's' : '') + ' en retard</div>' +
+          '<div class="fiche-banner__sub">' + escapeHtml(names) + '. ' + (clinic ? 'Une visite chez ' + escapeHtml(clinic.name) + ' peut suffire.' : '') + '</div></div>' +
+          (clinic && clinic.phone
+            ? '<a class="dossier-btn dossier-btn--primary" href="tel:' + escapeHtml(clinic.phone.replace(/\s+/g, '')) + '">Appeler</a>'
+            : '<button type="button" class="dossier-btn dossier-btn--primary" id="fiche-banner-dir">Annuaire</button>');
+        var dirBtn = document.getElementById('fiche-banner-dir');
+        if (dirBtn) dirBtn.addEventListener('click', showDirectory);
+      }
+    }
+
+    if (domains) {
+      var vax = summarizeDomain(data.vaccines, 'name', 'next');
+      var dew = summarizeDomain(data.dewormings, 'name', 'next');
+      var hyg = summarizeDomain(data.hygiene, 'type', 'next');
+      var meds = (data.medications || []).filter(function (m) { return m.active !== false; });
+      var medSum;
+      if (!meds.length) medSum = { status: 'ok', statusLabel: 'aucun', body: 'Pas de traitement en cours.' };
+      else {
+        var m = meds[0];
+        medSum = { status: 'soon', statusLabel: 'en cours', body: (m.name || 'Traitement') + (m.endDate ? (', fin le ' + fmtDate(m.endDate)) : '') + '.' };
+      }
+      var blocks = [
+        { title: 'Vaccins', s: vax },
+        { title: 'Déparasitage', s: dew },
+        { title: 'Hygiène', s: hyg },
+        { title: 'Traitement', s: medSum }
+      ];
+      domains.innerHTML = blocks.map(function (b) {
+        return '<div class="fiche-domain"><div class="fiche-domain__top"><span class="fiche-domain__name">' + b.title + '</span>' +
+          '<span class="fiche-domain__status fiche-domain__status--' + b.s.status + '">' + escapeHtml(b.s.statusLabel) + '</span></div>' +
+          '<div class="fiche-domain__body">' + escapeHtml(b.s.body) + '</div></div>';
+      }).join('');
+    }
+  }
+
+  function renderActes() {
+    var data = getCurrent();
+    var list = document.getElementById('actes-list');
+    var title = document.getElementById('actes-title');
+    var sub = document.getElementById('actes-sub');
+    var groupBanner = document.getElementById('actes-group-banner');
+    var dupBanner = document.getElementById('actes-dup-banner');
+    if (!data || !list) return;
+    var name = (data.animal && data.animal.name) || 'Animal';
+    if (title) title.textContent = 'Protection de ' + name;
+    var protections = buildProtections(data);
+    var lateCount = protections.filter(function (p) { return p.tone === 'late'; }).length;
+    if (sub) sub.textContent = protections.length + ' protection' + (protections.length > 1 ? 's' : '') + ' suivie' + (protections.length > 1 ? 's' : '') + (lateCount ? (' · ' + lateCount + ' à rattraper') : '');
+
+    list.innerHTML = protections.map(function (p) {
+      var fillCls = p.tone === 'late' ? 'acte-track__fill--late' : (p.tone === 'soon' ? 'acte-track__fill--soon' : '');
+      var hist = (p.history || []).map(function (h) {
+        return '<li>' + escapeHtml(fmtDate(h.date || h.startDate || '') + ' — ' + (h.name || h.type || p.name)) + '</li>';
+      }).join('');
+      return '<div class="acte-card' + (p.tone === 'late' ? ' acte-card--late' : '') + '">' +
+        '<div class="acte-card__top"><div><div class="acte-card__name">' + escapeHtml(p.name) + '</div>' +
+        '<div class="acte-card__sub">' + escapeHtml(p.sub || '') + '</div></div>' +
+        '<span class="acte-card__status fiche-domain__status--' + p.tone + '">' + escapeHtml(p.statusLabel) + '</span></div>' +
+        '<div class="acte-track"><span class="acte-track__fill ' + fillCls + '" style="width:' + Math.min(100, p.pct) + '%"></span></div>' +
+        '<div class="acte-card__dates"><span>' + escapeHtml(p.from ? fmtDate(p.from) + ' · fait' : '—') + '</span>' +
+        '<span style="color:' + (p.tone === 'late' ? 'var(--status-late)' : 'inherit') + '">' + escapeHtml(p.to ? fmtDate(p.to) + (p.tone === 'late' ? ' · échu' : '') : '—') + '</span></div>' +
+        (hist ? '<details class="acte-card__history"><summary>Historique</summary><ul>' + hist + '</ul></details>' : '') +
+        '</div>';
+    }).join('') || '<p class="global-view__sub">Aucun acte enregistré. Ajoutez un vaccin ou un déparasitage.</p>';
+
+    var lateVax = protections.filter(function (p) { return p.collection === 'vaccines' && p.tone === 'late'; });
+    var hasRage = lateVax.some(function (p) { return isRageName(p.name); });
+    var hasChppi = lateVax.some(function (p) { return isChppiName(p.name); });
+    if (groupBanner) {
+      if (hasRage && hasChppi) {
+        groupBanner.hidden = false;
+        var clinic = getPrimaryClinicPhone();
+        groupBanner.innerHTML = '<div style="font-size:14px;color:#7a5646;line-height:1.5"><span style="font-weight:700;color:var(--status-late)">Rage et CHPPi s\'administrent ensemble.</span> Une seule visite remet les deux barres au vert.</div>' +
+          (clinic && clinic.phone
+            ? '<a class="dossier-btn dossier-btn--primary" href="tel:' + escapeHtml(clinic.phone.replace(/\s+/g, '')) + '">Prendre RDV</a>'
+            : '<button type="button" class="dossier-btn dossier-btn--primary" id="actes-group-dir">Annuaire</button>');
+        var gbtn = document.getElementById('actes-group-dir');
+        if (gbtn) gbtn.addEventListener('click', showDirectory);
+      } else groupBanner.hidden = true;
+    }
+
+    var dups = findDuplicates(data);
+    if (dupBanner) {
+      if (!dups.length) dupBanner.hidden = true;
+      else {
+        dupBanner.hidden = false;
+        var d = dups[0];
+        dupBanner.innerHTML = '<div class="actes-dup-banner__title">Doublons détectés</div>' +
+          '<div class="actes-dup-banner__body">' + escapeHtml(d.label) + ' saisi deux fois le ' + fmtDate(d.date) + '.</div>' +
+          '<div class="actes-dup-banner__actions">' +
+          '<button type="button" class="dossier-btn dossier-btn--primary" id="actes-merge-dup">Fusionner</button>' +
+          '<button type="button" class="dossier-btn dossier-btn--ghost" id="actes-keep-dup">Garder les deux</button></div>';
+        document.getElementById('actes-merge-dup').addEventListener('click', function () {
+          var list2 = data[d.collection];
+          var idx = list2.findIndex(function (x) { return x.id === d.b.id; });
+          if (idx >= 0) list2.splice(idx, 1);
+          saveState();
+          showToast('Doublon fusionné', 'success');
+          renderActes();
+        });
+        document.getElementById('actes-keep-dup').addEventListener('click', function () {
+          dupBanner.hidden = true;
+        });
+      }
+    }
+  }
+
+  function renderAgendaList() {
+    var list = document.getElementById('agenda-list');
+    var sub = document.getElementById('agenda-sub');
+    if (!list) return;
+    var all = collectAllDueItems();
+    if (sub) sub.textContent = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + ' · ' + state.animals.length + ' animal' + (state.animals.length > 1 ? 'aux' : '');
+    var byDay = {};
+    all.forEach(function (item) {
+      var key = item.next;
+      if (!byDay[key]) byDay[key] = [];
+      byDay[key].push(item);
+    });
+    var days = Object.keys(byDay).sort();
+    if (!days.length) {
+      list.innerHTML = '<div class="agenda-row"><span class="agenda-row__label">Aucune échéance à venir.</span></div>';
+      return;
+    }
+    list.innerHTML = days.slice(0, 12).map(function (day) {
+      var items = byDay[day];
+      var d = daysUntil(day);
+      var dateLabel = isoToLocalDate(day).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: d != null && Math.abs(d) > 20 ? 'short' : undefined });
+      var label = items.length === 1
+        ? ((items[0].name || '') + ' — ' + items[0].animalName)
+        : (items.length + ' actes · ' + items.map(function (i) { return i.animalName; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', '));
+      var today = d === 0;
+      return '<div class="agenda-row" data-day="' + day + '">' +
+        '<span class="agenda-row__date' + (today || (d != null && d < 0) ? ' agenda-row__date--today' : '') + '">' + escapeHtml(dateLabel) + '</span>' +
+        '<span class="agenda-row__label">' + escapeHtml(label) + '</span>' +
+        '<span class="agenda-row__meta">' + escapeHtml(today ? "aujourd'hui" : formatJDelay(day)) + '</span></div>';
     }).join('');
+  }
 
-    // Delete buttons on cards
-    grid.querySelectorAll('.pet-card-delete').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var id = parseInt(btn.getAttribute('data-delete-animal'), 10);
-        deleteAnimal(id);
-      });
+  function hideAppViews() {
+    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
     });
-
-    grid.querySelectorAll('.pet-card').forEach(function (card) {
-      card.addEventListener('click', function (e) {
-        if (e.target.closest('.btn-card, .pet-card-delete')) return;
-        var id = parseInt(card.getAttribute('data-animal-id'), 10);
-        if (!state.animals.some(function (x) { return x.id === id; })) return;
-        state.currentAnimalId = id;
-        saveState();
-        showDetail();
-      });
-    });
-
-    grid.querySelectorAll('.btn-card').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = parseInt(btn.getAttribute('data-animal-id'), 10);
-        var action = btn.getAttribute('data-action');
-        if (!state.animals.some(function (x) { return x.id === id; })) return;
-        state.currentAnimalId = id;
-        saveState();
-        showDetail();
-        if (action === 'vaccin') openModal('addVaccin');
-        if (action === 'deworming') openModal('addDeworming');
-        if (action === 'photos') switchTab('photos');
-      });
-    });
-
-    grid.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
-      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
-      if (isNaN(key)) return;
-      getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
-    });
+    var vd = document.getElementById('view-detail');
+    if (vd) vd.classList.remove('is-pet-profile');
   }
 
   function setBottomNavActive(nav) {
+    renderCareSidebar();
+    markCareRoute(nav);
     document.querySelectorAll('.bottom-nav__item').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-nav') === nav);
+      if (b.getAttribute('data-nav') === nav) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('.top-nav__btn').forEach(function (b) {
+      b.classList.toggle('is-active', b.getAttribute('data-nav') === nav);
     });
   }
 
-  function syncBottomNavFromTab(tabName) {
-    if (tabName === 'profil') setBottomNavActive('pets');
-    else if (tabName === 'nutrition') setBottomNavActive('nutrition');
-    else if (TABS_SANTE.indexOf(tabName) !== -1) setBottomNavActive('medical');
-    else if (tabName === 'calendrier' || tabName === 'alertes') setBottomNavActive('calendar');
+  function syncBottomNavFromTab() {
+    setBottomNavActive('pets');
   }
 
   function showHome() {
     state.viewMode = 'home';
+    hideAppViews();
     var viewHome = document.getElementById('view-home');
-    var viewDetail = document.getElementById('view-detail');
-    var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
-    var viewFavorites = document.getElementById('view-favorites');
-    var viewHelp = document.getElementById('view-help');
-    viewDetail.hidden = true;
-    if (viewDetail) viewDetail.classList.remove('is-pet-profile');
-    if (viewCommunity) viewCommunity.hidden = true;
-    if (viewProfile) viewProfile.hidden = true;
-    if (viewFavorites) viewFavorites.hidden = true;
-    if (viewHelp) viewHelp.hidden = true;
     viewHome.hidden = false;
     viewHome.classList.remove('view-enter');
     void viewHome.offsetWidth;
@@ -1562,20 +2270,53 @@
     saveRoute({ view: 'home' });
   }
 
+  function showAgenda() {
+    state.viewMode = 'agenda';
+    hideAppViews();
+    var view = document.getElementById('view-agenda');
+    if (view) view.hidden = false;
+    document.getElementById('fab-container').hidden = true;
+    document.getElementById('animal-select').hidden = true;
+    setBottomNavActive('calendar');
+    renderAgendaList();
+    if (state.animals.length) renderCalendar();
+    saveRoute({ view: 'agenda' });
+  }
+
+  function showDirectory() {
+    state.viewMode = 'directory';
+    hideAppViews();
+    var view = document.getElementById('view-annuaire');
+    if (view) view.hidden = false;
+    document.getElementById('fab-container').hidden = true;
+    document.getElementById('animal-select').hidden = true;
+    setBottomNavActive('directory');
+    renderVetDirectory();
+    var emerg = document.getElementById('annuaire-emergency-slot');
+    if (emerg) {
+      var dir = loadVetDirectory();
+      var emergency = ((dir && dir.entries) || []).filter(function (e) { return e.emergency; });
+      emerg.innerHTML = emergency.map(function (e) {
+        return '<div class="annuaire-emergency"><div class="label-caps" style="color:var(--status-late)">Urgences 24 h/24</div>' +
+          '<div style="font-size:17px;font-weight:800;color:var(--deep-green);margin-top:4px">' + escapeHtml(e.name || e.clinic || 'Urgence') + '</div>' +
+          '<div style="font-size:13px;color:#7a5646;margin-top:3px">' + escapeHtml([e.phone, e.address, e.hours].filter(Boolean).join(' · ')) + '</div>' +
+          (e.phone ? '<a class="dossier-btn dossier-btn--primary" style="display:inline-block;margin-top:12px" href="tel:' + escapeHtml(e.phone.replace(/\s+/g, '')) + '">Appeler</a>' : '') +
+          '</div>';
+      }).join('');
+    }
+    var sub = document.getElementById('annuaire-sub');
+    if (sub) {
+      var n = ((loadVetDirectory().entries) || []).length;
+      sub.textContent = n + ' praticien' + (n > 1 ? 's' : '') + ' · urgences';
+    }
+    saveRoute({ view: 'directory' });
+  }
+
   function showDetail(opts) {
     opts = opts || {};
     state.viewMode = 'detail';
-    var viewHome = document.getElementById('view-home');
+    hideAppViews();
     var viewDetail = document.getElementById('view-detail');
-    var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
-    var viewFavorites = document.getElementById('view-favorites');
-    var viewHelp = document.getElementById('view-help');
-    viewHome.hidden = true;
-    if (viewCommunity) viewCommunity.hidden = true;
-    if (viewProfile) viewProfile.hidden = true;
-    if (viewFavorites) viewFavorites.hidden = true;
-    if (viewHelp) viewHelp.hidden = true;
     viewDetail.hidden = false;
     viewDetail.classList.remove('view-enter');
     void viewDetail.offsetWidth;
@@ -1585,16 +2326,12 @@
     uiState.petChartMode = 'weight';
     refreshAll();
     var tab = opts.tab || 'profil';
+    if (tab === 'calendrier') { showAgenda(); return; }
+    if (tab === 'annuaire') { showDirectory(); return; }
+    if (tab === 'journal') tab = 'suivi';
     switchTab(tab);
-    if (!opts.nav) {
-      if (tab === 'profil') setBottomNavActive('pets');
-      else if (tab === 'nutrition') setBottomNavActive('nutrition');
-      else if (tab === 'vaccins' || tab === 'consultations' || tab === 'medications' || tab === 'deworming' || tab === 'hygiene') setBottomNavActive('medical');
-      else if (tab === 'calendrier' || tab === 'alertes') setBottomNavActive('calendar');
-      else setBottomNavActive('pets');
-    } else {
-      setBottomNavActive(opts.nav);
-    }
+    setBottomNavActive(opts.nav || 'pets');
+    markCareRoute(tab);
     saveRoute({ view: 'detail', animalId: state.currentAnimalId, tab: tab });
   }
 
@@ -1694,7 +2431,7 @@
       } else if (a.avatar && typeof a.avatar === 'string') {
         av.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
       } else {
-        av.textContent = a.species === 'Féline' ? '🐱' : '🐕';
+        av.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
         av.style.fontSize = '64px';
       }
     }
@@ -1707,9 +2444,9 @@
     document.getElementById('owner-email').textContent = o.email || '—';
     document.getElementById('owner-clinic').textContent = o.clinic || '—';
 
-    animateCounter(document.getElementById('stat-vax'), data.vaccines.length, 400);
-    animateCounter(document.getElementById('stat-dew'), data.dewormings.length, 400);
-    animateCounter(document.getElementById('stat-photos'), data.photos.length, 400);
+    animateCounter(document.getElementById('stat-vax'), (data.vaccines || []).length, 400);
+    animateCounter(document.getElementById('stat-dew'), (data.dewormings || []).length, 400);
+    animateCounter(document.getElementById('stat-photos'), (data.photos || []).length, 400);
 
     var upcoming = [].concat(data.vaccines.filter(function (v) { return v.next; }))
       .concat(data.dewormings.filter(function (d) { return d.next; }))
@@ -1759,6 +2496,8 @@
     });
 
     renderPetProfileTasks(data);
+    renderDossierHeader();
+    renderFicheV1();
   }
 
   function animateCounter(el, target, duration) {
@@ -1978,7 +2717,7 @@
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
     var data = getCurrent();
-    if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner' && name !== 'language') return;
+    if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner' && name !== 'language' && name !== 'backup' && name !== 'pushSettings') return;
 
     if (name === 'addAnimal') {
       populateBreedSuggestions(document.getElementById('aa-species').value || 'Canine');
@@ -1995,7 +2734,7 @@
       var hEl = document.getElementById('ea-height');
       if (hEl) hEl.value = a.height != null && a.height !== '' ? a.height : '';
       var colorEl = document.getElementById('ea-themeColor');
-      if (colorEl) colorEl.value = a.themeColor || '#0B5450';
+      if (colorEl) colorEl.value = a.themeColor || '#1F3D34';
       var prev = document.getElementById('edit-avatar-preview');
       if (prev) {
         prev.innerHTML = '';
@@ -2008,7 +2747,7 @@
         } else if (a.avatar && typeof a.avatar === 'string') {
           prev.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
         } else {
-          prev.textContent = a.species === 'Féline' ? '🐱' : '🐕';
+          prev.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
         }
       }
     }
@@ -2051,9 +2790,9 @@
       var todayStrH = todayISO();
       var ah = data.animal || {};
       var dateElH = document.getElementById('hh-date');
-      var hEl = document.getElementById('hh-height');
+      var hhEl = document.getElementById('hh-height');
       if (dateElH) dateElH.value = todayStrH;
-      if (hEl) hEl.value = ah.height != null ? ah.height : '';
+      if (hhEl) hhEl.value = ah.height != null ? ah.height : '';
     }
 
     if (name === 'addConsult') {
@@ -2320,13 +3059,13 @@
     }
 
     if (name === 'editHeight') {
-      var hid = uiState.editHeightEntryId;
+      var editHeightId = uiState.editHeightEntryId;
       var hEntries = Array.isArray(data.animal?.heightHistory) ? data.animal.heightHistory : [];
-      var hEntry = hEntries.find(function (x) { return x.id === hid; }) || null;
-      if (!hEntry) return;
-      document.getElementById('eh-id').value = String(hEntry.id);
-      document.getElementById('eh-date').value = hEntry.date || '';
-      document.getElementById('eh-height').value = hEntry.height != null ? String(hEntry.height) : '';
+      var heightEntry = hEntries.find(function (x) { return x.id === editHeightId; }) || null;
+      if (!heightEntry) return;
+      document.getElementById('eh-id').value = String(heightEntry.id);
+      document.getElementById('eh-date').value = heightEntry.date || '';
+      document.getElementById('eh-height').value = heightEntry.height != null ? String(heightEntry.height) : '';
     }
 
     var overlay = document.getElementById('modal-' + name);
@@ -2374,7 +3113,7 @@
       a.height = hIn.value.trim() === '' || isNaN(hv) ? null : hv;
     }
     var colorEl = document.getElementById('ea-themeColor');
-    if (colorEl) a.themeColor = colorEl.value === '#0B5450' ? '' : colorEl.value;
+    if (colorEl) a.themeColor = colorEl.value === '#1F3D34' ? '' : colorEl.value;
     closeModal('editAnimal');
     saveState();
     renderProfile();
@@ -2545,7 +3284,8 @@
   }
 
   // ——— Add animal ———————————————————————————————————————
-  function addAnimal() {
+  async function addAnimal() {
+    if (uiState.addingAnimal) return;
     var name = document.getElementById('aa-name').value.trim();
     if (!name) { showToast("Veuillez saisir le nom de l'animal.", 'error'); return; }
     var newAnimal = {
@@ -2557,11 +3297,25 @@
         sex: document.getElementById('aa-sex').value || 'Mâle',
         dob: document.getElementById('aa-dob').value || '',
         weight: parseFloat(document.getElementById('aa-weight').value, 10) || null,
-        weightHistory: [], height: null, heightHistory: [], color: '', chip: '', sterilise: 'Non', notes: '', avatar: null, themeColor: ''
+        weightHistory: [], height: null, heightHistory: [], color: '', chip: document.getElementById('aa-chip').value.trim(), sterilise: document.getElementById('aa-sterilise').value, notes: '', avatar: null, themeColor: ''
       },
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
       notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
     };
+    uiState.addingAnimal = true;
+    var submit = document.querySelector('#form-add-animal [type=submit]');
+    submit.disabled = true;
+    var photo = document.getElementById('aa-photo').files[0];
+    if (photo) {
+      try {
+        var blob = await resizeImageToBlob(photo, 320, 'image/jpeg', 0.85);
+        var photoKey = state.nextId++;
+        await putPhotoBlob(photoKey, blob, blob.type);
+        newAnimal.animal.avatar = photoKey;
+      } catch (err) { uiState.addingAnimal = false; submit.disabled = false; showToast('La photo n’a pas pu être ajoutée. Choisissez une autre image.', 'error'); return; }
+    }
+    uiState.addingAnimal = false;
+    submit.disabled = false;
     state.animals.push(newAnimal);
     state.currentAnimalId = newAnimal.id;
     closeModal('addAnimal');
@@ -2570,7 +3324,7 @@
     renderAnimalSelect();
     refreshAll();
     showToast('Animal ajouté', 'success');
-    if (state.viewMode === 'home') showDetail();
+    showDetail({ tab: 'profil', nav: 'pets' });
   }
 
   // ——— Avatar ————————————————————————————————————————
@@ -2635,6 +3389,9 @@
   }
 
   function renderGallery() {
+    var summary = document.getElementById('gallery-summary');
+    var current = getCurrent();
+    if (summary && current) summary.textContent = (current.photos || []).length + ' photo(s) dans le carnet de ' + (current.animal.name || 'votre compagnon') + '.';
     var data = getCurrent();
     var grid = document.getElementById('gallery-grid');
     if (!data || !grid) return;
@@ -2648,8 +3405,8 @@
         var photoId = p.id;
         var legacySrc = (p && typeof p.src === 'string') ? escapeHtml(p.src) : '';
         var captionHtml = p.caption ? '<div class="photo-caption">' + escapeHtml(p.caption) + '</div>' : '';
-        return '<div class="gallery-item" data-photo-id="' + p.id + '">' +
-          '<img src="' + legacySrc + '" data-photo-key="' + photoId + '" alt="Photo">' +
+        return '<div class="gallery-item" role="group" data-photo-id="' + p.id + '">' +
+          '<img src="' + legacySrc + '" data-photo-key="' + photoId + '" tabindex="0" role="button" alt="' + escapeHtml(p.caption || 'Ouvrir la photo du ' + fmtDate(p.date)) + '">' +
           '<div class="photo-date">' + fmtDate(p.date) + captionHtml + '</div>' +
           '<div class="photo-actions-overlay">' +
           '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">' + ico('edit', 14) + '</button>' +
@@ -2663,6 +3420,7 @@
       var id = parseInt(el.getAttribute('data-photo-id'), 10);
       if (isNaN(id)) return;
       var img = el.querySelector('img');
+      if (img) img.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLightbox(id, img.src || ''); } });
       el.addEventListener('click', function (e) {
         if (e.target.closest('.photo-actions-overlay')) return;
         openLightbox(id, img?.src || '');
@@ -3084,9 +3842,11 @@
     list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
     var summaryEl = document.getElementById('consult-summary');
+    var consultSection = document.getElementById('section-consultations');
+    if (summaryEl && consultSection) consultSection.prepend(summaryEl);
     if (summaryEl) {
       var allConsults = Array.isArray(data.consultations) ? data.consultations : [];
-      summaryEl.hidden = allConsults.length === 0;
+      summaryEl.hidden = false;
       var filteredTotal = list.reduce(function (sum, c) { return sum + (Number(c.cost) || 0); }, 0);
       var yearAgo = new Date(); yearAgo.setDate(yearAgo.getDate() - 365);
       var yearTotal = allConsults.reduce(function (sum, c) {
@@ -3636,29 +4396,16 @@
       var lastStart = sorted[sorted.length - 1].startDate;
       var nextPredicted = addDaysISO(lastStart, avgCycle);
       var rel = relativeDate(nextPredicted);
-      predictionHtml = '<div class="heat-prediction-banner"><span>🔮</span> Prochaines chaleurs estimées : <strong>' + fmtDate(nextPredicted) + '</strong> (' + escapeHtml(rel) + ') — cycle moyen : ' + avgCycle + ' jours</div>';
+      predictionHtml = '<div class="heat-prediction-banner">' + ico('calendar',24) + '<span> Prochaines chaleurs estimées : <strong>' + fmtDate(nextPredicted) + '</strong> (' + escapeHtml(rel) + ') — cycle moyen : ' + avgCycle + ' jours.</span></div><p class="stitch-note">Projection indicative à partir des périodes enregistrées' + (sorted.length < 2 ? ' et d’un intervalle par défaut de 180 jours' : '') + '. Elle ne permet pas de déterminer une fenêtre fertile.</p>';
     }
 
     var predEl = document.getElementById('heat-prediction');
     if (predEl) predEl.innerHTML = predictionHtml;
 
-    if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('thermom') + '</div><p>Aucune période enregistrée</p></div></td></tr>';
-    } else {
-      tbody.innerHTML = list.map(function (c) {
-        var duration = '';
-        if (c.startDate && c.endDate) {
-          var days = Math.round((new Date(c.endDate) - new Date(c.startDate)) / 864e5);
-          duration = days + ' jours';
-        }
-        return '<tr><td>' + fmtDate(c.startDate) + '</td>' +
-          '<td>' + fmtDate(c.endDate) + '</td>' +
-          '<td>' + escapeHtml(duration) + '</td>' +
-          '<td>' + escapeHtml(c.intensity || '') + '</td>' +
-          '<td>' + escapeHtml(c.notes || '') + '</td>' +
-          '<td><button type="button" class="btn-edit" data-heat-id="' + c.id + '">Modifier</button> <button type="button" class="btn-delete" data-heat-id="' + c.id + '">✕</button></td></tr>';
-      }).join('');
-    }
+    tbody.innerHTML = list.length ? list.map(function (c) {
+      var days = c.endDate ? Math.round((new Date(c.endDate) - new Date(c.startDate)) / 864e5) : null;
+      return '<article class="stitch-record heat-record"><span class="stitch-record-icon">' + ico('calendar',22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(c.startDate) + ' — ' + (c.endDate ? fmtDate(c.endDate) : 'En cours') + '</h3><p>' + escapeHtml(c.notes || 'Aucune observation renseignée.') + '</p><div class="stitch-record-tags"><span>' + (days == null ? 'Fin à renseigner' : days + ' jours') + '</span><span>Intensité : ' + escapeHtml(c.intensity || 'Non renseignée') + '</span></div></div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-heat-id="' + c.id + '">Modifier</button><button type="button" class="btn-delete" data-heat-id="' + c.id + '" aria-label="Supprimer cette période">' + ico('trash',16) + '</button></div></article>';
+    }).join('') : '<div class="stitch-empty"><h3>Commencez le suivi de ses cycles</h3><p>Notez les dates et les observations pour retrouver son historique.</p><button type="button" class="care-action" data-stitch-action="addHeatCycle">Enregistrer une période</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -3980,28 +4727,15 @@
     var todayStr = todayISO();
     var todayMeals = meals.filter(function (m) { return m.date === todayStr; });
     var plannedPerDay = parseInt(plan.mealsPerDay, 10) || 0;
-    var summaryHtml = '<div class="nutrition-summary"><h3>Aujourd\'hui : ' + todayMeals.length + (plannedPerDay ? ' / ' + plannedPerDay : '') + ' repas</h3></div>';
 
-    // Table
-    var tableHtml = '<div class="data-table"><div class="table-header"><div class="table-header-left"><h2 class="section-title">' + ico('utensils') + ' Repas enregistrés</h2></div><button type="button" class="btn-icon" onclick="app.openModal(\'addMeal\')">+ Ajouter</button></div>' +
-      '<div class="table-scroll"><table><thead><tr><th>Date</th><th>Heure</th><th>Type</th><th>Aliment</th><th>Quantité</th><th>Notes</th><th></th></tr></thead><tbody id="meal-table"></tbody></table></div></div>';
 
-    container.innerHTML = planHtml + summaryHtml + tableHtml;
-
+    var mealList = '<section class="stitch-meals"><header class="stitch-page-head"><h2>Repas enregistrés</h2><button type="button" class="care-action" data-stitch-action="addMeal">Ajouter un repas</button></header><div id="meal-table" class="stitch-record-list"></div></section>';
+    var dailyHtml = '<div class="stitch-daily-summary">' + ico('utensils', 32) + '<div><h2>Apport du jour</h2><p>' + todayMeals.length + (plannedPerDay ? ' / ' + plannedPerDay : '') + ' repas enregistrés aujourd’hui</p></div>' + (plannedPerDay ? '<progress max="' + plannedPerDay + '" value="' + Math.min(todayMeals.length, plannedPerDay) + '" aria-label="Repas enregistrés sur le nombre prévu"></progress>' : '') + '</div>';
+    container.innerHTML = '<nav class="stitch-community-nav" aria-label="Suivi quotidien">' + careButton('nutrition', 'Nutrition & repas', 'utensils', true) + careButton('activites', 'Activités & balades', 'activity') + '</nav>' + dailyHtml + planHtml + mealList;
     var tbody = document.getElementById('meal-table');
-    if (meals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state-illustrated"><div class="empty-svg" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:4px solid var(--border)">' + ico('utensils') + '</div><p>Aucun repas enregistré</p></div></td></tr>';
-    } else {
-      tbody.innerHTML = meals.map(function (m) {
-        return '<tr><td>' + fmtDate(m.date) + '</td>' +
-          '<td>' + escapeHtml(m.time || '') + '</td>' +
-          '<td>' + escapeHtml(m.type || '') + '</td>' +
-          '<td>' + escapeHtml(m.food || '') + '</td>' +
-          '<td>' + (m.quantity ? escapeHtml(m.quantity) + ' ' + escapeHtml(m.unit || '') : '—') + '</td>' +
-          '<td>' + escapeHtml(m.notes || '') + '</td>' +
-          '<td><button type="button" class="btn-edit" data-meal-id="' + m.id + '">Modifier</button> <button type="button" class="btn-delete" data-meal-id="' + m.id + '">✕</button></td></tr>';
-      }).join('');
-    }
+    tbody.innerHTML = meals.length ? meals.map(function (m) {
+      return '<article class="stitch-record"><span class="stitch-record-icon">' + ico('utensils', 22) + '</span><div class="stitch-record-copy"><h3>' + escapeHtml(m.type || 'Repas') + (m.time ? ' · ' + escapeHtml(m.time) : '') + '</h3><p>' + escapeHtml([m.quantity, m.unit, m.food].filter(Boolean).join(' ')) + '</p><small>' + fmtDate(m.date) + '</small>' + (m.notes ? '<p class="stitch-inset">' + escapeHtml(m.notes) + '</p>' : '') + '</div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-meal-id="' + m.id + '">Modifier</button><button type="button" class="btn-delete" data-meal-id="' + m.id + '" aria-label="Supprimer ce repas">' + ico('trash',16) + '</button></div></article>';
+    }).join('') : '<div class="stitch-card stitch-empty">' + ico('utensils',32) + '<h3>Son premier repas vous attend</h3><p>Consignez les quantités et les horaires pour suivre son alimentation.</p><button type="button" class="care-action" data-stitch-action="addMeal">Ajouter un repas</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -4441,17 +5175,10 @@
   }
 
   function showCommunity(panel) {
-    var viewHome = document.getElementById('view-home');
-    var viewDetail = document.getElementById('view-detail');
+    setBottomNavActive('community');
+    markCareRoute(panel);
+    hideAppViews();
     var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
-    var viewFavorites = document.getElementById('view-favorites');
-    var viewHelp = document.getElementById('view-help');
-    viewHome.hidden = true;
-    viewDetail.hidden = true;
-    if (viewProfile) viewProfile.hidden = true;
-    if (viewFavorites) viewFavorites.hidden = true;
-    if (viewHelp) viewHelp.hidden = true;
     viewCommunity.hidden = false;
     viewCommunity.classList.remove('view-enter');
     void viewCommunity.offsetWidth;
@@ -4484,6 +5211,8 @@
       return a.day - b.day;
     });
 
+    var eventQuery = (document.getElementById('events-search')?.value || '').toLocaleLowerCase('fr');
+    events = events.filter(function (event) { return (event.title + ' ' + event.description).toLocaleLowerCase('fr').includes(eventQuery); });
     var monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
     // Upcoming events this month
@@ -4502,7 +5231,7 @@
       }
     }
 
-    var html = '<div class="community-events-grid">';
+    var html = '<div class="community-events-grid">' + (events.length ? '' : '<p class="empty-state">Aucun événement ne correspond à votre recherche.</p>');
     events.forEach(function (ev) {
       var isThisMonth = ev.month === currentMonth;
       var isPast = ev.month < currentMonth || (ev.month === currentMonth && ev.day < currentDay);
@@ -4527,6 +5256,8 @@
       allTips = allTips.filter(function (t) { return t.category === categoryFilter; });
     }
 
+    var tipQuery = (document.getElementById('tips-search')?.value || '').toLocaleLowerCase('fr');
+    allTips = allTips.filter(function (tip) { return (tip.title + ' ' + tip.content).toLocaleLowerCase('fr').includes(tipQuery); });
     var categoryLabels = { sante: 'Santé', alimentation: 'Alimentation', education: 'Éducation', hygiene: 'Hygiène', comportement: 'Comportement' };
 
     var html = '<div class="community-tips-grid">';
@@ -5013,11 +5744,16 @@
 
   // ——— Calendar view ————————————————————————————————————
   function renderCalendar() {
-    var data = getCurrent();
+    var data = getCurrent() || state.animals[0] || null;
     var grid = document.getElementById('calendar-grid');
     var titleEl = document.getElementById('cal-month-title');
     var detailEl = document.getElementById('calendar-day-detail');
-    if (!data || !grid) return;
+    if (!grid) return;
+    if (!data) {
+      grid.innerHTML = '';
+      if (titleEl) titleEl.textContent = '—';
+      return;
+    }
 
     var year = uiState.calendarYear;
     var month = uiState.calendarMonth;
@@ -5546,6 +6282,11 @@
 
   function switchTab(tabName) {
     if (!tabName) return;
+    if (tabName === 'calendrier') { showAgenda(); return; }
+    if (tabName === 'annuaire') { showDirectory(); return; }
+
+    if (tabName === 'journal') tabName = 'suivi';
+
     var root = document.getElementById('view-detail');
     if (!root) return;
     root.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); s.hidden = true; });
@@ -5555,7 +6296,12 @@
       t.setAttribute('tabindex', '-1');
     });
 
-    var section = document.getElementById('section-' + tabName);
+    var tabGroups = [['profil','photos','historique'], ['actes','vaccins','deworming','medications','hygiene','consultations','alertes'], ['nutrition','activites','poids'], ['suivi','checkup','chaleurs']];
+    var visibleTabs = tabGroups.find(function (group) { return group.indexOf(tabName) !== -1; }) || [tabName];
+    root.querySelectorAll('.tab').forEach(function (button) { button.hidden = visibleTabs.indexOf(button.dataset.tab) === -1; });
+    root.dataset.currentTab = tabName;
+    var sectionId = tabName === 'suivi' ? 'section-journal' : ('section-' + tabName);
+    var section = document.getElementById(sectionId);
     var tab = root.querySelector('.tab[data-tab="' + tabName + '"]');
     if (section) { section.classList.add('active'); section.hidden = false; }
     if (tab) {
@@ -5570,21 +6316,31 @@
     updateDetailPrimaryNav(tabName);
     syncBottomNavFromTab(tabName);
 
+    if (tabName === 'profil') { renderProfile(); renderDossierHeader(); renderFicheV1(); renderAnimalRail(document.getElementById('animal-rail-search') && document.getElementById('animal-rail-search').value); }
+    if (tabName === 'actes') { renderActes(); renderDossierHeader(); }
     if (tabName === 'vaccins') renderVaccines();
     if (tabName === 'deworming') renderDewormings();
     if (tabName === 'hygiene') renderHygiene();
+    if (tabName === 'consultations') renderConsultations();
+    if (tabName === 'medications') renderMedications();
+    markCareRoute(tabName);
     if (tabName === 'alertes') renderAlerts();
     if (tabName === 'historique') renderHistory();
     if (tabName === 'photos') renderGallery();
-    if (tabName === 'consultations') renderConsultations();
-    if (tabName === 'medications') renderMedications();
     if (tabName === 'nutrition') renderNutrition();
+    if (tabName === 'poids') {
+      renderHistory();
+      var pw = document.getElementById('poids-weight-wrap');
+      var ph = document.getElementById('poids-height-wrap');
+      var srcW = document.getElementById('weight-evolution');
+      var srcH = document.getElementById('height-evolution');
+      if (pw && srcW) pw.innerHTML = srcW.innerHTML;
+      if (ph && srcH) { ph.innerHTML = srcH.innerHTML; ph.hidden = false; }
+    }
     if (tabName === 'activites') renderActivities();
     if (tabName === 'chaleurs') renderHeatCycles();
-    if (tabName === 'journal') renderJournal();
+    if (tabName === 'suivi') renderJournal();
     if (tabName === 'checkup') renderCheckup();
-    if (tabName === 'calendrier') renderCalendar();
-    if (tabName === 'annuaire') renderVetDirectory();
 
     if (section && tabName !== 'profil') {
       section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -5598,7 +6354,11 @@
 
   function refreshAll() {
     renderProfile();
+    renderDossierHeader();
+    renderFicheV1();
+    renderAnimalRail(document.getElementById('animal-rail-search') && document.getElementById('animal-rail-search').value);
     renderAnimalSelect();
+    renderActes();
     renderVaccines();
     renderDewormings();
     renderHygiene();
@@ -5611,9 +6371,9 @@
     renderActivities();
     renderHeatCycles();
     renderJournal();
-    renderCalendar();
+    if (state.viewMode === 'agenda') renderCalendar();
     renderPedigree();
-    renderVetDirectory();
+    if (state.viewMode === 'directory') renderVetDirectory();
   }
 
   // ——— Print / Share ————————————————————————————————————
@@ -6747,30 +7507,81 @@
     document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
     document.getElementById('ped-registry').addEventListener('change', function () { toggleLofVerifyControls(); });
 
-    // ——— Bottom Navigation Bar ———————————————————————————
-    document.querySelectorAll('.bottom-nav__item').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var nav = btn.getAttribute('data-nav');
+    document.getElementById('aa-photo').addEventListener('change', function () { document.getElementById('aa-photo-label').textContent = this.files[0] ? this.files[0].name : 'Choisir une photo JPG ou PNG'; });
+    document.getElementById('tips-search').addEventListener('input', renderCommunityTips);
+    document.getElementById('events-search').addEventListener('input', renderCommunityEvents);
+    document.addEventListener('click', function (e) {
+      var action = e.target.closest('[data-stitch-action]');
+      if (!action) return;
+      var key = action.dataset.stitchAction;
+      if (key === 'upload-photo') triggerPhotoUpload();
+      else if (key === 'export-json') exportBackupJson().catch(function () { showToast('Export impossible.', 'error'); });
+      else if (key === 'export-ics') exportUpcomingRemindersIcs().catch(function () { showToast('Export impossible.', 'error'); });
+      else if (key === 'download-qr') {
+        var link = document.createElement('a'); link.download = 'applika-identite.png'; link.href = document.getElementById('qr-canvas').toDataURL('image/png'); link.click();
+      } else openModal(key);
+    });
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-care-route]');
+      if (!btn) return;
+      var route = btn.dataset.careRoute;
+      if (route === 'home') showHome();
+      else if (route === 'calendar') showAgenda();
+      else if (route === 'directory') showDirectory();
+      else if (route === 'help') { showHelp(); markCareRoute(route); }
+      else if (route === 'account') { showUserProfile(); markCareRoute(route); }
+      else if (route === 'events' || route === 'tips') { showCommunity(route); markCareRoute(route); }
+      else if (!state.animals.length || route === 'addAnimal') openModal('addAnimal');
+      else if (route.indexOf('add') === 0) { showDetail({tab: route === 'addWeight' ? 'poids' : route === 'addMeal' ? 'nutrition' : 'vaccins', nav:'pets'}); openModal(route); }
+      else showDetail({tab:route, nav:'pets'});
+    });
 
-        if (nav === 'home') {
-          showHome();
-        } else if (nav === 'pets') {
-          if (state.animals.length > 0) showDetail({ tab: 'profil', nav: 'pets' });
-          else openModal('addAnimal');
-        } else if (nav === 'nutrition') {
-          if (state.animals.length > 0) showDetail({ tab: 'nutrition', nav: 'nutrition' });
-          else openModal('addAnimal');
-        } else if (nav === 'medical') {
-          if (state.animals.length > 0) showDetail({ tab: 'vaccins', nav: 'medical' });
-          else openModal('addAnimal');
-        } else if (nav === 'calendar') {
-          if (state.animals.length > 0) showDetail({ tab: 'calendrier', nav: 'calendar' });
-          else openModal('addAnimal');
-        }
+    // ——— Bottom + Top Navigation ———————————————————————————
+    function handleGlobalNav(nav) {
+      if (nav === 'home') showHome();
+      else if (nav === 'account') showUserProfile();
+      else if (nav === 'pets') {
+        if (state.animals.length > 0) showDetail({ tab: 'profil', nav: 'pets' });
+        else openModal('addAnimal');
+      } else if (nav === 'calendar') {
+        showAgenda();
+      } else if (nav === 'directory') {
+        showDirectory();
+      }
+    }
+    document.querySelectorAll('.bottom-nav__item, .top-nav__btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        handleGlobalNav(btn.getAttribute('data-nav'));
       });
     });
 
-    // ——— Home Action Pills ———————————————————————————————
+    var railSearch = document.getElementById('animal-rail-search');
+    if (railSearch) {
+      railSearch.addEventListener('input', function () { renderAnimalRail(railSearch.value); });
+      document.addEventListener('keydown', function (e) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          var rail = document.getElementById('animal-rail');
+          if (rail && getComputedStyle(rail).display !== 'none') {
+            e.preventDefault();
+            railSearch.focus();
+          }
+        }
+      });
+    }
+    var railAdd = document.getElementById('animal-rail-add');
+    if (railAdd) railAdd.addEventListener('click', function () { openModal('addAnimal'); });
+
+    var dossierUrgence = document.getElementById('dossier-urgence');
+    if (dossierUrgence) dossierUrgence.addEventListener('click', function () { showDirectory(); });
+    var dossierActe = document.getElementById('dossier-add-acte');
+    if (dossierActe) dossierActe.addEventListener('click', function () {
+      switchTab('actes');
+      openModal('addVaccin');
+    });
+    var actesAdd = document.getElementById('actes-add');
+    if (actesAdd) actesAdd.addEventListener('click', function () { openModal('addVaccin'); });
+
+    // ——— Home Action Pills (legacy, may be hidden) ——————————
     var pillComplete = document.getElementById('pill-complete-profile');
     if (pillComplete) pillComplete.addEventListener('click', function () {
       if (state.animals.length > 0) { showDetail(); openModal('editAnimal'); }
@@ -6778,17 +7589,17 @@
 
     var pillEmergency = document.getElementById('pill-emergency');
     if (pillEmergency) pillEmergency.addEventListener('click', function () {
-      if (state.animals.length > 0) { showDetail(); switchTab('annuaire'); }
+      showDirectory();
     });
 
     var pillReminder = document.getElementById('pill-add-reminder');
     if (pillReminder) pillReminder.addEventListener('click', function () {
-      if (state.animals.length > 0) { showDetail(); switchTab('alertes'); }
+      showAgenda();
     });
 
     var pillCalorie = document.getElementById('pill-calorie');
     if (pillCalorie) pillCalorie.addEventListener('click', function () {
-      if (state.animals.length > 0) { showDetail(); switchTab('nutrition'); }
+      if (state.animals.length > 0) { showDetail({ tab: 'nutrition', nav: 'pets' }); }
     });
 
     // ——— Home Reminders Tabs ————————————————————————————
@@ -6846,6 +7657,18 @@
     var btnHelpOnboarding = document.getElementById('btn-help-onboarding');
     if (btnHelpOnboarding) btnHelpOnboarding.addEventListener('click', function () { showOnboarding(); });
 
+    document.getElementById('account-export-json').addEventListener('click', function () {
+      exportBackupJson().catch(function () { showToast('Erreur lors de l’export des données.', 'error'); });
+    });
+    document.getElementById('account-export-ics').addEventListener('click', function () {
+      exportUpcomingRemindersIcs().catch(function () { showToast('Erreur lors de l’export du calendrier.', 'error'); });
+    });
+    document.getElementById('account-events-toggle').addEventListener('change', function () {
+      var oldBtn = document.getElementById('btn-dog-events-toggle');
+      oldBtn.classList.toggle('on', !this.checked);
+      toggleDogEventsReminder();
+    });
+
     var userDarkToggle = document.getElementById('user-dark-toggle');
     if (userDarkToggle) {
       userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -6855,7 +7678,7 @@
     // Tips & Vets see-all buttons
     var btnSeeAllVets = document.getElementById('btn-see-all-vets');
     if (btnSeeAllVets) btnSeeAllVets.addEventListener('click', function () {
-      if (state.animals.length > 0) { showDetail(); switchTab('annuaire'); }
+      showDirectory();
     });
 
     var btnSeeAllTips = document.getElementById('btn-see-all-tips');
@@ -6869,19 +7692,46 @@
   }
 
   // ——— User Profile View ——————————————————————————————————
-  function showUserProfile() {
-    var viewHome = document.getElementById('view-home');
-    var viewDetail = document.getElementById('view-detail');
-    var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
-    var viewFavorites = document.getElementById('view-favorites');
-    var viewHelp = document.getElementById('view-help');
+  function renderAccountContent() {
+    document.querySelectorAll('[data-account-icon]').forEach(function (el) { el.innerHTML = ico(el.dataset.accountIcon, 20); });
+    var count = state.animals.length;
+    document.getElementById('account-pet-count').textContent = count + ' enregistré' + (count > 1 ? 's' : '');
+    document.getElementById('account-owner-summary').textContent = count ? 'Vous accompagnez ' + count + ' compagnon' + (count > 1 ? 's' : '') + ' au quotidien' : 'Votre espace pour prendre soin de vos compagnons';
+    var list = document.getElementById('account-pets');
+    list.innerHTML = state.animals.map(function (data) {
+      var a = data.animal;
+      var due = collectDueItemsForAnimal(data);
+      var late = due.some(function (item) { return daysUntil(item.next) < 0; });
+      var soon = due.some(function (item) { var days = daysUntil(item.next); return days >= 0 && days <= 14; });
+      var status = late ? 'Soin en retard' : soon ? 'Soin à prévoir' : 'Voir le carnet';
+      var months = a.dob ? calculateAgeMonths(a.dob) : null;
+      var age = months != null ? (months < 12 ? months + ' mois' : Math.floor(months / 12) + ' an' + (months >= 24 ? 's' : '')) : '';
+      return '<button type="button" class="account-pet" data-account-pet="' + data.id + '"><span class="account-pet-avatar">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 24) + '</span><span class="account-row-copy"><strong>' + escapeHtml(a.name || 'Sans nom') + '<span class="account-species">' + escapeHtml(a.species === 'Féline' ? 'Chat' : a.species === 'Canine' ? 'Chien' : 'Animal') + '</span></strong><small>' + escapeHtml([a.race, age].filter(Boolean).join(' · ')) + '</small></span><span class="account-badge' + (late ? ' account-badge--late' : soon ? ' account-badge--soon' : '') + '">' + status + '</span><span aria-hidden="true">›</span></button>';
+    }).join('') || '<p class="account-caption">Ajoutez votre premier compagnon pour créer son carnet de santé.</p>';
+    list.querySelectorAll('[data-account-pet]').forEach(function (btn) {
+      var data = state.animals.find(function (a) { return a.id === Number(btn.dataset.accountPet); });
+      btn.addEventListener('click', function () { state.currentAnimalId = data.id; saveState(); showDetail({tab: 'profil', nav: 'pets'}); });
+      if (data.animal.avatar) {
+        var img = document.createElement('img'); img.alt = ''; btn.querySelector('.account-pet-avatar').replaceChildren(img);
+        if (typeof data.animal.avatar === 'number') getPhotoObjectUrl(data.animal.avatar).then(function (url) { if (url) img.src = url; }).catch(function () {});
+        else img.src = data.animal.avatar;
+      }
+    });
+    document.getElementById('account-events-toggle').checked = localStorage.getItem(DOG_EVENTS_REMINDER_PREF_KEY) !== 'false';
+    var caption = document.getElementById('account-cloud-caption');
+    caption.textContent = 'Sauvegarde locale sur cet appareil';
+    if (window.cloudSync && window.cloudSync.isConfigured()) window.cloudSync.getSession().then(function (session) {
+      caption.textContent = session ? 'Compte connecté · sauvegarde cloud disponible' : 'Connectez-vous pour retrouver vos carnets sur vos appareils';
+    }).catch(function () {});
+  }
 
-    if (viewHome) viewHome.hidden = true;
-    if (viewDetail) viewDetail.hidden = true;
-    if (viewCommunity) viewCommunity.hidden = true;
-    if (viewFavorites) viewFavorites.hidden = true;
-    if (viewHelp) viewHelp.hidden = true;
+  function showUserProfile() {
+    state.viewMode = 'profile';
+    renderAccountContent();
+    setBottomNavActive('account');
+    hideAppViews();
+    var viewProfile = document.getElementById('view-user-profile');
+
     if (viewProfile) {
       viewProfile.hidden = false;
       viewProfile.classList.remove('view-enter');
@@ -6918,17 +7768,8 @@
   }
 
   function showFavorites() {
-    var viewHome = document.getElementById('view-home');
-    var viewDetail = document.getElementById('view-detail');
-    var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
+    hideAppViews();
     var viewFavorites = document.getElementById('view-favorites');
-    var viewHelp = document.getElementById('view-help');
-    if (viewHome) viewHome.hidden = true;
-    if (viewDetail) viewDetail.hidden = true;
-    if (viewCommunity) viewCommunity.hidden = true;
-    if (viewProfile) viewProfile.hidden = true;
-    if (viewHelp) viewHelp.hidden = true;
     if (viewFavorites) {
       viewFavorites.hidden = false;
       viewFavorites.classList.remove('view-enter');
@@ -6942,17 +7783,10 @@
   }
 
   function showHelp() {
-    var viewHome = document.getElementById('view-home');
-    var viewDetail = document.getElementById('view-detail');
-    var viewCommunity = document.getElementById('view-community');
-    var viewProfile = document.getElementById('view-user-profile');
-    var viewFavorites = document.getElementById('view-favorites');
+    setBottomNavActive('help');
+    markCareRoute('help');
+    hideAppViews();
     var viewHelp = document.getElementById('view-help');
-    if (viewHome) viewHome.hidden = true;
-    if (viewDetail) viewDetail.hidden = true;
-    if (viewCommunity) viewCommunity.hidden = true;
-    if (viewProfile) viewProfile.hidden = true;
-    if (viewFavorites) viewFavorites.hidden = true;
     if (viewHelp) {
       viewHelp.hidden = false;
       viewHelp.classList.remove('view-enter');
@@ -6969,7 +7803,12 @@
     closeModal: closeModal,
     switchTab: switchTab,
     showCommunity: showCommunity,
-    showUserProfile: showUserProfile
+    showUserProfile: showUserProfile,
+    showAgenda: showAgenda,
+    showDirectory: showDirectory,
+    // keep legacy helpers referenced for tooling / future screens
+    _buildHealthRing: buildHealthRing,
+    _renderHomeVetsAndTips: renderHomeVetsAndTips
   };
 
   if (document.readyState === 'loading') {
