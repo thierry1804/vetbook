@@ -2563,6 +2563,17 @@ textarea.form-input {
   color: var(--brand);
 }
 
+/* Icône seule (sans libellé visible) — aria-label obligatoire côté HTML/JS */
+.btn-icon:not(.btn-icon--user):has(> .icon:only-child),
+.btn-icon--solo {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 0;
+  gap: 0;
+}
+
 .btn-icon--user {
   width: 36px;
   height: 36px;
@@ -2907,9 +2918,8 @@ textarea.form-input {
   background: var(--warm-gray);
   color: var(--text);
   border-radius: var(--radius-xs);
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 0;
+  font-size: 0;
 }
 
 .btn-edit:hover {
@@ -7299,14 +7309,16 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .stitch-section-title { font-size: 20px; color: var(--text); margin: 28px 0 16px; }
 .stitch-split, .stitch-community-columns { display: grid; grid-template-columns: minmax(0,2fr) minmax(240px,1fr); gap: 24px; align-items: start; }
 .stitch-split > *, .stitch-community-columns > * { min-width: 0; }
-.stitch-community-columns > aside .care-action, .identity-backup .care-action { width: 100%; margin-top: 10px; }
+.stitch-community-columns > aside .care-action:not(.care-action--icon),
+.identity-backup .care-action:not(.care-action--icon) { width: 100%; margin-top: 10px; }
 .identity-layout { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(260px,1fr); gap: 24px; margin: 24px 0; align-items: start; }
 .identity-field { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--warm-gray); margin: 10px 0; color: var(--brand); }
 .identity-field div { min-width: 0; }
 .identity-field span { display: block; color: var(--text-muted); font-size: 11px; }
 .identity-field strong { display: block; color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
 .identity-qr { text-align: center; }
-.identity-qr canvas { display: block; width: min(100%,240px); height: auto; margin: 20px auto; border-radius: 16px; }
+.identity-qr canvas { display: block; width: min(100%, 200px); height: auto; margin: 14px auto; border-radius: 14px; }
+.identity-qr__lead { margin-bottom: 8px; }
 .fiche-v1 { padding: 0; }
 .fiche-metrics { margin-bottom: 16px; }
 #view-detail .dossier-header { padding: 20px 24px; }
@@ -7997,10 +8009,9 @@ button.fr__card:hover { border-color: var(--brand-light); background: var(--mint
 
 /* ============================================================
    Fiche animal
-   Ce qui demande une action d'abord, l'état de santé ensuite, l'identité en colonne latérale.
-   Desktop large (≥ 1100 px) : deux colonnes. En dessous : une colonne, santé avant identité.
+   Action d'abord, santé ensuite, identité en rail compact.
+   Desktop large (≥ 1100 px) : santé | identité ; pedigree pleine largeur sous les deux.
    ============================================================ */
-/* En-tête : avatar cerclé de l'état de santé, badge d'état, actions à 14 px de rayon */
 .dossier-header { gap: 14px 20px; }
 .dossier-header__avatar { width: 84px; height: 84px; border: 4px solid var(--card-bg); box-shadow: 0 0 0 3px var(--state-ok); background: var(--mint-soft); color: var(--brand-mid); }
 .dossier-header[data-status="soon"] .dossier-header__avatar { box-shadow: 0 0 0 3px var(--state-soon); }
@@ -8012,27 +8023,148 @@ button.fr__card:hover { border-color: var(--brand-light); background: var(--mint
 .dossier-header__actions .dossier-btn { border-radius: 14px; padding: 0 18px; min-height: 46px; font-size: 14px; }
 .dossier-header__actions .dossier-btn--danger { background: transparent; }
 
-/* Mise en page : la santé passe avant l'identité (le DOM garde l'identité en premier) */
-#section-profil.active { display: flex; flex-direction: column; gap: 24px; }
-#section-profil .fiche-v1 { order: 1; display: grid; gap: 28px; padding: 0; min-width: 0; align-content: start; }
-#section-profil .identity-layout { order: 2; grid-template-columns: minmax(0, 1fr); margin: 0; gap: 16px; }
+#section-profil.active { display: flex; flex-direction: column; gap: 20px; }
+#section-profil .fiche-v1 { order: 1; display: grid; gap: 20px; padding: 0; min-width: 0; align-content: start; }
+#section-profil .identity-layout { order: 2; display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; gap: 12px; }
+#section-profil .identity-backup { order: 3; margin: 0; min-width: 0; }
+#section-profil .pedigree-card { order: 4; margin: 0; min-width: 0; }
 #section-profil .birthday-banner { order: 0; }
+
 @media (min-width: 720px) and (max-width: 1099px) {
-  #section-profil .identity-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #section-profil .identity-layout .identity-backup { grid-column: 1 / -1; }
-}
-@media (min-width: 1100px) {
-  #section-profil.active { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 28px; row-gap: 0; align-items: start; }
-  #section-profil .birthday-banner { grid-column: 1 / -1; margin-bottom: 20px; }
-  #section-profil .fiche-v1 { grid-column: 1; grid-row: 2; }
-  #section-profil .identity-layout { grid-column: 2; grid-row: 2; }
+  #section-profil .identity-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 }
 
-.fiche-block { display: grid; gap: 14px; min-width: 0; }
+@media (min-width: 1100px) {
+  #section-profil.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    column-gap: 28px;
+    row-gap: 20px;
+    align-items: start;
+  }
+  #section-profil .birthday-banner { grid-column: 1 / -1; margin-bottom: 4px; }
+  #section-profil .fiche-v1 { grid-column: 1; grid-row: 2; gap: 18px; }
+  #section-profil .identity-layout {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    gap: 10px;
+  }
+  #section-profil .identity-backup {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  #section-profil .pedigree-card {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  #section-profil .identity-layout .stitch-card { padding: 14px 16px; }
+  #section-profil .identity-layout .stitch-card h2 { font-size: 15px; margin-bottom: 8px; }
+  #section-profil .identity-layout .stitch-card > p { margin-bottom: 10px; font-size: 12px; line-height: 1.5; }
+  #section-profil .identity-qr { text-align: center; }
+  #section-profil .identity-qr__lead { display: none; }
+  #section-profil .identity-qr canvas {
+    width: min(100%, 148px);
+    height: auto;
+    margin: 8px auto 10px;
+    border-radius: 12px;
+  }
+  #section-profil .identity-qr__note {
+    margin: 0 0 10px;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  #section-profil .identity-qr .care-action:not(.care-action--icon) { width: 100%; margin-top: 0; }
+  #section-profil .identity-field { margin: 6px 0; padding: 10px 12px; }
+  #section-profil .identity-layout .care-action:not(.care-action--icon) { margin-top: 8px; }
+  #section-profil .identity-layout .identity-passport__actions .care-action { margin-top: 0; }
+  #section-profil .identity-layout .identity-breed-link { margin-top: 8px; }
+}
+
+.identity-backup__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.identity-backup__head h2 { margin: 0 0 6px; }
+.identity-backup__head p { margin: 0; max-width: 52ch; }
+.identity-backup__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.identity-owner__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.identity-owner__head h2 { margin: 0; }
+
+.identity-passport__actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+}
+.identity-passport__actions .care-action {
+  margin-top: 0;
+}
+.identity-passport__actions .care-action:not(.care-action--icon) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.identity-breed-link {
+  display: inline-flex;
+  width: 100%;
+  margin-top: 8px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.care-action--icon,
+.dossier-btn--icon {
+  width: 44px !important;
+  min-width: 44px;
+  max-width: 44px;
+  min-height: 44px;
+  padding: 0 !important;
+  justify-content: center;
+  align-self: stretch;
+}
+.care-action--icon span { display: none; }
+
+.vet-card__btn--icon {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0 !important;
+  justify-content: center;
+  font-size: 0;
+}
+
+.btn-edit,
+.btn-delete {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  gap: 0;
+}
+.btn-edit { font-size: 0; }
+.btn-delete { font-size: 0; }
+.btn-edit .icon,
+.btn-delete .icon { display: block; }
+
+.fiche-block { display: grid; gap: 12px; min-width: 0; }
 .fiche-h { margin: 0; font: 700 18px var(--font-ui); letter-spacing: -.02em; color: var(--text); }
 .fiche-hint { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 52ch; }
 
-/* Complétude */
 .fiche-complete { display: grid; gap: 12px; padding: 18px 20px; border-radius: 20px; background: var(--state-soon-bg); border: 1px solid var(--border-soft); }
 .fiche-complete[hidden] { display: none; }
 .fiche-complete__top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
@@ -8043,7 +8175,6 @@ button.fr__card:hover { border-color: var(--brand-light); background: var(--mint
 .fiche-complete__missing { display: flex; flex-wrap: wrap; gap: 6px; }
 .fiche-complete__missing span { padding: 4px 10px; border-radius: 9999px; background: var(--card-bg); color: var(--text-muted); font-size: 12px; font-weight: 600; }
 
-/* Santé : quatre domaines cliquables */
 #section-profil .fiche-domains { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 #section-profil .fiche-domain { display: grid; gap: 8px; align-content: start; padding: 16px 18px; text-align: left; font-family: var(--font-ui); color: var(--text); cursor: pointer; border: 1px solid var(--border-soft); border-radius: 20px; background: var(--card-bg); transition: border-color .12s, background .12s; }
 #section-profil .fiche-domain:hover { border-color: var(--brand-light); background: var(--mint-soft); }
@@ -8058,19 +8189,67 @@ button.fr__card:hover { border-color: var(--brand-light); background: var(--mint
 #section-profil .fiche-domain__body { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 .fiche-domain__last { font: 500 12px var(--font-mono); color: var(--text-muted); }
 
-/* Constantes */
-#section-profil .fiche-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-#section-profil .fiche-metric { display: grid; gap: 4px; align-content: start; padding: 16px 18px; text-align: left; font-family: var(--font-ui); color: var(--text); cursor: pointer; border: 1px solid var(--border-soft); border-radius: 20px; background: var(--card-bg); transition: border-color .12s; }
+#section-profil .fiche-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+#section-profil .fiche-metric {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 16px 18px;
+  text-align: left;
+  font-family: var(--font-ui);
+  color: var(--text);
+  cursor: pointer;
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  background: var(--card-bg);
+  transition: border-color .12s;
+  overflow: hidden;
+  min-width: 0;
+}
 #section-profil .fiche-metric:hover { border-color: var(--brand-light); }
 #section-profil .fiche-metric__label { font: 600 11px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
 #section-profil .fiche-metric__value { font: 700 26px var(--font-ui); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 #section-profil .fiche-metric__trend { font-size: 12px; color: var(--text-muted); }
+#section-profil .fiche-spark-wrap {
+  display: block;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+#section-profil .fiche-spark-wrap canvas {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+  height: 100% !important;
+}
 .fiche-spark { display: block; width: 100%; height: 32px; margin-top: 4px; }
 
-/* Colonne identité : champs plus compacts */
-#section-profil .identity-layout .stitch-card { padding: 20px; }
-#section-profil .identity-layout .stitch-card h2 { font-size: 16px; }
-#section-profil .identity-field { margin: 8px 0; padding: 12px 14px; }
+#section-profil .pedigree-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+#section-profil .pedigree-card .section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 700 18px var(--font-ui);
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+@media (min-width: 1100px) {
+  #section-profil .pedigree-tree {
+    padding: 20px 24px;
+    gap: 14px;
+  }
+  #section-profil .pedigree-branches { gap: 20px; }
+}
 
 @media (max-width: 639px) {
   .dossier-header__avatar { width: 68px; height: 68px; }

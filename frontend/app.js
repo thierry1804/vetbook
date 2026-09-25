@@ -49,6 +49,7 @@
     cake:      _ic('<path d="M20 21v-8a2 2 0 00-2-2H6a2 2 0 00-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/>'),
     print:     _ic('<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'),
     download:  _ic('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+    cloud:     _ic('<path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>'),
     qr:        _ic('<rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><path d="M22 14h-4v4"/><path d="M22 22h-8v-4"/>'),
     plus:      _ic('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'),
     heart:     _ic('<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>'),
@@ -56,6 +57,17 @@
     lightbulb: _ic('<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>')
   };
   function ico(name, size) { return ICO[name] ? (size ? ICO[name].replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"') : ICO[name]) : ''; }
+
+  // Bouton icône seule : le libellé reste accessible via aria-label + title (pas de texte visible).
+  function iconOnlyBtn(cls, iconName, label, attrs, size) {
+    var base = cls || 'btn-icon';
+    if (base.indexOf('btn-icon') !== -1 && base.indexOf('btn-icon--solo') === -1 && base.indexOf('btn-icon--user') === -1) {
+      base += ' btn-icon--solo';
+    }
+    return '<button type="button" class="' + base + '" aria-label="' + label + '" title="' + label + '"' + (attrs ? ' ' + attrs : '') + '>' + ico(iconName, size || 16) + '</button>';
+  }
+  function btnEdit(attrs, label) { return iconOnlyBtn('btn-edit', 'edit', label || 'Modifier', attrs); }
+  function btnDelete(attrs, label) { return iconOnlyBtn('btn-delete', 'trash', label || 'Supprimer', attrs); }
 
   // ——— i18n ———————————————————————————————————————————————————
   var locales = {};
@@ -698,14 +710,43 @@
     "yorkshireterrier":"yorkshire-terrier"
   };
 
-  // Lien vers la fiche de race officielle (Société Centrale Canine) — contient
-  // toujours le standard FCI en PDF ("Télécharger le Standard") quand il existe,
-  // le club de race et les caractéristiques. On ne connaît pas le numéro FCI
-  // depuis ce nom de race seul, donc pas de lien direct vers le PDF — celui-ci
-  // reste à un clic sur la page. Correspondance insensible aux accents/casse.
-  function centraleCanineBreedUrl(race) {
+  // Alias courants (noms usuels / BREED_DB) → clé du catalogue SCC.
+  // Sans ça, « Labrador Retriever » ou « Beauceron » ne matchent pas
+  // « retrieverdulabrador » / « bergerdebeauce » et le lien disparaît.
+  var CENTRALE_CANINE_BREED_ALIASES = {
+    labrador: 'retrieverdulabrador',
+    labradorretriever: 'retrieverdulabrador',
+    retrieverlabrador: 'retrieverdulabrador',
+    beauceron: 'bergerdebeauce',
+    basrouge: 'bergerdebeauce',
+    malinois: 'chiendebergerbelge',
+    bergerbelgemalinois: 'chiendebergerbelge',
+    bergerbelge: 'chiendebergerbelge',
+    shetland: 'chiendebergerdesshetland',
+    sheltie: 'chiendebergerdesshetland',
+    teckel: 'teckel',
+    dachshund: 'teckel',
+    canichetoy: 'caniche',
+    canichemoyen: 'caniche',
+    canichestandard: 'caniche',
+    frenchbulldog: 'bouledoguefrancais',
+    englishbulldog: 'bouledogueanglais',
+    germanshepherd: 'bergerallemand',
+    australianshepherd: 'bergeraustralien'
+  };
+
+  // Lien vers la fiche de race officielle (Société Centrale Canine).
+  // Le PDF direct demande le n° FCI (/sites/default/files/fci_race/<n>.pdf) —
+  // pas encore dans cette table ; la page race porte toujours « Télécharger le Standard ».
+  function centraleCanineBreedSlug(race) {
     if (!race) return null;
-    var slug = CENTRALE_CANINE_BREED_SLUGS[protectionKey(race)];
+    var key = protectionKey(race);
+    if (CENTRALE_CANINE_BREED_SLUGS[key]) return CENTRALE_CANINE_BREED_SLUGS[key];
+    var alias = CENTRALE_CANINE_BREED_ALIASES[key];
+    return alias ? CENTRALE_CANINE_BREED_SLUGS[alias] || null : null;
+  }
+  function centraleCanineBreedUrl(race) {
+    var slug = centraleCanineBreedSlug(race);
     return slug ? 'https://www.centrale-canine.fr/le-chien-de-race/' + slug : null;
   }
 
@@ -783,8 +824,9 @@
     return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1).replace('.', ',') + ' ' + hUnit();
   }
 
+  // Devise : ariary malgache (MGA). Affichage courant « Ar » (pas de centimes).
   function fmtCost(n) {
-    return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    return Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' Ar';
   }
 
   function relativeDate(isoDate) {
@@ -2148,7 +2190,7 @@
       ['vaccine','Suivi des rappels', late ? late + ' en retard' : due.length ? 'À jour' : 'À compléter', due.length + ' échéance(s) enregistrée(s)', 'vaccins'],
       ['scale','Poids actuel',weight, a.race || 'Suivi de la croissance', 'poids'],
       ['utensils','Repas du jour',String(meals.length), 'Repas consignés aujourd’hui', 'nutrition'],
-      ['stethoscope','Budget santé · 12 mois',spent.toLocaleString('fr-FR') + ' €',visits.length + ' consultation(s)', 'consultations']
+      ['stethoscope','Budget santé · 12 mois',fmtCost(spent),visits.length + ' consultation(s)', 'consultations']
     ];
     el.innerHTML += '<div class="care-metrics">' + metrics.map(function (m) { return '<button type="button" class="care-card care-metric" data-care-route="' + m[4] + '"><span class="care-metric-icon">' + ico(m[0],22) + '</span><span class="care-eyebrow">' + m[1] + '</span><strong>' + escapeHtml(m[2]) + '</strong><small>' + escapeHtml(m[3]) + '</small></button>'; }).join('') + '</div>';
     var history = (a.weightHistory || []).filter(function (w) { return Number(w.weight) > 0 && w.date; }).sort(function (x,y) { return x.date.localeCompare(y.date); }).slice(-12);
@@ -2444,11 +2486,19 @@
       stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
       stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
       stitchInfo('Clinique référente', o.clinic, 'hospital') +
-      '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
-      '<button type="button" class="care-action" data-stitch-action="editPedigree">' + ico('trophy', 16) + '<span>Modifier le pedigree</span></button>' +
-      (breedUrl ? '<a class="care-action" href="' + breedUrl + '" target="_blank" rel="noopener">' + ico('fileText', 16) + '<span>Standard de la race (Centrale Canine)</span></a>' : '');
-    document.getElementById('identity-owner').innerHTML = '<h2>Fiche propriétaire</h2><p>Contact principal pour votre compagnon.</p>' +
-      stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
+      '<div class="identity-passport__actions">' +
+        '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
+        '<button type="button" class="care-action care-action--icon" data-stitch-action="editPedigree" aria-label="Modifier le pedigree" title="Modifier le pedigree">' + ico('edit', 16) + '</button>' +
+      '</div>' +
+      (breedUrl
+        ? '<a class="care-action identity-breed-link" href="' + breedUrl + '" target="_blank" rel="noopener">' +
+            ico('download', 16) + '<span>Standard de la race (PDF)</span></a>'
+        : '');
+    document.getElementById('identity-owner').innerHTML =
+      '<div class="identity-owner__head"><h2>Fiche propriétaire</h2>' +
+      '<button type="button" class="care-action care-action--icon" data-stitch-action="editOwner" aria-label="Modifier mes coordonnées" title="Modifier mes coordonnées">' + ico('edit', 16) + '</button></div>' +
+      '<p>Contact principal pour votre compagnon.</p>' +
+      stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin');
   }
 
   // Fiche : ce qui demande une action d'abord, l'état de santé ensuite, les constantes après ;
@@ -2471,13 +2521,52 @@
     return dates.length ? dates[dates.length - 1] : '';
   }
 
-  function ficheSpark(values) {
-    if (values.length < 2) return '';
-    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values);
+  function drawFicheSpark(canvasId, values) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined' || !values || values.length < 2) return;
+    if (CHART_INSTANCES[canvasId]) { CHART_INSTANCES[canvasId].destroy(); delete CHART_INSTANCES[canvasId]; }
+    FICHE_SPARKS[canvasId] = values.slice();
+    var color = cssVar('--brand-light', '#14b8a6');
+    var lo = Math.min.apply(null, values);
+    var hi = Math.max.apply(null, values);
     if (lo === hi) { lo -= 0.5; hi += 0.5; }
-    var pts = values.map(function (v, i) { return [4 + i * 112 / (values.length - 1), 28 - (v - lo) / (hi - lo) * 24]; });
-    var last = pts[pts.length - 1];
-    return '<svg class="fiche-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="none" stroke="var(--brand-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3" fill="var(--brand-mid)"/></svg>';
+    var pad = (hi - lo) * 0.12 || 0.2;
+    CHART_INSTANCES[canvasId] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: values.map(function (_v, i) { return String(i); }),
+        datasets: [{
+          data: values,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: false,
+          pointRadius: values.map(function (_v, i) { return i === values.length - 1 ? 3.5 : 0; }),
+          pointHoverRadius: 4,
+          pointBackgroundColor: color,
+          pointBorderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        clip: true,
+        scales: {
+          // offset:true (défaut catégorie) : 1er/dernier point rentrés dans le canvas,
+          // évite que le point final déborde visuellement hors de la carte.
+          x: { display: false },
+          y: { display: false, min: lo - pad, max: hi + pad },
+        },
+        layout: { padding: { top: 6, right: 10, bottom: 6, left: 4 } },
+      },
+    });
+  }
+
+  function ficheSparkPlaceholder(canvasId) {
+    return '<span class="fiche-spark-wrap"><canvas id="' + canvasId + '" aria-hidden="true"></canvas></span>';
   }
 
   function renderFicheV1() {
@@ -2523,6 +2612,7 @@
 
     // 2. Constantes
     var tiles = [];
+    var sparkJobs = [];
     var weights = (a.weightHistory || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
     if (a.weight != null && a.weight !== '') {
       var trend = '';
@@ -2530,7 +2620,10 @@
         var dl = Number(weights[weights.length - 1].weight) - Number(weights[weights.length - 2].weight);
         trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : wDelta(dl) + ' depuis le ' + fmtDate(weights[weights.length - 2].date);
       }
-      tiles.push({ label: 'Poids', value: uW(a.weight), trend: trend, extra: ficheSpark(weights.slice(-8).map(function (w) { return Number(w.weight); })), route: 'poids' });
+      var sparkVals = weights.slice(-8).map(function (w) { return Number(w.weight); });
+      var sparkExtra = sparkVals.length > 1 ? ficheSparkPlaceholder('fiche-weight-spark') : '';
+      tiles.push({ label: 'Poids', value: uW(a.weight), trend: trend, extra: sparkExtra, route: 'poids' });
+      if (sparkVals.length > 1) sparkJobs.push({ id: 'fiche-weight-spark', values: sparkVals });
     }
     if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: uH(a.height), trend: '', route: 'poids' });
     var yearSpend = 0, consultCount = 0;
@@ -2543,13 +2636,14 @@
       if (!isNaN(cost)) yearSpend += cost;
     });
     if (consultCount > 0 || yearSpend > 0) {
-      tiles.push({ label: 'Dépenses 12 mois', value: yearSpend ? Math.round(yearSpend).toLocaleString('fr-FR') + ' €' : '—', trend: consultCount ? consultCount + ' consultation' + (consultCount > 1 ? 's' : '') : '', route: 'consultations' });
+      tiles.push({ label: 'Dépenses 12 mois', value: yearSpend ? fmtCost(Math.round(yearSpend)) : '—', trend: consultCount ? consultCount + ' consultation' + (consultCount > 1 ? 's' : '') : '', route: 'consultations' });
     }
     metrics.innerHTML = tiles.map(function (t) {
       return '<button type="button" class="fiche-metric" data-care-route="' + t.route + '"><span class="fiche-metric__label">' + escapeHtml(t.label) + '</span>' +
         '<span class="fiche-metric__value">' + escapeHtml(t.value) + '</span>' + (t.extra || '') +
         (t.trend ? '<span class="fiche-metric__trend">' + escapeHtml(t.trend) + '</span>' : '') + '</button>';
     }).join('') || '<p class="fiche-hint">Renseignez le poids ou la taille pour suivre la croissance.</p>';
+    sparkJobs.forEach(function (job) { drawFicheSpark(job.id, job.values); });
 
     // 3. Santé en un coup d'œil : quatre domaines cliquables
     if (domains) {
@@ -3952,7 +4046,7 @@
           '<div class="photo-date">' + fmtDate(p.date) + captionHtml + '</div>' +
           '<div class="photo-actions-overlay">' +
           '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">' + ico('edit', 14) + '</button>' +
-          '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer">✕</button>' +
+          '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div></div>';
       }).join('');
       grid.innerHTML = addBtn + items;
@@ -4132,8 +4226,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-vaccine-id="' + v.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-vaccine-id="' + v.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-vaccine-id="' + v.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-vaccine-id="' + v.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4286,8 +4380,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-deworming-id="' + d.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-deworming-id="' + d.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-deworming-id="' + d.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-deworming-id="' + d.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4421,8 +4515,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-consult-id="' + c.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-consult-id="' + c.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-consult-id="' + c.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-consult-id="' + c.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4538,8 +4632,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-med-id="' + m.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-med-id="' + m.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-med-id="' + m.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-med-id="' + m.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4647,8 +4741,8 @@
           symptomHtml +
           '<div class="journal-card-content">' + escapeHtml(n.content || '') + '</div>' +
           '<div class="journal-card-actions">' +
-          '<button type="button" class="btn-edit" data-note-id="' + n.id + '">Modifier</button> ' +
-          '<button type="button" class="btn-delete" data-note-id="' + n.id + '">✕</button>' +
+          btnEdit('data-note-id="' + n.id + '"') + ' ' +
+          btnDelete('data-note-id="' + n.id + '"') +
           '</div></div>';
       }).join('');
     }
@@ -4821,8 +4915,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-hygiene-id="' + h.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-hygiene-id="' + h.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-hygiene-id="' + h.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-hygiene-id="' + h.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4946,7 +5040,7 @@
 
     tbody.innerHTML = list.length ? list.map(function (c) {
       var days = c.endDate ? Math.round((new Date(c.endDate) - new Date(c.startDate)) / 864e5) : null;
-      return '<article class="stitch-record heat-record"><span class="stitch-record-icon">' + ico('calendar',22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(c.startDate) + ' — ' + (c.endDate ? fmtDate(c.endDate) : 'En cours') + '</h3><p>' + escapeHtml(c.notes || 'Aucune observation renseignée.') + '</p><div class="stitch-record-tags"><span>' + (days == null ? 'Fin à renseigner' : days + ' jours') + '</span><span>Intensité : ' + escapeHtml(c.intensity || 'Non renseignée') + '</span></div></div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-heat-id="' + c.id + '">Modifier</button><button type="button" class="btn-delete" data-heat-id="' + c.id + '" aria-label="Supprimer cette période">' + ico('trash',16) + '</button></div></article>';
+      return '<article class="stitch-record heat-record"><span class="stitch-record-icon">' + ico('calendar',22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(c.startDate) + ' — ' + (c.endDate ? fmtDate(c.endDate) : 'En cours') + '</h3><p>' + escapeHtml(c.notes || 'Aucune observation renseignée.') + '</p><div class="stitch-record-tags"><span>' + (days == null ? 'Fin à renseigner' : days + ' jours') + '</span><span>Intensité : ' + escapeHtml(c.intensity || 'Non renseignée') + '</span></div></div><div class="stitch-record-actions">' + btnEdit('data-heat-id="' + c.id + '"') + btnDelete('data-heat-id="' + c.id + '"', 'Supprimer cette période') + '</div></article>';
     }).join('') : '<div class="stitch-empty"><h3>Commencez le suivi de ses cycles</h3><p>Notez les dates et les observations pour retrouver son historique.</p><button type="button" class="care-action" data-stitch-action="addHeatCycle">Enregistrer une période</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
@@ -5072,7 +5166,7 @@
         (m.notes ? '<p>' + escapeHtml(m.notes) + '</p>' : '') +
         '<div class="stitch-record-tags">' + dueHtml + '</div>' +
         (actionBtn ? '<div class="stitch-record-tags">' + actionBtn + '</div>' : '') +
-        '</div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-mating-id="' + m.id + '" data-mating-edit="1">Modifier</button><button type="button" class="btn-delete" data-mating-id="' + m.id + '" data-mating-del="1" aria-label="Supprimer cette saillie">' + ico('trash', 16) + '</button></div></article>';
+        '</div><div class="stitch-record-actions">' + btnEdit('data-mating-id="' + m.id + '" data-mating-edit="1"') + btnDelete('data-mating-id="' + m.id + '" data-mating-del="1"', 'Supprimer cette saillie') + '</div></article>';
     }).join('') : '<div class="stitch-empty"><h3>Aucune saillie enregistrée</h3><p>Notez la date, le partenaire et suivez les délais de déclaration.</p><button type="button" class="care-action" data-stitch-action="addMating">Enregistrer une saillie</button></div>';
 
     list.querySelectorAll('[data-mating-del]').forEach(function (btn) {
@@ -5305,7 +5399,7 @@
           '<td>' + (a.duration ? a.duration + ' min' : '—') + '</td>' +
           '<td>' + (a.distance ? a.distance + ' km' : '—') + '</td>' +
           '<td>' + escapeHtml(a.notes || '') + '</td>' +
-          '<td><button type="button" class="btn-edit" data-activity-id="' + a.id + '">Modifier</button> <button type="button" class="btn-delete" data-activity-id="' + a.id + '">✕</button></td></tr>';
+          '<td>' + btnEdit('data-activity-id="' + a.id + '"') + ' ' + btnDelete('data-activity-id="' + a.id + '"') + '</td></tr>';
       }).join('');
     }
 
@@ -5393,7 +5487,7 @@
     var mer = rer * 1.6;
 
     // Plan card
-    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3><button type="button" class="btn-icon" onclick="app.openModal(\'editNutritionPlan\')">' + ico('edit', 14) + ' Modifier</button></div>' +
+    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editNutritionPlan\')"') + '</div>' +
       '<div class="info-grid">' +
       '<div><span class="info-label">Marque aliment</span><span class="info-value">' + escapeHtml(plan.foodBrand || 'Non renseigné') + '</span></div>' +
       '<div><span class="info-label">Portion</span><span class="info-value">' + escapeHtml(plan.portionSize || 'Non renseigné') + '</span></div>' +
@@ -5416,7 +5510,7 @@
     container.innerHTML = '<nav class="stitch-community-nav" aria-label="Suivi quotidien">' + careButton('nutrition', 'Nutrition & repas', 'utensils', true) + careButton('activites', 'Activités & balades', 'activity') + '</nav>' + dailyHtml + planHtml + mealList;
     var tbody = document.getElementById('meal-table');
     tbody.innerHTML = meals.length ? meals.map(function (m) {
-      return '<article class="stitch-record"><span class="stitch-record-icon">' + ico('utensils', 22) + '</span><div class="stitch-record-copy"><h3>' + escapeHtml(m.type || 'Repas') + (m.time ? ' · ' + escapeHtml(m.time) : '') + '</h3><p>' + escapeHtml([m.quantity, m.unit, m.food].filter(Boolean).join(' ')) + '</p><small>' + fmtDate(m.date) + '</small>' + (m.notes ? '<p class="stitch-inset">' + escapeHtml(m.notes) + '</p>' : '') + '</div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-meal-id="' + m.id + '">Modifier</button><button type="button" class="btn-delete" data-meal-id="' + m.id + '" aria-label="Supprimer ce repas">' + ico('trash',16) + '</button></div></article>';
+      return '<article class="stitch-record"><span class="stitch-record-icon">' + ico('utensils', 22) + '</span><div class="stitch-record-copy"><h3>' + escapeHtml(m.type || 'Repas') + (m.time ? ' · ' + escapeHtml(m.time) : '') + '</h3><p>' + escapeHtml([m.quantity, m.unit, m.food].filter(Boolean).join(' ')) + '</p><small>' + fmtDate(m.date) + '</small>' + (m.notes ? '<p class="stitch-inset">' + escapeHtml(m.notes) + '</p>' : '') + '</div><div class="stitch-record-actions">' + btnEdit('data-meal-id="' + m.id + '"') + btnDelete('data-meal-id="' + m.id + '"', 'Supprimer ce repas') + '</div></article>';
     }).join('') : '<div class="stitch-card stitch-empty">' + ico('utensils',32) + '<h3>Son premier repas vous attend</h3><p>Consignez les quantités et les horaires pour suivre son alimentation.</p><button type="button" class="care-action" data-stitch-action="addMeal">Ajouter un repas</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
@@ -5511,7 +5605,7 @@
     var name = escapeHtml(data.animal.name || 'Animal');
     var chip = p.chipNumber || data.animal.chip || '';
 
-    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2><button type="button" class="btn-icon" onclick="app.openModal(\'editPedigree\')">' + ico('edit', 14) + ' Modifier</button></div>';
+    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editPedigree\')"') + '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
       html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
@@ -5813,9 +5907,9 @@
         (e.notes ? '<div class="vet-card__notes">' + escapeHtml(e.notes) + '</div>' : '') +
       '</div>' +
       '<div class="vet-card__actions">' +
-        (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary">Appeler</a>' : '') +
-        '<button type="button" class="vet-card__btn vet-card__btn--outline" data-vet-edit="' + e.id + '">Modifier</button>' +
-        '<button type="button" class="vet-card__btn vet-card__btn--ghost" data-vet-delete="' + e.id + '">✕</button>' +
+        (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary vet-card__btn--icon" aria-label="Appeler" title="Appeler">' + ico('phone', 16) + '</a>' : '') +
+        iconOnlyBtn('vet-card__btn vet-card__btn--outline vet-card__btn--icon', 'edit', 'Modifier', 'data-vet-edit="' + e.id + '"') +
+        iconOnlyBtn('vet-card__btn vet-card__btn--ghost vet-card__btn--icon', 'trash', 'Supprimer', 'data-vet-delete="' + e.id + '"') +
       '</div></div>';
   }
 
@@ -5986,7 +6080,7 @@
         '</div>' +
         '<div class="community-tip-title">' + escapeHtml(tip.title) + '</div>' +
         '<div class="community-tip-content">' + escapeHtml(tip.content) + '</div>' +
-        (tip.userAdded ? '<button type="button" class="btn-delete community-tip-delete" data-tip-id="' + tip.id + '">✕ Supprimer</button>' : '') +
+        (tip.userAdded ? iconOnlyBtn('btn-delete community-tip-delete', 'trash', 'Supprimer', 'data-tip-id="' + tip.id + '"') : '') +
         '</div>';
     });
     html += '</div>';
@@ -6621,6 +6715,7 @@
   // ne les met pas à jour tout seul. On retient quel conteneur affiche quelle
   // courbe pour la retracer avec les bonnes couleurs — voir applyTheme().
   var CHART_TARGETS = {};
+  var FICHE_SPARKS = {};
   function redrawChartsForTheme() {
     var data = getCurrent();
     if (!data) return;
@@ -6628,6 +6723,10 @@
       if (!document.getElementById(id)) { delete CHART_TARGETS[id]; return; }
       if (CHART_TARGETS[id] === 'height') renderHeightEvolution(data, id);
       else renderWeightEvolution(data, id);
+    });
+    Object.keys(FICHE_SPARKS).forEach(function (id) {
+      if (!document.getElementById(id)) { delete FICHE_SPARKS[id]; return; }
+      drawFicheSpark(id, FICHE_SPARKS[id]);
     });
   }
   function cssVar(name, fallback) {
@@ -6639,55 +6738,105 @@
     if (!canvas || typeof Chart === 'undefined') return;
     if (CHART_INSTANCES[canvasId]) { CHART_INSTANCES[canvasId].destroy(); delete CHART_INSTANCES[canvasId]; }
     opts = opts || {};
-    var color = opts.color || cssVar('--teal-dark', '#0f766e');
+    if (!entries || !entries.length) return;
+
+    // Couleur trait : éviter le blanc cassé du thème sombre (--teal-dark → --brand)
+    // qui rendait la courbe quasi invisible sur fond --card-bg.
+    var color = opts.color || cssVar('--brand-light', '#14b8a6');
+    if (!/^#([0-9a-fA-F]{6})$/.test(color)) color = '#14b8a6';
     var muted = cssVar('--text-muted', '#6b7280');
     var gridColor = cssVar('--border', 'rgba(128,128,128,0.25)');
-    // Axe X en timestamp numérique (type "linear", pas "time") : le build
-    // chart.umd.js vendorisé n'embarque aucun adaptateur de dates
-    // (chartjs-adapter-*), requis par le scale "time" — un axe linéaire sur
-    // epoch-ms avec formatage manuel des ticks/tooltip donne le même espacement
-    // proportionnel au temps sans dépendance supplémentaire à vendoriser.
-    var toTs = function (d) { return new Date(d + 'T00:00:00').getTime(); };
+    var fillColor = color.length === 7 ? color + '33' : 'rgba(20,184,166,0.2)';
+
+    // Échelle catégorie (1 label = 1 pesée) : fiable sans adaptateur date Chart.js.
+    // L'ancien axe linear + toTs() produisait des NaN → ticks à l'epoch (« 1 janv. »)
+    // et une courbe hors zone visible.
+    var labels = entries.map(function (e) {
+      return e.date ? fmtDate(e.date) : '';
+    });
+    var values = entries.map(function (e) { return e.value; });
+
     var datasets = [{
-      label: opts.label || '', data: entries.map(function (e) { return { x: toTs(e.date), y: e.value }; }),
-      borderColor: color, backgroundColor: color + '26', fill: true, tension: 0.3,
-      pointRadius: entries.length > 30 ? 0 : 4, pointHoverRadius: 6, pointBackgroundColor: color,
-      pointBorderColor: cssVar('--card-bg', '#fff'), pointBorderWidth: 2, borderWidth: 2.5,
+      label: opts.label || '',
+      data: values,
+      borderColor: color,
+      backgroundColor: fillColor,
+      fill: true,
+      tension: 0.3,
+      pointRadius: values.length > 30 ? 0 : 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: color,
+      pointBorderColor: cssVar('--card-bg', '#1a221e'),
+      pointBorderWidth: 2,
+      borderWidth: 2.5,
     }];
     if (opts.rangeBand) {
-      datasets.push({ label: 'Min race', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.rangeBand.min }; }), borderColor: 'transparent', pointRadius: 0, fill: false, order: 3 });
-      datasets.push({ label: 'Max race', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.rangeBand.max }; }), borderColor: 'transparent', pointRadius: 0, backgroundColor: 'rgba(34,197,94,0.12)', fill: '-1', order: 3 });
+      datasets.push({
+        label: 'Min race',
+        data: values.map(function () { return opts.rangeBand.min; }),
+        borderColor: 'transparent',
+        pointRadius: 0,
+        fill: false,
+        order: 3,
+      });
+      datasets.push({
+        label: 'Max race',
+        data: values.map(function () { return opts.rangeBand.max; }),
+        borderColor: 'transparent',
+        pointRadius: 0,
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        fill: '-1',
+        order: 3,
+      });
     }
     if (opts.thresholdLine != null) {
-      datasets.push({ label: opts.thresholdLabel || 'Seuil', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.thresholdLine }; }), borderColor: '#ef4444', borderDash: [5, 4], pointRadius: 0, fill: false, borderWidth: 1.25 });
+      datasets.push({
+        label: opts.thresholdLabel || 'Seuil',
+        data: values.map(function () { return opts.thresholdLine; }),
+        borderColor: '#ef4444',
+        borderDash: [5, 4],
+        pointRadius: 0,
+        fill: false,
+        borderWidth: 1.25,
+      });
     }
+
     CHART_INSTANCES[canvasId] = new Chart(canvas.getContext('2d'), {
       type: 'line',
-      data: { datasets: datasets },
+      data: { labels: labels, datasets: datasets },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
             filter: function (item) { return item.datasetIndex === 0; },
             callbacks: {
-              title: function (items) { return items.length ? fmtDate(new Date(items[0].parsed.x).toISOString().slice(0, 10)) : ''; },
+              title: function (items) { return items.length ? (labels[items[0].dataIndex] || '') : ''; },
               label: function (ctx) { return opts.formatValue ? opts.formatValue(ctx.parsed.y) : ctx.parsed.y; },
             },
           },
         },
         scales: {
           x: {
-            type: 'linear', grid: { display: false },
+            grid: { display: false },
             ticks: {
-              color: muted, font: { size: 10 }, maxRotation: 0, maxTicksLimit: 6,
-              // Libellé compact indépendant du format de date choisi par l'utilisateur
-              // (fmtDate() en dépend, potentiellement "yyyy-mm-dd" ou autre) : jour + mois court fixes ici.
-              callback: function (v) { return new Date(v).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); },
+              color: muted,
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6,
             },
           },
-          y: { grid: { color: gridColor }, ticks: { color: muted, font: { size: 10 }, callback: function (v) { return opts.formatValue ? opts.formatValue(v) : v; } } },
+          y: {
+            grid: { color: gridColor },
+            ticks: {
+              color: muted,
+              font: { size: 10 },
+              callback: function (v) { return opts.formatValue ? opts.formatValue(v) : v; },
+            },
+          },
         },
       },
     });
@@ -6732,7 +6881,7 @@
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
       var wTxt = wNum(e.weight);
-      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' ' + wUnit() + '</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-weight" data-weight-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-weight" data-weight-entry-id="' + e.id + '">✕</button></div></div></div>';
+      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' ' + wUnit() + '</div><div class="weight-actions">' + btnEdit('data-action="edit-weight" data-weight-entry-id="' + e.id + '"') + ' ' + btnDelete('data-action="delete-weight" data-weight-entry-id="' + e.id + '"') + '</div></div></div>';
     }).join('');
 
     container.innerHTML =
@@ -6741,7 +6890,7 @@
       '<div class="weight-evolution-list">' + list + '</div>';
 
     drawMetricChart(canvasId, entries.map(function (e) { return { date: e.date, value: Number(e.weight) }; }), {
-      color: cssVar('--teal-dark', '#0f766e'), rangeBand: rangeBand, formatValue: function (v) { return wNum(v); },
+      color: cssVar('--brand-light', '#14b8a6'), rangeBand: rangeBand, formatValue: function (v) { return wNum(v); },
     });
 
     container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
@@ -6786,7 +6935,7 @@
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
       var hTxt = hNum(e.height);
-      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' ' + hUnit() + '</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-height" data-height-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-height" data-height-entry-id="' + e.id + '">✕</button></div></div></div>';
+      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' ' + hUnit() + '</div><div class="weight-actions">' + btnEdit('data-action="edit-height" data-height-entry-id="' + e.id + '"') + ' ' + btnDelete('data-action="delete-height" data-height-entry-id="' + e.id + '"') + '</div></div></div>';
     }).join('');
 
     container.innerHTML =
