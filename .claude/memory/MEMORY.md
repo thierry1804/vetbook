@@ -1,6 +1,7 @@
 # Memory Index
 
-- [Backend migrated to Neon](project_backend_migrated_to_neon.md) — Supabase → Neon+Vercel API, what changed vs. stayed the same, stale supabase/ leftovers
+- [Account, security & sharing](project_account_security_sharing.md) — 2026-09-25: full account/password/session/share/household feature verified end-to-end (79 smoke checks green), 2 latent pg concurrent-query bugs fixed
+- [Backend migrated to Neon](project_backend_migrated_to_neon.md) — Supabase → Neon+Vercel API, what changed vs. stayed the same, stale supabase/ leftovers (now superseded by Docker/VPS, see the account/security memory)
 - [Feature gap implementation](project_feature_gap_implementation.md) — Jalon A+B done (symptoms/breed/calories/vet-export/push), Jalon C next (medications/monthly-summary/dog-events)
 - [Frontend redesign status](project_frontend_redesign.md) — home screen done (health ring signature), ~14 screens left, resume with fiche animal
 - [Playwright verification workflow](feedback_playwright_verification.md) — temp-install/test/uninstall pattern, screenshots before claiming success

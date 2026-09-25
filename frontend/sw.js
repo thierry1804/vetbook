@@ -9,7 +9,8 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './vendor/qrcode.min.js',
-  './data-layer.js'
+  './data-layer.js',
+  './account.js'
   // Note : config.js est volontairement absent (spécifique à chaque
   // déploiement, potentiellement inexistant) — Cache.addAll() échouerait
   // entièrement si une seule URL de la liste est introuvable.

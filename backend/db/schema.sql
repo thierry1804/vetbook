@@ -357,3 +357,94 @@ create index if not exists idx_nutrition_meals_pet on nutrition_meals(pet_id);
 create index if not exists idx_pets_user on pets(user_id);
 create index if not exists idx_vet_contacts_user on vet_contacts(user_id);
 create index if not exists idx_auth_login_tokens_expires on auth_login_tokens(expires_at);
+
+-- ═══════════════════════════════════════════════════════════════
+-- Profil utilisateur, sécurité du compte, partage
+-- ═══════════════════════════════════════════════════════════════
+
+alter table users add column if not exists first_name text;
+alter table users add column if not exists last_name text;
+alter table users add column if not exists phone text;
+alter table users add column if not exists locale text not null default 'fr';
+alter table users add column if not exists email_verified_at timestamptz;
+alter table users add column if not exists pending_email text;
+alter table users add column if not exists terms_accepted_at timestamptz;
+alter table users add column if not exists terms_version text;
+alter table users add column if not exists avatar_key text;
+alter table users add column if not exists avatar_type text;
+alter table users add column if not exists avatar_updated_at timestamptz;
+-- Toute session émise avant cette date est invalide (« se déconnecter partout », changement de mot de passe).
+-- Valeur initiale « epoch » pour les comptes existants (leurs sessions restent valides), puis now() pour les nouveaux.
+alter table users add column if not exists session_epoch timestamptz not null default 'epoch';
+alter table users alter column session_epoch set default now();
+alter table users add column if not exists preferences jsonb not null default '{}'::jsonb;
+alter table users add column if not exists emergency_contact jsonb not null default '{}'::jsonb;
+alter table users add column if not exists updated_at timestamptz not null default now();
+
+-- Sessions : une ligne par appareil connecté (identifiant = claim "sid" du JWT).
+create table if not exists user_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  user_agent text,
+  ip text,
+  revoked_at timestamptz
+);
+create index if not exists user_sessions_user_idx on user_sessions (user_id);
+
+-- Jetons à usage unique envoyés par e-mail : vérification, mot de passe oublié, changement d'adresse, invitation.
+-- Seul le hachage du jeton est stocké.
+create table if not exists user_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  purpose text not null,
+  token_hash text not null unique,
+  payload jsonb not null default '{}'::jsonb,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists user_tokens_user_purpose_idx on user_tokens (user_id, purpose);
+
+-- Lien de partage en lecture seule d'un animal (vétérinaire) : valable jusqu'à expires_at, révocable.
+create table if not exists share_links (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  pet_id uuid not null references pets(id) on delete cascade,
+  token_hash text not null unique,
+  label text,
+  include_notes boolean not null default false,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  view_count integer not null default 0,
+  last_viewed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists share_links_user_idx on share_links (user_id);
+
+-- Foyer : le propriétaire invite une personne (par e-mail) à consulter ses carnets.
+create table if not exists household_invites (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references users(id) on delete cascade,
+  email text not null,
+  role text not null default 'reader',
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  accepted_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists household_invites_owner_idx on household_invites (owner_id);
+
+create table if not exists household_members (
+  owner_id uuid not null references users(id) on delete cascade,
+  member_id uuid not null references users(id) on delete cascade,
+  role text not null default 'reader',
+  created_at timestamptz not null default now(),
+  primary key (owner_id, member_id)
+);
+
+alter table share_links add column if not exists include_contact boolean not null default false;
+alter table share_links add column if not exists include_photos boolean not null default false;

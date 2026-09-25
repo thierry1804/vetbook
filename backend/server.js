@@ -13,6 +13,20 @@ import login from './api/auth/login.js';
 import logout from './api/auth/logout.js';
 import me from './api/auth/me.js';
 import googleAuth from './api/auth/google.js';
+import forgotPassword from './api/auth/forgot-password.js';
+import resetPassword from './api/auth/reset-password.js';
+import verifyEmail from './api/auth/verify-email.js';
+import resendVerification from './api/auth/resend-verification.js';
+import userProfile from './api/user/profile.js';
+import userAvatar from './api/user/avatar.js';
+import userPassword from './api/user/password.js';
+import userEmail from './api/user/email.js';
+import userSessions from './api/user/sessions.js';
+import userAccount from './api/user/account.js';
+import userConsent from './api/user/consent.js';
+import userStorage from './api/user/storage.js';
+import { shareLinks, sharePublic, sharePublicPhoto } from './api/share/index.js';
+import { household } from './api/household/index.js';
 import syncPush from './api/sync/push.js';
 import syncPull from './api/sync/pull.js';
 import pushSubscription from './api/push/subscription.js';
@@ -37,6 +51,22 @@ const authLimiter = rateLimit({
   message: { error: 'Trop de tentatives. Réessaie plus tard.' },
 });
 
+// Actions sensibles (mot de passe, e-mail, suppression) et lecture publique des liens de partage.
+const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+});
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
@@ -46,6 +76,30 @@ app.all('/api/auth/login', authLimiter, login);
 app.all('/api/auth/logout', logout);
 app.all('/api/auth/me', me);
 app.all('/api/auth/google', authLimiter, googleAuth);
+app.all('/api/auth/forgot-password', authLimiter, forgotPassword);
+app.all('/api/auth/reset-password', authLimiter, resetPassword);
+app.all('/api/auth/verify-email', authLimiter, verifyEmail);
+app.all('/api/auth/resend-verification', sensitiveLimiter, resendVerification);
+app.all('/api/user/profile', userProfile);
+app.all('/api/user/avatar', userAvatar);
+app.all('/api/user/change-password', sensitiveLimiter, userPassword);
+app.all('/api/user/change-email', sensitiveLimiter, userEmail);
+app.all('/api/user/sessions', userSessions);
+app.all('/api/user/sessions/:id', userSessions);
+app.all('/api/user/account', sensitiveLimiter, userAccount);
+app.all('/api/user/consent', userConsent);
+app.all('/api/user/storage', userStorage);
+app.all('/api/share/links', shareLinks);
+app.all('/api/share/links/:id', shareLinks);
+app.all('/api/share/public/:token', publicLimiter, sharePublic);
+app.all('/api/share/public/:token/photo/:id', publicLimiter, sharePublicPhoto);
+const withSub = (sub) => (req, res) => { req.params.sub = sub; return household(req, res); };
+app.all('/api/household', household);
+app.all('/api/household/accept', withSub('accept'));
+app.all('/api/household/invites', withSub('invites'));
+app.all('/api/household/:sub(invites|members|memberships)/:id', household);
+app.all('/api/household/:ownerId/pets', withSub('pets'));
+app.all('/api/household/:ownerId/photo/:id', withSub('photo'));
 app.all('/api/sync/push', syncPush);
 app.all('/api/sync/pull', syncPull);
 app.all('/api/push/subscription', pushSubscription);

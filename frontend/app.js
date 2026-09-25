@@ -355,7 +355,21 @@
 
   function fmtDate(d) {
     if (!d) return '—';
+    if (window.applikaPrefs) return window.applikaPrefs.formatDate(d);
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // Poids et tailles sont stockés en kg / cm ; les préférences (profil > Affichage) ne changent que l'affichage.
+  function wUnit() { return window.applikaPrefs && window.applikaPrefs.get().units.weight === 'lb' ? 'lb' : 'kg'; }
+  function hUnit() { return window.applikaPrefs && window.applikaPrefs.get().units.height === 'in' ? 'in' : 'cm'; }
+  function uW(kg) { return window.applikaPrefs ? window.applikaPrefs.fmtWeight(kg) : String(kg).replace('.', ',') + ' kg'; }
+  function uH(cm) { return window.applikaPrefs ? window.applikaPrefs.fmtHeight(cm) : String(cm).replace('.', ',') + ' cm'; }
+  function wNum(kg, d) { return window.applikaPrefs ? window.applikaPrefs.fmtWeight(kg, d == null ? 1 : d).replace(/ (kg|lb)$/, '') : Number(kg).toFixed(d == null ? 1 : d); }
+  function hNum(cm) { return uH(cm).replace(/ (cm|in)$/, ''); }
+  function wDelta(deltaKg) { return window.applikaPrefs ? window.applikaPrefs.weightDelta(deltaKg) : (deltaKg >= 0 ? '+' : '−') + Math.abs(deltaKg).toFixed(1).replace('.', ',') + ' kg'; }
+  function hDelta(deltaCm) {
+    var v = hUnit() === 'in' ? deltaCm * 0.3937007874 : deltaCm;
+    return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1).replace('.', ',') + ' ' + hUnit();
   }
 
   function fmtCost(n) {
@@ -1483,7 +1497,7 @@
       var lastW = weights[weights.length - 1];
       var inRange = lastW >= breedRange.min && lastW <= breedRange.max;
       container.innerHTML += '<div class="breed-weight-badge ' + (inRange ? 'in-range' : 'out-of-range') + '">' +
-        'Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' +
+        'Fourchette race (adulte) : ' + wNum(breedRange.min, 0) + '–' + wNum(breedRange.max, 0) + ' ' + wUnit() +
         (inRange ? ' ✓' : ' ⚠') + '</div>';
     }
   }
@@ -1888,7 +1902,7 @@
     }
     var due = collectDueItemsForAnimal(data);
     var late = due.filter(function (x) { return daysUntil(x.next) < 0; }).length;
-    var weight = a.weight != null && a.weight !== '' ? String(a.weight).replace('.', ',') + ' kg' : 'À renseigner';
+    var weight = a.weight != null && a.weight !== '' ? uW(a.weight) : 'À renseigner';
     var meals = ((data.nutrition || {}).meals || []).filter(function (m) { return m.date === todayISO(); });
     var since = new Date(); since.setFullYear(since.getFullYear() - 1);
     var visits = (data.consultations || []).filter(function (c) { return c.date && isoToLocalDate(c.date) >= since; });
@@ -2267,11 +2281,11 @@
       var trend = '';
       if (weights.length > 1) {
         var dl = Number(weights[weights.length - 1].weight) - Number(weights[weights.length - 2].weight);
-        trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : (dl > 0 ? '+' : '−') + Math.abs(dl).toFixed(1).replace('.', ',') + ' kg depuis le ' + fmtDate(weights[weights.length - 2].date);
+        trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : wDelta(dl) + ' depuis le ' + fmtDate(weights[weights.length - 2].date);
       }
-      tiles.push({ label: 'Poids', value: String(a.weight).replace('.', ',') + ' kg', trend: trend, extra: ficheSpark(weights.slice(-8).map(function (w) { return Number(w.weight); })), route: 'poids' });
+      tiles.push({ label: 'Poids', value: uW(a.weight), trend: trend, extra: ficheSpark(weights.slice(-8).map(function (w) { return Number(w.weight); })), route: 'poids' });
     }
-    if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: String(a.height).replace('.', ',') + ' cm', trend: '', route: 'poids' });
+    if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: uH(a.height), trend: '', route: 'poids' });
     var yearSpend = 0, consultCount = 0;
     var yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
     (data.consultations || []).forEach(function (cn) {
@@ -2665,8 +2679,8 @@
     setText('pet-tile-breed', a.race || '—');
     setText('pet-tile-dob', a.dob ? fmtDate(a.dob) : '—');
     setText('pet-tile-gender', a.sex || '—');
-    setText('pet-tile-height', a.height != null && a.height !== '' ? a.height + ' cm' : '—');
-    setText('pet-tile-weight', a.weight != null ? a.weight + ' kg' : '—');
+    setText('pet-tile-height', a.height != null && a.height !== '' ? uH(a.height) : '—');
+    setText('pet-tile-weight', a.weight != null ? uW(a.weight) : '—');
     setText('pet-tile-repro', formatReproLabel(a));
 
     var infoRace = document.getElementById('info-race');
@@ -2674,7 +2688,7 @@
     var infoChip = document.getElementById('info-chip');
     var infoSter = document.getElementById('info-sterilise');
     if (infoRace) infoRace.textContent = a.race || '—';
-    if (infoWeight) infoWeight.textContent = a.weight != null ? a.weight + ' kg' : '—';
+    if (infoWeight) infoWeight.textContent = a.weight != null ? uW(a.weight) : '—';
     if (infoChip) infoChip.textContent = a.chip || 'Non renseigné';
     if (infoSter) infoSter.textContent = a.sterilise || 'Non';
 
@@ -2892,7 +2906,7 @@
     if (a.race) lines.push('Race: ' + a.race);
     if (a.sex) lines.push('Sexe: ' + a.sex);
     if (a.dob) lines.push('Naissance: ' + fmtDate(a.dob));
-    if (a.weight) lines.push('Poids: ' + a.weight + ' kg');
+    if (a.weight) lines.push('Poids: ' + uW(a.weight));
     if (a.color) lines.push('Couleur: ' + a.color);
     if (a.chip) lines.push('Puce: ' + a.chip);
     if (a.sterilise && a.sterilise !== 'Non') lines.push('Sterilise: ' + a.sterilise);
@@ -5902,6 +5916,9 @@
   // ——— Browser Notifications ————————————————————————————
   function checkBrowserNotifications() {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var np = window.applikaPrefs ? window.applikaPrefs.get().notifications : null;
+    if (np && (np.push === false || window.applikaPrefs.inQuietHours())) return;
+    var lead = function (type) { return window.applikaPrefs ? window.applikaPrefs.leadDays(type) : 7; };
     var lastCheck = localStorage.getItem(NOTIF_CHECK_KEY);
     var todayStr = todayISO();
     if (lastCheck === todayStr) return;
@@ -5921,7 +5938,7 @@
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff < 0) {
             new Notification('App\'lika — Vaccin en retard', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' (' + Math.abs(diff) + 'j de retard)', icon: 'icons/icon-192.png' });
-          } else if (diff <= 7) {
+          } else if (diff <= lead('vaccine')) {
             new Notification('App\'lika — Rappel vaccin', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5933,7 +5950,7 @@
           var dt = isoToLocalDate(d.next);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('deworming')) {
             new Notification('App\'lika — Rappel déparasitage', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(d.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5945,7 +5962,7 @@
           var dt = isoToLocalDate(h.next);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('hygiene')) {
             new Notification('App\'lika — Rappel hygiène', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(h.type) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5964,7 +5981,7 @@
           var dt = isoToLocalDate(m.endDate);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('medication')) {
             new Notification('App\'lika — Fin de traitement', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(m.name) + ' se termine dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -6053,9 +6070,10 @@
     uiState.calendarDay = sel;
 
     var events = buildAgendaEvents(year);
-    var startDow = (new Date(year, month, 1).getDay() + 6) % 7; // lundi = 0
+    var sundayFirst = !!(window.applikaPrefs && window.applikaPrefs.weekStartsOnSunday());
+    var startDow = sundayFirst ? new Date(year, month, 1).getDay() : (new Date(year, month, 1).getDay() + 6) % 7; // 0 = premier jour de la semaine choisi
     var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    var dayNames = sundayFirst ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'] : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     var html = dayNames.map(function (d) { return '<div class="cal-header" aria-hidden="true">' + d + '</div>'; }).join('');
     for (var i = 0; i < startDow; i++) html += '<span class="cal-day cal-other" aria-hidden="true"></span>';
     for (var d = 1; d <= daysInMonth; d++) {
@@ -6171,7 +6189,7 @@
 
     var circles = entries.map(function (e, i) {
       var x = xFor(i, n), y = yFor(Number(e.weight));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="var(--teal)" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.weight).toFixed(1) + ' kg"></circle>';
+      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="var(--teal)" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + uW(e.weight) + '"></circle>';
     }).join('');
 
     // Grid lines
@@ -6181,14 +6199,14 @@
       var wVal = minW + (range * i / steps);
       var yVal = yFor(wVal);
       gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + wVal.toFixed(1) + '</text>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + wNum(wVal) + '</text>';
     }
 
     var first = Number(entries[0].weight);
     var last = Number(entries[entries.length - 1].weight);
     var delta = last - first;
-    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' kg';
-    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+    var deltaTxt = wDelta(delta);
+    var lastTxt = wNum(last);
 
     // Trend
     var trendHtml = '';
@@ -6210,13 +6228,13 @@
         breedBandSvg = '<rect x="' + padL + '" y="' + bandYTop.toFixed(2) + '" width="' + (W - padL - padR) + '" height="' + (bandYBottom - bandYTop).toFixed(2) + '" fill="#22c55e" opacity="0.12"/>';
       }
       var outOfRange = last < breedRange.min || last > breedRange.max;
-      breedHintTxt = ' · Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' + (outOfRange ? ' ⚠' : ' ✓');
+      breedHintTxt = ' · Fourchette race (adulte) : ' + wNum(breedRange.min, 0) + '–' + wNum(breedRange.max, 0) + ' ' + wUnit() + (outOfRange ? ' ⚠' : ' ✓');
     }
 
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
-      var wTxt = Number(e.weight).toFixed(1).replace(/\.0$/, '');
-      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' kg</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-weight" data-weight-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-weight" data-weight-entry-id="' + e.id + '">✕</button></div></div></div>';
+      var wTxt = wNum(e.weight);
+      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' ' + wUnit() + '</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-weight" data-weight-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-weight" data-weight-entry-id="' + e.id + '">✕</button></div></div></div>';
     }).join('');
 
     container.innerHTML =
@@ -6228,7 +6246,7 @@
       '<polyline fill="none" stroke="var(--teal-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
       circles +
       '</svg></div>' +
-      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' kg · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + wUnit() + ' · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
 
     container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
@@ -6302,7 +6320,7 @@
 
     var circles = entries.map(function (e, i) {
       var x = xFor(i, n), y = yFor(Number(e.height));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="#2563eb" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.height).toFixed(1) + ' cm"></circle>';
+      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="#2563eb" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + uH(e.height) + '"></circle>';
     }).join('');
 
     var gridLines = '';
@@ -6311,14 +6329,14 @@
       var hVal = minH + (range * i / steps);
       var yVal = yFor(hVal);
       gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + hVal.toFixed(1) + '</text>';
+      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + hNum(hVal) + '</text>';
     }
 
     var first = Number(entries[0].height);
     var last = Number(entries[entries.length - 1].height);
     var delta = last - first;
-    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' cm';
-    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+    var deltaTxt = hDelta(delta);
+    var lastTxt = hNum(last);
 
     var trendHtml = '';
     if (entries.length > 2) {
@@ -6327,8 +6345,8 @@
 
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
-      var hTxt = Number(e.height).toFixed(1).replace(/\.0$/, '');
-      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' cm</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-height" data-height-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-height" data-height-entry-id="' + e.id + '">✕</button></div></div></div>';
+      var hTxt = hNum(e.height);
+      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' ' + hUnit() + '</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-height" data-height-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-height" data-height-entry-id="' + e.id + '">✕</button></div></div></div>';
     }).join('');
 
     container.innerHTML =
@@ -6339,7 +6357,7 @@
       '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
       circles +
       '</svg></div>' +
-      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' cm · Variation: ' + deltaTxt + trendHtml + '</div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + hUnit() + ' · Variation: ' + deltaTxt + trendHtml + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
 
     container.querySelectorAll('[data-action="edit-height"]').forEach(function (btn) {
@@ -6428,7 +6446,7 @@
     rows.push({ label: 'Activités', value: s.activityCount + (s.totalDuration ? ' (' + Math.round(s.totalDuration) + ' min, ' + s.totalDistance.toFixed(1) + ' km)' : '') });
 
     var weightHtml = s.weightTrend
-      ? '<div class="monthly-summary-row"><span>Poids</span><span>' + s.weightTrend.first.toFixed(1) + ' → ' + s.weightTrend.last.toFixed(1) + ' kg (' + (s.weightTrend.delta >= 0 ? '+' : '') + s.weightTrend.delta.toFixed(1) + ' kg)</span></div>'
+      ? '<div class="monthly-summary-row"><span>Poids</span><span>' + wNum(s.weightTrend.first) + ' → ' + wNum(s.weightTrend.last) + ' ' + wUnit() + ' (' + wDelta(s.weightTrend.delta) + ')</span></div>'
       : '';
 
     var nextDueHtml = s.nextDue
@@ -6477,10 +6495,10 @@
     var weights = ((data.animal && data.animal.weightHistory) || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
     weights.forEach(function (w, i) {
       var delta = i ? Number(w.weight) - Number(weights[i - 1].weight) : null;
-      var d = delta == null || Math.abs(delta) < 0.005 ? '' : (delta > 0 ? '+' : '−') + Math.abs(delta).toFixed(1).replace('.', ',') + ' kg';
-      add('weight', w.date, String(w.weight).replace('.', ',') + ' kg', 'Pesée', { meta: d });
+      var d = delta == null || Math.abs(delta) < 0.005 ? '' : wDelta(delta);
+      add('weight', w.date, uW(w.weight), 'Pesée', { meta: d });
     });
-    ((data.animal && data.animal.heightHistory) || []).forEach(function (h) { add('weight', h.date, h.height + ' cm', 'Taille', { icon: 'scale' }); });
+    ((data.animal && data.animal.heightHistory) || []).forEach(function (h) { add('weight', h.date, uH(h.height), 'Taille', { icon: 'scale' }); });
     (data.activities || []).forEach(function (a) { add('daily', a.date, a.type || 'Activité', 'Activité', { meta: a.duration ? a.duration + ' min' : '', tab: 'activites' }); });
     ((data.nutrition && data.nutrition.meals) || []).forEach(function (m) { add('daily', m.date, (m.type || 'Repas') + (m.food ? ' — ' + m.food : ''), 'Repas', { icon: 'utensils', tab: 'nutrition' }); });
     (data.notes || []).forEach(function (n) { add('notes', n.date, n.title || 'Note', n.category || 'Note'); });
@@ -6691,7 +6709,11 @@
     if (tabName === 'photos') renderGallery();
     if (tabName === 'nutrition') renderNutrition();
     if (tabName === 'poids') {
-      renderHistory();
+      // Les courbes vivent dans la frise (#weight-evolution) mais ne s'y dessinent que sur son filtre « Poids & taille » :
+      // on les dessine ici directement pour cet onglet.
+      var poidsData = getCurrent();
+      renderWeightEvolution(poidsData);
+      renderHeightEvolution(poidsData);
       var pw = document.getElementById('poids-weight-wrap');
       var ph = document.getElementById('poids-height-wrap');
       var srcW = document.getElementById('weight-evolution');
@@ -6773,7 +6795,7 @@
       '<tr><th>Date de naissance</th><td>' + (a.dob ? fmtDate(a.dob) : '—') + '</td></tr>' +
       '<tr><th>Puce électronique</th><td>' + escapeHtml(a.chip || '—') + '</td></tr>' +
       '<tr><th>Stérilisé(e)</th><td>' + escapeHtml(a.sterilise || 'Non') + '</td></tr>' +
-      '<tr><th>Poids actuel</th><td>' + (a.weight != null && a.weight !== '' ? a.weight + ' kg' : '—') + '</td></tr>' +
+      '<tr><th>Poids actuel</th><td>' + (a.weight != null && a.weight !== '' ? uW(a.weight) : '—') + '</td></tr>' +
       '</tbody></table>';
 
     var vaccinesRows = (data.vaccines || []).slice().sort(byDateDesc).map(function (v) {
@@ -6805,12 +6827,12 @@
     var symptomsTable = symptomsRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Symptôme</th><th>Sévérité</th><th>Notes</th></tr></thead><tbody>' + symptomsRows + '</tbody></table>' : '';
 
     var weightRows = (Array.isArray(a.weightHistory) ? a.weightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (w) {
-      return '<tr><td>' + fmtDate(w.date) + '</td><td>' + w.weight + ' kg</td></tr>';
+      return '<tr><td>' + fmtDate(w.date) + '</td><td>' + uW(w.weight) + '</td></tr>';
     }).join('');
     var weightTable = weightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Poids</th></tr></thead><tbody>' + weightRows + '</tbody></table>' : '';
 
     var heightRows = (Array.isArray(a.heightHistory) ? a.heightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (h) {
-      return '<tr><td>' + fmtDate(h.date) + '</td><td>' + h.height + ' cm</td></tr>';
+      return '<tr><td>' + fmtDate(h.date) + '</td><td>' + uH(h.height) + '</td></tr>';
     }).join('');
     var heightTable = heightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Taille</th></tr></thead><tbody>' + heightRows + '</tbody></table>' : '';
 
@@ -6891,6 +6913,19 @@
   function toggleTheme() {
     var current = document.documentElement.getAttribute('data-theme');
     applyTheme(current !== 'dark');
+  }
+
+  // 'light' | 'dark' | 'auto' (suit le réglage du système, sans mémoriser de choix).
+  function setTheme(mode) {
+    if (mode === 'auto') {
+      localStorage.removeItem(THEME_KEY);
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      var btn = document.getElementById('btn-theme-toggle');
+      if (btn) btn.textContent = prefersDark ? '🌙' : '☀️';
+    } else {
+      applyTheme(mode === 'dark');
+    }
   }
 
   // ——— Ajout rapide ——————————————————————————————————
@@ -7305,9 +7340,15 @@
   function toggleDogEventsReminder() {
     var btn = document.getElementById('btn-dog-events-toggle');
     if (!btn) return;
-    var next = !btn.classList.contains('on');
-    btn.classList.toggle('on', next);
-    btn.setAttribute('aria-pressed', next);
+    setDogEventsReminder(!btn.classList.contains('on'));
+  }
+
+  function setDogEventsReminder(next) {
+    var btn = document.getElementById('btn-dog-events-toggle');
+    if (btn) {
+      btn.classList.toggle('on', next);
+      btn.setAttribute('aria-pressed', next);
+    }
     localStorage.setItem(DOG_EVENTS_REMINDER_PREF_KEY, String(next));
 
     if (window.cloudSync && window.cloudSync.isConfigured()) {
@@ -7499,6 +7540,11 @@
   async function init() {
     initTheme();
     var hasData = loadState();
+    // Préférence « animal affiché en premier » (profil > Affichage) : appliquée au lancement seulement.
+    if (hasData && window.applikaPrefs) {
+      var wantedPet = window.applikaPrefs.get().defaultPetLocalId;
+      if (wantedPet != null && state.animals.some(function (a) { return a.id === Number(wantedPet); })) state.currentAnimalId = Number(wantedPet);
+    }
 
     try {
       await openPhotoDb();
@@ -8069,24 +8115,6 @@
     var btnHelpOnboarding = document.getElementById('btn-help-onboarding');
     if (btnHelpOnboarding) btnHelpOnboarding.addEventListener('click', function () { showOnboarding(); });
 
-    document.getElementById('account-export-json').addEventListener('click', function () {
-      exportBackupJson().catch(function () { showToast('Erreur lors de l’export des données.', 'error'); });
-    });
-    document.getElementById('account-export-ics').addEventListener('click', function () {
-      exportUpcomingRemindersIcs().catch(function () { showToast('Erreur lors de l’export du calendrier.', 'error'); });
-    });
-    document.getElementById('account-events-toggle').addEventListener('change', function () {
-      var oldBtn = document.getElementById('btn-dog-events-toggle');
-      oldBtn.classList.toggle('on', !this.checked);
-      toggleDogEventsReminder();
-    });
-
-    var userDarkToggle = document.getElementById('user-dark-toggle');
-    if (userDarkToggle) {
-      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
-      userDarkToggle.addEventListener('change', function () { toggleTheme(); });
-    }
-
     // Tips & Vets see-all buttons
     var btnSeeAllVets = document.getElementById('btn-see-all-vets');
     if (btnSeeAllVets) btnSeeAllVets.addEventListener('click', function () {
@@ -8104,43 +8132,10 @@
     setupSwipe();
   }
 
-  // ——— User Profile View ——————————————————————————————————
-  function renderAccountContent() {
-    document.querySelectorAll('[data-account-icon]').forEach(function (el) { el.innerHTML = ico(el.dataset.accountIcon, 20); });
-    var count = state.animals.length;
-    document.getElementById('account-pet-count').textContent = count + ' enregistré' + (count > 1 ? 's' : '');
-    document.getElementById('account-owner-summary').textContent = count ? 'Vous accompagnez ' + count + ' compagnon' + (count > 1 ? 's' : '') + ' au quotidien' : 'Votre espace pour prendre soin de vos compagnons';
-    var list = document.getElementById('account-pets');
-    list.innerHTML = state.animals.map(function (data) {
-      var a = data.animal;
-      var due = collectDueItemsForAnimal(data);
-      var late = due.some(function (item) { return daysUntil(item.next) < 0; });
-      var soon = due.some(function (item) { var days = daysUntil(item.next); return days >= 0 && days <= 14; });
-      var status = late ? 'Soin en retard' : soon ? 'Soin à prévoir' : 'Voir le carnet';
-      var months = a.dob ? calculateAgeMonths(a.dob) : null;
-      var age = months != null ? (months < 12 ? months + ' mois' : Math.floor(months / 12) + ' an' + (months >= 24 ? 's' : '')) : '';
-      return '<button type="button" class="account-pet" data-account-pet="' + data.id + '"><span class="account-pet-avatar">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 24) + '</span><span class="account-row-copy"><strong>' + escapeHtml(a.name || 'Sans nom') + '<span class="account-species">' + escapeHtml(a.species === 'Féline' ? 'Chat' : a.species === 'Canine' ? 'Chien' : 'Animal') + '</span></strong><small>' + escapeHtml([a.race, age].filter(Boolean).join(' · ')) + '</small></span><span class="account-badge' + (late ? ' account-badge--late' : soon ? ' account-badge--soon' : '') + '">' + status + '</span><span aria-hidden="true">›</span></button>';
-    }).join('') || '<p class="account-caption">Ajoutez votre premier compagnon pour créer son carnet de santé.</p>';
-    list.querySelectorAll('[data-account-pet]').forEach(function (btn) {
-      var data = state.animals.find(function (a) { return a.id === Number(btn.dataset.accountPet); });
-      btn.addEventListener('click', function () { state.currentAnimalId = data.id; saveState(); showDetail({tab: 'profil', nav: 'pets'}); });
-      if (data.animal.avatar) {
-        var img = document.createElement('img'); img.alt = ''; btn.querySelector('.account-pet-avatar').replaceChildren(img);
-        if (typeof data.animal.avatar === 'number') getPhotoObjectUrl(data.animal.avatar).then(function (url) { if (url) img.src = url; }).catch(function () {});
-        else img.src = data.animal.avatar;
-      }
-    });
-    document.getElementById('account-events-toggle').checked = localStorage.getItem(DOG_EVENTS_REMINDER_PREF_KEY) !== 'false';
-    var caption = document.getElementById('account-cloud-caption');
-    caption.textContent = 'Sauvegarde locale sur cet appareil';
-    if (window.cloudSync && window.cloudSync.isConfigured()) window.cloudSync.getSession().then(function (session) {
-      caption.textContent = session ? 'Compte connecté · sauvegarde cloud disponible' : 'Connectez-vous pour retrouver vos carnets sur vos appareils';
-    }).catch(function () {});
-  }
-
+  // ——— Compte & paramètres ———————————————————————————————————
+  // Le contenu de la page (profil, sécurité, notifications, affichage, partage, données) est rendu par account.js.
   function showUserProfile() {
     state.viewMode = 'profile';
-    renderAccountContent();
     setBottomNavActive('account');
     hideAppViews();
     var viewProfile = document.getElementById('view-user-profile');
@@ -8153,30 +8148,7 @@
     }
     document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
-
-    // Populate user profile info: le profil propriétaire local (global au
-    // compte, voir getOwner()) est prioritaire, sinon on retombe sur le
-    // compte cloud connecté (Google/lien magique) pour ne pas laisser le
-    // placeholder statique de index.html affiché indéfiniment.
-    var ownerName = getOwner().name;
-    var ownerEmail = getOwner().email;
-    var nameEl = document.getElementById('user-profile-name');
-    var emailEl = document.getElementById('user-profile-email');
-    if (nameEl) nameEl.textContent = ownerName || 'Utilisateur';
-    if (emailEl) emailEl.textContent = ownerEmail || '';
-    if ((!ownerName || !ownerEmail) && window.cloudSync && window.cloudSync.isConfigured()) {
-      window.cloudSync.getSession().then(function (session) {
-        if (!session) return;
-        if (nameEl && !ownerName && session.user.name) nameEl.textContent = session.user.name;
-        if (emailEl && !ownerEmail && session.user.email) emailEl.textContent = session.user.email;
-      });
-    }
-
-    // Sync dark mode toggle
-    var userDarkToggle = document.getElementById('user-dark-toggle');
-    if (userDarkToggle) {
-      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
-    }
+    if (window.applikaAccount) window.applikaAccount.show();
     saveRoute({ view: 'profile' });
   }
 
@@ -8221,8 +8193,31 @@
     showDirectory: showDirectory,
     // keep legacy helpers referenced for tooling / future screens
     _buildHealthRing: buildHealthRing,
-    _renderHomeVetsAndTips: renderHomeVetsAndTips
+    _renderHomeVetsAndTips: renderHomeVetsAndTips,
+    // Contexte pour account.js (page « Compte & paramètres »).
+    _ctx: {
+      getState: function () { return state; },
+      getOwner: getOwner,
+      saveState: saveState,
+      showToast: showToast,
+      openModal: openModal,
+      showUserProfile: showUserProfile,
+      showHelp: showHelp,
+      showOnboarding: showOnboarding,
+      setTheme: setTheme,
+      toggleDogEvents: setDogEventsReminder,
+      exportJson: function () { exportBackupJson().catch(function () { showToast('Erreur lors de l’export des données.', 'error'); }); },
+      exportIcs: function () { exportUpcomingRemindersIcs().catch(function () { showToast('Erreur lors de l’export du calendrier.', 'error'); }); },
+      openPet: function (id) { state.currentAnimalId = id; saveState(); showDetail({ tab: 'profil', nav: 'pets' }); },
+      refreshAll: function () { if (state.viewMode === 'home') renderHome(); else if (state.animals.length) refreshAll(); }
+    }
   };
+  // Les préférences d'affichage changent le rendu : on redessine la vue courante.
+  document.addEventListener('applika:prefs', function () {
+    if (state.viewMode === 'home') renderHome();
+    else if (state.viewMode === 'agenda') renderAgenda();
+    else if (state.viewMode === 'detail' && state.animals.length) refreshAll();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { init().catch(console.error); });

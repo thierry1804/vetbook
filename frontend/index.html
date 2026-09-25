@@ -1842,78 +1842,12 @@
   </nav>
 
   <!-- Compte : organisation issue de la maquette Stitch profil utilisateur. -->
-  <div id="view-user-profile" class="view account-view" hidden>
-    <div class="account-layout">
-      <section class="account-card account-identity" aria-labelledby="user-profile-name">
-        <div class="account-identity-top">
-          <div class="user-profile__avatar" id="user-avatar"><span class="account-icon" data-account-icon="user" aria-hidden="true"></span></div>
-          <div class="account-identity-copy">
-            <h1 id="user-profile-name">Mon profil</h1>
-            <span class="account-badge">Propriétaire</span>
-            <p id="user-profile-email"></p>
-            <small id="account-owner-summary">Vos informations et celles de vos compagnons</small>
-          </div>
-        </div>
-        <button type="button" class="account-edit" id="btn-user-edit-profile"><span class="account-icon" data-account-icon="edit" aria-hidden="true"></span>Modifier mes infos</button>
-      </section>
-      <section class="account-companions" aria-labelledby="account-companions-title">
-        <div class="account-section-head"><h2 id="account-companions-title"><span class="account-icon" data-account-icon="paw" aria-hidden="true"></span>Mes compagnons</h2><span class="account-badge" id="account-pet-count"></span></div>
-        <div id="account-pets" class="account-pets"></div>
-        <button type="button" class="account-edit" data-care-route="addAnimal"><span class="account-icon" data-account-icon="plus" aria-hidden="true"></span>Ajouter un compagnon</button>
-      </section>
-      <section class="account-card account-backup" aria-labelledby="account-cloud-title">
-        <div class="account-section-head"><h2 id="account-cloud-title"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span>Compte &amp; Synchronisation</h2></div>
-        <p class="account-caption" id="account-cloud-caption">Sauvegarde locale sur cet appareil</p>
-        <div id="cloud-sync-section" class="account-cloud-panel">
-        <div id="cloud-sync-signedout">
-          <p class="user-profile__hint">Connecte-toi pour synchroniser tes carnets avec le serveur (Postgres) et stocker les photos (MinIO).</p>
-          <div class="cloud-sync-google" id="google-signin-container" hidden></div>
-          <p class="cloud-sync-divider" id="cloud-sync-divider" hidden>ou</p>
-          <div class="cloud-sync-form">
-            <input type="email" id="cloud-sync-email" aria-label="Adresse e-mail" class="form-input" placeholder="ton@email.com" autocomplete="email">
-            <input type="password" id="cloud-sync-password" aria-label="Mot de passe" class="form-input" placeholder="Mot de passe (8 car. min.)" autocomplete="current-password">
-            <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Se connecter</button>
-            <button type="button" class="action-pill" id="btn-cloud-sync-register">Créer un compte</button>
-          </div>
-          <p class="user-profile__hint" id="cloud-sync-signin-status" hidden></p>
-        </div>
-
-        <div id="cloud-sync-signedin" hidden>
-          <div class="cloud-sync-actions">
-            <button type="button" class="action-pill action-pill--primary" id="btn-cloud-push">Sauvegarder maintenant</button>
-            <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le serveur</button>
-          </div>
-          <p class="user-profile__hint" id="cloud-sync-status" hidden></p>
-
-        </div>
-
-        </div>
-        <p class="account-local-notice"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Cache local disponible hors ligne ; le serveur reste la source de vérité une fois connecté.</p>
-        <div class="account-data-actions">
-<button type="button" class="account-row" id="account-export-json"><span class="account-icon" data-account-icon="fileText" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter toutes les données</strong><small>Archive intégrale des carnets au format JSON</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="account-export-ics"><span class="account-icon" data-account-icon="calendar" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter les rappels (.ics)</strong><small>Ajouter les échéances à votre calendrier</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="btn-user-backup"><span class="account-icon" data-account-icon="download" aria-hidden="true"></span><span class="account-row-copy"><strong>Restaurer une sauvegarde</strong><small>Importer un fichier JSON depuis votre appareil</small></span><span aria-hidden="true">›</span></button>
-        </div>
-      </section>
-      <section class="account-card account-preferences" aria-labelledby="account-preferences-title">
-        <div class="account-section-head"><h2 id="account-preferences-title"><span class="account-icon" data-account-icon="bell" aria-hidden="true"></span>Préférences &amp; Notifications</h2></div>
-<button type="button" class="account-row" id="btn-user-notifications"><span class="account-icon" data-account-icon="bell" aria-hidden="true"></span><span class="account-row-copy"><strong>Notifications push de santé</strong><small>Configurer les rappels de soins et rendez-vous</small></span><span aria-hidden="true">›</span></button>
-        <label class="account-preference"><span class="account-row-copy"><strong>Événements du mois</strong><small>Recevoir les rappels des événements canins</small></span><span class="toggle-switch"><input type="checkbox" id="account-events-toggle"><span class="toggle-slider"></span></span></label>
-        <label class="account-preference"><span class="account-row-copy"><strong>Mode sombre</strong><small>Un affichage plus doux en faible lumière</small></span><span class="toggle-switch"><input type="checkbox" id="user-dark-toggle"><span class="toggle-slider"></span></span></label>
-<button type="button" class="account-row" id="btn-user-language"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span><span class="account-row-copy"><strong>Langue de l’interface</strong><small>Français (France)</small></span><span aria-hidden="true">›</span></button>
-      </section>
-      <section class="account-card account-support" aria-labelledby="account-support-title">
-        <div class="account-section-head"><h2 id="account-support-title"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Assistance &amp; Sécurité</h2></div>
-<button type="button" class="account-row" id="btn-user-help"><span class="account-icon" data-account-icon="info" aria-hidden="true"></span><span class="account-row-copy"><strong>Centre d’aide & FAQ</strong></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="btn-user-favorites"><span class="account-icon" data-account-icon="hospital" aria-hidden="true"></span><span class="account-row-copy"><strong>Contacts vétérinaires favoris</strong></span><span aria-hidden="true">›</span></button>
-        <a class="account-row" href="https://github.com/thierry1804/vetbook/issues" target="_blank" rel="noopener noreferrer"><span class="account-icon" data-account-icon="lightbulb" aria-hidden="true"></span><span class="account-row-copy"><strong>Signaler un bug ou suggérer une idée</strong></span><span aria-hidden="true">↗</span></a>
-        <details class="account-privacy"><summary><span class="account-icon" data-account-icon="fileText" aria-hidden="true"></span>Confidentialité &amp; données des carnets</summary><p>Vos carnets sont conservés sur cet appareil. La sauvegarde cloud nécessite une connexion à votre compte. Vous pouvez exporter vos données au format JSON ou restaurer une sauvegarde depuis cette page.</p></details>
-        <button type="button" class="account-signout" id="btn-cloud-signout" hidden>Se déconnecter</button>
-      </section>
-      <footer class="account-footer">App’lika · Conçu avec soin pour la santé animale<br><span>Vos compagnons, leurs carnets, vos données.</span></footer>
-    </div>
-  </div>
+  <div id="view-user-profile" class="view account-view" hidden></div>
 
   <script src="config.js"></script>
   <script src="vendor/qrcode.min.js"></script>
   <script src="data-layer.js"></script>
+  <script src="account.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

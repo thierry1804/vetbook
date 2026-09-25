@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import { withClient } from '../_lib/db.js';
-import { isValidEmail, setSessionCookie, signSessionToken } from '../_lib/auth.js';
+import { isValidEmail, setSessionCookie, startSession } from '../_lib/auth.js';
+import { USER_COLUMNS, publicUser } from '../_lib/profile.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,38 +14,25 @@ export default async function handler(req, res) {
   const password = typeof body.password === 'string' ? body.password : '';
 
   if (!isValidEmail(email) || !password) {
-    res.status(400).json({ error: 'Email et mot de passe requis.' });
+    res.status(400).json({ error: 'Adresse e-mail et mot de passe requis.' });
     return;
   }
 
   try {
-    const user = await withClient(async (client) => {
-      const { rows } = await client.query(
-        `select id, email, name, picture_url, password_hash from users where email = $1`,
-        [email]
-      );
-      return rows[0] || null;
+    const result = await withClient(async (client) => {
+      const { rows } = await client.query(`select ${USER_COLUMNS}, password_hash from users where email = $1`, [email]);
+      const user = rows[0];
+      if (!user || !user.password_hash) return null;
+      if (!(await argon2.verify(user.password_hash, password))) return null;
+      return { user, sessionToken: await startSession(client, user, req) };
     });
 
-    if (!user || !user.password_hash) {
-      res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
+    if (!result) {
+      res.status(401).json({ error: 'Adresse e-mail ou mot de passe incorrect.' });
       return;
     }
-
-    const ok = await argon2.verify(user.password_hash, password);
-    if (!ok) {
-      res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
-      return;
-    }
-
-    const token = await signSessionToken(user.id, user.email);
-    setSessionCookie(res, token);
-    res.status(200).json({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture_url,
-    });
+    setSessionCookie(res, result.sessionToken);
+    res.status(200).json(publicUser(result.user));
   } catch (err) {
     console.error('auth/login', err);
     res.status(500).json({ error: 'Connexion impossible.' });
