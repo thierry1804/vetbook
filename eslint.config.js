@@ -9,7 +9,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'script',
-      globals: { ...globals.browser, ...globals.serviceworker, qrcode: 'readonly' },
+      globals: { ...globals.browser, ...globals.serviceworker, qrcode: 'readonly', Chart: 'readonly' },
     },
     rules: {
       ...js.configs.recommended.rules,

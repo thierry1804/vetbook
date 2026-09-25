@@ -1,7 +1,8 @@
 // POST /api/auth/google  { credential }
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { withClient } from '../_lib/db.js';
-import { setSessionCookie, signSessionToken } from '../_lib/auth.js';
+import { setSessionCookie, startSession } from '../_lib/auth.js';
+import { USER_COLUMNS, publicUser } from '../_lib/profile.js';
 
 const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
 const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
@@ -40,29 +41,36 @@ export default async function handler(req, res) {
     const name = typeof payload.name === 'string' ? payload.name : null;
     const picture = typeof payload.picture === 'string' ? payload.picture : null;
 
-    const user = await withClient(async (client) => {
+    const out = await withClient(async (client) => {
+      // Le nom et la photo Google ne servent que de valeur initiale : une fois le profil modifié dans l'app
+      // (prénom/nom, photo téléversée), Google ne l'écrase plus. L'adresse Google est déjà vérifiée.
       const bySub = await client.query(
-        `update users set name = $2, picture_url = $3 where google_sub = $1
-         returning id, email, name, picture_url`,
+        `update users set
+            name = case when first_name is null and last_name is null then $2 else name end,
+            picture_url = $3,
+            email_verified_at = coalesce(email_verified_at, now())
+          where google_sub = $1 returning id`,
         [googleSub, name, picture]
       );
-      if (bySub.rows[0]) return bySub.rows[0];
-
-      const { rows } = await client.query(
-        `insert into users (email, google_sub, name, picture_url) values ($1, $2, $3, $4)
-         on conflict (email) do update set google_sub = excluded.google_sub, name = excluded.name, picture_url = excluded.picture_url
-         returning id, email, name, picture_url`,
-        [email, googleSub, name, picture]
-      );
-      return rows[0];
+      let userId = bySub.rows[0] && bySub.rows[0].id;
+      if (!userId) {
+        const ins = await client.query(
+          `insert into users (email, google_sub, name, picture_url, email_verified_at) values ($1, $2, $3, $4, now())
+           on conflict (email) do update set google_sub = excluded.google_sub,
+             name = case when users.first_name is null and users.last_name is null then excluded.name else users.name end,
+             picture_url = excluded.picture_url,
+             email_verified_at = coalesce(users.email_verified_at, now())
+           returning id`,
+          [email, googleSub, name, picture]
+        );
+        userId = ins.rows[0].id;
+      }
+      const { rows } = await client.query(`select ${USER_COLUMNS} from users where id = $1`, [userId]);
+      return { user: rows[0], sessionToken: await startSession(client, rows[0], req) };
     });
 
-    const sessionToken = await signSessionToken(user.id, user.email);
-    setSessionCookie(res, sessionToken);
-    res.status(200).json({
-      userId: user.id, email: user.email,
-      name: user.name, picture: user.picture_url,
-    });
+    setSessionCookie(res, out.sessionToken);
+    res.status(200).json(publicUser(out.user));
   } catch (err) {
     console.error('auth/google', err);
     res.status(401).json({ error: 'Jeton Google invalide ou expiré.' });

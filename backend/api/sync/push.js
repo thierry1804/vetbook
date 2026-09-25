@@ -90,17 +90,27 @@ export default async function handler(req, res) {
             paternal_granddam: ped.grandparents && ped.grandparents.paternalGranddam,
             maternal_grandsire: ped.grandparents && ped.grandparents.maternalGrandsire,
             maternal_granddam: ped.grandparents && ped.grandparents.maternalGranddam,
+            paternal_grandsire_registry: ped.grandparents && ped.grandparents.paternalGrandsireRegistry,
+            paternal_granddam_registry: ped.grandparents && ped.grandparents.paternalGranddamRegistry,
+            maternal_grandsire_registry: ped.grandparents && ped.grandparents.maternalGrandsireRegistry,
+            maternal_granddam_registry: ped.grandparents && ped.grandparents.maternalGranddamRegistry,
           });
           const columns = [
             'pet_id', 'user_id', ...PEDIGREE_FIELDS.map((f) => f[1]),
             'sire_name', 'sire_registry', 'dam_name', 'dam_registry',
             'paternal_grandsire', 'paternal_granddam', 'maternal_grandsire', 'maternal_granddam',
+            'paternal_grandsire_registry', 'paternal_granddam_registry', 'maternal_grandsire_registry', 'maternal_granddam_registry',
           ];
           await upsertOne(client, 'pedigree', columns, pedRow, ['pet_id']);
         }
 
         if (wrapper.notifications) {
-          const notifRow = toRow(wrapper.notifications, NOTIF_FIELDS, { pet_id: petId, user_id: userId });
+          // Un client plus ancien (cache PWA pas encore rechargé, ou fixture de test) peut pousser un objet
+          // `notifications` sans les clés ajoutées depuis : toRow() écrirait alors NULL sur ces colonnes
+          // `not null default true`, ce qui casse tout le push. Les valeurs par défaut du schéma comblent
+          // les clés manquantes sans jamais écraser une valeur explicitement envoyée par le client.
+          const notifDefaults = { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, matingReminder: true, monthlySummary: false };
+          const notifRow = toRow(Object.assign({}, notifDefaults, wrapper.notifications), NOTIF_FIELDS, { pet_id: petId, user_id: userId });
           const columns = ['pet_id', 'user_id', ...NOTIF_FIELDS.map((f) => f[1])];
           await upsertOne(client, 'notification_prefs', columns, notifRow, ['pet_id']);
         }

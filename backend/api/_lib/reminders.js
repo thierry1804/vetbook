@@ -9,6 +9,8 @@
 // Les deux doivent être maintenues en synchro à la main.
 import webpush from 'web-push';
 import { withClient } from './db.js';
+import { sendMail } from './mailer.js';
+import { appUrl } from './mailer.js';
 
 function daysDiff(dateStr) {
   const today = new Date();
@@ -17,8 +19,58 @@ function daysDiff(dateStr) {
   return Math.round((d.getTime() - todayMid.getTime()) / 86400000);
 }
 
-async function collectReminders(client) {
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Le prochain délai administratif encore ouvert pour une saillie, le plus
+// urgent d'abord — même séquence que checkBrowserNotifications() côté
+// client (app.js, matingNextDeadline()), à garder synchronisée à la main.
+function nextMatingDeadline(m) {
+  if (!m.declared_at) return { date: addDays(m.date, 28), label: 'Déclaration de saillie' };
+  if (!m.birth_date) return null;
+  if (!m.birth_declared_at) return { date: addDays(m.birth_date, 28), label: 'Déclaration de naissance' };
+  if (!m.lomad_declared_at) return { date: addDays(m.birth_date, 168), label: 'Inscription au registre (LOF/LOMAD)' };
+  return null;
+}
+
+// Préférences de notification du compte (users.preferences.notifications), avec les valeurs par défaut historiques.
+const NOTIF_DEFAULTS = { push: true, email: false, vaccineLeadDays: 7, dewormingLeadDays: 7, hygieneLeadDays: 7, medicationLeadDays: 7, quietHours: { enabled: false, from: '22:00', to: '07:00' } };
+
+function notifPrefs(raw) {
+  const n = (raw && raw.notifications) || {};
+  const lead = (v, d) => (Number.isInteger(v) && v >= 1 && v <= 90 ? v : d);
+  return {
+    push: n.push !== false,
+    email: n.email === true,
+    vaccineLeadDays: lead(n.vaccineLeadDays, NOTIF_DEFAULTS.vaccineLeadDays),
+    dewormingLeadDays: lead(n.dewormingLeadDays, NOTIF_DEFAULTS.dewormingLeadDays),
+    hygieneLeadDays: lead(n.hygieneLeadDays, NOTIF_DEFAULTS.hygieneLeadDays),
+    medicationLeadDays: lead(n.medicationLeadDays, NOTIF_DEFAULTS.medicationLeadDays),
+    quietHours: Object.assign({}, NOTIF_DEFAULTS.quietHours, n.quietHours || {}),
+  };
+}
+
+function minutesOf(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+// Heures calmes : pas de notification push entre `from` et `to` (heure du serveur), la fenêtre peut passer minuit.
+export function inQuietHours(q, now = new Date()) {
+  if (!q || !q.enabled) return false;
+  const from = minutesOf(q.from);
+  const to = minutesOf(q.to);
+  if (from == null || to == null || from === to) return false;
+  const cur = now.getHours() * 60 + now.getMinutes();
+  return from < to ? cur >= from && cur < to : cur >= from || cur < to;
+}
+
+async function collectReminders(client, userPrefs) {
   const reminders = [];
+  const lead = (userId, key) => (userPrefs.get(userId) || notifPrefs(null))[key];
 
   const { rows: pets } = await client.query("select id, user_id, name, dob::text as dob from pets");
   const petById = new Map(pets.map((p) => [p.id, p]));
@@ -38,7 +90,7 @@ async function collectReminders(client) {
     const diff = daysDiff(v.next);
     if (diff < 0) {
       reminders.push({ userId: v.user_id, petId: v.pet_id, title: 'Vaccin en retard', body: `${pet.name} : ${v.name}` });
-    } else if (diff <= 7) {
+    } else if (diff <= lead(v.user_id, 'vaccineLeadDays')) {
       reminders.push({ userId: v.user_id, petId: v.pet_id, title: 'Rappel vaccin', body: `${pet.name} : ${v.name} dans ${diff} j` });
     }
   }
@@ -53,7 +105,7 @@ async function collectReminders(client) {
     const pet = petById.get(d.pet_id);
     if (!pet) continue;
     const diff = daysDiff(d.next);
-    if (diff < 0 || diff > 7) continue;
+    if (diff < 0 || diff > lead(d.user_id, 'dewormingLeadDays')) continue;
     reminders.push({ userId: d.user_id, petId: d.pet_id, title: 'Rappel vermifuge', body: `${pet.name} : ${d.name} dans ${diff} j` });
   }
 
@@ -67,7 +119,7 @@ async function collectReminders(client) {
     const pet = petById.get(h.pet_id);
     if (!pet) continue;
     const diff = daysDiff(h.next);
-    if (diff < 0 || diff > 7) continue;
+    if (diff < 0 || diff > lead(h.user_id, 'hygieneLeadDays')) continue;
     reminders.push({ userId: h.user_id, petId: h.pet_id, title: 'Rappel soin', body: `${pet.name} : ${h.type} dans ${diff} j` });
   }
 
@@ -82,8 +134,33 @@ async function collectReminders(client) {
     const pet = petById.get(m.pet_id);
     if (!pet) continue;
     const diff = daysDiff(m.end_date);
-    if (diff < 0 || diff > 7) continue;
+    if (diff < 0 || diff > lead(m.user_id, 'medicationLeadDays')) continue;
     reminders.push({ userId: m.user_id, petId: m.pet_id, title: 'Fin de traitement', body: `${pet.name} : ${m.name} se termine dans ${diff} j` });
+  }
+
+  // Reproduction : délais administratifs après une saillie (déclaration de
+  // saillie J+28, déclaration de naissance J+28 après la mise bas,
+  // inscription au registre J+168/24 semaines après la mise bas — mêmes
+  // délais que le circuit ACYM/LOMAD). Un seul rappel à la fois par
+  // saillie : le plus urgent des délais encore ouverts.
+  const { rows: matings } = await client.query(
+    `select pet_id, user_id, date::text as date, birth_date::text as birth_date,
+            declared_at, birth_declared_at, lomad_declared_at
+     from matings where declared_at is null or (birth_date is not null and (birth_declared_at is null or lomad_declared_at is null))`
+  );
+  for (const m of matings) {
+    const pref = prefsByPet.get(m.pet_id);
+    if (pref && pref.mating_reminder === false) continue;
+    const pet = petById.get(m.pet_id);
+    if (!pet) continue;
+    const due = nextMatingDeadline(m);
+    if (!due) continue;
+    const diff = daysDiff(due.date);
+    if (diff > 7) continue;
+    const body = diff < 0
+      ? `${pet.name} : ${due.label} en retard (${Math.abs(diff)} j)`
+      : `${pet.name} : ${due.label} dans ${diff} j`;
+    reminders.push({ userId: m.user_id, petId: m.pet_id, title: 'Rappel reproduction', body });
   }
 
   // Anniversaires : jour exact (mois + jour), tous les ans.
@@ -125,7 +202,7 @@ const DOG_EVENTS = [
 // app.js) — évite de dupliquer la logique d'agrégation dans ce runtime.
 // Idempotent via last_monthly_summary_sent : peu importe quel jour le cron
 // tourne, chaque pet n'est notifié qu'une fois par mois.
-async function sendMonthlySummaryPings(client) {
+async function sendMonthlySummaryPings(client, userPrefs) {
   const { rows: pets } = await client.query(
     `select p.id as pet_id, p.user_id, p.name,
             np.last_monthly_summary_sent::text as last_sent
@@ -144,7 +221,7 @@ async function sendMonthlySummaryPings(client) {
     const currentMonth = currentMonthKey.slice(0, 7);
     if (lastSentMonth === currentMonth) continue;
 
-    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`);
+    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`, userPrefs);
     await client.query('update notification_prefs set last_monthly_summary_sent = $1 where pet_id = $2', [currentMonthKey, pet.pet_id]);
     sent++;
   }
@@ -154,7 +231,7 @@ async function sendMonthlySummaryPings(client) {
 // Événements canins : rappel groupé, une fois par mois (1er du mois),
 // contenu global (pas de filtre par animal) — voir toggleDogEventsReminder()
 // côté client et users.dog_events_reminder côté schéma.
-async function sendDogEventsReminders(client) {
+async function sendDogEventsReminders(client, userPrefs) {
   const today = new Date();
   if (today.getDate() !== 1) return 0;
 
@@ -164,12 +241,25 @@ async function sendDogEventsReminders(client) {
   const { rows: users } = await client.query('select id from users where dog_events_reminder = true');
   const body = monthEvents.map((e) => e.title).join(', ');
   for (const u of users) {
-    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body);
+    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body, userPrefs);
   }
   return users.length;
 }
 
-async function sendToUser(client, userId, title, body) {
+// Envoie sur les canaux choisis par l'utilisateur : push (sauf heures calmes) et/ou e-mail.
+async function sendToUser(client, userId, title, body, userPrefs) {
+  const prefs = (userPrefs && userPrefs.get(userId)) || notifPrefs(null);
+  if (prefs.email) {
+    const { rows } = await client.query('select email from users where id = $1', [userId]);
+    if (rows[0]) {
+      await sendMail({
+        to: rows[0].email,
+        subject: title,
+        text: `${body}\n\nOuvrir App\u2019lika : ${appUrl()}/\n\nVous recevez ce message car les rappels par e-mail sont activés dans votre profil.`,
+      });
+    }
+  }
+  if (!prefs.push || inQuietHours(prefs.quietHours)) return;
   const { rows: subs } = await client.query('select * from push_subscriptions where user_id = $1', [userId]);
 
   await Promise.all(subs.map(async (sub) => {
@@ -199,7 +289,9 @@ export async function runReminders() {
   );
 
   return withClient(async (client) => {
-    const reminders = await collectReminders(client);
+    const { rows: prefRows } = await client.query('select id, preferences from users');
+    const userPrefs = new Map(prefRows.map((r) => [r.id, notifPrefs(r.preferences)]));
+    const reminders = await collectReminders(client, userPrefs);
 
     // Regroupe par utilisateur pour éviter d'envoyer plusieurs notifications
     // séparées si plusieurs animaux/rappels tombent le même jour.
@@ -212,15 +304,15 @@ export async function runReminders() {
     let usersNotified = 0;
     for (const [userId, list] of byUser) {
       if (list.length === 1) {
-        await sendToUser(client, userId, list[0].title, list[0].body);
+        await sendToUser(client, userId, list[0].title, list[0].body, userPrefs);
       } else {
-        await sendToUser(client, userId, `App'lika — ${list.length} rappels`, list.map((r) => r.body).join(' · '));
+        await sendToUser(client, userId, `App'lika — ${list.length} rappels`, list.map((r) => r.body).join(' · '), userPrefs);
       }
       usersNotified++;
     }
 
-    const monthlySummariesSent = await sendMonthlySummaryPings(client);
-    const dogEventsUsersNotified = await sendDogEventsReminders(client);
+    const monthlySummariesSent = await sendMonthlySummaryPings(client, userPrefs);
+    const dogEventsUsersNotified = await sendDogEventsReminders(client, userPrefs);
 
     return { usersNotified, reminderCount: reminders.length, monthlySummariesSent, dogEventsUsersNotified };
   });

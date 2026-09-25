@@ -13,12 +13,14 @@ export const ANIMAL_FIELDS = [
 export const OWNER_FIELDS = [['name', 'name'], ['phone', 'phone'], ['email', 'email'], ['clinic', 'clinic'], ['address', 'address']];
 export const PEDIGREE_FIELDS = [
   ['registry', 'registry'], ['registryNumber', 'registry_number'], ['chipNumber', 'chip_number'],
+  ['healthNotes', 'health_notes'],
 ];
 export const NUTRITION_PLAN_FIELDS = [['targetCalories', 'target_calories'], ['mealsPerDay', 'meals_per_day'], ['foodBrand', 'food_brand'], ['portionSize', 'portion_size']];
 export const NOTIF_FIELDS = [
   ['vaccineReminder', 'vaccine_reminder'], ['dewormingReminder', 'deworming_reminder'],
   ['hygieneReminder', 'hygiene_reminder'], ['birthdayReminder', 'birthday_reminder'],
   ['medicationReminder', 'medication_reminder'], ['monthlySummary', 'monthly_summary'],
+  ['matingReminder', 'mating_reminder'],
 ];
 export const MEAL_FIELDS = [['date', 'date'], ['type', 'type'], ['time', 'time'], ['food', 'food'], ['quantity', 'quantity'], ['unit', 'unit']];
 
@@ -32,6 +34,13 @@ export const CHILD_ARRAYS = [
   ['activities', 'activities', [['date', 'date'], ['type', 'type'], ['duration', 'duration'], ['distance', 'distance'], ['notes', 'notes']]],
   ['heatCycles', 'heat_cycles', [['startDate', 'start_date'], ['endDate', 'end_date'], ['intensity', 'intensity'], ['notes', 'notes']]],
   ['notes', 'journal_notes', [['date', 'date'], ['title', 'title'], ['content', 'content'], ['category', 'category'], ['symptomType', 'symptom_type'], ['severity', 'severity']]],
+  ['matings', 'matings', [
+    ['date', 'date'], ['method', 'method'],
+    ['partnerName', 'partner_name'], ['partnerOwner', 'partner_owner'], ['partnerRegistry', 'partner_registry'],
+    ['notes', 'notes'],
+    ['birthDate', 'birth_date'], ['liveBorn', 'live_born'], ['stillBorn', 'still_born'],
+    ['declaredAt', 'declared_at'], ['birthDeclaredAt', 'birth_declared_at'], ['lomadDeclaredAt', 'lomad_declared_at'],
+  ]],
 ];
 export const VET_CONTACT_FIELDS = [
   ['name', 'name'], ['clinic', 'clinic'], ['phone', 'phone'], ['email', 'email'], ['address', 'address'],

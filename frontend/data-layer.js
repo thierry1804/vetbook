@@ -42,7 +42,21 @@
   }
 
   function toPublicSession(session) {
-    return session ? { user: { id: session.userId, email: session.email, name: session.name || '', picture: session.picture || '' } } : null;
+    return session ? { user: { id: session.userId, email: session.email, name: session.name || '', picture: session.picture || '',
+      firstName: session.firstName || '', lastName: session.lastName || '', emailVerified: !!session.emailVerified } } : null;
+  }
+
+  function sessionFromApi(res) {
+    return { userId: res.userId, email: res.email, name: res.name, picture: res.picture,
+      firstName: res.firstName, lastName: res.lastName, emailVerified: !!res.emailVerified };
+  }
+
+  // Écouteurs de synchronisation (interface du compte) + horodatage de la dernière sauvegarde réussie.
+  var syncListeners = [];
+  function emitSync(kind, err) {
+    if (kind === 'synced') { try { nativeSetItem('vetbook_last_sync', new Date().toISOString()); } catch (e) { /* stockage plein */ } }
+    syncListeners.forEach(function (cb) { try { cb(kind, err); } catch (e) { /* écouteur défaillant */ } });
+    if (onAutoSyncEvent) onAutoSyncEvent(kind, err);
   }
 
   function notifyAuthListeners(event) {
@@ -60,13 +74,13 @@
 
   function scheduleAutoPush() {
     if (autoPushTimer) clearTimeout(autoPushTimer);
-    if (onAutoSyncEvent) onAutoSyncEvent('pending');
+    emitSync('pending');
     autoPushTimer = setTimeout(function () {
       autoPushTimer = null;
       pushAllToCloud().then(function () {
-        if (onAutoSyncEvent) onAutoSyncEvent('synced');
+        emitSync('synced');
       }).catch(function (err) {
-        if (onAutoSyncEvent) onAutoSyncEvent('error', err);
+        emitSync('error', err);
       });
     }, AUTO_PUSH_DELAY_MS);
   }
@@ -93,24 +107,18 @@
   function isConfigured() { return configured; }
 
   function applySession(res) {
-    currentSession = {
-      userId: res.userId,
-      email: res.email,
-      name: res.name,
-      picture: res.picture,
-    };
+    currentSession = sessionFromApi(res);
     writeSession(currentSession);
     notifyAuthListeners('SIGNED_IN');
     maybeAutoPull();
     return true;
   }
 
-  function register(email, password, name) {
+  // register({ email, password, firstName, lastName, acceptTerms }) — l'ancienne signature (email, password, name) reste acceptée.
+  function register(fields, password, name) {
     if (!configured) return Promise.reject(new Error('API non configurée (config.js manquant).'));
-    return apiFetch('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email: email, password: password, name: name || null }),
-    }).then(applySession);
+    var body = typeof fields === 'object' && fields ? fields : { email: fields, password: password, firstName: name };
+    return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }).then(applySession);
   }
 
   function login(email, password) {
@@ -142,12 +150,15 @@
   function refreshSessionFromCookie() {
     if (!configured) return Promise.resolve(false);
     return apiFetch('/api/auth/me', { method: 'GET' }).then(function (res) {
-      currentSession = { userId: res.userId, email: res.email, name: res.name, picture: res.picture };
+      currentSession = sessionFromApi(res);
       writeSession(currentSession);
       notifyAuthListeners('SIGNED_IN');
       maybeAutoPull();
       return true;
-    }).catch(function () {
+    }).catch(function (err) {
+      // Session révoquée ou expirée côté serveur : l'interface repasse en mode « non connecté ».
+      var wasSignedIn = !!currentSession;
+      if (wasSignedIn && /401|invalide|authentifi/i.test(String(err && err.message))) notifyAuthListeners('SIGNED_OUT');
       currentSession = null;
       writeSession(null);
       return false;
@@ -222,14 +233,14 @@
     var local = readLocal();
     var isEmpty = !local || !Array.isArray(local.animals) || local.animals.length === 0;
     if (!isEmpty) return;
-    if (onAutoSyncEvent) onAutoSyncEvent('auto-pulling');
+    emitSync('auto-pulling');
     pullAllFromCloud().then(function (found) {
       if (found) {
-        if (onAutoSyncEvent) onAutoSyncEvent('auto-pulled');
+        emitSync('auto-pulled');
         window.setTimeout(function () { window.location.reload(); }, 400);
       }
     }).catch(function (err) {
-      if (onAutoSyncEvent) onAutoSyncEvent('error', err);
+      emitSync('error', err);
     });
   }
 
@@ -259,6 +270,13 @@
       if (res.vetDirectory) writeVetDirectory(res.vetDirectory);
       return true;
     });
+  }
+
+  // Recherche publique dans l'annuaire ACYM (LOMAD) via le proxy serveur.
+  function lookupAcym(params) {
+    var qs = Object.keys(params || {}).filter(function (k) { return params[k]; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+    return apiFetch('/api/lookup/acym?' + qs, { method: 'GET' });
   }
 
   function uploadPhoto(petLocalId, localId, blob, meta) {
@@ -294,6 +312,14 @@
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
     getPhotoUrl: getPhotoUrl,
+    lookupAcym: lookupAcym,
+    api: apiFetch,
+    refresh: refreshSessionFromCookie,
+    signInWithGoogleCredential: signInWithGoogleCredential,
+    loadGoogleScript: loadGoogleScript,
+    googleClientId: function () { return (cfg && cfg.googleClientId) || ''; },
+    onSyncEvent: function (cb) { syncListeners.push(cb); },
+    lastSyncAt: function () { return localStorage.getItem('vetbook_last_sync'); },
   };
 
   function initUI() {

@@ -49,11 +49,30 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      APP_URL: ${APP_URL:-http://localhost:${HTTP_PORT:-3080}}
+      MAIL_FROM: ${MAIL_FROM:-App’lika <no-reply@applika.local>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_started
+    networks:
+      - applika
+
+  # Boîte de réception de test pour les e-mails (optionnel) :
+  #   SMTP_HOST=mailpit SMTP_PORT=1025 docker compose --profile mail up -d
+  # puis http://localhost:8025 (les liens de vérification et de réinitialisation s'y affichent).
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["mail"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     networks:
       - applika
 

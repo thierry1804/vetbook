@@ -22,11 +22,11 @@ export default async function handler(req, res) {
 
   try {
     const result = await withClient(async (client) => {
-      const [petsRes, ownerRes, vetsRes] = await Promise.all([
-        client.query('select * from pets where user_id = $1 order by created_at asc', [userId]),
-        client.query('select * from owners where user_id = $1', [userId]),
-        client.query('select * from vet_contacts where user_id = $1 order by local_id asc', [userId]),
-      ]);
+      // Une même connexion pg ne traite qu'une requête à la fois : Promise.all ici ne
+      // paralléliserait rien et déclenche l'avertissement de dépréciation de pg@9.
+      const petsRes = await client.query('select * from pets where user_id = $1 order by created_at asc', [userId]);
+      const ownerRes = await client.query('select * from owners where user_id = $1', [userId]);
+      const vetsRes = await client.query('select * from vet_contacts where user_id = $1 order by local_id asc', [userId]);
 
       const pets = petsRes.rows;
       const ownerRow = ownerRes.rows[0];
@@ -38,26 +38,29 @@ export default async function handler(req, res) {
 
       const ownerObj = ownerRow ? fromRow(ownerRow, OWNER_FIELDS) : { name: '', phone: '', email: '', clinic: '', address: '' };
 
-      const wrappers = await Promise.all(pets.map(async (pet) => {
+      const wrappers = [];
+      for (const pet of pets) {
         const petId = pet.id;
 
-        const childResults = await Promise.all(
-          CHILD_ARRAYS.map(([, table]) =>
-            client.query(`select * from ${table} where pet_id = $1 order by local_id asc`, [petId]))
-        );
-        const [weightRes, heightRes, mealsRes, planRes, pedRes, notifRes] = await Promise.all([
-          client.query('select * from weight_history where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from height_history where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from nutrition_meals where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]),
-          client.query('select * from pedigree where pet_id = $1', [petId]),
-          client.query('select * from notification_prefs where pet_id = $1', [petId]),
-        ]);
+        const childResults = [];
+        for (const [, table] of CHILD_ARRAYS) {
+          childResults.push(await client.query(`select * from ${table} where pet_id = $1 order by local_id asc`, [petId]));
+        }
+        const weightRes = await client.query('select * from weight_history where pet_id = $1 order by local_id asc', [petId]);
+        const heightRes = await client.query('select * from height_history where pet_id = $1 order by local_id asc', [petId]);
+        const mealsRes = await client.query('select * from nutrition_meals where pet_id = $1 order by local_id asc', [petId]);
+        const planRes = await client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]);
+        const pedRes = await client.query('select * from pedigree where pet_id = $1', [petId]);
+        const notifRes = await client.query('select * from notification_prefs where pet_id = $1', [petId]);
+        const photosRes = await client.query('select id, local_id, caption, date::text as date from photos where pet_id = $1 order by local_id asc', [petId]);
 
         // pet.local_id (bigint) et pet.weight/height (numeric) reviennent en
         // string du driver Postgres — Number() pour matcher la convention
         // JS number utilisée partout côté client (comparaisons ===, calculs).
-        const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos: [] };
+        // photos : id = local_id (clé locale de la photo, comme après un upload),
+        // serverId = uuid de la ligne — le client affiche via /api/files/:serverId.
+        const photos = photosRes.rows.map((ph) => ({ id: Number(ph.local_id), date: ph.date || '', caption: ph.caption || '', serverId: ph.id }));
+        const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos };
         wrapper.animal = fromRow(pet, ANIMAL_FIELDS);
         wrapper.animal.weight = pet.weight != null ? Number(pet.weight) : null;
         wrapper.animal.height = pet.height != null ? Number(pet.height) : null;
@@ -84,6 +87,7 @@ export default async function handler(req, res) {
           registry: pedRow.registry || 'Non inscrit',
           registryNumber: pedRow.registry_number || '',
           chipNumber: pedRow.chip_number || '',
+          healthNotes: pedRow.health_notes || '',
           sire: { name: pedRow.sire_name || '', registry: pedRow.sire_registry || '' },
           dam: { name: pedRow.dam_name || '', registry: pedRow.dam_registry || '' },
           grandparents: {
@@ -91,14 +95,18 @@ export default async function handler(req, res) {
             paternalGranddam: pedRow.paternal_granddam || '',
             maternalGrandsire: pedRow.maternal_grandsire || '',
             maternalGranddam: pedRow.maternal_granddam || '',
+            paternalGrandsireRegistry: pedRow.paternal_grandsire_registry || '',
+            paternalGranddamRegistry: pedRow.paternal_granddam_registry || '',
+            maternalGrandsireRegistry: pedRow.maternal_grandsire_registry || '',
+            maternalGranddamRegistry: pedRow.maternal_granddam_registry || '',
           },
         } : null;
 
         const notifRow = notifRes.rows[0];
         wrapper.notifications = notifRow ? fromRow(notifRow, NOTIF_FIELDS) : {};
 
-        return wrapper;
-      }));
+        wrappers.push(wrapper);
+      }
 
       let maxId = 20;
       wrappers.forEach((w) => {
@@ -107,6 +115,7 @@ export default async function handler(req, res) {
         (w.animal.weightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
         (w.animal.heightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
         (w.nutrition.meals || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
+        (w.photos || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
       });
 
       const state = { animals: wrappers, nextId: maxId + 1, currentAnimalId: wrappers[0] ? wrappers[0].id : null, owner: ownerObj };

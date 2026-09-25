@@ -49,6 +49,7 @@
     cake:      _ic('<path d="M20 21v-8a2 2 0 00-2-2H6a2 2 0 00-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/>'),
     print:     _ic('<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'),
     download:  _ic('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+    cloud:     _ic('<path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>'),
     qr:        _ic('<rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><path d="M22 14h-4v4"/><path d="M22 22h-8v-4"/>'),
     plus:      _ic('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'),
     heart:     _ic('<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>'),
@@ -56,6 +57,17 @@
     lightbulb: _ic('<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>')
   };
   function ico(name, size) { return ICO[name] ? (size ? ICO[name].replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"') : ICO[name]) : ''; }
+
+  // Bouton icône seule : le libellé reste accessible via aria-label + title (pas de texte visible).
+  function iconOnlyBtn(cls, iconName, label, attrs, size) {
+    var base = cls || 'btn-icon';
+    if (base.indexOf('btn-icon') !== -1 && base.indexOf('btn-icon--solo') === -1 && base.indexOf('btn-icon--user') === -1) {
+      base += ' btn-icon--solo';
+    }
+    return '<button type="button" class="' + base + '" aria-label="' + label + '" title="' + label + '"' + (attrs ? ' ' + attrs : '') + '>' + ico(iconName, size || 16) + '</button>';
+  }
+  function btnEdit(attrs, label) { return iconOnlyBtn('btn-edit', 'edit', label || 'Modifier', attrs); }
+  function btnDelete(attrs, label) { return iconOnlyBtn('btn-delete', 'trash', label || 'Supprimer', attrs); }
 
   // ——— i18n ———————————————————————————————————————————————————
   var locales = {};
@@ -159,14 +171,16 @@
     hygiene: [],
     heatCycles: [],
     activities: [],
+    matings: [],
     nutrition: { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } },
-    pedigree: { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } },
+    pedigree: { registry: 'Non inscrit', registryNumber: '', chipNumber: '', healthNotes: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '', paternalGrandsireRegistry: '', paternalGranddamRegistry: '', maternalGrandsireRegistry: '', maternalGranddamRegistry: '' } },
     notifications: {
       vaccineReminder: true,
       dewormingReminder: true,
       hygieneReminder: true,
       birthdayReminder: true,
       medicationReminder: true,
+      matingReminder: true,
       monthlySummary: false
     }
   };
@@ -298,6 +312,799 @@
     ],
     Autre: []
   };
+  // Table nom-de-race normalisé -> slug de la page race sur centrale-canine.fr
+  // (générée depuis /toutes-nos-races-de-chiens le 2026-09-25, 390 races LOF/FCI).
+  // Chaque page race a son propre lien "Télécharger le Standard (PDF)" — le numéro
+  // FCI (nécessaire pour construire l'URL du PDF directement) n'est pas dans cette liste,
+  // d'où le lien vers la page plutôt que le PDF lui-même.
+  var CENTRALE_CANINE_BREED_SLUGS = {
+    "affenpinscher":"affenpinscher",
+    "airedaleterrier":"airedale-terrier",
+    "akita":"akita",
+    "akitaamericain":"akita-americain",
+    "alanoespagnol":"alano-espagnol",
+    "anglofrancaisdepetitevenerie":"anglo-francais-de-petite-venerie",
+    "ariegeois":"ariegeois",
+    "azawakh":"azawakh",
+    "bangkaewdethailande":"bangkaew-de-thailande",
+    "barbadodeterceira":"barbado-de-terceira",
+    "barbet":"barbet",
+    "barbutcheque":"barbu-tcheque",
+    "barzoi":"barzoi",
+    "basenji":"basenji",
+    "bassetartesiennormand":"basset-artesien-normand",
+    "bassetbleudegascogne":"basset-bleu-de-gascogne",
+    "bassetdesalpes":"basset-des-alpes",
+    "bassetdewestphalie":"basset-de-westphalie",
+    "bassetfauvedebretagne":"basset-fauve-de-bretagne",
+    "bassethound":"basset-hound",
+    "bassetsuedois":"basset-suedois",
+    "beagle":"beagle",
+    "beagleharrier":"beagle-harrier",
+    "beardedcollie":"bearded-collie",
+    "bedlingtonterrier":"bedlington-terrier",
+    "bergerallemand":"berger-allemand",
+    "bergeramericainminiature":"berger-americain-miniature",
+    "bergeraustralien":"berger-australien",
+    "bergerbergamasque":"berger-bergamasque",
+    "bergerblancsuisse":"berger-blanc-suisse",
+    "bergerdasiecentrale":"berger-dasie-centrale",
+    "bergerdebeauce":"berger-de-beauce",
+    "bergerdeboheme":"berger-de-boheme",
+    "bergerdebosnieherzegovineetdecroatie":"berger-de-bosnie-herzegovine-et-de-croatie",
+    "bergerdebrie":"berger-de-brie",
+    "bergerdelamaremmeetdesabruzzes":"berger-de-la-maremme-et-des-abruzzes",
+    "bergerdelaserradeaires":"berger-de-la-serra-de-aires",
+    "bergerdepicardie":"berger-de-picardie",
+    "bergerderussiemeridionale":"berger-de-russie-meridionale",
+    "bergerdesalpesetdesavoie":"berger-des-alpes-et-de-savoie",
+    "bergerdespyreneesafacerase":"berger-des-pyrenees-face-rase",
+    "bergerdespyreneesapoillong":"berger-des-pyrenees-poil-long",
+    "bergerducaucase":"berger-du-caucase",
+    "bergerdukarst":"berger-du-karst",
+    "bergerfinnoisdelaponie":"berger-finnois-de-laponie",
+    "bergerhollandais":"berger-hollandais",
+    "bergerpolonaisdeplaine":"berger-polonais-de-plaine",
+    "bichonapoilfrise":"bichon-poil-frise",
+    "bichonbolonais":"bichon-bolonais",
+    "bichonhavanais":"bichon-havanais",
+    "bichonmaltais":"bichon-maltais",
+    "biewerterrier":"biewer-terrier",
+    "billy":"billy",
+    "bolonkarussecolore":"bolonka-russe-colore",
+    "bordercollie":"border-collie",
+    "borderterrier":"border-terrier",
+    "bouledoguefrancais":"bouledogue-francais",
+    "bouvieraustralien":"bouvier-australien",
+    "bouvieraustraliencourtequeue":"bouvier-australien-courte-queue",
+    "bouvierbernois":"bouvier-bernois",
+    "bouvierdelappenzell":"bouvier-de-lappenzell",
+    "bouvierdelentlebuch":"bouvier-de-lentlebuch",
+    "bouvierdesardennes":"bouvier-des-ardennes",
+    "bouvierdesflandres":"bouvier-des-flandres",
+    "boxer":"boxer",
+    "brachetallemand":"brachet-allemand",
+    "brachetdestyrieapoildur":"brachet-de-styrie-poil-dur",
+    "brachetnoiretfeu":"brachet-noir-et-feu",
+    "brachetpolonais":"brachet-polonais",
+    "brachettyrolien":"brachet-tyrolien",
+    "braqueallemandapoilcourt":"braque-allemand-poil-court",
+    "braquedauvergne":"braque-d-auvergne",
+    "braquedeburgos":"braque-de-burgos",
+    "braquedelariege":"braque-de-l-ariege",
+    "braquedeweimar":"braque-de-weimar",
+    "braquedubourbonnais":"braque-du-bourbonnais",
+    "braquefrancaistypegascogne":"braque-francais-type-gascogne",
+    "braquefrancaistypepyrenees":"braque-francais-type-pyrenees",
+    "braquehongroisapoilcourt":"braque-hongrois-poil-court",
+    "braquehongroisapoildur":"braque-hongrois-poil-dur",
+    "braqueitalien":"braque-italien",
+    "braquesaintgermain":"braque-saint-germain",
+    "braqueslovaqueapoildur":"braque-slovaque-poil-dur",
+    "briquetdeprovence":"briquet-de-provence",
+    "briquetgriffonvendeen":"briquet-griffon-vendeen",
+    "broholmer":"broholmer",
+    "brunosainthubertfrancais":"bruno-saint-hubert-francais",
+    "buhundnorvegien":"buhund-norvegien",
+    "bulldog":"bulldog",
+    "bulldogcampeirobresilien":"bulldog-campeiro-bresilien",
+    "bulldogcontinental":"bulldog-continental",
+    "bullmastiff":"bullmastiff",
+    "bullterrier":"bull-terrier",
+    "bullterrierminiature":"bull-terrier-miniature",
+    "cairnterrier":"cairn-terrier",
+    "canedapastoredellasila":"cane-da-pastore-della-sila",
+    "canedapastoredioropa":"cane-da-pastore-di-oropa",
+    "canedimannara":"cane-di-mannara",
+    "caniche":"caniche",
+    "caodegadotransmontano":"cao-de-gado-transmontano",
+    "carlin":"carlin",
+    "cavalierkingcharles":"cavalier-king-charles",
+    "chienaloutre":"chien-loutre",
+    "chienchinoisacrete":"chien-chinois-crete",
+    "chiencourantdebosnieapoildur":"chien-courant-de-bosnie-poil-dur",
+    "chiencourantdehalden":"chien-courant-de-halden",
+    "chiencourantdehamilton":"chien-courant-de-hamilton-0",
+    "chiencourantdehygen":"chien-courant-de-hygen",
+    "chiencourantdelavalleedelasave":"chien-courant-de-la-vallee-de-la-save",
+    "chiencourantdemontagnedumontenegro":"chien-courant-de-montagne-du-montenegro",
+    "chiencourantdesapennins":"chien-courant-des-apennins",
+    "chiencourantdeschiller":"chien-courant-de-schiller",
+    "chiencourantdestatras":"chien-courant-des-tatras",
+    "chiencourantdestonie":"chien-courant-destonie",
+    "chiencourantdetransylvanie":"chien-courant-de-transylvanie",
+    "chiencourantdistrieapoildur":"chien-courant-distrie-poil-dur",
+    "chiencourantdistrieapoilras":"chien-courant-distrie-poil-ras",
+    "chiencourantdusmaland":"chien-courant-du-smaland",
+    "chiencourantespagnol":"chien-courant-espagnol",
+    "chiencourantfinlandais":"chien-courant-finlandais",
+    "chiencourantgrec":"chien-courant-grec",
+    "chiencourantitalienapoildur":"chien-courant-italien-poil-dur",
+    "chiencourantitalienapoilras":"chien-courant-italien-poil-ras",
+    "chiencourantnorvegien":"chien-courant-norvegien",
+    "chiencourantpolonais":"chien-courant-polonais",
+    "chiencourantserbe":"chien-courant-serbe",
+    "chiencourantslovaque":"chien-courant-slovaque",
+    "chiencourantsuisse":"chien-courant-suisse",
+    "chiencouranttricoloreserbe":"chien-courant-tricolore-serbe",
+    "chiendarretallemandapoildur":"chien-darret-allemand-poil-dur",
+    "chiendarretallemandapoillong":"chien-darret-allemand-poil-long",
+    "chiendarretallemandapoilraide":"chien-darret-allemand-poil-raide",
+    "chiendarretdanoisancestral":"chien-darret-danois-ancestral",
+    "chiendarretfrison":"chien-darret-frison",
+    "chiendarretportugais":"chien-darret-portugais",
+    "chiendartois":"chien-dartois",
+    "chiendeauamericain":"chien-deau-americain",
+    "chiendeauespagnol":"chien-deau-espagnol",
+    "chiendeaufrison":"chien-deau-frison",
+    "chiendeauportugais":"chien-deau-portugais",
+    "chiendeauromagnol":"chien-deau-romagnol",
+    "chiendebali":"chien-de-bali",
+    "chiendebergeranglaisancestral":"chien-de-berger-anglais-ancestral",
+    "chiendebergerbelge":"chien-de-berger-belge",
+    "chiendebergercatalan":"chien-de-berger-catalan",
+    "chiendebergercroate":"chien-de-berger-croate",
+    "chiendebergerdemajorque":"chien-de-berger-de-majorque",
+    "chiendebergerdesshetland":"chien-de-berger-des-shetland",
+    "chiendebergerdestatras":"chien-de-berger-des-tatras",
+    "chiendebergerislandais":"chien-de-berger-islandais",
+    "chiendebergerkangal":"chien-de-berger-kangal",
+    "chiendebergermacedonienkaraman":"chien-de-berger-macedonien-karaman",
+    "chiendebergerroumaincorb":"chien-de-berger-roumain-corb",
+    "chiendebergerroumaindebucovine":"chien-de-berger-roumain-de-bucovine",
+    "chiendebergerroumaindemioritza":"chien-de-berger-roumain-de-mioritza",
+    "chiendebergerroumaindescarpathes":"chien-de-berger-roumain-des-carpathes",
+    "chiendebergeryougoslavedecharplanina":"chien-de-berger-yougoslave-de-charplanina",
+    "chiendecanaan":"chien-de-canaan",
+    "chiendecastrolaboreiro":"chien-de-castro-laboreiro",
+    "chiendecouritalien":"chien-de-cour-italien",
+    "chiendefermedanosuedois":"chien-de-ferme-dano-suedois",
+    "chiendegarennedescanaries":"chien-de-garenne-des-canaries",
+    "chiendegarenneportugais":"chien-de-garenne-portugais",
+    "chiendelannorvegiengris":"chien-delan-norvegien-gris",
+    "chiendelannorvegiennoir":"chien-delan-norvegien-noir",
+    "chiendelansuedoisjamthund":"chien-delan-suedois-jamthund",
+    "chiendelaserradaestrela":"chien-de-la-serra-da-estrela",
+    "chiendeleonberg":"chien-de-leonberg",
+    "chiendemontagnedelatlas":"chien-de-montagne-de-latlas",
+    "chiendemontagnedespyrenees":"chien-de-montagne-des-pyrenees",
+    "chiendeperdrixdedrente":"chien-de-perdrix-de-drente",
+    "chienderhodesieacretedorsale":"chien-de-rhodesie-crete-dorsale",
+    "chienderougedebaviere":"chien-de-rouge-de-baviere",
+    "chienderougedehanovre":"chien-de-rouge-de-hanovre",
+    "chiendesainthubert":"chien-de-saint-hubert",
+    "chiendetaiwan":"chien-de-taiwan",
+    "chiendoursdecarelie":"chien-dours-de-carelie",
+    "chiendoyselallemand":"chien-doysel-allemand",
+    "chiendugroenland":"chien-du-groenland",
+    "chiendupharaon":"chien-du-pharaon",
+    "chienfinnoisdelaponie":"chien-finnois-de-laponie",
+    "chienfonnese":"chien-fonnese",
+    "chienloupdesaarloos":"chien-loup-de-saarloos",
+    "chienlouptchecoslovaque":"chien-loup-tchecoslovaque",
+    "chiennetfpourlachasseauraton":"chien-n-et-f-pour-la-chasse-au-raton",
+    "chiennorvegiendemacareux":"chien-norvegien-de-macareux",
+    "chiennudumexique":"chien-nu-du-mexique",
+    "chiennuduperou":"chien-nu-du-perou",
+    "chienthailandaisacretedorsale":"chien-thailandais-crete-dorsale",
+    "chihuahua":"chihuahua",
+    "chowchow":"chow-chow",
+    "cimarronuruguayen":"cimarron-uruguayen",
+    "cirnecodeletna":"cirneco-de-l-etna",
+    "clumberspaniel":"clumber-spaniel",
+    "cockerspanielamericain":"cocker-spaniel-americain",
+    "cockerspanielanglais":"cocker-spaniel-anglais",
+    "collieapoilcourt":"collie-poil-court",
+    "collieapoillong":"collie-poil-long",
+    "cotondetulear":"coton-de-tulear",
+    "croise":"croise",
+    "cursinu":"cursinu",
+    "dalmatien":"dalmatien",
+    "dandiedinmontterrier":"dandie-dinmont-terrier",
+    "dobermann":"dobermann",
+    "dogueallemand":"dogue-allemand",
+    "dogueargentin":"dogue-argentin",
+    "doguedebordeaux":"dogue-de-bordeaux",
+    "doguedemajorque":"dogue-de-majorque",
+    "doguedutibet":"dogue-du-tibet",
+    "englishspringerspaniel":"english-springer-spaniel",
+    "epagneulbleudepicardie":"epagneul-bleu-de-picardie",
+    "epagneulbreton":"epagneul-breton",
+    "epagneuldeauirlandais":"epagneul-deau-irlandais",
+    "epagneuldepontaudemer":"epagneul-de-pont-audemer",
+    "epagneuldesaintusuge":"epagneul-de-saint-usuge",
+    "epagneulfrancais":"epagneul-francais",
+    "epagneuljaponais":"epagneul-japonais",
+    "epagneulkingcharles":"epagneul-king-charles",
+    "epagneulnaincontinental":"epagneul-nain-continental",
+    "epagneulpekinois":"epagneul-pekinois",
+    "epagneulpicard":"epagneul-picard",
+    "epagneultibetain":"epagneul-tibetain",
+    "esquimauducanada":"esquimau-du-canada",
+    "eurasier":"eurasier",
+    "euskalartzaintxakurra":"euskal-artzain-txakurra",
+    "fieldspaniel":"field-spaniel",
+    "filabrasileiro":"fila-brasileiro",
+    "filadesaintmiguel":"fila-de-saint-miguel",
+    "foxhoundamericain":"foxhound-americain",
+    "foxhoundanglais":"fox-hound-anglais",
+    "foxterrierpoildur":"fox-terrier-poil-dur",
+    "foxterrierpoillisse":"fox-terrier-poil-lisse",
+    "francaisblancetnoir":"francais-blanc-et-noir",
+    "francaisblancetorange":"francais-blanc-et-orange",
+    "francaistricolore":"francais-tricolore",
+    "gasconsaintongeois":"gascon-saintongeois",
+    "goldenretriever":"golden-retriever",
+    "grandanglofrancaisblancetnoir":"grand-anglo-francais-blanc-et-noir",
+    "grandanglofrancaisblancetorange":"grand-anglo-francais-blanc-et-orange",
+    "grandanglofrancaistricolore":"grand-anglo-francais-tricolore",
+    "grandbassetgriffonvendeen":"grand-basset-griffon-vendeen",
+    "grandbleudegascogne":"grand-bleu-de-gascogne",
+    "grandbouviersuisse":"grand-bouvier-suisse",
+    "grandepagneuldemunster":"grand-epagneul-de-munster",
+    "grandgriffonvendeen":"grand-griffon-vendeen",
+    "greyhound":"greyhound",
+    "griffonapoildurkorthals":"griffon-poil-dur-korthals",
+    "griffonbelge":"griffon-belge",
+    "griffonbleudegascogne":"griffon-bleu-de-gascogne",
+    "griffonbruxellois":"griffon-bruxellois",
+    "griffonfauvedebretagne":"griffon-fauve-de-bretagne",
+    "griffonnivernais":"griffon-nivernais",
+    "harrier":"harrier",
+    "hokkaido":"hokkaido",
+    "hovawart":"hovawart",
+    "huskydesiberie":"husky-de-siberie",
+    "jindocoreen":"jindo-coreen",
+    "kai":"kai",
+    "kazakhtazy":"kazakh-tazy",
+    "kelpieaustralien":"kelpie-australien",
+    "kishu":"kishu",
+    "komondor":"komondor",
+    "kromfohrlander":"kromfohrlander",
+    "kuvasz":"kuvasz",
+    "laikadeiakoutie":"laika-de-iakoutie",
+    "laikadesiberieoccidentale":"laika-de-siberie-occidentale",
+    "laikadesiberieorientale":"laika-de-siberie-orientale",
+    "laikarussoeuropeen":"laika-russo-europeen",
+    "lakelandterrier":"lakeland-terrier",
+    "lancashireheeler":"lancashire-heeler",
+    "landseer":"landseer",
+    "lapphundsuedois":"lapphund-suedois",
+    "levrierafghan":"levrier-afghan",
+    "levrierecossais":"levrier-ecossais",
+    "levrierespagnol":"levrier-espagnol",
+    "levrierhongrois":"levrier-hongrois",
+    "levrierirlandais":"levrier-irlandais",
+    "levrierpolonais":"levrier-polonais",
+    "lhassaapso":"lhassa-apso",
+    "majorero":"majorero",
+    "malamutedelalaska":"malamute-de-lalaska",
+    "manchesterterrier":"manchester-terrier",
+    "maneto":"maneto",
+    "mastiff":"mastiff",
+    "matindelalentejo":"matin-de-lalentejo",
+    "matindespyrenees":"matin-des-pyrenees",
+    "matinespagnol":"matin-espagnol",
+    "matinnapolitain":"matin-napolitain",
+    "mudi":"mudi",
+    "norfolkterrier":"norfolk-terrier",
+    "norwichterrier":"norwich-terrier",
+    "pachonnavarro":"pachon-navarro",
+    "perrodepastorgarafiano":"perro-de-pastor-garafiano",
+    "perroleonesdepastor":"perro-leones-de-pastor",
+    "petitbassetgriffonvendeen":"petit-basset-griffon-vendeen",
+    "petitbleudegascogne":"petit-bleu-de-gascogne",
+    "petitbrabancon":"petit-brabancon",
+    "petitchiencourantsuisse":"petit-chien-courant-suisse",
+    "petitchienhollandaisdechasseaugibierdeau":"petit-chien-hollandais-de-chasse-au-gibier-deau",
+    "petitchienlion":"petit-chien-lion",
+    "petitchienrusse":"petit-chien-russe",
+    "petitepagneuldemunster":"petit-epagneul-de-munster",
+    "petitlevrieritalien":"petit-levrier-italien",
+    "pinscherallemand":"pinscher-allemand",
+    "pinscherautrichien":"pinscher-autrichien",
+    "pinschernain":"pinscher-nain",
+    "pisteurbresilien":"pisteur-bresilien",
+    "podencoandaluz":"podenco-andaluz",
+    "podencodibiza":"podenco-dibiza",
+    "pointeranglais":"pointer-anglais",
+    "poitevin":"poitevin",
+    "porcelaine":"porcelaine",
+    "presacanario":"presa-canario",
+    "pudelpointer":"pudelpointer",
+    "puli":"puli",
+    "pumi":"pumi",
+    "ratierdeprague":"ratier-de-prague",
+    "ratiervalencien":"ratier-valencien",
+    "ratonerobodegueroandaluz":"ratonero-bodeguero-andaluz",
+    "retrieverapoilboucle":"retriever-poil-boucle",
+    "retrieverapoilplat":"retriever-poil-plat",
+    "retrieverdelabaiedechesapeake":"retriever-de-la-baie-de-chesapeake",
+    "retrieverdelanouvelleecosse":"retriever-de-la-nouvelle-ecosse",
+    "retrieverdulabrador":"retriever-du-labrador",
+    "rottweiler":"rottweiler",
+    "sabuesofinocolombiano":"sabueso-fino-colombiano",
+    "saintbernard":"saint-bernard",
+    "saluki":"saluki",
+    "samoyede":"samoyede",
+    "schapendoesneerlandais":"schapendoes-neerlandais",
+    "schipperke":"schipperke",
+    "schnauzergeant":"schnauzer-geant",
+    "schnauzermoyen":"schnauzer-moyen",
+    "schnauzernain":"schnauzer-nain",
+    "sealyhamterrier":"sealyham-terrier",
+    "segugiomaremmano":"segugio-maremmano",
+    "setteranglais":"setter-anglais",
+    "settergordon":"setter-gordon",
+    "setterirlandaisrouge":"setter-irlandais-rouge",
+    "setterirlandaisrougeblanc":"setter-irlandais-rouge-blanc",
+    "sharpei":"shar-pei",
+    "shiba":"shiba",
+    "shihtzu":"shih-tzu",
+    "shikoku":"shikoku",
+    "skyeterrier":"skye-terrier",
+    "sloughi":"sloughi",
+    "smousdespaysbas":"smous-des-pays-bas",
+    "spinodegliiblei":"spino-degli-iblei",
+    "spinone":"spinone",
+    "spitzallemand":"spitz-allemand",
+    "spitzdenorrbotten":"spitz-de-norrbotten",
+    "spitzdesvisigoths":"spitz-des-visigoths",
+    "spitzfinlandais":"spitz-finlandais",
+    "spitzjaponais":"spitz-japonais",
+    "staffordshirebullterrier":"staffordshire-bull-terrier",
+    "staffordshireterrieramericain":"staffordshire-terrier-americain",
+    "sussexspaniel":"sussex-spaniel",
+    "taigan":"taigan",
+    "tchouvatchslovaque":"tchouvatch-slovaque",
+    "teckel":"teckel",
+    "terreneuve":"terre-neuve",
+    "terrierandalou":"terrier-andalou",
+    "terrieraustralien":"terrier-australien",
+    "terrieraustralienapoilsoyeux":"terrier-australien-poil-soyeux",
+    "terrierbresilien":"terrier-bresilien",
+    "terrierdagrementanglaisnoiretfeu":"terrier-dagrement-anglais-noir-et-feu",
+    "terrierdeboston":"terrier-de-boston",
+    "terrierdechasseallemand":"terrier-de-chasse-allemand",
+    "terrierdureverendrussell":"terrier-du-reverend-russell",
+    "terrierecossais":"terrier-ecossais",
+    "terrierirlandais":"terrier-irlandais",
+    "terrierirlandaisapoildoux":"terrier-irlandais-poil-doux",
+    "terrierirlandaisglenofimaal":"terrier-irlandais-glen-imaal",
+    "terrierjackrussell":"terrier-jack-russell",
+    "terrierjaponais":"terrier-japonais",
+    "terrierkerryblue":"terrier-kerry-blue",
+    "terriernoirrusse":"terrier-noir-russe",
+    "terriernuamericain":"terrier-nu-americain",
+    "terriertcheque":"terrier-tcheque",
+    "terriertibetain":"terrier-tibetain",
+    "tosa":"tosa",
+    "volpinoitalien":"volpino-italien",
+    "welshcorgicardigan":"welsh-corgi-cardigan",
+    "welshcorgipembroke":"welsh-corgi-pembroke",
+    "welshspringerspaniel":"welsh-springer-spaniel",
+    "welshterrier":"welsh-terrier",
+    "westhighlandwhiteterrier":"west-highland-white-terrier",
+    "whippet":"whippet",
+    "xarnegopodencovalenciano":"xarnego-podenco-valenciano",
+    "yorkshireterrier":"yorkshire-terrier"
+  };
+
+  // Alias courants (noms usuels / BREED_DB) → clé du catalogue SCC.
+  // Sans ça, « Labrador Retriever » ou « Beauceron » ne matchent pas
+  // « retrieverdulabrador » / « bergerdebeauce » et le lien disparaît.
+  var CENTRALE_CANINE_BREED_ALIASES = {
+    labrador: 'retrieverdulabrador',
+    labradorretriever: 'retrieverdulabrador',
+    retrieverlabrador: 'retrieverdulabrador',
+    beauceron: 'bergerdebeauce',
+    basrouge: 'bergerdebeauce',
+    malinois: 'chiendebergerbelge',
+    bergerbelgemalinois: 'chiendebergerbelge',
+    bergerbelge: 'chiendebergerbelge',
+    shetland: 'chiendebergerdesshetland',
+    sheltie: 'chiendebergerdesshetland',
+    teckel: 'teckel',
+    dachshund: 'teckel',
+    canichetoy: 'caniche',
+    canichemoyen: 'caniche',
+    canichestandard: 'caniche',
+    frenchbulldog: 'bouledoguefrancais',
+    englishbulldog: 'bulldog',
+    bouledogueanglais: 'bulldog',
+    germanshepherd: 'bergerallemand',
+    australianshepherd: 'bergeraustralien',
+    cockerspaniel: 'cockerspanielanglais',
+    jackrussellterrier: 'terrierjackrussell',
+    huskysiberien: 'huskydesiberie',
+    malamutedalaska: 'malamutedelalaska',
+    akitainu: 'akita',
+    bichonfrise: 'bichonapoilfrise',
+    teckelstandard: 'teckel',
+    teckelnain: 'teckel',
+    braqueallemand: 'braqueallemandapoilcourt',
+    americanstaffordshireterrier: 'staffordshireterrieramericain',
+    pugcarlin: 'carlin',
+    pug: 'carlin',
+    pekinois: 'epagneulpekinois',
+    spitznainpomeranien: 'spitzallemand',
+    colley: 'collieapoillong',
+    foxterrier: 'foxterrierpoildur',
+    epagneulcavalier: 'cavalierkingcharles'
+  };
+
+  // n° de fichier PDF du standard FCI (centrale-canine.fr/sites/default/files/fci_race/<n>.pdf),
+  // par clé du catalogue. Généré par scripts/build-fci-breed-map.mjs (Wikidata P528 + ajouts vérifiés).
+  var CENTRALE_CANINE_FCI_FILES = {
+    "affenpinscher":"186",
+    "airedaleterrier":"007",
+    "akita":"255",
+    "akitaamericain":"344",
+    "anglofrancaisdepetitevenerie":"325",
+    "ariegeois":"020",
+    "azawakh":"307",
+    "bangkaewdethailande":"358",
+    "barbet":"105",
+    "barbutcheque":"245",
+    "barzoi":"193",
+    "basenji":"043",
+    "bassetartesiennormand":"034",
+    "bassetbleudegascogne":"035",
+    "bassetdewestphalie":"100",
+    "bassetfauvedebretagne":"036",
+    "bassethound":"163",
+    "bassetsuedois":"130",
+    "beagle":"161",
+    "beagleharrier":"290",
+    "beardedcollie":"271",
+    "bedlingtonterrier":"009",
+    "bergerallemand":"166",
+    "bergeraustralien":"342",
+    "bergerbergamasque":"194",
+    "bergerblancsuisse":"347",
+    "bergerdasiecentrale":"335",
+    "bergerdebeauce":"044",
+    "bergerdebosnieherzegovineetdecroatie":"355",
+    "bergerdebrie":"113",
+    "bergerdelamaremmeetdesabruzzes":"201",
+    "bergerdelaserradeaires":"093",
+    "bergerdepicardie":"176",
+    "bergerderussiemeridionale":"326",
+    "bergerdespyreneesafacerase":"138",
+    "bergerdespyreneesapoillong":"141",
+    "bergerducaucase":"328",
+    "bergerdukarst":"278",
+    "bergerfinnoisdelaponie":"284",
+    "bergerhollandais":"223",
+    "bergerpolonaisdeplaine":"251",
+    "bichonapoilfrise":"215",
+    "bichonbolonais":"196",
+    "bichonhavanais":"250",
+    "bichonmaltais":"065",
+    "billy":"025",
+    "bordercollie":"297",
+    "borderterrier":"010",
+    "bouledoguefrancais":"101",
+    "bouvieraustralien":"287",
+    "bouvieraustraliencourtequeue":"351",
+    "bouvierbernois":"045",
+    "bouvierdelappenzell":"046",
+    "bouvierdelentlebuch":"047",
+    "bouvierdesardennes":"171",
+    "bouvierdesflandres":"191",
+    "boxer":"144",
+    "brachetallemand":"299",
+    "brachetnoiretfeu":"063",
+    "brachetpolonais":"052",
+    "brachettyrolien":"068",
+    "braqueallemandapoilcourt":"119",
+    "braquedauvergne":"180",
+    "braquedeburgos":"090",
+    "braquedeweimar":"099",
+    "braquedubourbonnais":"179",
+    "braquefrancaistypegascogne":"133",
+    "braquefrancaistypepyrenees":"134",
+    "braquehongroisapoilcourt":"057",
+    "braquehongroisapoildur":"239",
+    "braqueitalien":"202",
+    "braquesaintgermain":"115",
+    "braqueslovaqueapoildur":"320",
+    "briquetgriffonvendeen":"019",
+    "broholmer":"315",
+    "buhundnorvegien":"237",
+    "bulldog":"149",
+    "bulldogcontinental":"369",
+    "bullmastiff":"157",
+    "bullterrier":"011",
+    "bullterrierminiature":"359",
+    "cairnterrier":"004",
+    "caniche":"172",
+    "carlin":"253",
+    "cavalierkingcharles":"136",
+    "chienaloutre":"294",
+    "chienchinoisacrete":"288",
+    "chiencourantdebosnieapoildur":"155",
+    "chiencourantdehalden":"267",
+    "chiencourantdehamilton":"132",
+    "chiencourantdehygen":"266",
+    "chiencourantdelavalleedelasave":"154",
+    "chiencourantdemontagnedumontenegro":"279",
+    "chiencourantdetransylvanie":"241",
+    "chiencourantdistrieapoildur":"152",
+    "chiencourantdistrieapoilras":"151",
+    "chiencourantespagnol":"204",
+    "chiencourantfinlandais":"051",
+    "chiencourantgrec":"214",
+    "chiencourantitalienapoildur":"198",
+    "chiencourantitalienapoilras":"337",
+    "chiencourantnorvegien":"203",
+    "chiencourantpolonais":"354",
+    "chiencourantsuisse":"059",
+    "chiendarretallemandapoildur":"098",
+    "chiendarretallemandapoillong":"117",
+    "chiendarretallemandapoilraide":"232",
+    "chiendarretdanoisancestral":"281",
+    "chiendarretportugais":"187",
+    "chiendartois":"028",
+    "chiendeauamericain":"301",
+    "chiendeauespagnol":"336",
+    "chiendeaufrison":"221",
+    "chiendeauportugais":"037",
+    "chiendeauromagnol":"298",
+    "chiendebergerbelge":"015",
+    "chiendebergercatalan":"087",
+    "chiendebergercroate":"277",
+    "chiendebergerdemajorque":"321",
+    "chiendebergerdesshetland":"088",
+    "chiendebergerdestatras":"252",
+    "chiendebergerislandais":"289",
+    "chiendebergerkangal":"331",
+    "chiendebergerroumaindebucovine":"357",
+    "chiendebergerroumaindemioritza":"349",
+    "chiendebergerroumaindescarpathes":"350",
+    "chiendecanaan":"273",
+    "chiendecastrolaboreiro":"170",
+    "chiendecouritalien":"343",
+    "chiendefermedanosuedois":"356",
+    "chiendegarennedescanaries":"329",
+    "chiendegarenneportugais":"094",
+    "chiendelannorvegiengris":"242",
+    "chiendelannorvegiennoir":"268",
+    "chiendelansuedoisjamthund":"042",
+    "chiendelaserradaestrela":"173",
+    "chiendeleonberg":"145",
+    "chiendemontagnedespyrenees":"137",
+    "chiendeperdrixdedrente":"224",
+    "chienderhodesieacretedorsale":"146",
+    "chienderougedebaviere":"217",
+    "chienderougedehanovre":"213",
+    "chiendesainthubert":"084",
+    "chiendoursdecarelie":"048",
+    "chiendoyselallemand":"104",
+    "chiendugroenland":"274",
+    "chiendupharaon":"248",
+    "chienlouptchecoslovaque":"332",
+    "chiennorvegiendemacareux":"265",
+    "chiennudumexique":"234",
+    "chiennuduperou":"310",
+    "chienthailandaisacretedorsale":"338",
+    "chihuahua":"218",
+    "chowchow":"205",
+    "cimarronuruguayen":"353",
+    "cirnecodeletna":"199",
+    "clumberspaniel":"109",
+    "cockerspanielamericain":"167",
+    "cockerspanielanglais":"005",
+    "collieapoilcourt":"296",
+    "collieapoillong":"156",
+    "cotondetulear":"283",
+    "dalmatien":"153",
+    "dandiedinmontterrier":"168",
+    "dobermann":"143",
+    "dogueallemand":"235",
+    "dogueargentin":"292",
+    "doguedebordeaux":"116",
+    "doguedemajorque":"249",
+    "doguedutibet":"230",
+    "englishspringerspaniel":"125",
+    "epagneulbleudepicardie":"106",
+    "epagneulbreton":"095",
+    "epagneuldeauirlandais":"124",
+    "epagneuldepontaudemer":"114",
+    "epagneulfrancais":"175",
+    "epagneuljaponais":"206",
+    "epagneulkingcharles":"128",
+    "epagneulnaincontinental":"077",
+    "epagneulpekinois":"207",
+    "epagneulpicard":"108",
+    "epagneultibetain":"231",
+    "eurasier":"291",
+    "fieldspaniel":"123",
+    "filabrasileiro":"225",
+    "filadesaintmiguel":"340",
+    "foxhoundamericain":"303",
+    "foxhoundanglais":"159",
+    "foxterrierpoildur":"169",
+    "foxterrierpoillisse":"012",
+    "francaisblancetnoir":"220",
+    "francaisblancetorange":"316",
+    "francaistricolore":"219",
+    "gasconsaintongeois":"021",
+    "goldenretriever":"111",
+    "grandanglofrancaisblancetnoir":"323",
+    "grandanglofrancaisblancetorange":"324",
+    "grandanglofrancaistricolore":"322",
+    "grandbassetgriffonvendeen":"033",
+    "grandbleudegascogne":"022",
+    "grandbouviersuisse":"058",
+    "grandepagneuldemunster":"118",
+    "grandgriffonvendeen":"282",
+    "greyhound":"158",
+    "griffonapoildurkorthals":"107",
+    "griffonbelge":"081",
+    "griffonbleudegascogne":"032",
+    "griffonbruxellois":"080",
+    "griffonfauvedebretagne":"066",
+    "griffonnivernais":"017",
+    "harrier":"295",
+    "hokkaido":"261",
+    "hovawart":"190",
+    "huskydesiberie":"270",
+    "jindocoreen":"334",
+    "kai":"317",
+    "kelpieaustralien":"293",
+    "kishu":"318",
+    "komondor":"053",
+    "kromfohrlander":"192",
+    "kuvasz":"054",
+    "laikadesiberieoccidentale":"306",
+    "laikadesiberieorientale":"305",
+    "lakelandterrier":"070",
+    "lancashireheeler":"360",
+    "landseer":"226",
+    "levrierafghan":"228",
+    "levrierecossais":"164",
+    "levrierespagnol":"285",
+    "levrierhongrois":"240",
+    "levrierirlandais":"160",
+    "levrierpolonais":"333",
+    "lhassaapso":"227",
+    "malamutedelalaska":"243",
+    "manchesterterrier":"071",
+    "mastiff":"264",
+    "matindelalentejo":"096",
+    "matindespyrenees":"092",
+    "matinespagnol":"091",
+    "matinnapolitain":"197",
+    "mudi":"238",
+    "norfolkterrier":"272",
+    "norwichterrier":"072",
+    "petitbassetgriffonvendeen":"067",
+    "petitbleudegascogne":"031",
+    "petitbrabancon":"082",
+    "petitchienhollandaisdechasseaugibierdeau":"314",
+    "petitchienlion":"233",
+    "petitepagneuldemunster":"102",
+    "petitlevrieritalien":"200",
+    "pinscherallemand":"184",
+    "pinscherautrichien":"064",
+    "pinschernain":"185",
+    "podencodibiza":"089",
+    "pointeranglais":"001",
+    "poitevin":"024",
+    "porcelaine":"030",
+    "presacanario":"346",
+    "pudelpointer":"216",
+    "puli":"055",
+    "pumi":"056",
+    "retrieverapoilboucle":"110",
+    "retrieverapoilplat":"121",
+    "retrieverdelabaiedechesapeake":"263",
+    "retrieverdelanouvelleecosse":"312",
+    "retrieverdulabrador":"122",
+    "rottweiler":"147",
+    "saintbernard":"061",
+    "saluki":"269",
+    "samoyede":"212",
+    "schipperke":"083",
+    "schnauzergeant":"181",
+    "schnauzermoyen":"182",
+    "schnauzernain":"183",
+    "sealyhamterrier":"074",
+    "setteranglais":"002",
+    "settergordon":"006",
+    "setterirlandaisrouge":"120",
+    "setterirlandaisrougeblanc":"330",
+    "sharpei":"309",
+    "shiba":"257",
+    "shihtzu":"208",
+    "shikoku":"319",
+    "skyeterrier":"075",
+    "sloughi":"188",
+    "smousdespaysbas":"308",
+    "spinone":"165",
+    "spitzallemand":"097",
+    "spitzdenorrbotten":"276",
+    "spitzjaponais":"262",
+    "staffordshirebullterrier":"076",
+    "staffordshireterrieramericain":"286",
+    "teckel":"148",
+    "terreneuve":"050",
+    "terrieraustralien":"008",
+    "terrieraustralienapoilsoyeux":"236",
+    "terrierbresilien":"341",
+    "terrierdagrementanglaisnoiretfeu":"013",
+    "terrierdeboston":"140",
+    "terrierdechasseallemand":"103",
+    "terrierdureverendrussell":"339",
+    "terrierecossais":"073",
+    "terrierirlandais":"139",
+    "terrierirlandaisapoildoux":"040",
+    "terrierirlandaisglenofimaal":"302",
+    "terrierjackrussell":"345",
+    "terrierjaponais":"259",
+    "terrierkerryblue":"003",
+    "terriernoirrusse":"327",
+    "terriertcheque":"246",
+    "terriertibetain":"209",
+    "tosa":"260",
+    "volpinoitalien":"195",
+    "welshcorgicardigan":"038",
+    "welshcorgipembroke":"039",
+    "welshspringerspaniel":"126",
+    "welshterrier":"078",
+    "westhighlandwhiteterrier":"085",
+    "whippet":"162",
+    "yorkshireterrier":"086"
+  };
+
+  // Standard de race (Société Centrale Canine) : PDF direct quand le n° FCI est connu
+  // (table ci-dessus), sinon la page race, qui porte toujours « Télécharger le Standard ».
+  function centraleCanineBreedKey(race) {
+    if (!race) return null;
+    var key = protectionKey(race);
+    if (CENTRALE_CANINE_BREED_SLUGS[key]) return key;
+    var alias = CENTRALE_CANINE_BREED_ALIASES[key];
+    return alias && CENTRALE_CANINE_BREED_SLUGS[alias] ? alias : null;
+  }
+  function centraleCanineBreedSlug(race) {
+    var key = centraleCanineBreedKey(race);
+    return key ? CENTRALE_CANINE_BREED_SLUGS[key] : null;
+  }
+  function centraleCanineBreedLinkMeta(race) {
+    var key = centraleCanineBreedKey(race);
+    if (!key) return null;
+    var fileId = CENTRALE_CANINE_FCI_FILES[key];
+    if (fileId) {
+      return { url: 'https://www.centrale-canine.fr/sites/default/files/fci_race/' + fileId + '.pdf', isPdf: true };
+    }
+    var slug = CENTRALE_CANINE_BREED_SLUGS[key];
+    return slug ? { url: 'https://www.centrale-canine.fr/le-chien-de-race/' + slug, isPdf: false } : null;
+  }
+  function centraleCanineBreedUrl(race) {
+    var meta = centraleCanineBreedLinkMeta(race);
+    return meta ? meta.url : null;
+  }
 
   // Common symptom types suggested in the health journal
   var SYMPTOM_TYPES = [
@@ -328,6 +1135,7 @@
     editCaptionPhotoId: null,
     editHygieneId: null,
     editHeatCycleId: null,
+    editMatingId: null,
     editActivityId: null,
     editMealId: null,
     editVetContactId: null,
@@ -355,11 +1163,26 @@
 
   function fmtDate(d) {
     if (!d) return '—';
+    if (window.applikaPrefs) return window.applikaPrefs.formatDate(d);
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+  // Poids et tailles sont stockés en kg / cm ; les préférences (profil > Affichage) ne changent que l'affichage.
+  function wUnit() { return window.applikaPrefs && window.applikaPrefs.get().units.weight === 'lb' ? 'lb' : 'kg'; }
+  function hUnit() { return window.applikaPrefs && window.applikaPrefs.get().units.height === 'in' ? 'in' : 'cm'; }
+  function uW(kg) { return window.applikaPrefs ? window.applikaPrefs.fmtWeight(kg) : String(kg).replace('.', ',') + ' kg'; }
+  function uH(cm) { return window.applikaPrefs ? window.applikaPrefs.fmtHeight(cm) : String(cm).replace('.', ',') + ' cm'; }
+  function wNum(kg, d) { return window.applikaPrefs ? window.applikaPrefs.fmtWeight(kg, d == null ? 1 : d).replace(/ (kg|lb)$/, '') : Number(kg).toFixed(d == null ? 1 : d); }
+  function hNum(cm) { return uH(cm).replace(/ (cm|in)$/, ''); }
+  function wDelta(deltaKg) { return window.applikaPrefs ? window.applikaPrefs.weightDelta(deltaKg) : (deltaKg >= 0 ? '+' : '−') + Math.abs(deltaKg).toFixed(1).replace('.', ',') + ' kg'; }
+  function hDelta(deltaCm) {
+    var v = hUnit() === 'in' ? deltaCm * 0.3937007874 : deltaCm;
+    return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1).replace('.', ',') + ' ' + hUnit();
+  }
+
+  // Devise : ariary malgache (MGA). Affichage courant « Ar » (pas de centimes).
   function fmtCost(n) {
-    return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    return Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' Ar';
   }
 
   function relativeDate(isoDate) {
@@ -549,15 +1372,22 @@
         if (!Array.isArray(a.hygiene)) a.hygiene = [];
         if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
         if (!Array.isArray(a.activities)) a.activities = [];
+        if (!Array.isArray(a.matings)) a.matings = [];
         if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } };
         if (!Array.isArray(a.nutrition.meals)) a.nutrition.meals = [];
         if (!a.nutrition.dailyPlan) a.nutrition.dailyPlan = { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' };
-        if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } };
+        if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', healthNotes: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '', paternalGrandsireRegistry: '', paternalGranddamRegistry: '', maternalGrandsireRegistry: '', maternalGranddamRegistry: '' } };
+        if (a.pedigree.healthNotes === undefined) a.pedigree.healthNotes = '';
+        if (!a.pedigree.grandparents) a.pedigree.grandparents = {};
+        ['paternalGrandsireRegistry', 'paternalGranddamRegistry', 'maternalGrandsireRegistry', 'maternalGranddamRegistry'].forEach(function (k) {
+          if (a.pedigree.grandparents[k] === undefined) a.pedigree.grandparents[k] = '';
+        });
         if (!a.animal.themeColor) a.animal.themeColor = '';
         if (a.animal.height === undefined) a.animal.height = null;
         if (!a.notifications) a.notifications = {};
         if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
         if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
+        if (a.notifications.matingReminder === undefined) a.notifications.matingReminder = true;
       });
       return true;
     } catch (e) {
@@ -970,6 +1800,11 @@
     (data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).forEach(function (m) {
       items.push({ animalId: data.id, animalName: animalName, kind: 'medication', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate, date: m.startDate || m.date, endDate: m.endDate });
     });
+    (data.matings || []).forEach(function (m) {
+      var due = matingNextDeadline(m);
+      if (!due) return;
+      items.push({ animalId: data.id, animalName: animalName, kind: 'mating', collection: 'matings', id: m.id, name: due.label, next: due.date, date: m.date, deadlineField: due.field });
+    });
     return items;
   }
 
@@ -1019,7 +1854,9 @@
     var entry = list.find(function (x) { return x.id === item.id; });
     if (!entry) return false;
     var today = todayISO();
-    if (item.collection === 'medications') {
+    if (item.collection === 'matings') {
+      if (item.deadlineField) entry[item.deadlineField] = today;
+    } else if (item.collection === 'medications') {
       entry.endDate = today;
       entry.active = false;
     } else {
@@ -1052,6 +1889,7 @@
   }
 
   function snoozeDueItem(item, days) {
+    if (item.collection === 'matings') return false; // délai légal : pas de report, seulement "fait".
     var entry = dueEntry(item);
     if (!entry) return false;
     var next = snoozeTarget(item, days);
@@ -1079,6 +1917,7 @@
     var message;
     if (kind === 'later') message = label + ' reporté au ' + fmtDate(item.collection === 'medications' ? after.endDate : after.next) + '.';
     else if (item.collection === 'medications') message = 'Traitement ' + (item.name || '') + ' de ' + item.animalName + ' terminé.';
+    else if (item.collection === 'matings') message = (item.name || 'Démarche') + ' de ' + item.animalName + ' marquée comme faite.';
     else message = label + ' : fait. Prochain rappel le ' + fmtDate(after.next) + '.';
     showUndoToast(message, function () {
       var data = findAnimalData(item.animalId);
@@ -1154,6 +1993,9 @@
   }
 
   function reminderButtons(item) {
+    if (item.collection === 'matings') {
+      return '<button type="button" class="rem-btn rem-btn--done" data-rem="done">Déclaré</button>';
+    }
     var doneLabel = item.collection === 'medications' ? 'Terminé' : 'Fait';
     return '<button type="button" class="rem-btn rem-btn--done" data-rem="done">' + doneLabel + '</button>' +
       '<button type="button" class="rem-btn rem-btn--later" data-rem="later" aria-haspopup="dialog">Reporter</button>';
@@ -1381,199 +2223,6 @@
   function formatReproLabel(a) {
     if (a.sterilise === 'Oui') return a.sex === 'Femelle' ? 'Stérilisée' : 'Castré(e)';
     return 'Non stérilisé' + (a.sex === 'Femelle' ? 'e' : '');
-  }
-
-  function renderPetProfileWeightChart(data) {
-    var container = document.getElementById('pet-profile-weight-chart');
-    if (!container) return;
-    if (!data || !data.animal) { container.innerHTML = ''; return; }
-
-    var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
-    var entries = entriesRaw.filter(function (e) { return e && e.date && e.weight != null && !isNaN(Number(e.weight)); })
-      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
-
-    if (entries.length === 0) {
-      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des pesées pour afficher la courbe de poids.</p>';
-      return;
-    }
-
-    // Keep last 6 points for a clean mobile chart
-    if (entries.length > 6) entries = entries.slice(entries.length - 6);
-
-    var weights = entries.map(function (e) { return Number(e.weight); });
-    var minW = Math.min.apply(null, weights);
-    var maxW = Math.max.apply(null, weights);
-    var pad = Math.max(0.5, (maxW - minW) * 0.2);
-    minW = Math.max(0, Math.floor(minW - pad));
-    maxW = Math.ceil(maxW + pad);
-    var range = maxW - minW;
-    if (range < 1) { minW = Math.max(0, minW - 1); maxW = maxW + 1; range = maxW - minW; }
-
-    var W = 360;
-    var H = 150;
-    var padL = 28;
-    var padR = 10;
-    var padT = 18;
-    var padB = 28;
-    var chartH = H - padT - padB;
-    var chartW = W - padL - padR;
-
-    // Overweight line near top (~90% of scale)
-    var overweight = maxW - range * 0.08;
-    var owY = padT + (1 - (overweight - minW) / range) * chartH;
-
-    var xFor = function (i, n) {
-      if (n === 1) return padL + chartW / 2;
-      return padL + (chartW * i) / (n - 1);
-    };
-    var yFor = function (w) { return padT + (1 - (w - minW) / range) * chartH; };
-
-    var n = entries.length;
-    var pts = entries.map(function (e, i) {
-      return { x: xFor(i, n), y: yFor(Number(e.weight)) };
-    });
-
-    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
-    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
-      linePts + ' ' +
-      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
-
-    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    var xLabels = '';
-    entries.forEach(function (e, i) {
-      var d = new Date(e.date);
-      var label = monthLabels[d.getMonth()] || '';
-      // Show label if few points, or every other, or first/last
-      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
-        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
-      }
-    });
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var wVal = minW + (range * i / steps);
-      var yVal = yFor(wVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(wVal) + '</text>';
-    }
-
-    var overLineSvg =
-      '<line x1="' + padL + '" y1="' + owY.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + owY.toFixed(2) + '" stroke="#ef4444" stroke-width="1.25" stroke-dasharray="5 4"/>' +
-      '<text x="' + (W - padR - 2) + '" y="' + (owY - 5).toFixed(2) + '" fill="#ef4444" font-size="9" text-anchor="end" font-weight="600">Surpoids</text>';
-
-    container.innerHTML =
-      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
-      '<defs><linearGradient id="petWeightFill" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#ea580c" stop-opacity="0.28"/>' +
-      '<stop offset="100%" stop-color="#ea580c" stop-opacity="0.02"/>' +
-      '</linearGradient></defs>' +
-      gridLines + overLineSvg +
-      '<polygon fill="url(#petWeightFill)" points="' + areaPts + '"/>' +
-      '<polyline fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
-      pts.map(function (p) {
-        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#ea580c" stroke="#fff" stroke-width="2"/>';
-      }).join('') +
-      xLabels +
-      '</svg>';
-
-    var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
-    var ageMonths = calculateAgeMonths(data.animal.dob);
-    if (breedRange && ageMonths != null && ageMonths >= 12) {
-      var lastW = weights[weights.length - 1];
-      var inRange = lastW >= breedRange.min && lastW <= breedRange.max;
-      container.innerHTML += '<div class="breed-weight-badge ' + (inRange ? 'in-range' : 'out-of-range') + '">' +
-        'Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' +
-        (inRange ? ' ✓' : ' ⚠') + '</div>';
-    }
-  }
-
-  // Miroir de renderPetProfileWeightChart pour la taille au garrot — même
-  // mise en page, sans ligne "Surpoids" ni fourchette de race (données
-  // non disponibles pour la taille).
-  function renderPetProfileHeightChart(data) {
-    var container = document.getElementById('pet-profile-height-chart');
-    if (!container) return;
-    if (!data || !data.animal) { container.innerHTML = ''; return; }
-
-    var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
-    var entries = entriesRaw.filter(function (e) { return e && e.date && e.height != null && !isNaN(Number(e.height)); })
-      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
-
-    if (entries.length === 0) {
-      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des mesures pour afficher la courbe de taille.</p>';
-      return;
-    }
-
-    if (entries.length > 6) entries = entries.slice(entries.length - 6);
-
-    var heights = entries.map(function (e) { return Number(e.height); });
-    var minH = Math.min.apply(null, heights);
-    var maxH = Math.max.apply(null, heights);
-    var pad = Math.max(1, (maxH - minH) * 0.2);
-    minH = Math.max(0, Math.floor(minH - pad));
-    maxH = Math.ceil(maxH + pad);
-    var range = maxH - minH;
-    if (range < 1) { minH = Math.max(0, minH - 1); maxH = maxH + 1; range = maxH - minH; }
-
-    var W = 360;
-    var H = 150;
-    var padL = 28;
-    var padR = 10;
-    var padT = 18;
-    var padB = 28;
-    var chartH = H - padT - padB;
-    var chartW = W - padL - padR;
-
-    var xFor = function (i, n) {
-      if (n === 1) return padL + chartW / 2;
-      return padL + (chartW * i) / (n - 1);
-    };
-    var yFor = function (h) { return padT + (1 - (h - minH) / range) * chartH; };
-
-    var n = entries.length;
-    var pts = entries.map(function (e, i) {
-      return { x: xFor(i, n), y: yFor(Number(e.height)) };
-    });
-
-    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
-    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
-      linePts + ' ' +
-      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
-
-    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    var xLabels = '';
-    entries.forEach(function (e, i) {
-      var d = new Date(e.date);
-      var label = monthLabels[d.getMonth()] || '';
-      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
-        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
-      }
-    });
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var hVal = minH + (range * i / steps);
-      var yVal = yFor(hVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(hVal) + '</text>';
-    }
-
-    container.innerHTML =
-      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
-      '<defs><linearGradient id="petHeightFill" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#2563eb" stop-opacity="0.28"/>' +
-      '<stop offset="100%" stop-color="#2563eb" stop-opacity="0.02"/>' +
-      '</linearGradient></defs>' +
-      gridLines +
-      '<polygon fill="url(#petHeightFill)" points="' + areaPts + '"/>' +
-      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
-      pts.map(function (p) {
-        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#2563eb" stroke="#fff" stroke-width="2"/>';
-      }).join('') +
-      xLabels +
-      '</svg>';
   }
 
   function collectProfileTasks(data) {
@@ -1826,7 +2475,7 @@
   var careLinks = [
     ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
     ['Carnet de santé', [['historique', 'Frise du carnet', 'clipboard'], ['profil', 'Fiche & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
-    ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
+    ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
   ];
   function careButton(route, label, icon, primary) {
@@ -1888,7 +2537,7 @@
     }
     var due = collectDueItemsForAnimal(data);
     var late = due.filter(function (x) { return daysUntil(x.next) < 0; }).length;
-    var weight = a.weight != null && a.weight !== '' ? String(a.weight).replace('.', ',') + ' kg' : 'À renseigner';
+    var weight = a.weight != null && a.weight !== '' ? uW(a.weight) : 'À renseigner';
     var meals = ((data.nutrition || {}).meals || []).filter(function (m) { return m.date === todayISO(); });
     var since = new Date(); since.setFullYear(since.getFullYear() - 1);
     var visits = (data.consultations || []).filter(function (c) { return c.date && isoToLocalDate(c.date) >= since; });
@@ -1897,7 +2546,7 @@
       ['vaccine','Suivi des rappels', late ? late + ' en retard' : due.length ? 'À jour' : 'À compléter', due.length + ' échéance(s) enregistrée(s)', 'vaccins'],
       ['scale','Poids actuel',weight, a.race || 'Suivi de la croissance', 'poids'],
       ['utensils','Repas du jour',String(meals.length), 'Repas consignés aujourd’hui', 'nutrition'],
-      ['stethoscope','Budget santé · 12 mois',spent.toLocaleString('fr-FR') + ' €',visits.length + ' consultation(s)', 'consultations']
+      ['stethoscope','Budget santé · 12 mois',fmtCost(spent),visits.length + ' consultation(s)', 'consultations']
     ];
     el.innerHTML += '<div class="care-metrics">' + metrics.map(function (m) { return '<button type="button" class="care-card care-metric" data-care-route="' + m[4] + '"><span class="care-metric-icon">' + ico(m[0],22) + '</span><span class="care-eyebrow">' + m[1] + '</span><strong>' + escapeHtml(m[2]) + '</strong><small>' + escapeHtml(m[3]) + '</small></button>'; }).join('') + '</div>';
     var history = (a.weightHistory || []).filter(function (w) { return Number(w.weight) > 0 && w.date; }).sort(function (x,y) { return x.date.localeCompare(y.date); }).slice(-12);
@@ -1962,15 +2611,19 @@
       } else {
         title = urgent.animalName + ' — ' + (urgent.name || 'rappel') + ' dans ' + daysLate + ' jour' + (daysLate > 1 ? 's' : '') + '.';
       }
+      var isMatingUrgent = urgent.collection === 'matings';
       var sameAnimal = all.filter(function (x) {
         return x.animalId === urgent.animalId && daysUntil(x.next) < 0 &&
           !(x.collection === urgent.collection && x.id === urgent.id) &&
           String(x.name || '').toLowerCase() !== String(urgent.name || '').toLowerCase();
       });
-      var sub = sameAnimal.length
-        ? (sameAnimal[0].name + ' est échu aussi.' + (clinic ? ' Les deux se font en une visite chez ' + clinic.name + '.' : ''))
-        : (clinic ? ('Chez ' + clinic.name + '.') : 'Planifiez la visite dès que possible.');
-      var callLabel = clinic ? 'Appeler la clinique' : 'Voir l’annuaire';
+      var sub = isMatingUrgent
+        ? 'Démarche administrative à effectuer auprès du registre (LOF/LOMAD).'
+        : sameAnimal.length
+          ? (sameAnimal[0].name + ' est échu aussi.' + (clinic ? ' Les deux se font en une visite chez ' + clinic.name + '.' : ''))
+          : (clinic ? ('Chez ' + clinic.name + '.') : 'Planifiez la visite dès que possible.');
+      var callLabel = isMatingUrgent ? 'Voir la fiche' : (clinic ? 'Appeler la clinique' : 'Voir l’annuaire');
+      var doneLabel = urgent.collection === 'medications' ? 'Terminé' : (isMatingUrgent ? 'Déclaré' : 'Fait');
       urgencyEl.hidden = false;
       urgencyEl.className = 'home-urgency';
       urgencyEl.innerHTML =
@@ -1979,14 +2632,15 @@
         '<div class="home-urgency__sub">' + escapeHtml(sub) + '</div>' +
         '<div class="home-urgency__actions">' +
         '<button type="button" class="home-urgency__btn home-urgency__btn--primary" id="home-urgency-call">' + escapeHtml(callLabel) + '</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">' + (urgent.collection === 'medications' ? 'Terminé' : 'Fait') + '</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later" aria-haspopup="dialog">Reporter</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">' + escapeHtml(doneLabel) + '</button>' +
+        (isMatingUrgent ? '' : '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later" aria-haspopup="dialog">Reporter</button>') +
         '</div>';
       urgencyEl._urgentItem = urgent;
 
       var callBtn = document.getElementById('home-urgency-call');
       if (callBtn) callBtn.addEventListener('click', function () {
-        if (clinic && clinic.phone) window.location.href = 'tel:' + clinic.phone.replace(/\s+/g, '');
+        if (isMatingUrgent) { state.currentAnimalId = urgent.animalId; saveState(); showDetail({ tab: 'reproduction', nav: 'pets' }); }
+        else if (clinic && clinic.phone) window.location.href = 'tel:' + clinic.phone.replace(/\s+/g, '');
         else showDirectory();
       });
       var doneBtn = document.getElementById('home-urgency-done');
@@ -2183,12 +2837,25 @@
     var data = getCurrent();
     if (!data) return;
     var a = data.animal, o = getOwner(), pedigree = data.pedigree || {};
+    var breedLink = centraleCanineBreedLinkMeta(a.race);
     document.getElementById('identity-passport').innerHTML = '<h2>Identité & passeport</h2>' +
       stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
       stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
-      stitchInfo('Clinique référente', o.clinic, 'hospital') + '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>';
-    document.getElementById('identity-owner').innerHTML = '<h2>Fiche propriétaire</h2><p>Contact principal pour votre compagnon.</p>' +
-      stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
+      stitchInfo('Clinique référente', o.clinic, 'hospital') +
+      '<div class="identity-passport__actions">' +
+        '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
+        '<button type="button" class="care-action care-action--icon" data-stitch-action="editPedigree" aria-label="Modifier le pedigree" title="Modifier le pedigree">' + ico('edit', 16) + '</button>' +
+      '</div>' +
+      (breedLink
+        ? '<a class="care-action identity-breed-link" href="' + breedLink.url + '" target="_blank" rel="noopener">' +
+            ico(breedLink.isPdf ? 'download' : 'fileText', 16) +
+            '<span>' + (breedLink.isPdf ? 'Standard de la race (PDF)' : 'Standard de la race') + '</span></a>'
+        : '');
+    document.getElementById('identity-owner').innerHTML =
+      '<div class="identity-owner__head"><h2>Fiche propriétaire</h2>' +
+      '<button type="button" class="care-action care-action--icon" data-stitch-action="editOwner" aria-label="Modifier mes coordonnées" title="Modifier mes coordonnées">' + ico('edit', 16) + '</button></div>' +
+      '<p>Contact principal pour votre compagnon.</p>' +
+      stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin');
   }
 
   // Fiche : ce qui demande une action d'abord, l'état de santé ensuite, les constantes après ;
@@ -2211,17 +2878,57 @@
     return dates.length ? dates[dates.length - 1] : '';
   }
 
-  function ficheSpark(values) {
-    if (values.length < 2) return '';
-    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values);
+  function drawFicheSpark(canvasId, values) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined' || !values || values.length < 2) return;
+    if (CHART_INSTANCES[canvasId]) { CHART_INSTANCES[canvasId].destroy(); delete CHART_INSTANCES[canvasId]; }
+    FICHE_SPARKS[canvasId] = values.slice();
+    var color = cssVar('--brand-light', '#14b8a6');
+    var lo = Math.min.apply(null, values);
+    var hi = Math.max.apply(null, values);
     if (lo === hi) { lo -= 0.5; hi += 0.5; }
-    var pts = values.map(function (v, i) { return [4 + i * 112 / (values.length - 1), 28 - (v - lo) / (hi - lo) * 24]; });
-    var last = pts[pts.length - 1];
-    return '<svg class="fiche-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="none" stroke="var(--brand-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3" fill="var(--brand-mid)"/></svg>';
+    var pad = (hi - lo) * 0.12 || 0.2;
+    CHART_INSTANCES[canvasId] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: values.map(function (_v, i) { return String(i); }),
+        datasets: [{
+          data: values,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: false,
+          pointRadius: values.map(function (_v, i) { return i === values.length - 1 ? 3.5 : 0; }),
+          pointHoverRadius: 4,
+          pointBackgroundColor: color,
+          pointBorderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        clip: true,
+        scales: {
+          // offset:true (défaut catégorie) : 1er/dernier point rentrés dans le canvas,
+          // évite que le point final déborde visuellement hors de la carte.
+          x: { display: false },
+          y: { display: false, min: lo - pad, max: hi + pad },
+        },
+        layout: { padding: { top: 6, right: 10, bottom: 6, left: 4 } },
+      },
+    });
+  }
+
+  function ficheSparkPlaceholder(canvasId) {
+    return '<span class="fiche-spark-wrap"><canvas id="' + canvasId + '" aria-hidden="true"></canvas></span>';
   }
 
   function renderFicheV1() {
     renderIdentity();
+    renderPedigree();
     renderHealthOverview();
     var data = getCurrent();
     var metrics = document.getElementById('fiche-metrics');
@@ -2262,16 +2969,20 @@
 
     // 2. Constantes
     var tiles = [];
+    var sparkJobs = [];
     var weights = (a.weightHistory || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
     if (a.weight != null && a.weight !== '') {
       var trend = '';
       if (weights.length > 1) {
         var dl = Number(weights[weights.length - 1].weight) - Number(weights[weights.length - 2].weight);
-        trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : (dl > 0 ? '+' : '−') + Math.abs(dl).toFixed(1).replace('.', ',') + ' kg depuis le ' + fmtDate(weights[weights.length - 2].date);
+        trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : wDelta(dl) + ' depuis le ' + fmtDate(weights[weights.length - 2].date);
       }
-      tiles.push({ label: 'Poids', value: String(a.weight).replace('.', ',') + ' kg', trend: trend, extra: ficheSpark(weights.slice(-8).map(function (w) { return Number(w.weight); })), route: 'poids' });
+      var sparkVals = weights.slice(-8).map(function (w) { return Number(w.weight); });
+      var sparkExtra = sparkVals.length > 1 ? ficheSparkPlaceholder('fiche-weight-spark') : '';
+      tiles.push({ label: 'Poids', value: uW(a.weight), trend: trend, extra: sparkExtra, route: 'poids' });
+      if (sparkVals.length > 1) sparkJobs.push({ id: 'fiche-weight-spark', values: sparkVals });
     }
-    if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: String(a.height).replace('.', ',') + ' cm', trend: '', route: 'poids' });
+    if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: uH(a.height), trend: '', route: 'poids' });
     var yearSpend = 0, consultCount = 0;
     var yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
     (data.consultations || []).forEach(function (cn) {
@@ -2282,13 +2993,14 @@
       if (!isNaN(cost)) yearSpend += cost;
     });
     if (consultCount > 0 || yearSpend > 0) {
-      tiles.push({ label: 'Dépenses 12 mois', value: yearSpend ? Math.round(yearSpend).toLocaleString('fr-FR') + ' €' : '—', trend: consultCount ? consultCount + ' consultation' + (consultCount > 1 ? 's' : '') : '', route: 'consultations' });
+      tiles.push({ label: 'Dépenses 12 mois', value: yearSpend ? fmtCost(Math.round(yearSpend)) : '—', trend: consultCount ? consultCount + ' consultation' + (consultCount > 1 ? 's' : '') : '', route: 'consultations' });
     }
     metrics.innerHTML = tiles.map(function (t) {
       return '<button type="button" class="fiche-metric" data-care-route="' + t.route + '"><span class="fiche-metric__label">' + escapeHtml(t.label) + '</span>' +
         '<span class="fiche-metric__value">' + escapeHtml(t.value) + '</span>' + (t.extra || '') +
         (t.trend ? '<span class="fiche-metric__trend">' + escapeHtml(t.trend) + '</span>' : '') + '</button>';
     }).join('') || '<p class="fiche-hint">Renseignez le poids ou la taille pour suivre la croissance.</p>';
+    sparkJobs.forEach(function (job) { drawFicheSpark(job.id, job.values); });
 
     // 3. Santé en un coup d'œil : quatre domaines cliquables
     if (domains) {
@@ -2665,8 +3377,8 @@
     setText('pet-tile-breed', a.race || '—');
     setText('pet-tile-dob', a.dob ? fmtDate(a.dob) : '—');
     setText('pet-tile-gender', a.sex || '—');
-    setText('pet-tile-height', a.height != null && a.height !== '' ? a.height + ' cm' : '—');
-    setText('pet-tile-weight', a.weight != null ? a.weight + ' kg' : '—');
+    setText('pet-tile-height', a.height != null && a.height !== '' ? uH(a.height) : '—');
+    setText('pet-tile-weight', a.weight != null ? uW(a.weight) : '—');
     setText('pet-tile-repro', formatReproLabel(a));
 
     var infoRace = document.getElementById('info-race');
@@ -2674,7 +3386,7 @@
     var infoChip = document.getElementById('info-chip');
     var infoSter = document.getElementById('info-sterilise');
     if (infoRace) infoRace.textContent = a.race || '—';
-    if (infoWeight) infoWeight.textContent = a.weight != null ? a.weight + ' kg' : '—';
+    if (infoWeight) infoWeight.textContent = a.weight != null ? uW(a.weight) : '—';
     if (infoChip) infoChip.textContent = a.chip || 'Non renseigné';
     if (infoSter) infoSter.textContent = a.sterilise || 'Non';
 
@@ -2732,26 +3444,6 @@
     renderActiveMedsSummary(data);
     checkBirthday(data);
     renderQRCode(data);
-
-    var pctW = document.getElementById('pet-chart-toggle-weight');
-    var pctH = document.getElementById('pet-chart-toggle-height');
-    if (uiState.petChartMode === 'height') {
-      if (pctW) { pctW.classList.remove('active'); pctW.setAttribute('aria-selected', 'false'); }
-      if (pctH) { pctH.classList.add('active'); pctH.setAttribute('aria-selected', 'true'); }
-      var hw = document.getElementById('pet-weight-chart-wrap');
-      var hh = document.getElementById('pet-height-chart-wrap');
-      if (hw) hw.hidden = true;
-      if (hh) hh.hidden = false;
-      renderPetProfileHeightChart(data);
-    } else {
-      if (pctW) { pctW.classList.add('active'); pctW.setAttribute('aria-selected', 'true'); }
-      if (pctH) { pctH.classList.remove('active'); pctH.setAttribute('aria-selected', 'false'); }
-      var hw2 = document.getElementById('pet-weight-chart-wrap');
-      var hh2 = document.getElementById('pet-height-chart-wrap');
-      if (hw2) hw2.hidden = false;
-      if (hh2) hh2.hidden = true;
-      renderPetProfileWeightChart(data);
-    }
 
     // Update tasks heading with pet name
     var tasksHeading = document.getElementById('pet-tasks-heading');
@@ -2892,7 +3584,7 @@
     if (a.race) lines.push('Race: ' + a.race);
     if (a.sex) lines.push('Sexe: ' + a.sex);
     if (a.dob) lines.push('Naissance: ' + fmtDate(a.dob));
-    if (a.weight) lines.push('Poids: ' + a.weight + ' kg');
+    if (a.weight) lines.push('Poids: ' + uW(a.weight));
     if (a.color) lines.push('Couleur: ' + a.color);
     if (a.chip) lines.push('Puce: ' + a.chip);
     if (a.sterilise && a.sterilise !== 'Non') lines.push('Sterilise: ' + a.sterilise);
@@ -3172,6 +3864,33 @@
       document.getElementById('ehc-notes').value = hcEntry.notes || '';
     }
 
+    // Mating (saillie) modals
+    if (name === 'addMating') {
+      document.getElementById('mt-date').value = todayISO();
+      document.getElementById('mt-method').value = 'Naturelle';
+      document.getElementById('mt-partner-name').value = '';
+      document.getElementById('mt-partner-owner').value = '';
+      document.getElementById('mt-partner-reg').value = '';
+      document.getElementById('mt-notes').value = '';
+      document.getElementById('mt-birth-date').value = '';
+      document.getElementById('mt-live-born').value = '';
+      document.getElementById('mt-still-born').value = '';
+    }
+    if (name === 'editMating') {
+      var mtid = uiState.editMatingId;
+      var mtEntry = Array.isArray(data.matings) ? data.matings.find(function (x) { return x.id === mtid; }) : null;
+      if (!mtEntry) return;
+      document.getElementById('emt-date').value = mtEntry.date || '';
+      document.getElementById('emt-method').value = mtEntry.method || 'Naturelle';
+      document.getElementById('emt-partner-name').value = mtEntry.partnerName || '';
+      document.getElementById('emt-partner-owner').value = mtEntry.partnerOwner || '';
+      document.getElementById('emt-partner-reg').value = mtEntry.partnerRegistry || '';
+      document.getElementById('emt-notes').value = mtEntry.notes || '';
+      document.getElementById('emt-birth-date').value = mtEntry.birthDate || '';
+      document.getElementById('emt-live-born').value = mtEntry.liveBorn || '';
+      document.getElementById('emt-still-born').value = mtEntry.stillBorn || '';
+    }
+
     // Activity modals
     if (name === 'addActivity') {
       document.getElementById('act-date').value = todayISO();
@@ -3227,6 +3946,7 @@
       document.getElementById('ped-registry').value = ped.registry || 'Non inscrit';
       document.getElementById('ped-reg-number').value = ped.registryNumber || '';
       document.getElementById('ped-chip').value = ped.chipNumber || data.animal.chip || '';
+      resetPedigreeLookup();
       document.getElementById('ped-sire-name').value = (ped.sire && ped.sire.name) || '';
       document.getElementById('ped-sire-reg').value = (ped.sire && ped.sire.registry) || '';
       document.getElementById('ped-dam-name').value = (ped.dam && ped.dam.name) || '';
@@ -3236,6 +3956,11 @@
       document.getElementById('ped-gp-pd').value = gpd.paternalGranddam || '';
       document.getElementById('ped-gp-ms').value = gpd.maternalGrandsire || '';
       document.getElementById('ped-gp-md').value = gpd.maternalGranddam || '';
+      document.getElementById('ped-gp-ps-reg').value = gpd.paternalGrandsireRegistry || '';
+      document.getElementById('ped-gp-pd-reg').value = gpd.paternalGranddamRegistry || '';
+      document.getElementById('ped-gp-ms-reg').value = gpd.maternalGrandsireRegistry || '';
+      document.getElementById('ped-gp-md-reg').value = gpd.maternalGranddamRegistry || '';
+      document.getElementById('ped-health-notes').value = ped.healthNotes || '';
       toggleLofVerifyControls();
     }
 
@@ -3569,7 +4294,7 @@
         weightHistory: [], height: null, heightHistory: [], color: '', chip: document.getElementById('aa-chip').value.trim(), sterilise: document.getElementById('aa-sterilise').value, notes: '', avatar: null, themeColor: ''
       },
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
-      notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
+      notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, matingReminder: true, monthlySummary: false }
     };
     uiState.addingAnimal = true;
     var submit = document.querySelector('#form-add-animal [type=submit]');
@@ -3679,7 +4404,7 @@
           '<div class="photo-date">' + fmtDate(p.date) + captionHtml + '</div>' +
           '<div class="photo-actions-overlay">' +
           '<button type="button" class="photo-action-btn caption-btn" data-caption-id="' + p.id + '" aria-label="Légende" title="Légende">' + ico('edit', 14) + '</button>' +
-          '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer">✕</button>' +
+          '<button type="button" class="photo-action-btn" data-delete-photo="' + p.id + '" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div></div>';
       }).join('');
       grid.innerHTML = addBtn + items;
@@ -3859,8 +4584,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-vaccine-id="' + v.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-vaccine-id="' + v.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-vaccine-id="' + v.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-vaccine-id="' + v.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4013,8 +4738,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-deworming-id="' + d.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-deworming-id="' + d.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-deworming-id="' + d.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-deworming-id="' + d.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4148,8 +4873,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-consult-id="' + c.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-consult-id="' + c.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-consult-id="' + c.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-consult-id="' + c.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4265,8 +4990,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-med-id="' + m.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-med-id="' + m.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-med-id="' + m.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-med-id="' + m.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4374,8 +5099,8 @@
           symptomHtml +
           '<div class="journal-card-content">' + escapeHtml(n.content || '') + '</div>' +
           '<div class="journal-card-actions">' +
-          '<button type="button" class="btn-edit" data-note-id="' + n.id + '">Modifier</button> ' +
-          '<button type="button" class="btn-delete" data-note-id="' + n.id + '">✕</button>' +
+          btnEdit('data-note-id="' + n.id + '"') + ' ' +
+          btnDelete('data-note-id="' + n.id + '"') +
           '</div></div>';
       }).join('');
     }
@@ -4548,8 +5273,8 @@
             '</div>' +
           '</div>' +
           '<div class="med-record-card__actions">' +
-            '<button type="button" class="med-record-card__btn" data-hygiene-id="' + h.id + '" data-action="edit" title="Modifier">' + ico('edit', 14) + '</button>' +
-            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-hygiene-id="' + h.id + '" data-action="delete" title="Supprimer">✕</button>' +
+            '<button type="button" class="med-record-card__btn" data-hygiene-id="' + h.id + '" data-action="edit" aria-label="Modifier" title="Modifier">' + ico('edit', 14) + '</button>' +
+            '<button type="button" class="med-record-card__btn med-record-card__btn--delete" data-hygiene-id="' + h.id + '" data-action="delete" aria-label="Supprimer" title="Supprimer">' + ico('trash', 14) + '</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -4673,7 +5398,7 @@
 
     tbody.innerHTML = list.length ? list.map(function (c) {
       var days = c.endDate ? Math.round((new Date(c.endDate) - new Date(c.startDate)) / 864e5) : null;
-      return '<article class="stitch-record heat-record"><span class="stitch-record-icon">' + ico('calendar',22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(c.startDate) + ' — ' + (c.endDate ? fmtDate(c.endDate) : 'En cours') + '</h3><p>' + escapeHtml(c.notes || 'Aucune observation renseignée.') + '</p><div class="stitch-record-tags"><span>' + (days == null ? 'Fin à renseigner' : days + ' jours') + '</span><span>Intensité : ' + escapeHtml(c.intensity || 'Non renseignée') + '</span></div></div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-heat-id="' + c.id + '">Modifier</button><button type="button" class="btn-delete" data-heat-id="' + c.id + '" aria-label="Supprimer cette période">' + ico('trash',16) + '</button></div></article>';
+      return '<article class="stitch-record heat-record"><span class="stitch-record-icon">' + ico('calendar',22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(c.startDate) + ' — ' + (c.endDate ? fmtDate(c.endDate) : 'En cours') + '</h3><p>' + escapeHtml(c.notes || 'Aucune observation renseignée.') + '</p><div class="stitch-record-tags"><span>' + (days == null ? 'Fin à renseigner' : days + ' jours') + '</span><span>Intensité : ' + escapeHtml(c.intensity || 'Non renseignée') + '</span></div></div><div class="stitch-record-actions">' + btnEdit('data-heat-id="' + c.id + '"') + btnDelete('data-heat-id="' + c.id + '"', 'Supprimer cette période') + '</div></article>';
     }).join('') : '<div class="stitch-empty"><h3>Commencez le suivi de ses cycles</h3><p>Notez les dates et les observations pour retrouver son historique.</p><button type="button" class="care-action" data-stitch-action="addHeatCycle">Enregistrer une période</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
@@ -4737,6 +5462,146 @@
     uiState.editHeatCycleId = null;
     saveState(); refreshAll();
     showToast('Période modifiée', 'success');
+  }
+
+  // ——— Reproduction (saillies) ——————————————————————————————
+  // Délais administratifs après une saillie — même séquence que le circuit
+  // officiel ACYM/LOMAD (déclaration de saillie sous 4 semaines, déclaration
+  // de naissance sous 4 semaines, inscription au registre sous 24 semaines).
+  // Dupliqué côté serveur (api/_lib/reminders.js, nextMatingDeadline) pour
+  // le rappel push/e-mail : à garder synchronisé à la main.
+  function matingNextDeadline(m) {
+    if (!m.declaredAt) return { date: addDaysISO(m.date, 28), label: 'Déclaration de saillie', field: 'declaredAt' };
+    if (!m.birthDate) return null;
+    if (!m.birthDeclaredAt) return { date: addDaysISO(m.birthDate, 28), label: 'Déclaration de naissance', field: 'birthDeclaredAt' };
+    if (!m.lomadDeclaredAt) return { date: addDaysISO(m.birthDate, 168), label: 'Inscription au registre (LOF/LOMAD)', field: 'lomadDeclaredAt' };
+    return null;
+  }
+
+  function renderMatings() {
+    var data = getCurrent();
+    var section = document.getElementById('section-reproduction');
+    if (!data || !section) return;
+
+    var container = document.getElementById('matings-content');
+    var naMsg = document.getElementById('reproduction-na-message');
+    if (!container || !naMsg) return;
+
+    var breedingRelevant = data.animal.sterilise !== 'Oui';
+    container.hidden = !breedingRelevant;
+    naMsg.hidden = breedingRelevant;
+    if (!breedingRelevant) return;
+
+    var list = document.getElementById('mating-list');
+    if (!list) return;
+
+    var items = Array.isArray(data.matings) ? data.matings.slice() : [];
+    items.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    list.innerHTML = items.length ? items.map(function (m) {
+      var partner = [m.partnerName, m.partnerOwner ? '(propriétaire : ' + m.partnerOwner + ')' : ''].filter(Boolean).join(' ');
+      var outcomeHtml;
+      if (m.birthDate) {
+        var born = [];
+        if (m.liveBorn) born.push(m.liveBorn + ' vivant(s)');
+        if (m.stillBorn) born.push(m.stillBorn + ' mort-né(s)');
+        outcomeHtml = 'Mise bas le ' + fmtDate(m.birthDate) + (born.length ? ' — ' + born.join(', ') : '');
+      } else {
+        outcomeHtml = 'Mise bas prévue le ' + fmtDate(addDaysISO(m.date, 63)) + ' (estimation, 63 jours après la saillie)';
+      }
+      var due = matingNextDeadline(m);
+      var dueTone = due ? (delayTone(due.date) === 'late' ? 'overdue' : delayTone(due.date)) : 'ok';
+      var dueHtml = due ? '<span class="status status-' + dueTone + '">' + escapeHtml(due.label) + ' : ' + formatJDelay(due.date) + ' (' + fmtDate(due.date) + ')</span>' : '<span class="status status-ok">Démarches à jour</span>';
+
+      var actionBtn = '';
+      if (!m.declaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="declaredAt" data-mating-id="' + m.id + '">Déclaration de saillie faite</button>';
+      else if (m.birthDate && !m.birthDeclaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="birthDeclaredAt" data-mating-id="' + m.id + '">Déclaration de naissance faite</button>';
+      else if (m.birthDate && !m.lomadDeclaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="lomadDeclaredAt" data-mating-id="' + m.id + '">Inscription LOF/LOMAD faite</button>';
+
+      return '<article class="stitch-record mating-record"><span class="stitch-record-icon">' + ico('heart', 22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(m.date) + (m.method ? ' — ' + escapeHtml(m.method) : '') + '</h3>' +
+        '<p>' + escapeHtml(partner || 'Partenaire non renseigné') + (m.partnerRegistry ? ' · ' + escapeHtml(m.partnerRegistry) : '') + '</p>' +
+        '<p class="table-muted">' + escapeHtml(outcomeHtml) + '</p>' +
+        (m.notes ? '<p>' + escapeHtml(m.notes) + '</p>' : '') +
+        '<div class="stitch-record-tags">' + dueHtml + '</div>' +
+        (actionBtn ? '<div class="stitch-record-tags">' + actionBtn + '</div>' : '') +
+        '</div><div class="stitch-record-actions">' + btnEdit('data-mating-id="' + m.id + '" data-mating-edit="1"') + btnDelete('data-mating-id="' + m.id + '" data-mating-del="1"', 'Supprimer cette saillie') + '</div></article>';
+    }).join('') : '<div class="stitch-empty"><h3>Aucune saillie enregistrée</h3><p>Notez la date, le partenaire et suivez les délais de déclaration.</p><button type="button" class="care-action" data-stitch-action="addMating">Enregistrer une saillie</button></div>';
+
+    list.querySelectorAll('[data-mating-del]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-mating-id'), 10);
+        confirmDelete('Supprimer cette saillie ?', function () {
+          var idx = data.matings.findIndex(function (x) { return x.id === id; });
+          if (idx === -1) return;
+          var removed = data.matings[idx];
+          data.matings.splice(idx, 1);
+          saveState(); renderMatings();
+          showUndoToast('Saillie supprimée', function () {
+            data.matings.splice(idx, 0, removed);
+            saveState(); renderMatings();
+          });
+        });
+      });
+    });
+    list.querySelectorAll('[data-mating-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editMatingId = parseInt(btn.getAttribute('data-mating-id'), 10);
+        openModal('editMating');
+      });
+    });
+    list.querySelectorAll('[data-mark]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-mating-id'), 10);
+        var field = btn.getAttribute('data-mark');
+        var m = data.matings.find(function (x) { return x.id === id; });
+        if (!m) return;
+        m[field] = todayISO();
+        saveState(); renderMatings();
+        showToast('Démarche marquée comme faite', 'success');
+      });
+    });
+  }
+
+  function readMatingForm(prefix) {
+    var val = function (id) { return document.getElementById(prefix + id).value; };
+    return {
+      date: val('-date'),
+      method: val('-method') || 'Naturelle',
+      partnerName: val('-partner-name').trim(),
+      partnerOwner: val('-partner-owner').trim(),
+      partnerRegistry: val('-partner-reg').trim(),
+      notes: val('-notes').trim(),
+      birthDate: val('-birth-date') || '',
+      liveBorn: parseInt(val('-live-born'), 10) || 0,
+      stillBorn: parseInt(val('-still-born'), 10) || 0,
+    };
+  }
+
+  function addMating() {
+    var fields = readMatingForm('mt');
+    if (!fields.date) { showToast('Date de saillie requise.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.matings)) data.matings = [];
+    data.matings.push(Object.assign({ id: state.nextId++, declaredAt: null, birthDeclaredAt: null, lomadDeclaredAt: null }, fields));
+    closeModal('addMating');
+    saveState(); renderMatings();
+    showToast('Saillie enregistrée', 'success');
+  }
+
+  function updateMatingEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editMatingId;
+    var m = Array.isArray(data.matings) ? data.matings.find(function (x) { return x.id === id; }) : null;
+    if (!m) return;
+    var fields = readMatingForm('emt');
+    if (!fields.date) { showToast('Date de saillie requise.', 'error'); return; }
+    Object.assign(m, fields);
+    closeModal('editMating');
+    uiState.editMatingId = null;
+    saveState(); renderMatings();
+    showToast('Saillie modifiée', 'success');
   }
 
   // ——— Check-up rapide ————————————————————————————————————
@@ -4892,7 +5757,7 @@
           '<td>' + (a.duration ? a.duration + ' min' : '—') + '</td>' +
           '<td>' + (a.distance ? a.distance + ' km' : '—') + '</td>' +
           '<td>' + escapeHtml(a.notes || '') + '</td>' +
-          '<td><button type="button" class="btn-edit" data-activity-id="' + a.id + '">Modifier</button> <button type="button" class="btn-delete" data-activity-id="' + a.id + '">✕</button></td></tr>';
+          '<td>' + btnEdit('data-activity-id="' + a.id + '"') + ' ' + btnDelete('data-activity-id="' + a.id + '"') + '</td></tr>';
       }).join('');
     }
 
@@ -4980,7 +5845,7 @@
     var mer = rer * 1.6;
 
     // Plan card
-    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3><button type="button" class="btn-icon" onclick="app.openModal(\'editNutritionPlan\')">' + ico('edit', 14) + ' Modifier</button></div>' +
+    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editNutritionPlan\')"') + '</div>' +
       '<div class="info-grid">' +
       '<div><span class="info-label">Marque aliment</span><span class="info-value">' + escapeHtml(plan.foodBrand || 'Non renseigné') + '</span></div>' +
       '<div><span class="info-label">Portion</span><span class="info-value">' + escapeHtml(plan.portionSize || 'Non renseigné') + '</span></div>' +
@@ -5003,7 +5868,7 @@
     container.innerHTML = '<nav class="stitch-community-nav" aria-label="Suivi quotidien">' + careButton('nutrition', 'Nutrition & repas', 'utensils', true) + careButton('activites', 'Activités & balades', 'activity') + '</nav>' + dailyHtml + planHtml + mealList;
     var tbody = document.getElementById('meal-table');
     tbody.innerHTML = meals.length ? meals.map(function (m) {
-      return '<article class="stitch-record"><span class="stitch-record-icon">' + ico('utensils', 22) + '</span><div class="stitch-record-copy"><h3>' + escapeHtml(m.type || 'Repas') + (m.time ? ' · ' + escapeHtml(m.time) : '') + '</h3><p>' + escapeHtml([m.quantity, m.unit, m.food].filter(Boolean).join(' ')) + '</p><small>' + fmtDate(m.date) + '</small>' + (m.notes ? '<p class="stitch-inset">' + escapeHtml(m.notes) + '</p>' : '') + '</div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-meal-id="' + m.id + '">Modifier</button><button type="button" class="btn-delete" data-meal-id="' + m.id + '" aria-label="Supprimer ce repas">' + ico('trash',16) + '</button></div></article>';
+      return '<article class="stitch-record"><span class="stitch-record-icon">' + ico('utensils', 22) + '</span><div class="stitch-record-copy"><h3>' + escapeHtml(m.type || 'Repas') + (m.time ? ' · ' + escapeHtml(m.time) : '') + '</h3><p>' + escapeHtml([m.quantity, m.unit, m.food].filter(Boolean).join(' ')) + '</p><small>' + fmtDate(m.date) + '</small>' + (m.notes ? '<p class="stitch-inset">' + escapeHtml(m.notes) + '</p>' : '') + '</div><div class="stitch-record-actions">' + btnEdit('data-meal-id="' + m.id + '"') + btnDelete('data-meal-id="' + m.id + '"', 'Supprimer ce repas') + '</div></article>';
     }).join('') : '<div class="stitch-card stitch-empty">' + ico('utensils',32) + '<h3>Son premier repas vous attend</h3><p>Consignez les quantités et les horaires pour suivre son alimentation.</p><button type="button" class="care-action" data-stitch-action="addMeal">Ajouter un repas</button></div>';
 
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
@@ -5098,7 +5963,7 @@
     var name = escapeHtml(data.animal.name || 'Animal');
     var chip = p.chipNumber || data.animal.chip || '';
 
-    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2><button type="button" class="btn-icon" onclick="app.openModal(\'editPedigree\')">' + ico('edit', 14) + ' Modifier</button></div>';
+    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editPedigree\')"') + '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
       html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
@@ -5107,49 +5972,125 @@
         html += ' <span class="badge badge-verified">' + ico('check', 16) + ' Vérifié</span>';
         if (p.verifiedDate) html += ' <span class="table-muted">le ' + escapeHtml(p.verifiedDate) + '</span>';
       }
+      // LOF Select expose une vraie fiche officielle par numéro — pas d'équivalent
+      // public trouvé côté LOMAD (ACYM), qui ne propose que des démarches sur compte.
+      if (p.registry === 'LOF' && p.registryNumber) {
+        // p.registryNumber = "n° de portée/année" (ex: "123 456/2024", voir LOF_PATTERN) —
+        // seule la partie avant le "/" se rapproche du "numéro LOF" attendu par ce champ
+        // de recherche ; à défaut de certitude totale sur la correspondance exacte des
+        // deux identifiants, ne garder que cette partie plutôt que de les concaténer.
+        var lofNum = p.registryNumber.split('/')[0].replace(/[^0-9]/g, '');
+        if (lofNum) html += ' <a class="pedigree-lof-link" target="_blank" rel="noopener" href="https://www.centrale-canine.fr/lofselect/recherche-chien/identifiant?numLof=' + encodeURIComponent(lofNum) + '">' + ico('search', 14) + ' Vérifier sur LOF Select</a>';
+      }
       html += '</div>';
     }
     if (chip) {
-      html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span></div>';
+      html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span>' +
+        ' <a class="pedigree-lof-link" target="_blank" rel="noopener" href="' + lofSelectChipUrl(chip) + '">' + ico('search', 14) + ' Chercher sur LOF Select</a></div>';
+    }
+    if (p.registry === 'LOMAD') {
+      html += '<div class="pedigree-chip"><a class="pedigree-lof-link" target="_blank" rel="noopener" href="https://acymadagascar.org/recherche">' + ico('search', 14) + ' Annuaire ACYM (LOMAD)</a></div>';
+    }
+    if (p.healthNotes) {
+      html += '<div class="pedigree-health"><strong>' + ico('heart', 14) + ' Tests de santé / ADN</strong><p>' + escapeHtml(p.healthNotes).replace(/\n/g, '<br>') + '</p></div>';
     }
 
-    // Tree — 2 branches (paternelle / maternelle) pour que chaque
-    // grand-parent reste visuellement rattaché au bon parent, y compris
-    // quand les branches s'empilent sur mobile (voir CSS .pedigree-branches).
+    // Arbre à 3 générations, lu de gauche à droite : sujet → parents → grands-parents.
+    // Les traits de filiation sont en CSS pur (voir .ped-* dans styles.css) : chaque
+    // parent est centré sur sa paire de grands-parents, sans mesure DOM.
     var gp = p.grandparents || {};
-    html += '<div class="pedigree-tree">' +
-      '<div class="pedigree-branches">' +
-        '<div class="pedigree-branch pedigree-branch--paternal">' +
-          '<span class="pedigree-branch__label">Branche paternelle</span>' +
-          '<div class="pedigree-generation pedigree-gp">' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGrandsire || '?') + '</div>' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGranddam || '?') + '</div>' +
+    var pedNode = function (role, mod, n, reg) {
+      var empty = !n;
+      return '<div class="ped-node ped-node--' + mod + (empty ? ' is-empty' : '') + '">' +
+        '<span class="ped-node__role">' + role + '</span>' +
+        '<span class="ped-node__name">' + (empty ? 'Non renseigné' : escapeHtml(n)) + '</span>' +
+        (reg && !empty ? '<span class="ped-node__reg">' + escapeHtml(reg) + '</span>' : '') + '</div>';
+    };
+    var animalSex = data.animal.sex === 'Femelle' ? 'female' : (data.animal.sex === 'Mâle' ? 'male' : 'subject');
+    html += '<div class="ped-wrap" role="group" aria-label="Arbre généalogique de ' + name + '">' +
+      '<div class="ped__heads" aria-hidden="true"><span>Sujet</span><span>Parents</span><span>Grands-parents</span></div>' +
+      '<div class="ped">' +
+        '<div class="ped__col ped__col--subject">' +
+          '<div class="ped-node ped-node--subject"><span class="ped-node__role">' + (animalSex === 'female' ? '♀ ' : animalSex === 'male' ? '♂ ' : '') + escapeHtml(data.animal.race || 'Sujet') + '</span><span class="ped-node__name">' + name + '</span>' +
+            (p.registryNumber ? '<span class="ped-node__reg" style="color:#fff;opacity:.85">' + escapeHtml(p.registryNumber) + '</span>' : '') + '</div>' +
+        '</div>' +
+        '<div class="ped__col ped__col--parents">' +
+          '<div class="ped__slot">' + pedNode('Père', 'male', p.sire && p.sire.name, p.sire && p.sire.registry) + '</div>' +
+          '<div class="ped__slot">' + pedNode('Mère', 'female', p.dam && p.dam.name, p.dam && p.dam.registry) + '</div>' +
+        '</div>' +
+        '<div class="ped__col ped__col--gp">' +
+          '<div class="ped__pair">' +
+            pedNode('Grand-père paternel', 'male', gp.paternalGrandsire, gp.paternalGrandsireRegistry) +
+            pedNode('Grand-mère paternelle', 'female', gp.paternalGranddam, gp.paternalGranddamRegistry) +
           '</div>' +
-          '<div class="pedigree-generation pedigree-parents">' +
-            '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
+          '<div class="ped__pair">' +
+            pedNode('Grand-père maternel', 'male', gp.maternalGrandsire, gp.maternalGrandsireRegistry) +
+            pedNode('Grand-mère maternelle', 'female', gp.maternalGranddam, gp.maternalGranddamRegistry) +
           '</div>' +
         '</div>' +
-        '<div class="pedigree-branch pedigree-branch--maternal">' +
-          '<span class="pedigree-branch__label">Branche maternelle</span>' +
-          '<div class="pedigree-generation pedigree-gp">' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGrandsire || '?') + '</div>' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGranddam || '?') + '</div>' +
-          '</div>' +
-          '<div class="pedigree-generation pedigree-parents">' +
-            '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="pedigree-generation pedigree-subject">' +
-        '<div class="pedigree-node pedigree-node-subject">' + name + '</div>' +
       '</div>' +
     '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
-      html += '<div class="lof-disclaimer-display"><small>' + ico('warning', 16) + ' La vérification est une simulation locale de format. Une vérification officielle nécessite un accès aux bases de la SCC (LOF) ou aux registres officiels (LOMAD).</small></div>';
+      html += '<div class="lof-disclaimer-display"><small>' + ico('warning', 16) + ' « Vérifié » = format du numéro valide (contrôle local). La fiche officielle se consulte sur LOF Select (SCC) ou l\'annuaire ACYM (LOMAD) : leur ascendance complète n\'est pas importable automatiquement, à saisir depuis le pedigree officiel.</small></div>';
     }
 
     container.innerHTML = html;
+  }
+
+  function lofSelectChipUrl(chip) {
+    return 'https://www.centrale-canine.fr/lofselect/recherche-chien/identifiant?identification=' + encodeURIComponent(String(chip).replace(/\s+/g, ''));
+  }
+
+  // Modale pedigree : lien LOF Select par puce + recherche ACYM (LOMAD) par nom.
+  var pedAcymResults = [];
+  function refreshPedigreeLookup() {
+    var link = document.getElementById('ped-lof-chip-link');
+    var chip = (document.getElementById('ped-chip').value || '').replace(/\s+/g, '');
+    if (link) {
+      link.hidden = chip.length < 9;
+      if (chip.length >= 9) link.href = lofSelectChipUrl(chip);
+    }
+  }
+  function resetPedigreeLookup() {
+    var data = getCurrent();
+    var q = document.getElementById('ped-acym-query');
+    if (q) q.value = (data && data.animal && data.animal.name) || '';
+    var box = document.getElementById('ped-acym-results');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    pedAcymResults = [];
+    refreshPedigreeLookup();
+  }
+  function runAcymLookup() {
+    var box = document.getElementById('ped-acym-results');
+    var q = (document.getElementById('ped-acym-query').value || '').trim();
+    if (!box) return;
+    box.hidden = false;
+    if (q.length < 2) { box.innerHTML = '<p>Saisis au moins 2 caractères.</p>'; return; }
+    if (!window.cloudSync || !window.cloudSync.lookupAcym) { box.innerHTML = '<p>Recherche indisponible hors connexion.</p>'; return; }
+    box.innerHTML = '<p>Recherche en cours…</p>';
+    window.cloudSync.lookupAcym({ name: q }).then(function (res) {
+      pedAcymResults = (res && res.results) || [];
+      if (!pedAcymResults.length) { box.innerHTML = '<p>Aucun chien trouvé à ce nom sur l\'ACYM.</p>'; return; }
+      box.innerHTML = pedAcymResults.map(function (r, i) {
+        return '<button type="button" class="ped-acym-item" data-acym-idx="' + i + '"><strong>' + escapeHtml(r.name) + (r.affix ? ' · ' + escapeHtml(r.affix) : '') + '</strong>' +
+          '<span>' + escapeHtml([r.breed, r.birthDate ? 'né(e) le ' + fmtDate(r.birthDate) : '', r.lomad ? 'LOMAD ' + r.lomad : 'n° LOMAD non publié'].filter(Boolean).join(' · ')) + '</span>' +
+          '<span>' + escapeHtml([r.owner && 'Propriétaire : ' + r.owner, r.breeder && 'Éleveur : ' + r.breeder].filter(Boolean).join(' · ')) + '</span></button>';
+      }).join('') + (res.truncated ? '<p>Résultats limités aux ' + pedAcymResults.length + ' premiers — précise le nom.</p>' : '');
+    }).catch(function (err) {
+      box.innerHTML = '<p>' + escapeHtml((err && err.message) || 'Recherche impossible.') + '</p>';
+    });
+  }
+  function applyAcymResult(idx) {
+    var r = pedAcymResults[idx];
+    if (!r) return;
+    document.getElementById('ped-registry').value = 'LOMAD';
+    toggleLofVerifyControls();
+    if (r.lomad) document.getElementById('ped-reg-number').value = r.lomad;
+    var data = getCurrent();
+    var msg = r.lomad ? 'N° LOMAD ' + r.lomad + ' repris depuis l\'ACYM' : 'Fiche ACYM sélectionnée (aucun n° LOMAD publié)';
+    if (data && data.animal.dob && r.birthDate && data.animal.dob !== r.birthDate) msg += ' — attention : date de naissance ACYM différente (' + fmtDate(r.birthDate) + ')';
+    showToast(msg, r.lomad ? 'success' : 'info', 5000);
   }
 
   function savePedigree() {
@@ -5164,11 +6105,16 @@
       chipNumber: document.getElementById('ped-chip').value.trim(),
       sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim() },
       dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim() },
+      healthNotes: document.getElementById('ped-health-notes').value.trim(),
       grandparents: {
         paternalGrandsire: document.getElementById('ped-gp-ps').value.trim(),
         paternalGranddam: document.getElementById('ped-gp-pd').value.trim(),
         maternalGrandsire: document.getElementById('ped-gp-ms').value.trim(),
-        maternalGranddam: document.getElementById('ped-gp-md').value.trim()
+        maternalGranddam: document.getElementById('ped-gp-md').value.trim(),
+        paternalGrandsireRegistry: document.getElementById('ped-gp-ps-reg').value.trim(),
+        paternalGranddamRegistry: document.getElementById('ped-gp-pd-reg').value.trim(),
+        maternalGrandsireRegistry: document.getElementById('ped-gp-ms-reg').value.trim(),
+        maternalGranddamRegistry: document.getElementById('ped-gp-md-reg').value.trim()
       },
       verified: vResult.valid,
       verifiedDate: vResult.valid ? new Date().toISOString().slice(0, 10) : null
@@ -5368,9 +6314,9 @@
         (e.notes ? '<div class="vet-card__notes">' + escapeHtml(e.notes) + '</div>' : '') +
       '</div>' +
       '<div class="vet-card__actions">' +
-        (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary">Appeler</a>' : '') +
-        '<button type="button" class="vet-card__btn vet-card__btn--outline" data-vet-edit="' + e.id + '">Modifier</button>' +
-        '<button type="button" class="vet-card__btn vet-card__btn--ghost" data-vet-delete="' + e.id + '">✕</button>' +
+        (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary vet-card__btn--icon" aria-label="Appeler" title="Appeler">' + ico('phone', 16) + '</a>' : '') +
+        iconOnlyBtn('vet-card__btn vet-card__btn--outline vet-card__btn--icon', 'edit', 'Modifier', 'data-vet-edit="' + e.id + '"') +
+        iconOnlyBtn('vet-card__btn vet-card__btn--ghost vet-card__btn--icon', 'trash', 'Supprimer', 'data-vet-delete="' + e.id + '"') +
       '</div></div>';
   }
 
@@ -5541,7 +6487,7 @@
         '</div>' +
         '<div class="community-tip-title">' + escapeHtml(tip.title) + '</div>' +
         '<div class="community-tip-content">' + escapeHtml(tip.content) + '</div>' +
-        (tip.userAdded ? '<button type="button" class="btn-delete community-tip-delete" data-tip-id="' + tip.id + '">✕ Supprimer</button>' : '') +
+        (tip.userAdded ? iconOnlyBtn('btn-delete community-tip-delete', 'trash', 'Supprimer', 'data-tip-id="' + tip.id + '"') : '') +
         '</div>';
     });
     html += '</div>';
@@ -5813,7 +6759,12 @@
       }))
       .concat((data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).map(function (m) {
         return { type: 'medication', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate }, date: m.endDate, icon: ico('pill', 18), title: 'Fin de traitement : ' + escapeHtml(m.name || ''), sub: m.dosage ? escapeHtml(m.dosage) : '—' };
-      }));
+      }))
+      .concat((data.matings || []).map(function (m) {
+        var due = matingNextDeadline(m);
+        if (!due) return null;
+        return { type: 'mating', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'matings', id: m.id, name: due.label, next: due.date, deadlineField: due.field }, date: due.date, icon: ico('heart', 18), title: due.label, sub: m.partnerName ? 'Partenaire : ' + escapeHtml(m.partnerName) : '—' };
+      }).filter(Boolean));
 
     // Heat cycle prediction
     if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
@@ -5832,6 +6783,11 @@
         events.push({ type: 'heat', date: nextHeat, icon: ico('thermom', 18), title: 'Chaleurs prévues', sub: 'Cycle moyen : ' + hcAvg + ' jours' });
       }
     }
+
+    // Mise bas prévue (63 jours après la saillie) — informatif, sans bouton Fait/Reporter.
+    (data.matings || []).filter(function (m) { return !m.birthDate; }).forEach(function (m) {
+      events.push({ type: 'mating', date: addDaysISO(m.date, 63), icon: ico('heart', 18), title: 'Mise bas prévue', sub: m.partnerName ? 'Partenaire : ' + escapeHtml(m.partnerName) : 'Estimation (63 jours)' });
+    });
 
     var upcoming = events.map(function (e) {
       var dt = isoToLocalDate(e.date);
@@ -5877,6 +6833,7 @@
       { key: 'dewormingReminder', label: 'Rappels déparasitage', desc: '7 jours avant la date de rappel' },
       { key: 'hygieneReminder', label: 'Rappels hygiène', desc: '7 jours avant la date de rappel' },
       { key: 'medicationReminder', label: 'Fin de traitement', desc: '7 jours avant la fin d\'un médicament en cours' },
+      { key: 'matingReminder', label: 'Démarches reproduction', desc: 'Déclaration de saillie, de naissance, inscription LOF/LOMAD' },
       { key: 'birthdayReminder', label: 'Anniversaire de ' + animalName, desc: data.animal.dob ? 'Le ' + fmtDate(data.animal.dob) + ' chaque année' : 'Date de naissance à renseigner' },
       { key: 'monthlySummary', label: 'Résumé mensuel', desc: 'Récapitulatif de santé chaque mois' }
     ].map(function (item) {
@@ -5902,6 +6859,9 @@
   // ——— Browser Notifications ————————————————————————————
   function checkBrowserNotifications() {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var np = window.applikaPrefs ? window.applikaPrefs.get().notifications : null;
+    if (np && (np.push === false || window.applikaPrefs.inQuietHours())) return;
+    var lead = function (type) { return window.applikaPrefs ? window.applikaPrefs.leadDays(type) : 7; };
     var lastCheck = localStorage.getItem(NOTIF_CHECK_KEY);
     var todayStr = todayISO();
     if (lastCheck === todayStr) return;
@@ -5921,7 +6881,7 @@
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff < 0) {
             new Notification('App\'lika — Vaccin en retard', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' (' + Math.abs(diff) + 'j de retard)', icon: 'icons/icon-192.png' });
-          } else if (diff <= 7) {
+          } else if (diff <= lead('vaccine')) {
             new Notification('App\'lika — Rappel vaccin', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(v.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5933,7 +6893,7 @@
           var dt = isoToLocalDate(d.next);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('deworming')) {
             new Notification('App\'lika — Rappel déparasitage', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(d.name) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5945,7 +6905,7 @@
           var dt = isoToLocalDate(h.next);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('hygiene')) {
             new Notification('App\'lika — Rappel hygiène', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(h.type) + ' dans ' + diff + 'j', icon: 'icons/icon-192.png' });
           }
         });
@@ -5964,8 +6924,24 @@
           var dt = isoToLocalDate(m.endDate);
           if (!dt) return;
           var diff = Math.round((dt - todayMid) / 864e5);
-          if (diff >= 0 && diff <= 7) {
+          if (diff >= 0 && diff <= lead('medication')) {
             new Notification('App\'lika — Fin de traitement', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(m.name) + ' se termine dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
+      if (n.matingReminder) {
+        (data.matings || []).forEach(function (m) {
+          var due = matingNextDeadline(m);
+          if (!due) return;
+          var dt = isoToLocalDate(due.date);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff <= 7) {
+            var body = diff < 0
+              ? escapeHtml(data.animal.name) + ' : ' + escapeHtml(due.label) + ' en retard (' + Math.abs(diff) + 'j)'
+              : escapeHtml(data.animal.name) + ' : ' + escapeHtml(due.label) + ' dans ' + diff + 'j';
+            new Notification('App\'lika — Rappel reproduction', { body: body, icon: 'icons/icon-192.png' });
           }
         });
       }
@@ -6053,9 +7029,10 @@
     uiState.calendarDay = sel;
 
     var events = buildAgendaEvents(year);
-    var startDow = (new Date(year, month, 1).getDay() + 6) % 7; // lundi = 0
+    var sundayFirst = !!(window.applikaPrefs && window.applikaPrefs.weekStartsOnSunday());
+    var startDow = sundayFirst ? new Date(year, month, 1).getDay() : (new Date(year, month, 1).getDay() + 6) % 7; // 0 = premier jour de la semaine choisi
     var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    var dayNames = sundayFirst ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'] : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     var html = dayNames.map(function (d) { return '<div class="cal-header" aria-hidden="true">' + d + '</div>'; }).join('');
     for (var i = 0; i < startDow; i++) html += '<span class="cal-day cal-other" aria-hidden="true"></span>';
     for (var d = 1; d <= daysInMonth; d++) {
@@ -6132,9 +7109,150 @@
   }
 
   // ——— History ——————————————————————————————————————
-  function renderWeightEvolution(data) {
-    var container = document.getElementById('weight-evolution');
+  // ——— Graphiques (Chart.js) ——————————————————————————————————
+  // Une seule fonction pour les courbes poids/taille (remplace 2x2 tracés SVG
+  // faits main quasi identiques) : vrai axe temporel (les pesées irrégulières
+  // ne sont plus espacées comme si elles étaient régulières), info-bulles et
+  // historique complet au lieu des 6 derniers points seulement. `entries`
+  // = [{date, value, id}], `opts.rangeBand` = {min,max} optionnel (fourchette
+  // race), `opts.thresholdLine` = valeur optionnelle (ex: seuil surpoids).
+  var CHART_INSTANCES = {};
+  // Chart.js fige les couleurs (chaînes JS, pas des var() CSS vivantes) au
+  // moment du tracé : contrairement à l'ancien SVG, un changement de thème
+  // ne les met pas à jour tout seul. On retient quel conteneur affiche quelle
+  // courbe pour la retracer avec les bonnes couleurs — voir applyTheme().
+  var CHART_TARGETS = {};
+  var FICHE_SPARKS = {};
+  function redrawChartsForTheme() {
+    var data = getCurrent();
+    if (!data) return;
+    Object.keys(CHART_TARGETS).forEach(function (id) {
+      if (!document.getElementById(id)) { delete CHART_TARGETS[id]; return; }
+      if (CHART_TARGETS[id] === 'height') renderHeightEvolution(data, id);
+      else renderWeightEvolution(data, id);
+    });
+    Object.keys(FICHE_SPARKS).forEach(function (id) {
+      if (!document.getElementById(id)) { delete FICHE_SPARKS[id]; return; }
+      drawFicheSpark(id, FICHE_SPARKS[id]);
+    });
+  }
+  function cssVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+  }
+  function drawMetricChart(canvasId, entries, opts) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (CHART_INSTANCES[canvasId]) { CHART_INSTANCES[canvasId].destroy(); delete CHART_INSTANCES[canvasId]; }
+    opts = opts || {};
+    if (!entries || !entries.length) return;
+
+    // Couleur trait : éviter le blanc cassé du thème sombre (--teal-dark → --brand)
+    // qui rendait la courbe quasi invisible sur fond --card-bg.
+    var color = opts.color || cssVar('--brand-light', '#14b8a6');
+    if (!/^#([0-9a-fA-F]{6})$/.test(color)) color = '#14b8a6';
+    var muted = cssVar('--text-muted', '#6b7280');
+    var gridColor = cssVar('--border', 'rgba(128,128,128,0.25)');
+    var fillColor = color.length === 7 ? color + '33' : 'rgba(20,184,166,0.2)';
+
+    // Échelle catégorie (1 label = 1 pesée) : fiable sans adaptateur date Chart.js.
+    // L'ancien axe linear + toTs() produisait des NaN → ticks à l'epoch (« 1 janv. »)
+    // et une courbe hors zone visible.
+    var labels = entries.map(function (e) {
+      return e.date ? fmtDate(e.date) : '';
+    });
+    var values = entries.map(function (e) { return e.value; });
+
+    var datasets = [{
+      label: opts.label || '',
+      data: values,
+      borderColor: color,
+      backgroundColor: fillColor,
+      fill: true,
+      tension: 0.3,
+      pointRadius: values.length > 30 ? 0 : 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: color,
+      pointBorderColor: cssVar('--card-bg', '#1a221e'),
+      pointBorderWidth: 2,
+      borderWidth: 2.5,
+    }];
+    if (opts.rangeBand) {
+      datasets.push({
+        label: 'Min race',
+        data: values.map(function () { return opts.rangeBand.min; }),
+        borderColor: 'transparent',
+        pointRadius: 0,
+        fill: false,
+        order: 3,
+      });
+      datasets.push({
+        label: 'Max race',
+        data: values.map(function () { return opts.rangeBand.max; }),
+        borderColor: 'transparent',
+        pointRadius: 0,
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        fill: '-1',
+        order: 3,
+      });
+    }
+    if (opts.thresholdLine != null) {
+      datasets.push({
+        label: opts.thresholdLabel || 'Seuil',
+        data: values.map(function () { return opts.thresholdLine; }),
+        borderColor: '#ef4444',
+        borderDash: [5, 4],
+        pointRadius: 0,
+        fill: false,
+        borderWidth: 1.25,
+      });
+    }
+
+    CHART_INSTANCES[canvasId] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: function (item) { return item.datasetIndex === 0; },
+            callbacks: {
+              title: function (items) { return items.length ? (labels[items[0].dataIndex] || '') : ''; },
+              label: function (ctx) { return opts.formatValue ? opts.formatValue(ctx.parsed.y) : ctx.parsed.y; },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: muted,
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6,
+            },
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: {
+              color: muted,
+              font: { size: 10 },
+              callback: function (v) { return opts.formatValue ? opts.formatValue(v) : v; },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderWeightEvolution(data, targetId) {
+    var container = document.getElementById(targetId || 'weight-evolution');
     if (!container) return;
+    CHART_TARGETS[targetId || 'weight-evolution'] = 'weight';
     if (!data || !data.animal) { container.innerHTML = ''; return; }
 
     var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
@@ -6143,52 +7261,11 @@
 
     if (entries.length === 0) { container.innerHTML = ''; return; }
 
-    var weights = entries.map(function (e) { return Number(e.weight); });
-    var minW = Math.min.apply(null, weights);
-    var maxW = Math.max.apply(null, weights);
-    if (minW === maxW) { minW -= 0.5; maxW += 0.5; }
-
-    var range = maxW - minW;
-    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
-
-    var xFor = function (i, n) {
-      if (n === 1) return W / 2;
-      return padL + ((W - padL - padR) * i) / (n - 1);
-    };
-    var yFor = function (w) { return padT + (1 - (w - minW) / range) * (H - padT - padB); };
-
-    var n = entries.length;
-
-    // Area fill
-    var areaPoints = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
-    });
-    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
-
-    var points = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
-    }).join(' ');
-
-    var circles = entries.map(function (e, i) {
-      var x = xFor(i, n), y = yFor(Number(e.weight));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="var(--teal)" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.weight).toFixed(1) + ' kg"></circle>';
-    }).join('');
-
-    // Grid lines
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var wVal = minW + (range * i / steps);
-      var yVal = yFor(wVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + wVal.toFixed(1) + '</text>';
-    }
-
     var first = Number(entries[0].weight);
     var last = Number(entries[entries.length - 1].weight);
     var delta = last - first;
-    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' kg';
-    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+    var deltaTxt = wDelta(delta);
+    var lastTxt = wNum(last);
 
     // Trend
     var trendHtml = '';
@@ -6199,37 +7276,29 @@
     // Breed-based weight reference band (adult dogs/cats only)
     var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
     var ageMonths = calculateAgeMonths(data.animal.dob);
-    var breedBandSvg = '';
     var breedHintTxt = '';
+    var rangeBand = null;
     if (breedRange && ageMonths != null && ageMonths >= 12) {
-      var bandMinW = Math.max(breedRange.min, minW);
-      var bandMaxW = Math.min(breedRange.max, maxW);
-      if (bandMaxW > bandMinW) {
-        var bandYTop = yFor(bandMaxW);
-        var bandYBottom = yFor(bandMinW);
-        breedBandSvg = '<rect x="' + padL + '" y="' + bandYTop.toFixed(2) + '" width="' + (W - padL - padR) + '" height="' + (bandYBottom - bandYTop).toFixed(2) + '" fill="#22c55e" opacity="0.12"/>';
-      }
+      rangeBand = breedRange;
       var outOfRange = last < breedRange.min || last > breedRange.max;
-      breedHintTxt = ' · Fourchette race (adulte) : ' + breedRange.min + '–' + breedRange.max + ' kg' + (outOfRange ? ' ⚠' : ' ✓');
+      breedHintTxt = ' · Fourchette race (adulte) : ' + wNum(breedRange.min, 0) + '–' + wNum(breedRange.max, 0) + ' ' + wUnit() + (outOfRange ? ' ⚠' : ' ✓');
     }
 
+    var canvasId = (targetId || 'weight-evolution') + '-canvas';
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
-      var wTxt = Number(e.weight).toFixed(1).replace(/\.0$/, '');
-      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' kg</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-weight" data-weight-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-weight" data-weight-entry-id="' + e.id + '">✕</button></div></div></div>';
+      var wTxt = wNum(e.weight);
+      return '<div class="weight-evolution-item" data-weight-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + wTxt + ' ' + wUnit() + '</div><div class="weight-actions">' + btnEdit('data-action="edit-weight" data-weight-entry-id="' + e.id + '"') + ' ' + btnDelete('data-action="delete-weight" data-weight-entry-id="' + e.id + '"') + '</div></div></div>';
     }).join('');
 
     container.innerHTML =
-      '<div style="position:relative">' +
-      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
-      breedBandSvg +
-      gridLines +
-      '<path d="' + areaPath + '" fill="var(--teal)" opacity="0.1"/>' +
-      '<polyline fill="none" stroke="var(--teal-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
-      circles +
-      '</svg></div>' +
-      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' kg · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
+      '<div class="metric-chart-wrap"><canvas id="' + canvasId + '"></canvas></div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + wUnit() + ' · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
+
+    drawMetricChart(canvasId, entries.map(function (e) { return { date: e.date, value: Number(e.weight) }; }), {
+      color: cssVar('--brand-light', '#14b8a6'), rangeBand: rangeBand, formatValue: function (v) { return wNum(v); },
+    });
 
     container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -6242,31 +7311,14 @@
         deleteWeightEntry(parseInt(btn.getAttribute('data-weight-entry-id'), 10));
       });
     });
-
-    // SVG tooltips
-    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
-      circle.style.cursor = 'pointer';
-      circle.addEventListener('mouseenter', function (e) {
-        var tooltip = document.createElement('div');
-        tooltip.className = 'weight-tooltip';
-        tooltip.textContent = circle.getAttribute('data-tooltip');
-        tooltip.style.left = e.pageX + 'px';
-        tooltip.style.top = (e.pageY - 30) + 'px';
-        tooltip.id = 'weight-tip';
-        document.body.appendChild(tooltip);
-      });
-      circle.addEventListener('mouseleave', function () {
-        var tip = document.getElementById('weight-tip');
-        if (tip) tip.remove();
-      });
-    });
   }
 
   // Miroir de renderWeightEvolution pour la taille au garrot (sans
   // fourchette de race, données non disponibles pour la taille).
-  function renderHeightEvolution(data) {
-    var container = document.getElementById('height-evolution');
+  function renderHeightEvolution(data, targetId) {
+    var container = document.getElementById(targetId || 'height-evolution');
     if (!container) return;
+    CHART_TARGETS[targetId || 'height-evolution'] = 'height';
     if (!data || !data.animal) { container.innerHTML = ''; return; }
 
     var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
@@ -6275,72 +7327,32 @@
 
     if (entries.length === 0) { container.innerHTML = ''; return; }
 
-    var heights = entries.map(function (e) { return Number(e.height); });
-    var minH = Math.min.apply(null, heights);
-    var maxH = Math.max.apply(null, heights);
-    if (minH === maxH) { minH -= 1; maxH += 1; }
-
-    var range = maxH - minH;
-    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
-
-    var xFor = function (i, n) {
-      if (n === 1) return W / 2;
-      return padL + ((W - padL - padR) * i) / (n - 1);
-    };
-    var yFor = function (h) { return padT + (1 - (h - minH) / range) * (H - padT - padB); };
-
-    var n = entries.length;
-
-    var areaPoints = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
-    });
-    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
-
-    var points = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
-    }).join(' ');
-
-    var circles = entries.map(function (e, i) {
-      var x = xFor(i, n), y = yFor(Number(e.height));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="#2563eb" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + Number(e.height).toFixed(1) + ' cm"></circle>';
-    }).join('');
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var hVal = minH + (range * i / steps);
-      var yVal = yFor(hVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + hVal.toFixed(1) + '</text>';
-    }
-
     var first = Number(entries[0].height);
     var last = Number(entries[entries.length - 1].height);
     var delta = last - first;
-    var deltaTxt = (delta >= 0 ? '+' : '') + delta.toFixed(1).replace(/\.0$/, '') + ' cm';
-    var lastTxt = last.toFixed(1).replace(/\.0$/, '');
+    var deltaTxt = hDelta(delta);
+    var lastTxt = hNum(last);
 
     var trendHtml = '';
     if (entries.length > 2) {
       trendHtml = ' · Tendance : ' + (delta > 0 ? '📈 hausse' : (delta < 0 ? '📉 baisse' : '→ stable'));
     }
 
+    var canvasId = (targetId || 'height-evolution') + '-canvas';
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
-      var hTxt = Number(e.height).toFixed(1).replace(/\.0$/, '');
-      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' cm</div><div class="weight-actions"><button type="button" class="btn-edit" data-action="edit-height" data-height-entry-id="' + e.id + '">Modifier</button> <button type="button" class="btn-delete" data-action="delete-height" data-height-entry-id="' + e.id + '">✕</button></div></div></div>';
+      var hTxt = hNum(e.height);
+      return '<div class="weight-evolution-item" data-height-entry-id="' + e.id + '"><div class="left">' + fmtDate(e.date) + '</div><div class="right-wrap"><div class="right">' + hTxt + ' ' + hUnit() + '</div><div class="weight-actions">' + btnEdit('data-action="edit-height" data-height-entry-id="' + e.id + '"') + ' ' + btnDelete('data-action="delete-height" data-height-entry-id="' + e.id + '"') + '</div></div></div>';
     }).join('');
 
     container.innerHTML =
-      '<div style="position:relative">' +
-      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
-      gridLines +
-      '<path d="' + areaPath + '" fill="#2563eb" opacity="0.1"/>' +
-      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
-      circles +
-      '</svg></div>' +
-      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' cm · Variation: ' + deltaTxt + trendHtml + '</div>' +
+      '<div class="metric-chart-wrap"><canvas id="' + canvasId + '"></canvas></div>' +
+      '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + hUnit() + ' · Variation: ' + deltaTxt + trendHtml + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
+
+    drawMetricChart(canvasId, entries.map(function (e) { return { date: e.date, value: Number(e.height) }; }), {
+      color: '#2563eb', formatValue: function (v) { return hNum(v); },
+    });
 
     container.querySelectorAll('[data-action="edit-height"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -6351,23 +7363,6 @@
     container.querySelectorAll('[data-action="delete-height"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         deleteHeightEntry(parseInt(btn.getAttribute('data-height-entry-id'), 10));
-      });
-    });
-
-    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
-      circle.style.cursor = 'pointer';
-      circle.addEventListener('mouseenter', function (e) {
-        var tooltip = document.createElement('div');
-        tooltip.className = 'weight-tooltip';
-        tooltip.textContent = circle.getAttribute('data-tooltip');
-        tooltip.style.left = e.pageX + 'px';
-        tooltip.style.top = (e.pageY - 30) + 'px';
-        tooltip.id = 'weight-tip';
-        document.body.appendChild(tooltip);
-      });
-      circle.addEventListener('mouseleave', function () {
-        var tip = document.getElementById('weight-tip');
-        if (tip) tip.remove();
       });
     });
   }
@@ -6428,7 +7423,7 @@
     rows.push({ label: 'Activités', value: s.activityCount + (s.totalDuration ? ' (' + Math.round(s.totalDuration) + ' min, ' + s.totalDistance.toFixed(1) + ' km)' : '') });
 
     var weightHtml = s.weightTrend
-      ? '<div class="monthly-summary-row"><span>Poids</span><span>' + s.weightTrend.first.toFixed(1) + ' → ' + s.weightTrend.last.toFixed(1) + ' kg (' + (s.weightTrend.delta >= 0 ? '+' : '') + s.weightTrend.delta.toFixed(1) + ' kg)</span></div>'
+      ? '<div class="monthly-summary-row"><span>Poids</span><span>' + wNum(s.weightTrend.first) + ' → ' + wNum(s.weightTrend.last) + ' ' + wUnit() + ' (' + wDelta(s.weightTrend.delta) + ')</span></div>'
       : '';
 
     var nextDueHtml = s.nextDue
@@ -6456,7 +7451,8 @@
     { key: 'weight', label: 'Poids & taille', tone: 'warm', icon: 'scale', tab: 'poids' },
     { key: 'daily', label: 'Quotidien', tone: 'plain', icon: 'activity', tab: 'activites' },
     { key: 'notes', label: 'Notes', tone: 'plain', icon: 'fileText', tab: 'suivi' },
-    { key: 'chaleurs', label: 'Chaleurs', tone: 'warm', icon: 'thermom', tab: 'chaleurs' }
+    { key: 'chaleurs', label: 'Chaleurs', tone: 'warm', icon: 'thermom', tab: 'chaleurs' },
+    { key: 'reproduction', label: 'Reproduction', tone: 'warm', icon: 'heart', tab: 'reproduction' }
   ];
   var FRISE_PAGE = 30;
 
@@ -6477,18 +7473,19 @@
     var weights = ((data.animal && data.animal.weightHistory) || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
     weights.forEach(function (w, i) {
       var delta = i ? Number(w.weight) - Number(weights[i - 1].weight) : null;
-      var d = delta == null || Math.abs(delta) < 0.005 ? '' : (delta > 0 ? '+' : '−') + Math.abs(delta).toFixed(1).replace('.', ',') + ' kg';
-      add('weight', w.date, String(w.weight).replace('.', ',') + ' kg', 'Pesée', { meta: d });
+      var d = delta == null || Math.abs(delta) < 0.005 ? '' : wDelta(delta);
+      add('weight', w.date, uW(w.weight), 'Pesée', { meta: d });
     });
-    ((data.animal && data.animal.heightHistory) || []).forEach(function (h) { add('weight', h.date, h.height + ' cm', 'Taille', { icon: 'scale' }); });
+    ((data.animal && data.animal.heightHistory) || []).forEach(function (h) { add('weight', h.date, uH(h.height), 'Taille', { icon: 'scale' }); });
     (data.activities || []).forEach(function (a) { add('daily', a.date, a.type || 'Activité', 'Activité', { meta: a.duration ? a.duration + ' min' : '', tab: 'activites' }); });
     ((data.nutrition && data.nutrition.meals) || []).forEach(function (m) { add('daily', m.date, (m.type || 'Repas') + (m.food ? ' — ' + m.food : ''), 'Repas', { icon: 'utensils', tab: 'nutrition' }); });
     (data.notes || []).forEach(function (n) { add('notes', n.date, n.title || 'Note', n.category || 'Note'); });
     (data.heatCycles || []).forEach(function (c) { add('chaleurs', c.startDate, 'Chaleurs' + (c.intensity ? ' — ' + c.intensity : ''), 'Reproduction'); });
+    (data.matings || []).forEach(function (m) { add('reproduction', m.date, 'Saillie' + (m.partnerName ? ' — ' + m.partnerName : ''), m.method || 'Reproduction', { meta: m.birthDate ? 'Mise bas le ' + fmtDate(m.birthDate) : '' }); });
     return ev;
   }
 
-  function friseDueCat(item) { return { vaccines: 'vaccins', dewormings: 'deworming', hygiene: 'hygiene', medications: 'traitements' }[item.collection]; }
+  function friseDueCat(item) { return { vaccines: 'vaccins', dewormings: 'deworming', hygiene: 'hygiene', medications: 'traitements', matings: 'reproduction' }[item.collection]; }
 
   function renderHistory() {
     var data = getCurrent();
@@ -6609,7 +7606,7 @@
 
   // ——— Tabs ————————————————————————————————————————
   var TABS_SANTE = ['vaccins', 'deworming', 'hygiene', 'consultations', 'medications'];
-  var TABS_MORE = ['nutrition', 'activites', 'chaleurs', 'journal', 'checkup', 'calendrier', 'annuaire', 'historique'];
+  var TABS_MORE = ['nutrition', 'activites', 'chaleurs', 'reproduction', 'journal', 'checkup', 'calendrier', 'annuaire', 'historique'];
 
   function closeNavMore() {
     var sub = document.getElementById('subnav-more');
@@ -6658,7 +7655,7 @@
       t.setAttribute('tabindex', '-1');
     });
 
-    var tabGroups = [['profil','photos','historique'], ['actes','vaccins','deworming','medications','hygiene','consultations','alertes'], ['nutrition','activites','poids'], ['suivi','checkup','chaleurs']];
+    var tabGroups = [['profil','photos','historique'], ['actes','vaccins','deworming','medications','hygiene','consultations','alertes'], ['nutrition','activites','poids'], ['suivi','checkup','chaleurs','reproduction']];
     var visibleTabs = tabGroups.find(function (group) { return group.indexOf(tabName) !== -1; }) || [tabName];
     root.querySelectorAll('.tab').forEach(function (button) { button.hidden = visibleTabs.indexOf(button.dataset.tab) === -1; });
     root.dataset.currentTab = tabName;
@@ -6691,16 +7688,18 @@
     if (tabName === 'photos') renderGallery();
     if (tabName === 'nutrition') renderNutrition();
     if (tabName === 'poids') {
-      renderHistory();
-      var pw = document.getElementById('poids-weight-wrap');
+      // Les courbes vivent aussi dans la frise (#weight-evolution, filtre « Poids & taille ») : un canvas
+      // Chart.js ne peut pas être dupliqué par copie de innerHTML (perdrait son dessin), donc on redessine
+      // ici dans les conteneurs dédiés à cet onglet plutôt que de copier le HTML de la frise.
+      var poidsData = getCurrent();
+      renderWeightEvolution(poidsData, 'poids-weight-wrap');
+      renderHeightEvolution(poidsData, 'poids-height-wrap');
       var ph = document.getElementById('poids-height-wrap');
-      var srcW = document.getElementById('weight-evolution');
-      var srcH = document.getElementById('height-evolution');
-      if (pw && srcW) pw.innerHTML = srcW.innerHTML;
-      if (ph && srcH) { ph.innerHTML = srcH.innerHTML; ph.hidden = false; }
+      if (ph) ph.hidden = false;
     }
     if (tabName === 'activites') renderActivities();
     if (tabName === 'chaleurs') renderHeatCycles();
+    if (tabName === 'reproduction') renderMatings();
     if (tabName === 'suivi') renderJournal();
     if (tabName === 'checkup') renderCheckup();
 
@@ -6732,6 +7731,7 @@
     renderNutrition();
     renderActivities();
     renderHeatCycles();
+    renderMatings();
     renderJournal();
     if (state.viewMode === 'agenda') renderAgenda();
     renderPedigree();
@@ -6773,7 +7773,7 @@
       '<tr><th>Date de naissance</th><td>' + (a.dob ? fmtDate(a.dob) : '—') + '</td></tr>' +
       '<tr><th>Puce électronique</th><td>' + escapeHtml(a.chip || '—') + '</td></tr>' +
       '<tr><th>Stérilisé(e)</th><td>' + escapeHtml(a.sterilise || 'Non') + '</td></tr>' +
-      '<tr><th>Poids actuel</th><td>' + (a.weight != null && a.weight !== '' ? a.weight + ' kg' : '—') + '</td></tr>' +
+      '<tr><th>Poids actuel</th><td>' + (a.weight != null && a.weight !== '' ? uW(a.weight) : '—') + '</td></tr>' +
       '</tbody></table>';
 
     var vaccinesRows = (data.vaccines || []).slice().sort(byDateDesc).map(function (v) {
@@ -6805,12 +7805,12 @@
     var symptomsTable = symptomsRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Symptôme</th><th>Sévérité</th><th>Notes</th></tr></thead><tbody>' + symptomsRows + '</tbody></table>' : '';
 
     var weightRows = (Array.isArray(a.weightHistory) ? a.weightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (w) {
-      return '<tr><td>' + fmtDate(w.date) + '</td><td>' + w.weight + ' kg</td></tr>';
+      return '<tr><td>' + fmtDate(w.date) + '</td><td>' + uW(w.weight) + '</td></tr>';
     }).join('');
     var weightTable = weightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Poids</th></tr></thead><tbody>' + weightRows + '</tbody></table>' : '';
 
     var heightRows = (Array.isArray(a.heightHistory) ? a.heightHistory.slice() : []).sort(byDateDesc).slice(0, 10).map(function (h) {
-      return '<tr><td>' + fmtDate(h.date) + '</td><td>' + h.height + ' cm</td></tr>';
+      return '<tr><td>' + fmtDate(h.date) + '</td><td>' + uH(h.height) + '</td></tr>';
     }).join('');
     var heightTable = heightRows ? '<table class="vet-view-table"><thead><tr><th>Date</th><th>Taille</th></tr></thead><tbody>' + heightRows + '</tbody></table>' : '';
 
@@ -6886,11 +7886,26 @@
     var btn = document.getElementById('btn-theme-toggle');
     if (btn) btn.textContent = dark ? '🌙' : '☀️';
     localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    redrawChartsForTheme();
   }
 
   function toggleTheme() {
     var current = document.documentElement.getAttribute('data-theme');
     applyTheme(current !== 'dark');
+  }
+
+  // 'light' | 'dark' | 'auto' (suit le réglage du système, sans mémoriser de choix).
+  function setTheme(mode) {
+    if (mode === 'auto') {
+      localStorage.removeItem(THEME_KEY);
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      var btn = document.getElementById('btn-theme-toggle');
+      if (btn) btn.textContent = prefersDark ? '🌙' : '☀️';
+      redrawChartsForTheme();
+    } else {
+      applyTheme(mode === 'dark');
+    }
   }
 
   // ——— Ajout rapide ——————————————————————————————————
@@ -7305,9 +8320,15 @@
   function toggleDogEventsReminder() {
     var btn = document.getElementById('btn-dog-events-toggle');
     if (!btn) return;
-    var next = !btn.classList.contains('on');
-    btn.classList.toggle('on', next);
-    btn.setAttribute('aria-pressed', next);
+    setDogEventsReminder(!btn.classList.contains('on'));
+  }
+
+  function setDogEventsReminder(next) {
+    var btn = document.getElementById('btn-dog-events-toggle');
+    if (btn) {
+      btn.classList.toggle('on', next);
+      btn.setAttribute('aria-pressed', next);
+    }
     localStorage.setItem(DOG_EVENTS_REMINDER_PREF_KEY, String(next));
 
     if (window.cloudSync && window.cloudSync.isConfigured()) {
@@ -7376,12 +8397,14 @@
       if (!Array.isArray(a.hygiene)) a.hygiene = [];
       if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
       if (!Array.isArray(a.activities)) a.activities = [];
+      if (!Array.isArray(a.matings)) a.matings = [];
       if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: {} };
       if (!a.pedigree) a.pedigree = {};
       if (a.animal && !a.animal.themeColor) a.animal.themeColor = '';
       if (!a.notifications) a.notifications = {};
       if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
       if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
+      if (a.notifications.matingReminder === undefined) a.notifications.matingReminder = true;
     });
 
     // Restore vet directory & community if present
@@ -7454,6 +8477,14 @@
       events.push({ uid: 'vetbook-med-' + m.id, summary: 'Fin de traitement : ' + (m.name || ''), desc: m.dosage || '', isoDate: m.endDate });
     });
 
+    (wrap.matings || []).forEach(function (m) {
+      var due = matingNextDeadline(m);
+      if (!due) return;
+      var dt = isoToLocalDate(due.date);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-mating-' + m.id + '-' + due.field, summary: due.label, desc: m.partnerName ? 'Partenaire : ' + m.partnerName : '', isoDate: due.date });
+    });
+
     var dob = wrap?.animal?.dob;
     if (wrap?.notifications?.birthdayReminder && dob) {
       var dobParts = dob.split('-');
@@ -7499,6 +8530,11 @@
   async function init() {
     initTheme();
     var hasData = loadState();
+    // Préférence « animal affiché en premier » (profil > Affichage) : appliquée au lancement seulement.
+    if (hasData && window.applikaPrefs) {
+      var wantedPet = window.applikaPrefs.get().defaultPetLocalId;
+      if (wantedPet != null && state.animals.some(function (a) { return a.id === Number(wantedPet); })) state.currentAnimalId = Number(wantedPet);
+    }
 
     try {
       await openPhotoDb();
@@ -7733,6 +8769,8 @@
     document.getElementById('form-edit-hygiene').addEventListener('submit', function (e) { e.preventDefault(); updateHygieneEntry(); });
     document.getElementById('form-add-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); addHeatCycle(); });
     document.getElementById('form-edit-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); updateHeatCycleEntry(); });
+    document.getElementById('form-add-mating').addEventListener('submit', function (e) { e.preventDefault(); addMating(); });
+    document.getElementById('form-edit-mating').addEventListener('submit', function (e) { e.preventDefault(); updateMatingEntry(); });
     document.getElementById('form-add-activity').addEventListener('submit', function (e) { e.preventDefault(); addActivity(); });
     document.getElementById('form-edit-activity').addEventListener('submit', function (e) { e.preventDefault(); updateActivityEntry(); });
     document.getElementById('form-add-meal').addEventListener('submit', function (e) { e.preventDefault(); addMeal(); });
@@ -7916,6 +8954,13 @@
 
     // LOF/LOMAD verify
     document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
+    document.getElementById('btn-ped-acym').addEventListener('click', runAcymLookup);
+    document.getElementById('ped-acym-query').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runAcymLookup(); } });
+    document.getElementById('ped-chip').addEventListener('input', refreshPedigreeLookup);
+    document.getElementById('ped-acym-results').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-acym-idx]');
+      if (b) applyAcymResult(parseInt(b.getAttribute('data-acym-idx'), 10));
+    });
     document.getElementById('ped-registry').addEventListener('change', function () { toggleLofVerifyControls(); });
 
     document.getElementById('aa-photo').addEventListener('change', function () { document.getElementById('aa-photo-label').textContent = this.files[0] ? this.files[0].name : 'Choisir une photo JPG ou PNG'; });
@@ -8069,24 +9114,6 @@
     var btnHelpOnboarding = document.getElementById('btn-help-onboarding');
     if (btnHelpOnboarding) btnHelpOnboarding.addEventListener('click', function () { showOnboarding(); });
 
-    document.getElementById('account-export-json').addEventListener('click', function () {
-      exportBackupJson().catch(function () { showToast('Erreur lors de l’export des données.', 'error'); });
-    });
-    document.getElementById('account-export-ics').addEventListener('click', function () {
-      exportUpcomingRemindersIcs().catch(function () { showToast('Erreur lors de l’export du calendrier.', 'error'); });
-    });
-    document.getElementById('account-events-toggle').addEventListener('change', function () {
-      var oldBtn = document.getElementById('btn-dog-events-toggle');
-      oldBtn.classList.toggle('on', !this.checked);
-      toggleDogEventsReminder();
-    });
-
-    var userDarkToggle = document.getElementById('user-dark-toggle');
-    if (userDarkToggle) {
-      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
-      userDarkToggle.addEventListener('change', function () { toggleTheme(); });
-    }
-
     // Tips & Vets see-all buttons
     var btnSeeAllVets = document.getElementById('btn-see-all-vets');
     if (btnSeeAllVets) btnSeeAllVets.addEventListener('click', function () {
@@ -8104,43 +9131,10 @@
     setupSwipe();
   }
 
-  // ——— User Profile View ——————————————————————————————————
-  function renderAccountContent() {
-    document.querySelectorAll('[data-account-icon]').forEach(function (el) { el.innerHTML = ico(el.dataset.accountIcon, 20); });
-    var count = state.animals.length;
-    document.getElementById('account-pet-count').textContent = count + ' enregistré' + (count > 1 ? 's' : '');
-    document.getElementById('account-owner-summary').textContent = count ? 'Vous accompagnez ' + count + ' compagnon' + (count > 1 ? 's' : '') + ' au quotidien' : 'Votre espace pour prendre soin de vos compagnons';
-    var list = document.getElementById('account-pets');
-    list.innerHTML = state.animals.map(function (data) {
-      var a = data.animal;
-      var due = collectDueItemsForAnimal(data);
-      var late = due.some(function (item) { return daysUntil(item.next) < 0; });
-      var soon = due.some(function (item) { var days = daysUntil(item.next); return days >= 0 && days <= 14; });
-      var status = late ? 'Soin en retard' : soon ? 'Soin à prévoir' : 'Voir le carnet';
-      var months = a.dob ? calculateAgeMonths(a.dob) : null;
-      var age = months != null ? (months < 12 ? months + ' mois' : Math.floor(months / 12) + ' an' + (months >= 24 ? 's' : '')) : '';
-      return '<button type="button" class="account-pet" data-account-pet="' + data.id + '"><span class="account-pet-avatar">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 24) + '</span><span class="account-row-copy"><strong>' + escapeHtml(a.name || 'Sans nom') + '<span class="account-species">' + escapeHtml(a.species === 'Féline' ? 'Chat' : a.species === 'Canine' ? 'Chien' : 'Animal') + '</span></strong><small>' + escapeHtml([a.race, age].filter(Boolean).join(' · ')) + '</small></span><span class="account-badge' + (late ? ' account-badge--late' : soon ? ' account-badge--soon' : '') + '">' + status + '</span><span aria-hidden="true">›</span></button>';
-    }).join('') || '<p class="account-caption">Ajoutez votre premier compagnon pour créer son carnet de santé.</p>';
-    list.querySelectorAll('[data-account-pet]').forEach(function (btn) {
-      var data = state.animals.find(function (a) { return a.id === Number(btn.dataset.accountPet); });
-      btn.addEventListener('click', function () { state.currentAnimalId = data.id; saveState(); showDetail({tab: 'profil', nav: 'pets'}); });
-      if (data.animal.avatar) {
-        var img = document.createElement('img'); img.alt = ''; btn.querySelector('.account-pet-avatar').replaceChildren(img);
-        if (typeof data.animal.avatar === 'number') getPhotoObjectUrl(data.animal.avatar).then(function (url) { if (url) img.src = url; }).catch(function () {});
-        else img.src = data.animal.avatar;
-      }
-    });
-    document.getElementById('account-events-toggle').checked = localStorage.getItem(DOG_EVENTS_REMINDER_PREF_KEY) !== 'false';
-    var caption = document.getElementById('account-cloud-caption');
-    caption.textContent = 'Sauvegarde locale sur cet appareil';
-    if (window.cloudSync && window.cloudSync.isConfigured()) window.cloudSync.getSession().then(function (session) {
-      caption.textContent = session ? 'Compte connecté · sauvegarde cloud disponible' : 'Connectez-vous pour retrouver vos carnets sur vos appareils';
-    }).catch(function () {});
-  }
-
+  // ——— Compte & paramètres ———————————————————————————————————
+  // Le contenu de la page (profil, sécurité, notifications, affichage, partage, données) est rendu par account.js.
   function showUserProfile() {
     state.viewMode = 'profile';
-    renderAccountContent();
     setBottomNavActive('account');
     hideAppViews();
     var viewProfile = document.getElementById('view-user-profile');
@@ -8153,30 +9147,7 @@
     }
     document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
-
-    // Populate user profile info: le profil propriétaire local (global au
-    // compte, voir getOwner()) est prioritaire, sinon on retombe sur le
-    // compte cloud connecté (Google/lien magique) pour ne pas laisser le
-    // placeholder statique de index.html affiché indéfiniment.
-    var ownerName = getOwner().name;
-    var ownerEmail = getOwner().email;
-    var nameEl = document.getElementById('user-profile-name');
-    var emailEl = document.getElementById('user-profile-email');
-    if (nameEl) nameEl.textContent = ownerName || 'Utilisateur';
-    if (emailEl) emailEl.textContent = ownerEmail || '';
-    if ((!ownerName || !ownerEmail) && window.cloudSync && window.cloudSync.isConfigured()) {
-      window.cloudSync.getSession().then(function (session) {
-        if (!session) return;
-        if (nameEl && !ownerName && session.user.name) nameEl.textContent = session.user.name;
-        if (emailEl && !ownerEmail && session.user.email) emailEl.textContent = session.user.email;
-      });
-    }
-
-    // Sync dark mode toggle
-    var userDarkToggle = document.getElementById('user-dark-toggle');
-    if (userDarkToggle) {
-      userDarkToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
-    }
+    if (window.applikaAccount) window.applikaAccount.show();
     saveRoute({ view: 'profile' });
   }
 
@@ -8221,8 +9192,31 @@
     showDirectory: showDirectory,
     // keep legacy helpers referenced for tooling / future screens
     _buildHealthRing: buildHealthRing,
-    _renderHomeVetsAndTips: renderHomeVetsAndTips
+    _renderHomeVetsAndTips: renderHomeVetsAndTips,
+    // Contexte pour account.js (page « Compte & paramètres »).
+    _ctx: {
+      getState: function () { return state; },
+      getOwner: getOwner,
+      saveState: saveState,
+      showToast: showToast,
+      openModal: openModal,
+      showUserProfile: showUserProfile,
+      showHelp: showHelp,
+      showOnboarding: showOnboarding,
+      setTheme: setTheme,
+      toggleDogEvents: setDogEventsReminder,
+      exportJson: function () { exportBackupJson().catch(function () { showToast('Erreur lors de l’export des données.', 'error'); }); },
+      exportIcs: function () { exportUpcomingRemindersIcs().catch(function () { showToast('Erreur lors de l’export du calendrier.', 'error'); }); },
+      openPet: function (id) { state.currentAnimalId = id; saveState(); showDetail({ tab: 'profil', nav: 'pets' }); },
+      refreshAll: function () { if (state.viewMode === 'home') renderHome(); else if (state.animals.length) refreshAll(); }
+    }
   };
+  // Les préférences d'affichage changent le rendu : on redessine la vue courante.
+  document.addEventListener('applika:prefs', function () {
+    if (state.viewMode === 'home') renderHome();
+    else if (state.viewMode === 'agenda') renderAgenda();
+    else if (state.viewMode === 'detail' && state.animals.length) refreshAll();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { init().catch(console.error); });

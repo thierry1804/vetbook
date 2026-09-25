@@ -20,21 +20,26 @@ async function main() {
   const jsSrc = await readFile(path.join(root, 'app.js'), 'utf8');
   const cssSrc = await readFile(path.join(root, 'styles.css'), 'utf8');
   const dataLayerSrc = await readFile(path.join(root, 'data-layer.js'), 'utf8');
+  const accountSrc = await readFile(path.join(root, 'account.js'), 'utf8');
 
   const jsOut = await transform(jsSrc, { loader: 'js', minify: true, target: 'es2019' });
   const cssOut = await transform(cssSrc, { loader: 'css', minify: true });
   const dataLayerOut = await transform(dataLayerSrc, { loader: 'js', minify: true, target: 'es2019' });
+  const accountOut = await transform(accountSrc, { loader: 'js', minify: true, target: 'es2019' });
 
   const jsHash = shortHash(jsOut.code);
   const cssHash = shortHash(cssOut.code);
   const dataLayerHash = shortHash(dataLayerOut.code);
+  const accountHash = shortHash(accountOut.code);
   const jsName = `app.${jsHash}.js`;
   const cssName = `styles.${cssHash}.css`;
   const dataLayerName = `data-layer.${dataLayerHash}.js`;
+  const accountName = `account.${accountHash}.js`;
 
   await writeFile(path.join(dist, jsName), jsOut.code);
   await writeFile(path.join(dist, cssName), cssOut.code);
   await writeFile(path.join(dist, dataLayerName), dataLayerOut.code);
+  await writeFile(path.join(dist, accountName), accountOut.code);
 
   await cp(path.join(root, 'manifest.json'), path.join(dist, 'manifest.json'));
   await cp(path.join(root, 'icons'), path.join(dist, 'icons'), {
@@ -42,6 +47,11 @@ async function main() {
     filter: (src) => !src.includes(`${path.sep}source`),
   });
   await cp(path.join(root, 'vendor'), path.join(dist, 'vendor'), { recursive: true });
+
+  // Pages autonomes (carnet partagé, mentions légales) : feuille de styles copiée telle quelle, script minifié.
+  for (const page of ['share.html', 'legal.html', 'pages.css']) await cp(path.join(root, page), path.join(dist, page));
+  const shareJs = await transform(await readFile(path.join(root, 'share.js'), 'utf8'), { loader: 'js', minify: true, target: 'es2019' });
+  await writeFile(path.join(dist, 'share.js'), shareJs.code);
 
   const configPath = path.join(root, 'config.js');
   const hasConfig = await access(configPath).then(() => true).catch(() => false);
@@ -51,20 +61,23 @@ async function main() {
   html = html.replace('href="styles.css"', `href="${cssName}"`);
   html = html.replace('src="app.js"', `src="${jsName}"`);
   html = html.replace('src="data-layer.js"', `src="${dataLayerName}"`);
+  html = html.replace('src="account.js"', `src="${accountName}"`);
   await writeFile(path.join(dist, 'index.html'), html);
 
-  const buildVersion = shortHash(jsHash + cssHash + dataLayerHash);
+  const buildVersion = shortHash(jsHash + cssHash + dataLayerHash + accountHash);
   let sw = await readFile(path.join(root, 'sw.js'), 'utf8');
   sw = sw.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = 'applika-${buildVersion}';`);
   sw = sw.replace("'./styles.css',", `'./${cssName}',`);
   sw = sw.replace("'./app.js',", `'./${jsName}',`);
-  sw = sw.replace("'./data-layer.js'", `'./${dataLayerName}'`);
+  sw = sw.replace("'./data-layer.js',", `'./${dataLayerName}',`);
+  sw = sw.replace("'./account.js'", `'./${accountName}'`);
   await writeFile(path.join(dist, 'sw.js'), sw);
 
   console.log(`dist/ prêt (build ${buildVersion})${hasConfig ? '' : ' — config.js absent, non copié'}`);
   console.log(`  ${jsName}  (${(jsOut.code.length / 1024).toFixed(1)} Ko, source ${(jsSrc.length / 1024).toFixed(1)} Ko)`);
   console.log(`  ${cssName}  (${(cssOut.code.length / 1024).toFixed(1)} Ko, source ${(cssSrc.length / 1024).toFixed(1)} Ko)`);
   console.log(`  ${dataLayerName}  (${(dataLayerOut.code.length / 1024).toFixed(1)} Ko)`);
+  console.log(`  ${accountName}  (${(accountOut.code.length / 1024).toFixed(1)} Ko)`);
 }
 
 main().catch((err) => {
