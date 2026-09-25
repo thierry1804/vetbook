@@ -159,14 +159,16 @@
     hygiene: [],
     heatCycles: [],
     activities: [],
+    matings: [],
     nutrition: { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } },
-    pedigree: { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } },
+    pedigree: { registry: 'Non inscrit', registryNumber: '', chipNumber: '', healthNotes: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '', paternalGrandsireRegistry: '', paternalGranddamRegistry: '', maternalGrandsireRegistry: '', maternalGranddamRegistry: '' } },
     notifications: {
       vaccineReminder: true,
       dewormingReminder: true,
       hygieneReminder: true,
       birthdayReminder: true,
       medicationReminder: true,
+      matingReminder: true,
       monthlySummary: false
     }
   };
@@ -328,6 +330,7 @@
     editCaptionPhotoId: null,
     editHygieneId: null,
     editHeatCycleId: null,
+    editMatingId: null,
     editActivityId: null,
     editMealId: null,
     editVetContactId: null,
@@ -563,15 +566,22 @@
         if (!Array.isArray(a.hygiene)) a.hygiene = [];
         if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
         if (!Array.isArray(a.activities)) a.activities = [];
+        if (!Array.isArray(a.matings)) a.matings = [];
         if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' } };
         if (!Array.isArray(a.nutrition.meals)) a.nutrition.meals = [];
         if (!a.nutrition.dailyPlan) a.nutrition.dailyPlan = { targetCalories: '', mealsPerDay: '', foodBrand: '', portionSize: '' };
-        if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '' } };
+        if (!a.pedigree) a.pedigree = { registry: 'Non inscrit', registryNumber: '', chipNumber: '', healthNotes: '', sire: { name: '', registry: '' }, dam: { name: '', registry: '' }, grandparents: { paternalGrandsire: '', paternalGranddam: '', maternalGrandsire: '', maternalGranddam: '', paternalGrandsireRegistry: '', paternalGranddamRegistry: '', maternalGrandsireRegistry: '', maternalGranddamRegistry: '' } };
+        if (a.pedigree.healthNotes === undefined) a.pedigree.healthNotes = '';
+        if (!a.pedigree.grandparents) a.pedigree.grandparents = {};
+        ['paternalGrandsireRegistry', 'paternalGranddamRegistry', 'maternalGrandsireRegistry', 'maternalGranddamRegistry'].forEach(function (k) {
+          if (a.pedigree.grandparents[k] === undefined) a.pedigree.grandparents[k] = '';
+        });
         if (!a.animal.themeColor) a.animal.themeColor = '';
         if (a.animal.height === undefined) a.animal.height = null;
         if (!a.notifications) a.notifications = {};
         if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
         if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
+        if (a.notifications.matingReminder === undefined) a.notifications.matingReminder = true;
       });
       return true;
     } catch (e) {
@@ -984,6 +994,11 @@
     (data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).forEach(function (m) {
       items.push({ animalId: data.id, animalName: animalName, kind: 'medication', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate, date: m.startDate || m.date, endDate: m.endDate });
     });
+    (data.matings || []).forEach(function (m) {
+      var due = matingNextDeadline(m);
+      if (!due) return;
+      items.push({ animalId: data.id, animalName: animalName, kind: 'mating', collection: 'matings', id: m.id, name: due.label, next: due.date, date: m.date, deadlineField: due.field });
+    });
     return items;
   }
 
@@ -1033,7 +1048,9 @@
     var entry = list.find(function (x) { return x.id === item.id; });
     if (!entry) return false;
     var today = todayISO();
-    if (item.collection === 'medications') {
+    if (item.collection === 'matings') {
+      if (item.deadlineField) entry[item.deadlineField] = today;
+    } else if (item.collection === 'medications') {
       entry.endDate = today;
       entry.active = false;
     } else {
@@ -1066,6 +1083,7 @@
   }
 
   function snoozeDueItem(item, days) {
+    if (item.collection === 'matings') return false; // délai légal : pas de report, seulement "fait".
     var entry = dueEntry(item);
     if (!entry) return false;
     var next = snoozeTarget(item, days);
@@ -1093,6 +1111,7 @@
     var message;
     if (kind === 'later') message = label + ' reporté au ' + fmtDate(item.collection === 'medications' ? after.endDate : after.next) + '.';
     else if (item.collection === 'medications') message = 'Traitement ' + (item.name || '') + ' de ' + item.animalName + ' terminé.';
+    else if (item.collection === 'matings') message = (item.name || 'Démarche') + ' de ' + item.animalName + ' marquée comme faite.';
     else message = label + ' : fait. Prochain rappel le ' + fmtDate(after.next) + '.';
     showUndoToast(message, function () {
       var data = findAnimalData(item.animalId);
@@ -1168,6 +1187,9 @@
   }
 
   function reminderButtons(item) {
+    if (item.collection === 'matings') {
+      return '<button type="button" class="rem-btn rem-btn--done" data-rem="done">Déclaré</button>';
+    }
     var doneLabel = item.collection === 'medications' ? 'Terminé' : 'Fait';
     return '<button type="button" class="rem-btn rem-btn--done" data-rem="done">' + doneLabel + '</button>' +
       '<button type="button" class="rem-btn rem-btn--later" data-rem="later" aria-haspopup="dialog">Reporter</button>';
@@ -1840,7 +1862,7 @@
   var careLinks = [
     ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
     ['Carnet de santé', [['historique', 'Frise du carnet', 'clipboard'], ['profil', 'Fiche & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
-    ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
+    ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
   ];
   function careButton(route, label, icon, primary) {
@@ -1976,15 +1998,19 @@
       } else {
         title = urgent.animalName + ' — ' + (urgent.name || 'rappel') + ' dans ' + daysLate + ' jour' + (daysLate > 1 ? 's' : '') + '.';
       }
+      var isMatingUrgent = urgent.collection === 'matings';
       var sameAnimal = all.filter(function (x) {
         return x.animalId === urgent.animalId && daysUntil(x.next) < 0 &&
           !(x.collection === urgent.collection && x.id === urgent.id) &&
           String(x.name || '').toLowerCase() !== String(urgent.name || '').toLowerCase();
       });
-      var sub = sameAnimal.length
-        ? (sameAnimal[0].name + ' est échu aussi.' + (clinic ? ' Les deux se font en une visite chez ' + clinic.name + '.' : ''))
-        : (clinic ? ('Chez ' + clinic.name + '.') : 'Planifiez la visite dès que possible.');
-      var callLabel = clinic ? 'Appeler la clinique' : 'Voir l’annuaire';
+      var sub = isMatingUrgent
+        ? 'Démarche administrative à effectuer auprès du registre (LOF/LOMAD).'
+        : sameAnimal.length
+          ? (sameAnimal[0].name + ' est échu aussi.' + (clinic ? ' Les deux se font en une visite chez ' + clinic.name + '.' : ''))
+          : (clinic ? ('Chez ' + clinic.name + '.') : 'Planifiez la visite dès que possible.');
+      var callLabel = isMatingUrgent ? 'Voir la fiche' : (clinic ? 'Appeler la clinique' : 'Voir l’annuaire');
+      var doneLabel = urgent.collection === 'medications' ? 'Terminé' : (isMatingUrgent ? 'Déclaré' : 'Fait');
       urgencyEl.hidden = false;
       urgencyEl.className = 'home-urgency';
       urgencyEl.innerHTML =
@@ -1993,14 +2019,15 @@
         '<div class="home-urgency__sub">' + escapeHtml(sub) + '</div>' +
         '<div class="home-urgency__actions">' +
         '<button type="button" class="home-urgency__btn home-urgency__btn--primary" id="home-urgency-call">' + escapeHtml(callLabel) + '</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">' + (urgent.collection === 'medications' ? 'Terminé' : 'Fait') + '</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later" aria-haspopup="dialog">Reporter</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">' + escapeHtml(doneLabel) + '</button>' +
+        (isMatingUrgent ? '' : '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later" aria-haspopup="dialog">Reporter</button>') +
         '</div>';
       urgencyEl._urgentItem = urgent;
 
       var callBtn = document.getElementById('home-urgency-call');
       if (callBtn) callBtn.addEventListener('click', function () {
-        if (clinic && clinic.phone) window.location.href = 'tel:' + clinic.phone.replace(/\s+/g, '');
+        if (isMatingUrgent) { state.currentAnimalId = urgent.animalId; saveState(); showDetail({ tab: 'reproduction', nav: 'pets' }); }
+        else if (clinic && clinic.phone) window.location.href = 'tel:' + clinic.phone.replace(/\s+/g, '');
         else showDirectory();
       });
       var doneBtn = document.getElementById('home-urgency-done');
@@ -2200,7 +2227,9 @@
     document.getElementById('identity-passport').innerHTML = '<h2>Identité & passeport</h2>' +
       stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
       stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
-      stitchInfo('Clinique référente', o.clinic, 'hospital') + '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>';
+      stitchInfo('Clinique référente', o.clinic, 'hospital') +
+      '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
+      '<button type="button" class="care-action" data-stitch-action="editPedigree">' + ico('trophy', 16) + '<span>Modifier le pedigree</span></button>';
     document.getElementById('identity-owner').innerHTML = '<h2>Fiche propriétaire</h2><p>Contact principal pour votre compagnon.</p>' +
       stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
   }
@@ -3186,6 +3215,33 @@
       document.getElementById('ehc-notes').value = hcEntry.notes || '';
     }
 
+    // Mating (saillie) modals
+    if (name === 'addMating') {
+      document.getElementById('mt-date').value = todayISO();
+      document.getElementById('mt-method').value = 'Naturelle';
+      document.getElementById('mt-partner-name').value = '';
+      document.getElementById('mt-partner-owner').value = '';
+      document.getElementById('mt-partner-reg').value = '';
+      document.getElementById('mt-notes').value = '';
+      document.getElementById('mt-birth-date').value = '';
+      document.getElementById('mt-live-born').value = '';
+      document.getElementById('mt-still-born').value = '';
+    }
+    if (name === 'editMating') {
+      var mtid = uiState.editMatingId;
+      var mtEntry = Array.isArray(data.matings) ? data.matings.find(function (x) { return x.id === mtid; }) : null;
+      if (!mtEntry) return;
+      document.getElementById('emt-date').value = mtEntry.date || '';
+      document.getElementById('emt-method').value = mtEntry.method || 'Naturelle';
+      document.getElementById('emt-partner-name').value = mtEntry.partnerName || '';
+      document.getElementById('emt-partner-owner').value = mtEntry.partnerOwner || '';
+      document.getElementById('emt-partner-reg').value = mtEntry.partnerRegistry || '';
+      document.getElementById('emt-notes').value = mtEntry.notes || '';
+      document.getElementById('emt-birth-date').value = mtEntry.birthDate || '';
+      document.getElementById('emt-live-born').value = mtEntry.liveBorn || '';
+      document.getElementById('emt-still-born').value = mtEntry.stillBorn || '';
+    }
+
     // Activity modals
     if (name === 'addActivity') {
       document.getElementById('act-date').value = todayISO();
@@ -3250,6 +3306,11 @@
       document.getElementById('ped-gp-pd').value = gpd.paternalGranddam || '';
       document.getElementById('ped-gp-ms').value = gpd.maternalGrandsire || '';
       document.getElementById('ped-gp-md').value = gpd.maternalGranddam || '';
+      document.getElementById('ped-gp-ps-reg').value = gpd.paternalGrandsireRegistry || '';
+      document.getElementById('ped-gp-pd-reg').value = gpd.paternalGranddamRegistry || '';
+      document.getElementById('ped-gp-ms-reg').value = gpd.maternalGrandsireRegistry || '';
+      document.getElementById('ped-gp-md-reg').value = gpd.maternalGranddamRegistry || '';
+      document.getElementById('ped-health-notes').value = ped.healthNotes || '';
       toggleLofVerifyControls();
     }
 
@@ -3583,7 +3644,7 @@
         weightHistory: [], height: null, heightHistory: [], color: '', chip: document.getElementById('aa-chip').value.trim(), sterilise: document.getElementById('aa-sterilise').value, notes: '', avatar: null, themeColor: ''
       },
       photos: [], vaccines: [], dewormings: [], consultations: [], medications: [], notes: [],
-      notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, monthlySummary: false }
+      notifications: { vaccineReminder: true, dewormingReminder: true, hygieneReminder: true, birthdayReminder: true, medicationReminder: true, matingReminder: true, monthlySummary: false }
     };
     uiState.addingAnimal = true;
     var submit = document.querySelector('#form-add-animal [type=submit]');
@@ -4753,6 +4814,146 @@
     showToast('Période modifiée', 'success');
   }
 
+  // ——— Reproduction (saillies) ——————————————————————————————
+  // Délais administratifs après une saillie — même séquence que le circuit
+  // officiel ACYM/LOMAD (déclaration de saillie sous 4 semaines, déclaration
+  // de naissance sous 4 semaines, inscription au registre sous 24 semaines).
+  // Dupliqué côté serveur (api/_lib/reminders.js, nextMatingDeadline) pour
+  // le rappel push/e-mail : à garder synchronisé à la main.
+  function matingNextDeadline(m) {
+    if (!m.declaredAt) return { date: addDaysISO(m.date, 28), label: 'Déclaration de saillie', field: 'declaredAt' };
+    if (!m.birthDate) return null;
+    if (!m.birthDeclaredAt) return { date: addDaysISO(m.birthDate, 28), label: 'Déclaration de naissance', field: 'birthDeclaredAt' };
+    if (!m.lomadDeclaredAt) return { date: addDaysISO(m.birthDate, 168), label: 'Inscription au registre (LOF/LOMAD)', field: 'lomadDeclaredAt' };
+    return null;
+  }
+
+  function renderMatings() {
+    var data = getCurrent();
+    var section = document.getElementById('section-reproduction');
+    if (!data || !section) return;
+
+    var container = document.getElementById('matings-content');
+    var naMsg = document.getElementById('reproduction-na-message');
+    if (!container || !naMsg) return;
+
+    var breedingRelevant = data.animal.sterilise !== 'Oui';
+    container.hidden = !breedingRelevant;
+    naMsg.hidden = breedingRelevant;
+    if (!breedingRelevant) return;
+
+    var list = document.getElementById('mating-list');
+    if (!list) return;
+
+    var items = Array.isArray(data.matings) ? data.matings.slice() : [];
+    items.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    list.innerHTML = items.length ? items.map(function (m) {
+      var partner = [m.partnerName, m.partnerOwner ? '(propriétaire : ' + m.partnerOwner + ')' : ''].filter(Boolean).join(' ');
+      var outcomeHtml;
+      if (m.birthDate) {
+        var born = [];
+        if (m.liveBorn) born.push(m.liveBorn + ' vivant(s)');
+        if (m.stillBorn) born.push(m.stillBorn + ' mort-né(s)');
+        outcomeHtml = 'Mise bas le ' + fmtDate(m.birthDate) + (born.length ? ' — ' + born.join(', ') : '');
+      } else {
+        outcomeHtml = 'Mise bas prévue le ' + fmtDate(addDaysISO(m.date, 63)) + ' (estimation, 63 jours après la saillie)';
+      }
+      var due = matingNextDeadline(m);
+      var dueTone = due ? (delayTone(due.date) === 'late' ? 'overdue' : delayTone(due.date)) : 'ok';
+      var dueHtml = due ? '<span class="status status-' + dueTone + '">' + escapeHtml(due.label) + ' : ' + formatJDelay(due.date) + ' (' + fmtDate(due.date) + ')</span>' : '<span class="status status-ok">Démarches à jour</span>';
+
+      var actionBtn = '';
+      if (!m.declaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="declaredAt" data-mating-id="' + m.id + '">Déclaration de saillie faite</button>';
+      else if (m.birthDate && !m.birthDeclaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="birthDeclaredAt" data-mating-id="' + m.id + '">Déclaration de naissance faite</button>';
+      else if (m.birthDate && !m.lomadDeclaredAt) actionBtn = '<button type="button" class="btn-card-secondary" data-mark="lomadDeclaredAt" data-mating-id="' + m.id + '">Inscription LOF/LOMAD faite</button>';
+
+      return '<article class="stitch-record mating-record"><span class="stitch-record-icon">' + ico('heart', 22) + '</span><div class="stitch-record-copy"><h3>' + fmtDate(m.date) + (m.method ? ' — ' + escapeHtml(m.method) : '') + '</h3>' +
+        '<p>' + escapeHtml(partner || 'Partenaire non renseigné') + (m.partnerRegistry ? ' · ' + escapeHtml(m.partnerRegistry) : '') + '</p>' +
+        '<p class="table-muted">' + escapeHtml(outcomeHtml) + '</p>' +
+        (m.notes ? '<p>' + escapeHtml(m.notes) + '</p>' : '') +
+        '<div class="stitch-record-tags">' + dueHtml + '</div>' +
+        (actionBtn ? '<div class="stitch-record-tags">' + actionBtn + '</div>' : '') +
+        '</div><div class="stitch-record-actions"><button type="button" class="btn-edit" data-mating-id="' + m.id + '" data-mating-edit="1">Modifier</button><button type="button" class="btn-delete" data-mating-id="' + m.id + '" data-mating-del="1" aria-label="Supprimer cette saillie">' + ico('trash', 16) + '</button></div></article>';
+    }).join('') : '<div class="stitch-empty"><h3>Aucune saillie enregistrée</h3><p>Notez la date, le partenaire et suivez les délais de déclaration.</p><button type="button" class="care-action" data-stitch-action="addMating">Enregistrer une saillie</button></div>';
+
+    list.querySelectorAll('[data-mating-del]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-mating-id'), 10);
+        confirmDelete('Supprimer cette saillie ?', function () {
+          var idx = data.matings.findIndex(function (x) { return x.id === id; });
+          if (idx === -1) return;
+          var removed = data.matings[idx];
+          data.matings.splice(idx, 1);
+          saveState(); renderMatings();
+          showUndoToast('Saillie supprimée', function () {
+            data.matings.splice(idx, 0, removed);
+            saveState(); renderMatings();
+          });
+        });
+      });
+    });
+    list.querySelectorAll('[data-mating-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        uiState.editMatingId = parseInt(btn.getAttribute('data-mating-id'), 10);
+        openModal('editMating');
+      });
+    });
+    list.querySelectorAll('[data-mark]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = parseInt(btn.getAttribute('data-mating-id'), 10);
+        var field = btn.getAttribute('data-mark');
+        var m = data.matings.find(function (x) { return x.id === id; });
+        if (!m) return;
+        m[field] = todayISO();
+        saveState(); renderMatings();
+        showToast('Démarche marquée comme faite', 'success');
+      });
+    });
+  }
+
+  function readMatingForm(prefix) {
+    var val = function (id) { return document.getElementById(prefix + id).value; };
+    return {
+      date: val('-date'),
+      method: val('-method') || 'Naturelle',
+      partnerName: val('-partner-name').trim(),
+      partnerOwner: val('-partner-owner').trim(),
+      partnerRegistry: val('-partner-reg').trim(),
+      notes: val('-notes').trim(),
+      birthDate: val('-birth-date') || '',
+      liveBorn: parseInt(val('-live-born'), 10) || 0,
+      stillBorn: parseInt(val('-still-born'), 10) || 0,
+    };
+  }
+
+  function addMating() {
+    var fields = readMatingForm('mt');
+    if (!fields.date) { showToast('Date de saillie requise.', 'error'); return; }
+    var data = getCurrent();
+    if (!data) return;
+    if (!Array.isArray(data.matings)) data.matings = [];
+    data.matings.push(Object.assign({ id: state.nextId++, declaredAt: null, birthDeclaredAt: null, lomadDeclaredAt: null }, fields));
+    closeModal('addMating');
+    saveState(); renderMatings();
+    showToast('Saillie enregistrée', 'success');
+  }
+
+  function updateMatingEntry() {
+    var data = getCurrent();
+    if (!data) return;
+    var id = uiState.editMatingId;
+    var m = Array.isArray(data.matings) ? data.matings.find(function (x) { return x.id === id; }) : null;
+    if (!m) return;
+    var fields = readMatingForm('emt');
+    if (!fields.date) { showToast('Date de saillie requise.', 'error'); return; }
+    Object.assign(m, fields);
+    closeModal('editMating');
+    uiState.editMatingId = null;
+    saveState(); renderMatings();
+    showToast('Saillie modifiée', 'success');
+  }
+
   // ——— Check-up rapide ————————————————————————————————————
   var CHECKUP_QUESTIONS = [
     { key: 'appetite', label: 'Appétit', icon: ico('utensils', 18), levels: ['Normal', 'À surveiller', 'Préoccupant'] },
@@ -5126,18 +5327,22 @@
     if (chip) {
       html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span></div>';
     }
+    if (p.healthNotes) {
+      html += '<div class="pedigree-health"><strong>' + ico('heart', 14) + ' Tests de santé / ADN</strong><p>' + escapeHtml(p.healthNotes).replace(/\n/g, '<br>') + '</p></div>';
+    }
 
     // Tree — 2 branches (paternelle / maternelle) pour que chaque
     // grand-parent reste visuellement rattaché au bon parent, y compris
     // quand les branches s'empilent sur mobile (voir CSS .pedigree-branches).
     var gp = p.grandparents || {};
+    var gpNode = function (n, reg) { return '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(n || '?') + (reg ? '<br><span class="table-muted">' + escapeHtml(reg) + '</span>' : '') + '</div>'; };
     html += '<div class="pedigree-tree">' +
       '<div class="pedigree-branches">' +
         '<div class="pedigree-branch pedigree-branch--paternal">' +
           '<span class="pedigree-branch__label">Branche paternelle</span>' +
           '<div class="pedigree-generation pedigree-gp">' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGrandsire || '?') + '</div>' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.paternalGranddam || '?') + '</div>' +
+            gpNode(gp.paternalGrandsire, gp.paternalGrandsireRegistry) +
+            gpNode(gp.paternalGranddam, gp.paternalGranddamRegistry) +
           '</div>' +
           '<div class="pedigree-generation pedigree-parents">' +
             '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
@@ -5146,8 +5351,8 @@
         '<div class="pedigree-branch pedigree-branch--maternal">' +
           '<span class="pedigree-branch__label">Branche maternelle</span>' +
           '<div class="pedigree-generation pedigree-gp">' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGrandsire || '?') + '</div>' +
-            '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(gp.maternalGranddam || '?') + '</div>' +
+            gpNode(gp.maternalGrandsire, gp.maternalGrandsireRegistry) +
+            gpNode(gp.maternalGranddam, gp.maternalGranddamRegistry) +
           '</div>' +
           '<div class="pedigree-generation pedigree-parents">' +
             '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
@@ -5178,11 +5383,16 @@
       chipNumber: document.getElementById('ped-chip').value.trim(),
       sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim() },
       dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim() },
+      healthNotes: document.getElementById('ped-health-notes').value.trim(),
       grandparents: {
         paternalGrandsire: document.getElementById('ped-gp-ps').value.trim(),
         paternalGranddam: document.getElementById('ped-gp-pd').value.trim(),
         maternalGrandsire: document.getElementById('ped-gp-ms').value.trim(),
-        maternalGranddam: document.getElementById('ped-gp-md').value.trim()
+        maternalGranddam: document.getElementById('ped-gp-md').value.trim(),
+        paternalGrandsireRegistry: document.getElementById('ped-gp-ps-reg').value.trim(),
+        paternalGranddamRegistry: document.getElementById('ped-gp-pd-reg').value.trim(),
+        maternalGrandsireRegistry: document.getElementById('ped-gp-ms-reg').value.trim(),
+        maternalGranddamRegistry: document.getElementById('ped-gp-md-reg').value.trim()
       },
       verified: vResult.valid,
       verifiedDate: vResult.valid ? new Date().toISOString().slice(0, 10) : null
@@ -5827,7 +6037,12 @@
       }))
       .concat((data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).map(function (m) {
         return { type: 'medication', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate }, date: m.endDate, icon: ico('pill', 18), title: 'Fin de traitement : ' + escapeHtml(m.name || ''), sub: m.dosage ? escapeHtml(m.dosage) : '—' };
-      }));
+      }))
+      .concat((data.matings || []).map(function (m) {
+        var due = matingNextDeadline(m);
+        if (!due) return null;
+        return { type: 'mating', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'matings', id: m.id, name: due.label, next: due.date, deadlineField: due.field }, date: due.date, icon: ico('heart', 18), title: due.label, sub: m.partnerName ? 'Partenaire : ' + escapeHtml(m.partnerName) : '—' };
+      }).filter(Boolean));
 
     // Heat cycle prediction
     if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
@@ -5846,6 +6061,11 @@
         events.push({ type: 'heat', date: nextHeat, icon: ico('thermom', 18), title: 'Chaleurs prévues', sub: 'Cycle moyen : ' + hcAvg + ' jours' });
       }
     }
+
+    // Mise bas prévue (63 jours après la saillie) — informatif, sans bouton Fait/Reporter.
+    (data.matings || []).filter(function (m) { return !m.birthDate; }).forEach(function (m) {
+      events.push({ type: 'mating', date: addDaysISO(m.date, 63), icon: ico('heart', 18), title: 'Mise bas prévue', sub: m.partnerName ? 'Partenaire : ' + escapeHtml(m.partnerName) : 'Estimation (63 jours)' });
+    });
 
     var upcoming = events.map(function (e) {
       var dt = isoToLocalDate(e.date);
@@ -5891,6 +6111,7 @@
       { key: 'dewormingReminder', label: 'Rappels déparasitage', desc: '7 jours avant la date de rappel' },
       { key: 'hygieneReminder', label: 'Rappels hygiène', desc: '7 jours avant la date de rappel' },
       { key: 'medicationReminder', label: 'Fin de traitement', desc: '7 jours avant la fin d\'un médicament en cours' },
+      { key: 'matingReminder', label: 'Démarches reproduction', desc: 'Déclaration de saillie, de naissance, inscription LOF/LOMAD' },
       { key: 'birthdayReminder', label: 'Anniversaire de ' + animalName, desc: data.animal.dob ? 'Le ' + fmtDate(data.animal.dob) + ' chaque année' : 'Date de naissance à renseigner' },
       { key: 'monthlySummary', label: 'Résumé mensuel', desc: 'Récapitulatif de santé chaque mois' }
     ].map(function (item) {
@@ -5983,6 +6204,22 @@
           var diff = Math.round((dt - todayMid) / 864e5);
           if (diff >= 0 && diff <= lead('medication')) {
             new Notification('App\'lika — Fin de traitement', { body: escapeHtml(data.animal.name) + ' : ' + escapeHtml(m.name) + ' se termine dans ' + diff + 'j', icon: 'icons/icon-192.png' });
+          }
+        });
+      }
+
+      if (n.matingReminder) {
+        (data.matings || []).forEach(function (m) {
+          var due = matingNextDeadline(m);
+          if (!due) return;
+          var dt = isoToLocalDate(due.date);
+          if (!dt) return;
+          var diff = Math.round((dt - todayMid) / 864e5);
+          if (diff <= 7) {
+            var body = diff < 0
+              ? escapeHtml(data.animal.name) + ' : ' + escapeHtml(due.label) + ' en retard (' + Math.abs(diff) + 'j)'
+              : escapeHtml(data.animal.name) + ' : ' + escapeHtml(due.label) + ' dans ' + diff + 'j';
+            new Notification('App\'lika — Rappel reproduction', { body: body, icon: 'icons/icon-192.png' });
           }
         });
       }
@@ -6474,7 +6711,8 @@
     { key: 'weight', label: 'Poids & taille', tone: 'warm', icon: 'scale', tab: 'poids' },
     { key: 'daily', label: 'Quotidien', tone: 'plain', icon: 'activity', tab: 'activites' },
     { key: 'notes', label: 'Notes', tone: 'plain', icon: 'fileText', tab: 'suivi' },
-    { key: 'chaleurs', label: 'Chaleurs', tone: 'warm', icon: 'thermom', tab: 'chaleurs' }
+    { key: 'chaleurs', label: 'Chaleurs', tone: 'warm', icon: 'thermom', tab: 'chaleurs' },
+    { key: 'reproduction', label: 'Reproduction', tone: 'warm', icon: 'heart', tab: 'reproduction' }
   ];
   var FRISE_PAGE = 30;
 
@@ -6503,10 +6741,11 @@
     ((data.nutrition && data.nutrition.meals) || []).forEach(function (m) { add('daily', m.date, (m.type || 'Repas') + (m.food ? ' — ' + m.food : ''), 'Repas', { icon: 'utensils', tab: 'nutrition' }); });
     (data.notes || []).forEach(function (n) { add('notes', n.date, n.title || 'Note', n.category || 'Note'); });
     (data.heatCycles || []).forEach(function (c) { add('chaleurs', c.startDate, 'Chaleurs' + (c.intensity ? ' — ' + c.intensity : ''), 'Reproduction'); });
+    (data.matings || []).forEach(function (m) { add('reproduction', m.date, 'Saillie' + (m.partnerName ? ' — ' + m.partnerName : ''), m.method || 'Reproduction', { meta: m.birthDate ? 'Mise bas le ' + fmtDate(m.birthDate) : '' }); });
     return ev;
   }
 
-  function friseDueCat(item) { return { vaccines: 'vaccins', dewormings: 'deworming', hygiene: 'hygiene', medications: 'traitements' }[item.collection]; }
+  function friseDueCat(item) { return { vaccines: 'vaccins', dewormings: 'deworming', hygiene: 'hygiene', medications: 'traitements', matings: 'reproduction' }[item.collection]; }
 
   function renderHistory() {
     var data = getCurrent();
@@ -6627,7 +6866,7 @@
 
   // ——— Tabs ————————————————————————————————————————
   var TABS_SANTE = ['vaccins', 'deworming', 'hygiene', 'consultations', 'medications'];
-  var TABS_MORE = ['nutrition', 'activites', 'chaleurs', 'journal', 'checkup', 'calendrier', 'annuaire', 'historique'];
+  var TABS_MORE = ['nutrition', 'activites', 'chaleurs', 'reproduction', 'journal', 'checkup', 'calendrier', 'annuaire', 'historique'];
 
   function closeNavMore() {
     var sub = document.getElementById('subnav-more');
@@ -6676,7 +6915,7 @@
       t.setAttribute('tabindex', '-1');
     });
 
-    var tabGroups = [['profil','photos','historique'], ['actes','vaccins','deworming','medications','hygiene','consultations','alertes'], ['nutrition','activites','poids'], ['suivi','checkup','chaleurs']];
+    var tabGroups = [['profil','photos','historique'], ['actes','vaccins','deworming','medications','hygiene','consultations','alertes'], ['nutrition','activites','poids'], ['suivi','checkup','chaleurs','reproduction']];
     var visibleTabs = tabGroups.find(function (group) { return group.indexOf(tabName) !== -1; }) || [tabName];
     root.querySelectorAll('.tab').forEach(function (button) { button.hidden = visibleTabs.indexOf(button.dataset.tab) === -1; });
     root.dataset.currentTab = tabName;
@@ -6723,6 +6962,7 @@
     }
     if (tabName === 'activites') renderActivities();
     if (tabName === 'chaleurs') renderHeatCycles();
+    if (tabName === 'reproduction') renderMatings();
     if (tabName === 'suivi') renderJournal();
     if (tabName === 'checkup') renderCheckup();
 
@@ -6754,6 +6994,7 @@
     renderNutrition();
     renderActivities();
     renderHeatCycles();
+    renderMatings();
     renderJournal();
     if (state.viewMode === 'agenda') renderAgenda();
     renderPedigree();
@@ -7417,12 +7658,14 @@
       if (!Array.isArray(a.hygiene)) a.hygiene = [];
       if (!Array.isArray(a.heatCycles)) a.heatCycles = [];
       if (!Array.isArray(a.activities)) a.activities = [];
+      if (!Array.isArray(a.matings)) a.matings = [];
       if (!a.nutrition) a.nutrition = { meals: [], dailyPlan: {} };
       if (!a.pedigree) a.pedigree = {};
       if (a.animal && !a.animal.themeColor) a.animal.themeColor = '';
       if (!a.notifications) a.notifications = {};
       if (a.notifications.hygieneReminder === undefined) a.notifications.hygieneReminder = true;
       if (a.notifications.medicationReminder === undefined) a.notifications.medicationReminder = true;
+      if (a.notifications.matingReminder === undefined) a.notifications.matingReminder = true;
     });
 
     // Restore vet directory & community if present
@@ -7493,6 +7736,14 @@
       var dt = isoToLocalDate(m.endDate);
       if (!dt || dt < from || dt > to) return;
       events.push({ uid: 'vetbook-med-' + m.id, summary: 'Fin de traitement : ' + (m.name || ''), desc: m.dosage || '', isoDate: m.endDate });
+    });
+
+    (wrap.matings || []).forEach(function (m) {
+      var due = matingNextDeadline(m);
+      if (!due) return;
+      var dt = isoToLocalDate(due.date);
+      if (!dt || dt < from || dt > to) return;
+      events.push({ uid: 'vetbook-mating-' + m.id + '-' + due.field, summary: due.label, desc: m.partnerName ? 'Partenaire : ' + m.partnerName : '', isoDate: due.date });
     });
 
     var dob = wrap?.animal?.dob;
@@ -7779,6 +8030,8 @@
     document.getElementById('form-edit-hygiene').addEventListener('submit', function (e) { e.preventDefault(); updateHygieneEntry(); });
     document.getElementById('form-add-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); addHeatCycle(); });
     document.getElementById('form-edit-heat-cycle').addEventListener('submit', function (e) { e.preventDefault(); updateHeatCycleEntry(); });
+    document.getElementById('form-add-mating').addEventListener('submit', function (e) { e.preventDefault(); addMating(); });
+    document.getElementById('form-edit-mating').addEventListener('submit', function (e) { e.preventDefault(); updateMatingEntry(); });
     document.getElementById('form-add-activity').addEventListener('submit', function (e) { e.preventDefault(); addActivity(); });
     document.getElementById('form-edit-activity').addEventListener('submit', function (e) { e.preventDefault(); updateActivityEntry(); });
     document.getElementById('form-add-meal').addEventListener('submit', function (e) { e.preventDefault(); addMeal(); });

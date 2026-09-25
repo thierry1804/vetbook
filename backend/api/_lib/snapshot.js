@@ -32,6 +32,9 @@ export async function petSnapshot(client, pet, { includeNotes = false, includePh
   const out = { animal };
   CHILD_ARRAYS.forEach(([localKey], i) => {
     if (localKey === 'notes' && !includeNotes) return;
+    // Les saillies contiennent l'identité d'un tiers (propriétaire du partenaire) :
+    // jamais exposées via un lien vétérinaire ou un accès foyer, quel que soit includeNotes.
+    if (localKey === 'matings') return;
     out[localKey] = childResults[i].rows.map((row) => { const o = fromRow(row, CHILD_ARRAYS[i][2], true); delete o.id; return o; });
   });
   if (Array.isArray(out.consultations)) out.consultations.forEach((c) => { c.cost = c.cost === '' || c.cost == null ? null : Number(c.cost); });

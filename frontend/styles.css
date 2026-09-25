@@ -3656,6 +3656,9 @@ button:active {
 .pedigree-registry { margin: 8px 0; }
 .pedigree-chip { margin: 8px 0; }
 .chip-number { font-family: 'Courier New', monospace; font-weight: 600; font-size: 1.05em; letter-spacing: 1px; }
+.pedigree-health { margin: 8px 0 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg-subtle, rgba(0,0,0,0.03)); }
+.pedigree-health strong { display: flex; align-items: center; gap: 6px; font-size: 0.85em; margin-bottom: 4px; }
+.pedigree-health p { margin: 0; font-size: 0.9em; color: var(--text-muted); white-space: pre-line; }
 
 .pedigree-tree {
   display: flex;

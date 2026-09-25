@@ -90,11 +90,16 @@ export default async function handler(req, res) {
             paternal_granddam: ped.grandparents && ped.grandparents.paternalGranddam,
             maternal_grandsire: ped.grandparents && ped.grandparents.maternalGrandsire,
             maternal_granddam: ped.grandparents && ped.grandparents.maternalGranddam,
+            paternal_grandsire_registry: ped.grandparents && ped.grandparents.paternalGrandsireRegistry,
+            paternal_granddam_registry: ped.grandparents && ped.grandparents.paternalGranddamRegistry,
+            maternal_grandsire_registry: ped.grandparents && ped.grandparents.maternalGrandsireRegistry,
+            maternal_granddam_registry: ped.grandparents && ped.grandparents.maternalGranddamRegistry,
           });
           const columns = [
             'pet_id', 'user_id', ...PEDIGREE_FIELDS.map((f) => f[1]),
             'sire_name', 'sire_registry', 'dam_name', 'dam_registry',
             'paternal_grandsire', 'paternal_granddam', 'maternal_grandsire', 'maternal_granddam',
+            'paternal_grandsire_registry', 'paternal_granddam_registry', 'maternal_grandsire_registry', 'maternal_granddam_registry',
           ];
           await upsertOne(client, 'pedigree', columns, pedRow, ['pet_id']);
         }

@@ -256,6 +256,7 @@
         <button type="button" class="tab" id="tab-photos" data-tab="photos" role="tab" aria-selected="false" aria-controls="section-photos" tabindex="-1">Photos</button>
         <button type="button" class="tab" id="tab-activites" data-tab="activites" role="tab" aria-selected="false" aria-controls="section-activites" tabindex="-1">Activités</button>
         <button type="button" class="tab" id="tab-chaleurs" data-tab="chaleurs" role="tab" aria-selected="false" aria-controls="section-chaleurs" tabindex="-1">Chaleurs</button>
+        <button type="button" class="tab" id="tab-reproduction" data-tab="reproduction" role="tab" aria-selected="false" aria-controls="section-reproduction" tabindex="-1">Reproduction</button>
         <button type="button" class="tab" id="tab-alertes" data-tab="alertes" role="tab" aria-selected="false" aria-controls="section-alertes" tabindex="-1">Rappels</button>
         <button type="button" class="tab" id="tab-historique" data-tab="historique" role="tab" aria-selected="false" aria-controls="section-historique" tabindex="-1">Frise</button>
         </nav>
@@ -591,6 +592,25 @@
       </div>
     </section>
 
+    <!-- Section Reproduction -->
+    <section id="section-reproduction" class="section" role="tabpanel" aria-labelledby="tab-reproduction" hidden>
+      <div id="reproduction-na-message" class="alert-banner alert-info" hidden>
+        <span>ℹ️</span> Suivi de reproduction non applicable (animal stérilisé).
+      </div>
+      <div id="matings-content" hidden>
+        <p class="stitch-note">Saillie, mise bas, déclarations : les délais légaux (déclaration de saillie sous 4 semaines, déclaration de naissance sous 4 semaines, inscription au registre sous 24 semaines) sont calculés automatiquement.</p>
+        <div class="data-table">
+          <div class="table-header">
+            <div class="table-header-left">
+              <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Saillies enregistrées</h2>
+            </div>
+            <button type="button" class="btn-icon" onclick="app.openModal('addMating')">+ Ajouter</button>
+          </div>
+          <div id="mating-list" class="stitch-record-list"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Section Check-up -->
     <section id="section-checkup" class="section" role="tabpanel" aria-labelledby="tab-checkup" hidden>
       <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Check-up Rapide</h2>
@@ -650,6 +670,9 @@
           </button>
           <button type="button" class="reminder-cat" data-cat="medication">
             <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-8 8a4.95 4.95 0 007 7l8-8a4.95 4.95 0 00-7-7z"/><path d="M8.5 8.5l7 7"/></svg></span> Médicaments
+          </button>
+          <button type="button" class="reminder-cat" data-cat="mating">
+            <span class="reminder-cat__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></span> Reproduction
           </button>
         </div>
         <!-- Period selector -->
@@ -1439,6 +1462,70 @@
     </div>
   </div>
 
+  <!-- Mating (saillie) modals -->
+  <div class="modal-overlay" id="modal-addMating" aria-hidden="true" role="dialog" aria-labelledby="modal-addMating-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-addMating-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Ajouter une Saillie</h2>
+      <form id="form-add-mating" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="mt-date">Date de saillie</label><input class="form-input" id="mt-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="mt-method">Méthode</label>
+            <select class="form-input" id="mt-method"><option value="Naturelle" selected>Naturelle</option><option value="Insémination artificielle">Insémination artificielle</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="mt-partner-name">Partenaire (nom)</label><input class="form-input" id="mt-partner-name" placeholder="Nom du partenaire"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="mt-partner-owner">Propriétaire du partenaire</label><input class="form-input" id="mt-partner-owner"></div>
+          <div class="form-group"><label class="form-label" for="mt-partner-reg">N° LOF / LOMAD du partenaire</label><input class="form-input" id="mt-partner-reg"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="mt-notes">Notes</label><textarea class="form-input" id="mt-notes" rows="2"></textarea></div>
+        <p class="stitch-note">Après la mise bas, complétez les champs ci-dessous depuis « Modifier ».</p>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="mt-birth-date">Date de mise bas</label><input class="form-input" id="mt-birth-date" type="date"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="mt-live-born">Chiots vivants</label><input class="form-input" id="mt-live-born" type="number" min="0"></div>
+          <div class="form-group"><label class="form-label" for="mt-still-born">Chiots mort-nés</label><input class="form-input" id="mt-still-born" type="number" min="0"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="addMating">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-editMating" aria-hidden="true" role="dialog" aria-labelledby="modal-editMating-title">
+    <div class="modal" role="document">
+      <h2 class="modal-title" id="modal-editMating-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Modifier une Saillie</h2>
+      <form id="form-edit-mating" class="modal-form">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emt-date">Date de saillie</label><input class="form-input" id="emt-date" type="date" required></div>
+          <div class="form-group"><label class="form-label" for="emt-method">Méthode</label>
+            <select class="form-input" id="emt-method"><option value="Naturelle">Naturelle</option><option value="Insémination artificielle">Insémination artificielle</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="emt-partner-name">Partenaire (nom)</label><input class="form-input" id="emt-partner-name"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emt-partner-owner">Propriétaire du partenaire</label><input class="form-input" id="emt-partner-owner"></div>
+          <div class="form-group"><label class="form-label" for="emt-partner-reg">N° LOF / LOMAD du partenaire</label><input class="form-input" id="emt-partner-reg"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="emt-notes">Notes</label><textarea class="form-input" id="emt-notes" rows="2"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emt-birth-date">Date de mise bas</label><input class="form-input" id="emt-birth-date" type="date"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="emt-live-born">Chiots vivants</label><input class="form-input" id="emt-live-born" type="number" min="0"></div>
+          <div class="form-group"><label class="form-label" for="emt-still-born">Chiots mort-nés</label><input class="form-input" id="emt-still-born" type="number" min="0"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" data-close="editMating">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Activity modals -->
   <div class="modal-overlay" id="modal-addActivity" aria-hidden="true" role="dialog" aria-labelledby="modal-addActivity-title">
     <div class="modal" role="document">
@@ -1604,12 +1691,22 @@
         <h3 style="margin:12px 0 8px;font-size:0.95rem">Grands-parents</h3>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-gp-ps">GP paternel ♂</label><input class="form-input" id="ped-gp-ps" placeholder="Grand-père paternel"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-ps-reg">Registre</label><input class="form-input" id="ped-gp-ps-reg" placeholder="LOF / LOMAD..."></div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-gp-pd">GP paternel ♀</label><input class="form-input" id="ped-gp-pd" placeholder="Grand-mère paternelle"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-pd-reg">Registre</label><input class="form-input" id="ped-gp-pd-reg" placeholder="LOF / LOMAD..."></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-gp-ms">GP maternel ♂</label><input class="form-input" id="ped-gp-ms" placeholder="Grand-père maternel"></div>
-          <div class="form-group"><label class="form-label" for="ped-gp-md">GP maternel ♀</label><input class="form-input" id="ped-gp-md" placeholder="Grand-mère maternelle"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-ms-reg">Registre</label><input class="form-input" id="ped-gp-ms-reg" placeholder="LOF / LOMAD..."></div>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="ped-gp-md">GP maternel ♀</label><input class="form-input" id="ped-gp-md" placeholder="Grand-mère maternelle"></div>
+          <div class="form-group"><label class="form-label" for="ped-gp-md-reg">Registre</label><input class="form-input" id="ped-gp-md-reg" placeholder="LOF / LOMAD..."></div>
+        </div>
+        <h3 style="margin:12px 0 8px;font-size:0.95rem">Tests de santé / ADN</h3>
+        <div class="form-group"><label class="form-label" for="ped-health-notes">Résultats (dysplasie, tares génétiques, panel ADN...)</label><textarea class="form-input" id="ped-health-notes" rows="3" placeholder="ex : Hanches A/A, coudes 0/0, PRA-prcd clear"></textarea></div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" data-close="editPedigree">Annuler</button>
           <button type="submit" class="btn-primary">Enregistrer</button>

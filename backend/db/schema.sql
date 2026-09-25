@@ -280,6 +280,44 @@ create table if not exists pedigree (
   maternal_granddam text
 );
 
+-- Migration pour les installations existantes : n° de registre des
+-- grands-parents (jusqu'ici seul leur nom était enregistré) + un champ
+-- libre pour les résultats de tests de santé/ADN (dysplasie, tares
+-- génétiques...), à l'image des panels santé de LOF Select.
+alter table pedigree add column if not exists paternal_grandsire_registry text;
+alter table pedigree add column if not exists paternal_granddam_registry text;
+alter table pedigree add column if not exists maternal_grandsire_registry text;
+alter table pedigree add column if not exists maternal_granddam_registry text;
+alter table pedigree add column if not exists health_notes text;
+
+-- Suivi de reproduction (saillie -> mise bas -> déclarations). Un animal
+-- mâle ou femelle non stérilisé peut avoir des saillies ; le rôle
+-- (étalon/lice) se déduit de pets.sex, pas stocké ici. Les délais légaux
+-- (déclaration de saillie, déclaration de naissance, inscription LOMAD)
+-- sont calculés côté client/rappels à partir de date/birth_date — voir
+-- api/_lib/reminders.js et le modèle ACYM (Madagascar).
+create table if not exists matings (
+  id uuid primary key default gen_random_uuid(),
+  pet_id uuid not null references pets(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  local_id bigint not null,
+  date date not null,
+  method text,
+  partner_name text,
+  partner_owner text,
+  partner_registry text,
+  notes text,
+  birth_date date,
+  live_born integer,
+  still_born integer,
+  declared_at date,
+  birth_declared_at date,
+  lomad_declared_at date,
+  created_at timestamptz not null default now(),
+  unique (pet_id, local_id)
+);
+create index if not exists idx_matings_pet on matings(pet_id);
+
 create table if not exists notification_prefs (
   pet_id uuid primary key references pets(id) on delete cascade,
   user_id uuid not null references users(id) on delete cascade,
@@ -298,6 +336,7 @@ create table if not exists notification_prefs (
 -- Migration pour les installations existantes :
 alter table notification_prefs add column if not exists medication_reminder boolean not null default true;
 alter table notification_prefs add column if not exists last_monthly_summary_sent date;
+alter table notification_prefs add column if not exists mating_reminder boolean not null default true;
 
 -- Carnet vétérinaires : global au compte, pas lié à un animal précis.
 create table if not exists vet_contacts (

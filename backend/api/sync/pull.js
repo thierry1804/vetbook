@@ -83,6 +83,7 @@ export default async function handler(req, res) {
           registry: pedRow.registry || 'Non inscrit',
           registryNumber: pedRow.registry_number || '',
           chipNumber: pedRow.chip_number || '',
+          healthNotes: pedRow.health_notes || '',
           sire: { name: pedRow.sire_name || '', registry: pedRow.sire_registry || '' },
           dam: { name: pedRow.dam_name || '', registry: pedRow.dam_registry || '' },
           grandparents: {
@@ -90,6 +91,10 @@ export default async function handler(req, res) {
             paternalGranddam: pedRow.paternal_granddam || '',
             maternalGrandsire: pedRow.maternal_grandsire || '',
             maternalGranddam: pedRow.maternal_granddam || '',
+            paternalGrandsireRegistry: pedRow.paternal_grandsire_registry || '',
+            paternalGranddamRegistry: pedRow.paternal_granddam_registry || '',
+            maternalGrandsireRegistry: pedRow.maternal_grandsire_registry || '',
+            maternalGranddamRegistry: pedRow.maternal_granddam_registry || '',
           },
         } : null;
 

@@ -19,6 +19,23 @@ function daysDiff(dateStr) {
   return Math.round((d.getTime() - todayMid.getTime()) / 86400000);
 }
 
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Le prochain délai administratif encore ouvert pour une saillie, le plus
+// urgent d'abord — même séquence que checkBrowserNotifications() côté
+// client (app.js, matingNextDeadline()), à garder synchronisée à la main.
+function nextMatingDeadline(m) {
+  if (!m.declared_at) return { date: addDays(m.date, 28), label: 'Déclaration de saillie' };
+  if (!m.birth_date) return null;
+  if (!m.birth_declared_at) return { date: addDays(m.birth_date, 28), label: 'Déclaration de naissance' };
+  if (!m.lomad_declared_at) return { date: addDays(m.birth_date, 168), label: 'Inscription au registre (LOF/LOMAD)' };
+  return null;
+}
+
 // Préférences de notification du compte (users.preferences.notifications), avec les valeurs par défaut historiques.
 const NOTIF_DEFAULTS = { push: true, email: false, vaccineLeadDays: 7, dewormingLeadDays: 7, hygieneLeadDays: 7, medicationLeadDays: 7, quietHours: { enabled: false, from: '22:00', to: '07:00' } };
 
@@ -119,6 +136,31 @@ async function collectReminders(client, userPrefs) {
     const diff = daysDiff(m.end_date);
     if (diff < 0 || diff > lead(m.user_id, 'medicationLeadDays')) continue;
     reminders.push({ userId: m.user_id, petId: m.pet_id, title: 'Fin de traitement', body: `${pet.name} : ${m.name} se termine dans ${diff} j` });
+  }
+
+  // Reproduction : délais administratifs après une saillie (déclaration de
+  // saillie J+28, déclaration de naissance J+28 après la mise bas,
+  // inscription au registre J+168/24 semaines après la mise bas — mêmes
+  // délais que le circuit ACYM/LOMAD). Un seul rappel à la fois par
+  // saillie : le plus urgent des délais encore ouverts.
+  const { rows: matings } = await client.query(
+    `select pet_id, user_id, date::text as date, birth_date::text as birth_date,
+            declared_at, birth_declared_at, lomad_declared_at
+     from matings where declared_at is null or (birth_date is not null and (birth_declared_at is null or lomad_declared_at is null))`
+  );
+  for (const m of matings) {
+    const pref = prefsByPet.get(m.pet_id);
+    if (pref && pref.mating_reminder === false) continue;
+    const pet = petById.get(m.pet_id);
+    if (!pet) continue;
+    const due = nextMatingDeadline(m);
+    if (!due) continue;
+    const diff = daysDiff(due.date);
+    if (diff > 7) continue;
+    const body = diff < 0
+      ? `${pet.name} : ${due.label} en retard (${Math.abs(diff)} j)`
+      : `${pet.name} : ${due.label} dans ${diff} j`;
+    reminders.push({ userId: m.user_id, petId: m.pet_id, title: 'Rappel reproduction', body });
   }
 
   // Anniversaires : jour exact (mois + jour), tous les ans.
