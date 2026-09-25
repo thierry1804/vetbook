@@ -22,11 +22,11 @@ export default async function handler(req, res) {
 
   try {
     const result = await withClient(async (client) => {
-      const [petsRes, ownerRes, vetsRes] = await Promise.all([
-        client.query('select * from pets where user_id = $1 order by created_at asc', [userId]),
-        client.query('select * from owners where user_id = $1', [userId]),
-        client.query('select * from vet_contacts where user_id = $1 order by local_id asc', [userId]),
-      ]);
+      // Une même connexion pg ne traite qu'une requête à la fois : Promise.all ici ne
+      // paralléliserait rien et déclenche l'avertissement de dépréciation de pg@9.
+      const petsRes = await client.query('select * from pets where user_id = $1 order by created_at asc', [userId]);
+      const ownerRes = await client.query('select * from owners where user_id = $1', [userId]);
+      const vetsRes = await client.query('select * from vet_contacts where user_id = $1 order by local_id asc', [userId]);
 
       const pets = petsRes.rows;
       const ownerRow = ownerRes.rows[0];
@@ -38,21 +38,20 @@ export default async function handler(req, res) {
 
       const ownerObj = ownerRow ? fromRow(ownerRow, OWNER_FIELDS) : { name: '', phone: '', email: '', clinic: '', address: '' };
 
-      const wrappers = await Promise.all(pets.map(async (pet) => {
+      const wrappers = [];
+      for (const pet of pets) {
         const petId = pet.id;
 
-        const childResults = await Promise.all(
-          CHILD_ARRAYS.map(([, table]) =>
-            client.query(`select * from ${table} where pet_id = $1 order by local_id asc`, [petId]))
-        );
-        const [weightRes, heightRes, mealsRes, planRes, pedRes, notifRes] = await Promise.all([
-          client.query('select * from weight_history where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from height_history where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from nutrition_meals where pet_id = $1 order by local_id asc', [petId]),
-          client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]),
-          client.query('select * from pedigree where pet_id = $1', [petId]),
-          client.query('select * from notification_prefs where pet_id = $1', [petId]),
-        ]);
+        const childResults = [];
+        for (const [, table] of CHILD_ARRAYS) {
+          childResults.push(await client.query(`select * from ${table} where pet_id = $1 order by local_id asc`, [petId]));
+        }
+        const weightRes = await client.query('select * from weight_history where pet_id = $1 order by local_id asc', [petId]);
+        const heightRes = await client.query('select * from height_history where pet_id = $1 order by local_id asc', [petId]);
+        const mealsRes = await client.query('select * from nutrition_meals where pet_id = $1 order by local_id asc', [petId]);
+        const planRes = await client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]);
+        const pedRes = await client.query('select * from pedigree where pet_id = $1', [petId]);
+        const notifRes = await client.query('select * from notification_prefs where pet_id = $1', [petId]);
 
         // pet.local_id (bigint) et pet.weight/height (numeric) reviennent en
         // string du driver Postgres — Number() pour matcher la convention
@@ -97,8 +96,8 @@ export default async function handler(req, res) {
         const notifRow = notifRes.rows[0];
         wrapper.notifications = notifRow ? fromRow(notifRow, NOTIF_FIELDS) : {};
 
-        return wrapper;
-      }));
+        wrappers.push(wrapper);
+      }
 
       let maxId = 20;
       wrappers.forEach((w) => {
