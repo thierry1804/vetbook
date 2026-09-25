@@ -52,11 +52,15 @@ export default async function handler(req, res) {
         const planRes = await client.query('select * from nutrition_daily_plan where pet_id = $1', [petId]);
         const pedRes = await client.query('select * from pedigree where pet_id = $1', [petId]);
         const notifRes = await client.query('select * from notification_prefs where pet_id = $1', [petId]);
+        const photosRes = await client.query('select id, local_id, caption, date::text as date from photos where pet_id = $1 order by local_id asc', [petId]);
 
         // pet.local_id (bigint) et pet.weight/height (numeric) reviennent en
         // string du driver Postgres — Number() pour matcher la convention
         // JS number utilisée partout côté client (comparaisons ===, calculs).
-        const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos: [] };
+        // photos : id = local_id (clé locale de la photo, comme après un upload),
+        // serverId = uuid de la ligne — le client affiche via /api/files/:serverId.
+        const photos = photosRes.rows.map((ph) => ({ id: Number(ph.local_id), date: ph.date || '', caption: ph.caption || '', serverId: ph.id }));
+        const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos };
         wrapper.animal = fromRow(pet, ANIMAL_FIELDS);
         wrapper.animal.weight = pet.weight != null ? Number(pet.weight) : null;
         wrapper.animal.height = pet.height != null ? Number(pet.height) : null;
@@ -111,6 +115,7 @@ export default async function handler(req, res) {
         (w.animal.weightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
         (w.animal.heightHistory || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
         (w.nutrition.meals || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
+        (w.photos || []).forEach((it) => { maxId = Math.max(maxId, it.id || 0); });
       });
 
       const state = { animals: wrappers, nextId: maxId + 1, currentAnimalId: wrappers[0] ? wrappers[0].id : null, owner: ownerObj };
