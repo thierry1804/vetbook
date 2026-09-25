@@ -3946,6 +3946,7 @@
       document.getElementById('ped-registry').value = ped.registry || 'Non inscrit';
       document.getElementById('ped-reg-number').value = ped.registryNumber || '';
       document.getElementById('ped-chip').value = ped.chipNumber || data.animal.chip || '';
+      resetPedigreeLookup();
       document.getElementById('ped-sire-name').value = (ped.sire && ped.sire.name) || '';
       document.getElementById('ped-sire-reg').value = (ped.sire && ped.sire.registry) || '';
       document.getElementById('ped-dam-name').value = (ped.dam && ped.dam.name) || '';
@@ -5984,63 +5985,112 @@
       html += '</div>';
     }
     if (chip) {
-      html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span></div>';
+      html += '<div class="pedigree-chip">N° Puce : <span class="chip-number">' + escapeHtml(chip) + '</span>' +
+        ' <a class="pedigree-lof-link" target="_blank" rel="noopener" href="' + lofSelectChipUrl(chip) + '">' + ico('search', 14) + ' Chercher sur LOF Select</a></div>';
+    }
+    if (p.registry === 'LOMAD') {
+      html += '<div class="pedigree-chip"><a class="pedigree-lof-link" target="_blank" rel="noopener" href="https://acymadagascar.org/recherche">' + ico('search', 14) + ' Annuaire ACYM (LOMAD)</a></div>';
     }
     if (p.healthNotes) {
       html += '<div class="pedigree-health"><strong>' + ico('heart', 14) + ' Tests de santé / ADN</strong><p>' + escapeHtml(p.healthNotes).replace(/\n/g, '<br>') + '</p></div>';
     }
 
-    // Arbre à 3 générations avec de vraies lignes de filiation (SVG, coordonnées
-    // fixes en % — pas de mesure DOM au runtime, donc robuste à toute taille
-    // d'écran). 2 branches (paternelle / maternelle) qui convergent vers le
-    // sujet ; chaque branche s'empile verticalement sur mobile (voir CSS),
-    // où le connecteur large est alors masqué au profit d'un simple trait.
-    var CONNECTOR_NARROW = '<svg class="pedigree-connector" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">' +
-      '<line x1="15" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
-      '<line x1="85" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
-      '</svg>';
-    var CONNECTOR_WIDE = '<svg class="pedigree-connector pedigree-connector--wide" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">' +
-      '<line x1="25" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
-      '<line x1="75" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
-      '</svg>';
+    // Arbre à 3 générations, lu de gauche à droite : sujet → parents → grands-parents.
+    // Les traits de filiation sont en CSS pur (voir .ped-* dans styles.css) : chaque
+    // parent est centré sur sa paire de grands-parents, sans mesure DOM.
     var gp = p.grandparents || {};
-    var gpNode = function (n, reg) { return '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(n || '?') + (reg ? '<br><span class="table-muted">' + escapeHtml(reg) + '</span>' : '') + '</div>'; };
-    html += '<div class="pedigree-tree">' +
-      '<div class="pedigree-branches">' +
-        '<div class="pedigree-branch pedigree-branch--paternal">' +
-          '<span class="pedigree-branch__label">Branche paternelle</span>' +
-          '<div class="pedigree-generation pedigree-gp">' +
-            gpNode(gp.paternalGrandsire, gp.paternalGrandsireRegistry) +
-            gpNode(gp.paternalGranddam, gp.paternalGranddamRegistry) +
+    var pedNode = function (role, mod, n, reg) {
+      var empty = !n;
+      return '<div class="ped-node ped-node--' + mod + (empty ? ' is-empty' : '') + '">' +
+        '<span class="ped-node__role">' + role + '</span>' +
+        '<span class="ped-node__name">' + (empty ? 'Non renseigné' : escapeHtml(n)) + '</span>' +
+        (reg && !empty ? '<span class="ped-node__reg">' + escapeHtml(reg) + '</span>' : '') + '</div>';
+    };
+    var animalSex = data.animal.sex === 'Femelle' ? 'female' : (data.animal.sex === 'Mâle' ? 'male' : 'subject');
+    html += '<div class="ped-wrap" role="group" aria-label="Arbre généalogique de ' + name + '">' +
+      '<div class="ped__heads" aria-hidden="true"><span>Sujet</span><span>Parents</span><span>Grands-parents</span></div>' +
+      '<div class="ped">' +
+        '<div class="ped__col ped__col--subject">' +
+          '<div class="ped-node ped-node--subject"><span class="ped-node__role">' + (animalSex === 'female' ? '♀ ' : animalSex === 'male' ? '♂ ' : '') + escapeHtml(data.animal.race || 'Sujet') + '</span><span class="ped-node__name">' + name + '</span>' +
+            (p.registryNumber ? '<span class="ped-node__reg" style="color:#fff;opacity:.85">' + escapeHtml(p.registryNumber) + '</span>' : '') + '</div>' +
+        '</div>' +
+        '<div class="ped__col ped__col--parents">' +
+          '<div class="ped__slot">' + pedNode('Père', 'male', p.sire && p.sire.name, p.sire && p.sire.registry) + '</div>' +
+          '<div class="ped__slot">' + pedNode('Mère', 'female', p.dam && p.dam.name, p.dam && p.dam.registry) + '</div>' +
+        '</div>' +
+        '<div class="ped__col ped__col--gp">' +
+          '<div class="ped__pair">' +
+            pedNode('Grand-père paternel', 'male', gp.paternalGrandsire, gp.paternalGrandsireRegistry) +
+            pedNode('Grand-mère paternelle', 'female', gp.paternalGranddam, gp.paternalGranddamRegistry) +
           '</div>' +
-          CONNECTOR_NARROW +
-          '<div class="pedigree-generation pedigree-parents">' +
-            '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
+          '<div class="ped__pair">' +
+            pedNode('Grand-père maternel', 'male', gp.maternalGrandsire, gp.maternalGrandsireRegistry) +
+            pedNode('Grand-mère maternelle', 'female', gp.maternalGranddam, gp.maternalGranddamRegistry) +
           '</div>' +
         '</div>' +
-        '<div class="pedigree-branch pedigree-branch--maternal">' +
-          '<span class="pedigree-branch__label">Branche maternelle</span>' +
-          '<div class="pedigree-generation pedigree-gp">' +
-            gpNode(gp.maternalGrandsire, gp.maternalGrandsireRegistry) +
-            gpNode(gp.maternalGranddam, gp.maternalGranddamRegistry) +
-          '</div>' +
-          CONNECTOR_NARROW +
-          '<div class="pedigree-generation pedigree-parents">' +
-            '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      CONNECTOR_WIDE +
-      '<div class="pedigree-generation pedigree-subject">' +
-        '<div class="pedigree-node pedigree-node-subject">' + name + '</div>' +
       '</div>' +
     '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
-      html += '<div class="lof-disclaimer-display"><small>' + ico('warning', 16) + ' La vérification est une simulation locale de format. Une vérification officielle nécessite un accès aux bases de la SCC (LOF) ou aux registres officiels (LOMAD).</small></div>';
+      html += '<div class="lof-disclaimer-display"><small>' + ico('warning', 16) + ' « Vérifié » = format du numéro valide (contrôle local). La fiche officielle se consulte sur LOF Select (SCC) ou l\'annuaire ACYM (LOMAD) : leur ascendance complète n\'est pas importable automatiquement, à saisir depuis le pedigree officiel.</small></div>';
     }
 
     container.innerHTML = html;
+  }
+
+  function lofSelectChipUrl(chip) {
+    return 'https://www.centrale-canine.fr/lofselect/recherche-chien/identifiant?identification=' + encodeURIComponent(String(chip).replace(/\s+/g, ''));
+  }
+
+  // Modale pedigree : lien LOF Select par puce + recherche ACYM (LOMAD) par nom.
+  var pedAcymResults = [];
+  function refreshPedigreeLookup() {
+    var link = document.getElementById('ped-lof-chip-link');
+    var chip = (document.getElementById('ped-chip').value || '').replace(/\s+/g, '');
+    if (link) {
+      link.hidden = chip.length < 9;
+      if (chip.length >= 9) link.href = lofSelectChipUrl(chip);
+    }
+  }
+  function resetPedigreeLookup() {
+    var data = getCurrent();
+    var q = document.getElementById('ped-acym-query');
+    if (q) q.value = (data && data.animal && data.animal.name) || '';
+    var box = document.getElementById('ped-acym-results');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    pedAcymResults = [];
+    refreshPedigreeLookup();
+  }
+  function runAcymLookup() {
+    var box = document.getElementById('ped-acym-results');
+    var q = (document.getElementById('ped-acym-query').value || '').trim();
+    if (!box) return;
+    box.hidden = false;
+    if (q.length < 2) { box.innerHTML = '<p>Saisis au moins 2 caractères.</p>'; return; }
+    if (!window.cloudSync || !window.cloudSync.lookupAcym) { box.innerHTML = '<p>Recherche indisponible hors connexion.</p>'; return; }
+    box.innerHTML = '<p>Recherche en cours…</p>';
+    window.cloudSync.lookupAcym({ name: q }).then(function (res) {
+      pedAcymResults = (res && res.results) || [];
+      if (!pedAcymResults.length) { box.innerHTML = '<p>Aucun chien trouvé à ce nom sur l\'ACYM.</p>'; return; }
+      box.innerHTML = pedAcymResults.map(function (r, i) {
+        return '<button type="button" class="ped-acym-item" data-acym-idx="' + i + '"><strong>' + escapeHtml(r.name) + (r.affix ? ' · ' + escapeHtml(r.affix) : '') + '</strong>' +
+          '<span>' + escapeHtml([r.breed, r.birthDate ? 'né(e) le ' + fmtDate(r.birthDate) : '', r.lomad ? 'LOMAD ' + r.lomad : 'n° LOMAD non publié'].filter(Boolean).join(' · ')) + '</span>' +
+          '<span>' + escapeHtml([r.owner && 'Propriétaire : ' + r.owner, r.breeder && 'Éleveur : ' + r.breeder].filter(Boolean).join(' · ')) + '</span></button>';
+      }).join('') + (res.truncated ? '<p>Résultats limités aux ' + pedAcymResults.length + ' premiers — précise le nom.</p>' : '');
+    }).catch(function (err) {
+      box.innerHTML = '<p>' + escapeHtml((err && err.message) || 'Recherche impossible.') + '</p>';
+    });
+  }
+  function applyAcymResult(idx) {
+    var r = pedAcymResults[idx];
+    if (!r) return;
+    document.getElementById('ped-registry').value = 'LOMAD';
+    toggleLofVerifyControls();
+    if (r.lomad) document.getElementById('ped-reg-number').value = r.lomad;
+    var data = getCurrent();
+    var msg = r.lomad ? 'N° LOMAD ' + r.lomad + ' repris depuis l\'ACYM' : 'Fiche ACYM sélectionnée (aucun n° LOMAD publié)';
+    if (data && data.animal.dob && r.birthDate && data.animal.dob !== r.birthDate) msg += ' — attention : date de naissance ACYM différente (' + fmtDate(r.birthDate) + ')';
+    showToast(msg, r.lomad ? 'success' : 'info', 5000);
   }
 
   function savePedigree() {
@@ -8904,6 +8954,13 @@
 
     // LOF/LOMAD verify
     document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
+    document.getElementById('btn-ped-acym').addEventListener('click', runAcymLookup);
+    document.getElementById('ped-acym-query').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runAcymLookup(); } });
+    document.getElementById('ped-chip').addEventListener('input', refreshPedigreeLookup);
+    document.getElementById('ped-acym-results').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-acym-idx]');
+      if (b) applyAcymResult(parseInt(b.getAttribute('data-acym-idx'), 10));
+    });
     document.getElementById('ped-registry').addEventListener('change', function () { toggleLofVerifyControls(); });
 
     document.getElementById('aa-photo').addEventListener('change', function () { document.getElementById('aa-photo-label').textContent = this.files[0] ? this.files[0].name : 'Choisir une photo JPG ou PNG'; });

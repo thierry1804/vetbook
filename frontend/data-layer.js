@@ -272,6 +272,13 @@
     });
   }
 
+  // Recherche publique dans l'annuaire ACYM (LOMAD) via le proxy serveur.
+  function lookupAcym(params) {
+    var qs = Object.keys(params || {}).filter(function (k) { return params[k]; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+    return apiFetch('/api/lookup/acym?' + qs, { method: 'GET' });
+  }
+
   function uploadPhoto(petLocalId, localId, blob, meta) {
     if (!configured || !currentSession) return Promise.reject(new Error('Non connecté.'));
     var fd = new FormData();
@@ -305,6 +312,7 @@
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
     getPhotoUrl: getPhotoUrl,
+    lookupAcym: lookupAcym,
     api: apiFetch,
     refresh: refreshSessionFromCookie,
     signInWithGoogleCredential: signInWithGoogleCredential,
