@@ -1827,199 +1827,6 @@
     return 'Non stérilisé' + (a.sex === 'Femelle' ? 'e' : '');
   }
 
-  function renderPetProfileWeightChart(data) {
-    var container = document.getElementById('pet-profile-weight-chart');
-    if (!container) return;
-    if (!data || !data.animal) { container.innerHTML = ''; return; }
-
-    var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
-    var entries = entriesRaw.filter(function (e) { return e && e.date && e.weight != null && !isNaN(Number(e.weight)); })
-      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
-
-    if (entries.length === 0) {
-      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des pesées pour afficher la courbe de poids.</p>';
-      return;
-    }
-
-    // Keep last 6 points for a clean mobile chart
-    if (entries.length > 6) entries = entries.slice(entries.length - 6);
-
-    var weights = entries.map(function (e) { return Number(e.weight); });
-    var minW = Math.min.apply(null, weights);
-    var maxW = Math.max.apply(null, weights);
-    var pad = Math.max(0.5, (maxW - minW) * 0.2);
-    minW = Math.max(0, Math.floor(minW - pad));
-    maxW = Math.ceil(maxW + pad);
-    var range = maxW - minW;
-    if (range < 1) { minW = Math.max(0, minW - 1); maxW = maxW + 1; range = maxW - minW; }
-
-    var W = 360;
-    var H = 150;
-    var padL = 28;
-    var padR = 10;
-    var padT = 18;
-    var padB = 28;
-    var chartH = H - padT - padB;
-    var chartW = W - padL - padR;
-
-    // Overweight line near top (~90% of scale)
-    var overweight = maxW - range * 0.08;
-    var owY = padT + (1 - (overweight - minW) / range) * chartH;
-
-    var xFor = function (i, n) {
-      if (n === 1) return padL + chartW / 2;
-      return padL + (chartW * i) / (n - 1);
-    };
-    var yFor = function (w) { return padT + (1 - (w - minW) / range) * chartH; };
-
-    var n = entries.length;
-    var pts = entries.map(function (e, i) {
-      return { x: xFor(i, n), y: yFor(Number(e.weight)) };
-    });
-
-    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
-    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
-      linePts + ' ' +
-      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
-
-    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    var xLabels = '';
-    entries.forEach(function (e, i) {
-      var d = new Date(e.date);
-      var label = monthLabels[d.getMonth()] || '';
-      // Show label if few points, or every other, or first/last
-      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
-        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
-      }
-    });
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var wVal = minW + (range * i / steps);
-      var yVal = yFor(wVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(wVal) + '</text>';
-    }
-
-    var overLineSvg =
-      '<line x1="' + padL + '" y1="' + owY.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + owY.toFixed(2) + '" stroke="#ef4444" stroke-width="1.25" stroke-dasharray="5 4"/>' +
-      '<text x="' + (W - padR - 2) + '" y="' + (owY - 5).toFixed(2) + '" fill="#ef4444" font-size="9" text-anchor="end" font-weight="600">Surpoids</text>';
-
-    container.innerHTML =
-      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
-      '<defs><linearGradient id="petWeightFill" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#ea580c" stop-opacity="0.28"/>' +
-      '<stop offset="100%" stop-color="#ea580c" stop-opacity="0.02"/>' +
-      '</linearGradient></defs>' +
-      gridLines + overLineSvg +
-      '<polygon fill="url(#petWeightFill)" points="' + areaPts + '"/>' +
-      '<polyline fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
-      pts.map(function (p) {
-        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#ea580c" stroke="#fff" stroke-width="2"/>';
-      }).join('') +
-      xLabels +
-      '</svg>';
-
-    var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
-    var ageMonths = calculateAgeMonths(data.animal.dob);
-    if (breedRange && ageMonths != null && ageMonths >= 12) {
-      var lastW = weights[weights.length - 1];
-      var inRange = lastW >= breedRange.min && lastW <= breedRange.max;
-      container.innerHTML += '<div class="breed-weight-badge ' + (inRange ? 'in-range' : 'out-of-range') + '">' +
-        'Fourchette race (adulte) : ' + wNum(breedRange.min, 0) + '–' + wNum(breedRange.max, 0) + ' ' + wUnit() +
-        (inRange ? ' ✓' : ' ⚠') + '</div>';
-    }
-  }
-
-  // Miroir de renderPetProfileWeightChart pour la taille au garrot — même
-  // mise en page, sans ligne "Surpoids" ni fourchette de race (données
-  // non disponibles pour la taille).
-  function renderPetProfileHeightChart(data) {
-    var container = document.getElementById('pet-profile-height-chart');
-    if (!container) return;
-    if (!data || !data.animal) { container.innerHTML = ''; return; }
-
-    var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
-    var entries = entriesRaw.filter(function (e) { return e && e.date && e.height != null && !isNaN(Number(e.height)); })
-      .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
-
-    if (entries.length === 0) {
-      container.innerHTML = '<p class="pet-weight-chart-empty">Ajoutez des mesures pour afficher la courbe de taille.</p>';
-      return;
-    }
-
-    if (entries.length > 6) entries = entries.slice(entries.length - 6);
-
-    var heights = entries.map(function (e) { return Number(e.height); });
-    var minH = Math.min.apply(null, heights);
-    var maxH = Math.max.apply(null, heights);
-    var pad = Math.max(1, (maxH - minH) * 0.2);
-    minH = Math.max(0, Math.floor(minH - pad));
-    maxH = Math.ceil(maxH + pad);
-    var range = maxH - minH;
-    if (range < 1) { minH = Math.max(0, minH - 1); maxH = maxH + 1; range = maxH - minH; }
-
-    var W = 360;
-    var H = 150;
-    var padL = 28;
-    var padR = 10;
-    var padT = 18;
-    var padB = 28;
-    var chartH = H - padT - padB;
-    var chartW = W - padL - padR;
-
-    var xFor = function (i, n) {
-      if (n === 1) return padL + chartW / 2;
-      return padL + (chartW * i) / (n - 1);
-    };
-    var yFor = function (h) { return padT + (1 - (h - minH) / range) * chartH; };
-
-    var n = entries.length;
-    var pts = entries.map(function (e, i) {
-      return { x: xFor(i, n), y: yFor(Number(e.height)) };
-    });
-
-    var linePts = pts.map(function (p) { return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
-    var areaPts = padL + ',' + (padT + chartH).toFixed(2) + ' ' +
-      linePts + ' ' +
-      (padL + chartW).toFixed(2) + ',' + (padT + chartH).toFixed(2);
-
-    var monthLabels = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    var xLabels = '';
-    entries.forEach(function (e, i) {
-      var d = new Date(e.date);
-      var label = monthLabels[d.getMonth()] || '';
-      if (n <= 6 || i === 0 || i === n - 1 || i % 1 === 0) {
-        xLabels += '<text x="' + xFor(i, n).toFixed(2) + '" y="' + (H - 6) + '" fill="var(--text-muted)" font-size="9" text-anchor="middle">' + label + '</text>';
-      }
-    });
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var hVal = minH + (range * i / steps);
-      var yVal = yFor(hVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 3).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + Math.round(hVal) + '</text>';
-    }
-
-    container.innerHTML =
-      '<svg class="pet-weight-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">' +
-      '<defs><linearGradient id="petHeightFill" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#2563eb" stop-opacity="0.28"/>' +
-      '<stop offset="100%" stop-color="#2563eb" stop-opacity="0.02"/>' +
-      '</linearGradient></defs>' +
-      gridLines +
-      '<polygon fill="url(#petHeightFill)" points="' + areaPts + '"/>' +
-      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + linePts + '"/>' +
-      pts.map(function (p) {
-        return '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="#2563eb" stroke="#fff" stroke-width="2"/>';
-      }).join('') +
-      xLabels +
-      '</svg>';
-  }
-
   function collectProfileTasks(data) {
     var out = [];
     var now = new Date();
@@ -3186,26 +2993,6 @@
     renderActiveMedsSummary(data);
     checkBirthday(data);
     renderQRCode(data);
-
-    var pctW = document.getElementById('pet-chart-toggle-weight');
-    var pctH = document.getElementById('pet-chart-toggle-height');
-    if (uiState.petChartMode === 'height') {
-      if (pctW) { pctW.classList.remove('active'); pctW.setAttribute('aria-selected', 'false'); }
-      if (pctH) { pctH.classList.add('active'); pctH.setAttribute('aria-selected', 'true'); }
-      var hw = document.getElementById('pet-weight-chart-wrap');
-      var hh = document.getElementById('pet-height-chart-wrap');
-      if (hw) hw.hidden = true;
-      if (hh) hh.hidden = false;
-      renderPetProfileHeightChart(data);
-    } else {
-      if (pctW) { pctW.classList.add('active'); pctW.setAttribute('aria-selected', 'true'); }
-      if (pctH) { pctH.classList.remove('active'); pctH.setAttribute('aria-selected', 'false'); }
-      var hw2 = document.getElementById('pet-weight-chart-wrap');
-      var hh2 = document.getElementById('pet-height-chart-wrap');
-      if (hw2) hw2.hidden = false;
-      if (hh2) hh2.hidden = true;
-      renderPetProfileWeightChart(data);
-    }
 
     // Update tasks heading with pet name
     var tasksHeading = document.getElementById('pet-tasks-heading');
@@ -6821,9 +6608,95 @@
   }
 
   // ——— History ——————————————————————————————————————
-  function renderWeightEvolution(data) {
-    var container = document.getElementById('weight-evolution');
+  // ——— Graphiques (Chart.js) ——————————————————————————————————
+  // Une seule fonction pour les courbes poids/taille (remplace 2x2 tracés SVG
+  // faits main quasi identiques) : vrai axe temporel (les pesées irrégulières
+  // ne sont plus espacées comme si elles étaient régulières), info-bulles et
+  // historique complet au lieu des 6 derniers points seulement. `entries`
+  // = [{date, value, id}], `opts.rangeBand` = {min,max} optionnel (fourchette
+  // race), `opts.thresholdLine` = valeur optionnelle (ex: seuil surpoids).
+  var CHART_INSTANCES = {};
+  // Chart.js fige les couleurs (chaînes JS, pas des var() CSS vivantes) au
+  // moment du tracé : contrairement à l'ancien SVG, un changement de thème
+  // ne les met pas à jour tout seul. On retient quel conteneur affiche quelle
+  // courbe pour la retracer avec les bonnes couleurs — voir applyTheme().
+  var CHART_TARGETS = {};
+  function redrawChartsForTheme() {
+    var data = getCurrent();
+    if (!data) return;
+    Object.keys(CHART_TARGETS).forEach(function (id) {
+      if (!document.getElementById(id)) { delete CHART_TARGETS[id]; return; }
+      if (CHART_TARGETS[id] === 'height') renderHeightEvolution(data, id);
+      else renderWeightEvolution(data, id);
+    });
+  }
+  function cssVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+  }
+  function drawMetricChart(canvasId, entries, opts) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (CHART_INSTANCES[canvasId]) { CHART_INSTANCES[canvasId].destroy(); delete CHART_INSTANCES[canvasId]; }
+    opts = opts || {};
+    var color = opts.color || cssVar('--teal-dark', '#0f766e');
+    var muted = cssVar('--text-muted', '#6b7280');
+    var gridColor = cssVar('--border', 'rgba(128,128,128,0.25)');
+    // Axe X en timestamp numérique (type "linear", pas "time") : le build
+    // chart.umd.js vendorisé n'embarque aucun adaptateur de dates
+    // (chartjs-adapter-*), requis par le scale "time" — un axe linéaire sur
+    // epoch-ms avec formatage manuel des ticks/tooltip donne le même espacement
+    // proportionnel au temps sans dépendance supplémentaire à vendoriser.
+    var toTs = function (d) { return new Date(d + 'T00:00:00').getTime(); };
+    var datasets = [{
+      label: opts.label || '', data: entries.map(function (e) { return { x: toTs(e.date), y: e.value }; }),
+      borderColor: color, backgroundColor: color + '26', fill: true, tension: 0.3,
+      pointRadius: entries.length > 30 ? 0 : 4, pointHoverRadius: 6, pointBackgroundColor: color,
+      pointBorderColor: cssVar('--card-bg', '#fff'), pointBorderWidth: 2, borderWidth: 2.5,
+    }];
+    if (opts.rangeBand) {
+      datasets.push({ label: 'Min race', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.rangeBand.min }; }), borderColor: 'transparent', pointRadius: 0, fill: false, order: 3 });
+      datasets.push({ label: 'Max race', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.rangeBand.max }; }), borderColor: 'transparent', pointRadius: 0, backgroundColor: 'rgba(34,197,94,0.12)', fill: '-1', order: 3 });
+    }
+    if (opts.thresholdLine != null) {
+      datasets.push({ label: opts.thresholdLabel || 'Seuil', data: entries.map(function (e) { return { x: toTs(e.date), y: opts.thresholdLine }; }), borderColor: '#ef4444', borderDash: [5, 4], pointRadius: 0, fill: false, borderWidth: 1.25 });
+    }
+    CHART_INSTANCES[canvasId] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: function (item) { return item.datasetIndex === 0; },
+            callbacks: {
+              title: function (items) { return items.length ? fmtDate(new Date(items[0].parsed.x).toISOString().slice(0, 10)) : ''; },
+              label: function (ctx) { return opts.formatValue ? opts.formatValue(ctx.parsed.y) : ctx.parsed.y; },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear', grid: { display: false },
+            ticks: {
+              color: muted, font: { size: 10 }, maxRotation: 0, maxTicksLimit: 6,
+              // Libellé compact indépendant du format de date choisi par l'utilisateur
+              // (fmtDate() en dépend, potentiellement "yyyy-mm-dd" ou autre) : jour + mois court fixes ici.
+              callback: function (v) { return new Date(v).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); },
+            },
+          },
+          y: { grid: { color: gridColor }, ticks: { color: muted, font: { size: 10 }, callback: function (v) { return opts.formatValue ? opts.formatValue(v) : v; } } },
+        },
+      },
+    });
+  }
+
+  function renderWeightEvolution(data, targetId) {
+    var container = document.getElementById(targetId || 'weight-evolution');
     if (!container) return;
+    CHART_TARGETS[targetId || 'weight-evolution'] = 'weight';
     if (!data || !data.animal) { container.innerHTML = ''; return; }
 
     var entriesRaw = Array.isArray(data.animal.weightHistory) ? data.animal.weightHistory : [];
@@ -6831,47 +6704,6 @@
       .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
 
     if (entries.length === 0) { container.innerHTML = ''; return; }
-
-    var weights = entries.map(function (e) { return Number(e.weight); });
-    var minW = Math.min.apply(null, weights);
-    var maxW = Math.max.apply(null, weights);
-    if (minW === maxW) { minW -= 0.5; maxW += 0.5; }
-
-    var range = maxW - minW;
-    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
-
-    var xFor = function (i, n) {
-      if (n === 1) return W / 2;
-      return padL + ((W - padL - padR) * i) / (n - 1);
-    };
-    var yFor = function (w) { return padT + (1 - (w - minW) / range) * (H - padT - padB); };
-
-    var n = entries.length;
-
-    // Area fill
-    var areaPoints = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
-    });
-    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
-
-    var points = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.weight)).toFixed(2);
-    }).join(' ');
-
-    var circles = entries.map(function (e, i) {
-      var x = xFor(i, n), y = yFor(Number(e.weight));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="var(--teal)" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + uW(e.weight) + '"></circle>';
-    }).join('');
-
-    // Grid lines
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var wVal = minW + (range * i / steps);
-      var yVal = yFor(wVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + wNum(wVal) + '</text>';
-    }
 
     var first = Number(entries[0].weight);
     var last = Number(entries[entries.length - 1].weight);
@@ -6888,20 +6720,15 @@
     // Breed-based weight reference band (adult dogs/cats only)
     var breedRange = findBreedWeightRange(data.animal.species, data.animal.race);
     var ageMonths = calculateAgeMonths(data.animal.dob);
-    var breedBandSvg = '';
     var breedHintTxt = '';
+    var rangeBand = null;
     if (breedRange && ageMonths != null && ageMonths >= 12) {
-      var bandMinW = Math.max(breedRange.min, minW);
-      var bandMaxW = Math.min(breedRange.max, maxW);
-      if (bandMaxW > bandMinW) {
-        var bandYTop = yFor(bandMaxW);
-        var bandYBottom = yFor(bandMinW);
-        breedBandSvg = '<rect x="' + padL + '" y="' + bandYTop.toFixed(2) + '" width="' + (W - padL - padR) + '" height="' + (bandYBottom - bandYTop).toFixed(2) + '" fill="#22c55e" opacity="0.12"/>';
-      }
+      rangeBand = breedRange;
       var outOfRange = last < breedRange.min || last > breedRange.max;
       breedHintTxt = ' · Fourchette race (adulte) : ' + wNum(breedRange.min, 0) + '–' + wNum(breedRange.max, 0) + ' ' + wUnit() + (outOfRange ? ' ⚠' : ' ✓');
     }
 
+    var canvasId = (targetId || 'weight-evolution') + '-canvas';
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
       var wTxt = wNum(e.weight);
@@ -6909,16 +6736,13 @@
     }).join('');
 
     container.innerHTML =
-      '<div style="position:relative">' +
-      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
-      breedBandSvg +
-      gridLines +
-      '<path d="' + areaPath + '" fill="var(--teal)" opacity="0.1"/>' +
-      '<polyline fill="none" stroke="var(--teal-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
-      circles +
-      '</svg></div>' +
+      '<div class="metric-chart-wrap"><canvas id="' + canvasId + '"></canvas></div>' +
       '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + wUnit() + ' · Variation: ' + deltaTxt + trendHtml + breedHintTxt + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
+
+    drawMetricChart(canvasId, entries.map(function (e) { return { date: e.date, value: Number(e.weight) }; }), {
+      color: cssVar('--teal-dark', '#0f766e'), rangeBand: rangeBand, formatValue: function (v) { return wNum(v); },
+    });
 
     container.querySelectorAll('[data-action="edit-weight"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -6931,31 +6755,14 @@
         deleteWeightEntry(parseInt(btn.getAttribute('data-weight-entry-id'), 10));
       });
     });
-
-    // SVG tooltips
-    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
-      circle.style.cursor = 'pointer';
-      circle.addEventListener('mouseenter', function (e) {
-        var tooltip = document.createElement('div');
-        tooltip.className = 'weight-tooltip';
-        tooltip.textContent = circle.getAttribute('data-tooltip');
-        tooltip.style.left = e.pageX + 'px';
-        tooltip.style.top = (e.pageY - 30) + 'px';
-        tooltip.id = 'weight-tip';
-        document.body.appendChild(tooltip);
-      });
-      circle.addEventListener('mouseleave', function () {
-        var tip = document.getElementById('weight-tip');
-        if (tip) tip.remove();
-      });
-    });
   }
 
   // Miroir de renderWeightEvolution pour la taille au garrot (sans
   // fourchette de race, données non disponibles pour la taille).
-  function renderHeightEvolution(data) {
-    var container = document.getElementById('height-evolution');
+  function renderHeightEvolution(data, targetId) {
+    var container = document.getElementById(targetId || 'height-evolution');
     if (!container) return;
+    CHART_TARGETS[targetId || 'height-evolution'] = 'height';
     if (!data || !data.animal) { container.innerHTML = ''; return; }
 
     var entriesRaw = Array.isArray(data.animal.heightHistory) ? data.animal.heightHistory : [];
@@ -6963,45 +6770,6 @@
       .slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
 
     if (entries.length === 0) { container.innerHTML = ''; return; }
-
-    var heights = entries.map(function (e) { return Number(e.height); });
-    var minH = Math.min.apply(null, heights);
-    var maxH = Math.max.apply(null, heights);
-    if (minH === maxH) { minH -= 1; maxH += 1; }
-
-    var range = maxH - minH;
-    var W = 360, H = 130, padL = 36, padR = 12, padT = 14, padB = 24;
-
-    var xFor = function (i, n) {
-      if (n === 1) return W / 2;
-      return padL + ((W - padL - padR) * i) / (n - 1);
-    };
-    var yFor = function (h) { return padT + (1 - (h - minH) / range) * (H - padT - padB); };
-
-    var n = entries.length;
-
-    var areaPoints = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
-    });
-    var areaPath = 'M' + xFor(0, n).toFixed(2) + ',' + (H - padB) + ' L' + areaPoints.join(' L') + ' L' + xFor(n - 1, n).toFixed(2) + ',' + (H - padB) + ' Z';
-
-    var points = entries.map(function (e, i) {
-      return xFor(i, n).toFixed(2) + ',' + yFor(Number(e.height)).toFixed(2);
-    }).join(' ');
-
-    var circles = entries.map(function (e, i) {
-      var x = xFor(i, n), y = yFor(Number(e.height));
-      return '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="4" fill="#2563eb" stroke="var(--card-bg)" stroke-width="2" data-tooltip="' + fmtDate(e.date) + ' — ' + uH(e.height) + '"></circle>';
-    }).join('');
-
-    var gridLines = '';
-    var steps = 4;
-    for (var i = 0; i <= steps; i++) {
-      var hVal = minH + (range * i / steps);
-      var yVal = yFor(hVal);
-      gridLines += '<line x1="' + padL + '" y1="' + yVal.toFixed(2) + '" x2="' + (W - padR) + '" y2="' + yVal.toFixed(2) + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>';
-      gridLines += '<text x="' + (padL - 4) + '" y="' + (yVal + 4).toFixed(2) + '" fill="var(--text-muted)" font-size="9" text-anchor="end">' + hNum(hVal) + '</text>';
-    }
 
     var first = Number(entries[0].height);
     var last = Number(entries[entries.length - 1].height);
@@ -7014,6 +6782,7 @@
       trendHtml = ' · Tendance : ' + (delta > 0 ? '📈 hausse' : (delta < 0 ? '📉 baisse' : '→ stable'));
     }
 
+    var canvasId = (targetId || 'height-evolution') + '-canvas';
     var listEntries = entries.slice(-6).reverse();
     var list = listEntries.map(function (e) {
       var hTxt = hNum(e.height);
@@ -7021,15 +6790,13 @@
     }).join('');
 
     container.innerHTML =
-      '<div style="position:relative">' +
-      '<svg class="weight-evolution-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
-      gridLines +
-      '<path d="' + areaPath + '" fill="#2563eb" opacity="0.1"/>' +
-      '<polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + points + '"/>' +
-      circles +
-      '</svg></div>' +
+      '<div class="metric-chart-wrap"><canvas id="' + canvasId + '"></canvas></div>' +
       '<div class="weight-evolution-meta">Dernière: ' + lastTxt + ' ' + hUnit() + ' · Variation: ' + deltaTxt + trendHtml + '</div>' +
       '<div class="weight-evolution-list">' + list + '</div>';
+
+    drawMetricChart(canvasId, entries.map(function (e) { return { date: e.date, value: Number(e.height) }; }), {
+      color: '#2563eb', formatValue: function (v) { return hNum(v); },
+    });
 
     container.querySelectorAll('[data-action="edit-height"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -7040,23 +6807,6 @@
     container.querySelectorAll('[data-action="delete-height"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         deleteHeightEntry(parseInt(btn.getAttribute('data-height-entry-id'), 10));
-      });
-    });
-
-    container.querySelectorAll('circle[data-tooltip]').forEach(function (circle) {
-      circle.style.cursor = 'pointer';
-      circle.addEventListener('mouseenter', function (e) {
-        var tooltip = document.createElement('div');
-        tooltip.className = 'weight-tooltip';
-        tooltip.textContent = circle.getAttribute('data-tooltip');
-        tooltip.style.left = e.pageX + 'px';
-        tooltip.style.top = (e.pageY - 30) + 'px';
-        tooltip.id = 'weight-tip';
-        document.body.appendChild(tooltip);
-      });
-      circle.addEventListener('mouseleave', function () {
-        var tip = document.getElementById('weight-tip');
-        if (tip) tip.remove();
       });
     });
   }
@@ -7382,17 +7132,14 @@
     if (tabName === 'photos') renderGallery();
     if (tabName === 'nutrition') renderNutrition();
     if (tabName === 'poids') {
-      // Les courbes vivent dans la frise (#weight-evolution) mais ne s'y dessinent que sur son filtre « Poids & taille » :
-      // on les dessine ici directement pour cet onglet.
+      // Les courbes vivent aussi dans la frise (#weight-evolution, filtre « Poids & taille ») : un canvas
+      // Chart.js ne peut pas être dupliqué par copie de innerHTML (perdrait son dessin), donc on redessine
+      // ici dans les conteneurs dédiés à cet onglet plutôt que de copier le HTML de la frise.
       var poidsData = getCurrent();
-      renderWeightEvolution(poidsData);
-      renderHeightEvolution(poidsData);
-      var pw = document.getElementById('poids-weight-wrap');
+      renderWeightEvolution(poidsData, 'poids-weight-wrap');
+      renderHeightEvolution(poidsData, 'poids-height-wrap');
       var ph = document.getElementById('poids-height-wrap');
-      var srcW = document.getElementById('weight-evolution');
-      var srcH = document.getElementById('height-evolution');
-      if (pw && srcW) pw.innerHTML = srcW.innerHTML;
-      if (ph && srcH) { ph.innerHTML = srcH.innerHTML; ph.hidden = false; }
+      if (ph) ph.hidden = false;
     }
     if (tabName === 'activites') renderActivities();
     if (tabName === 'chaleurs') renderHeatCycles();
@@ -7583,6 +7330,7 @@
     var btn = document.getElementById('btn-theme-toggle');
     if (btn) btn.textContent = dark ? '🌙' : '☀️';
     localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    redrawChartsForTheme();
   }
 
   function toggleTheme() {
@@ -7598,6 +7346,7 @@
       document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
       var btn = document.getElementById('btn-theme-toggle');
       if (btn) btn.textContent = prefersDark ? '🌙' : '☀️';
+      redrawChartsForTheme();
     } else {
       applyTheme(mode === 'dark');
     }

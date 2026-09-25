@@ -2057,23 +2057,13 @@ tbody tr:hover td {
   gap: 8px;
 }
 
-svg.weight-evolution-svg {
+/* Chart.js redimensionne lui-même le canvas (buffer de dessin, pas juste le
+   CSS) via un ResizeObserver sur ce conteneur — lui donner une taille CSS
+   forcée sur le canvas produirait un rendu flou, désynchronisé du buffer. */
+.metric-chart-wrap {
+  position: relative;
   width: 100%;
-  height: 120px;
-  display: block;
-}
-
-.weight-tooltip {
-  position: absolute;
-  background: var(--teal-dark);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 10;
+  height: 170px;
 }
 
 /* ----- Calendar ----- */

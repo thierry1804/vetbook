@@ -1,7 +1,7 @@
 /**
  * Service Worker App'lika — cache de l'app shell pour usage hors ligne / PWA
  */
-const CACHE_NAME = 'applika-v8';
+const CACHE_NAME = 'applika-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './vendor/qrcode.min.js',
+  './vendor/chart.umd.js',
   './data-layer.js',
   './account.js'
   // Note : config.js est volontairement absent (spécifique à chaque
