@@ -280,7 +280,7 @@
     isConfigured: isConfigured,
     register: register,
     login: login,
-    signInWithEmail: function (email) {
+    signInWithEmail: function () {
       return Promise.reject(new Error('Utilise login(email, password) ou register(...).'));
     },
     signOut: signOut,

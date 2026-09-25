@@ -336,6 +336,8 @@
     geoSortActive: false,
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth(),
+    calendarDay: '',
+    agendaPet: 'all',
     petTaskFilter: 'all',
     petChartMode: 'weight'
   };
@@ -1031,19 +1033,136 @@
     return true;
   }
 
-  function snoozeDueItem(item, days) {
+  function dueEntry(item) {
     var data = findAnimalData(item.animalId);
-    if (!data) return false;
-    var list = data[item.collection];
-    if (!Array.isArray(list)) return false;
-    var entry = list.find(function (x) { return x.id === item.id; });
+    var list = data && data[item.collection];
+    if (!Array.isArray(list)) return null;
+    return list.find(function (x) { return x.id === item.id; }) || null;
+  }
+
+  // Nouvelle date après un report : à partir d'aujourd'hui si le soin est déjà
+  // en retard (sinon « +7 jours » d'un soin échu depuis 30 jours resterait en retard),
+  // à partir de l'échéance si elle est encore à venir.
+  function snoozeTarget(item, days) {
+    var entry = dueEntry(item);
+    if (!entry) return '';
+    var current = item.collection === 'medications' ? entry.endDate : entry.next;
+    var today = todayISO();
+    return addDaysISO(current && current > today ? current : today, days || 7);
+  }
+
+  function snoozeDueItem(item, days) {
+    var entry = dueEntry(item);
     if (!entry) return false;
-    var base = item.collection === 'medications' ? entry.endDate : entry.next;
-    var next = addDaysISO(base || todayISO(), days || 7);
+    var next = snoozeTarget(item, days);
     if (item.collection === 'medications') entry.endDate = next;
     else entry.next = next;
     saveState();
     return true;
+  }
+
+  function refreshAfterReminder() {
+    if (state.viewMode === 'home') renderHome();
+    else refreshAll();
+  }
+
+  // Fait / Reporter : applique l'action, confirme par un toast « Annuler » qui
+  // restaure l'enregistrement tel qu'il était avant.
+  function applyReminder(item, kind, days) {
+    var entry = dueEntry(item);
+    if (!entry) return false;
+    var before = JSON.parse(JSON.stringify(entry));
+    var ok = kind === 'done' ? completeDueItem(item) : snoozeDueItem(item, days);
+    if (!ok) return false;
+    var after = dueEntry(item);
+    var label = (item.name || 'Rappel') + ' de ' + item.animalName;
+    var message;
+    if (kind === 'later') message = label + ' reporté au ' + fmtDate(item.collection === 'medications' ? after.endDate : after.next) + '.';
+    else if (item.collection === 'medications') message = 'Traitement ' + (item.name || '') + ' de ' + item.animalName + ' terminé.';
+    else message = label + ' : fait. Prochain rappel le ' + fmtDate(after.next) + '.';
+    showUndoToast(message, function () {
+      var data = findAnimalData(item.animalId);
+      var list = data && data[item.collection];
+      var idx = Array.isArray(list) ? list.findIndex(function (x) { return x.id === item.id; }) : -1;
+      if (idx === -1) return;
+      list[idx] = before;
+      saveState();
+      refreshAfterReminder();
+    });
+    refreshAfterReminder();
+    return true;
+  }
+
+  // Sélecteur de report : popover ancré au bouton (desktop) ou feuille du bas (mobile).
+  var snoozeUi = { trigger: null };
+  function closeSnoozePicker(restoreFocus) {
+    var el = document.getElementById('snooze-picker');
+    if (!el || el.hidden) return;
+    el.hidden = true;
+    if (restoreFocus !== false && snoozeUi.trigger && document.body.contains(snoozeUi.trigger)) snoozeUi.trigger.focus({ preventScroll: true });
+    snoozeUi.trigger = null;
+  }
+  function openSnoozePicker(item, trigger) {
+    var el = document.getElementById('snooze-picker');
+    if (!el) { applyReminder(item, 'later', 7); return; }
+    snoozeUi.trigger = trigger;
+    document.getElementById('sn-title').textContent = 'Reporter « ' + (item.name || 'ce rappel') + ' »';
+    var options = [[1, 'Demain'], [3, 'Dans 3 jours'], [7, 'Dans 1 semaine'], [30, 'Dans 1 mois']];
+    var list = document.getElementById('sn-options');
+    list.innerHTML = options.map(function (o) {
+      var target = snoozeTarget(item, o[0]);
+      var when = isoToLocalDate(target).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+      return '<button type="button" class="sn__option" data-days="' + o[0] + '"><span>' + o[1] + '</span><small>' + escapeHtml(when) + '</small></button>';
+    }).join('');
+    list.querySelectorAll('.sn__option').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var days = parseInt(btn.getAttribute('data-days'), 10);
+        closeSnoozePicker(false);
+        applyReminder(item, 'later', days);
+      });
+    });
+    var panel = el.querySelector('.qa__panel');
+    panel.style.top = panel.style.left = '';
+    el.hidden = false;
+    if (trigger && window.matchMedia('(min-width: 1024px)').matches) {
+      // Popover : sous le bouton, aligné à son bord droit, remonté s'il dépasse de l'écran.
+      var r = trigger.getBoundingClientRect();
+      var w = panel.offsetWidth, h = panel.offsetHeight;
+      var top = r.bottom + 8;
+      if (top + h > window.innerHeight - 12) top = Math.max(12, r.top - h - 8);
+      panel.style.top = top + 'px';
+      panel.style.left = Math.max(12, Math.min(r.right - w, window.innerWidth - w - 12)) + 'px';
+    }
+    list.querySelector('.sn__option').focus({ preventScroll: true });
+  }
+  function setupSnoozePicker() {
+    var el = document.getElementById('snooze-picker');
+    if (!el) return;
+    el.querySelectorAll('[data-sn-close]').forEach(function (b) { b.addEventListener('click', function () { closeSnoozePicker(); }); });
+    document.addEventListener('keydown', function (e) {
+      if (el.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeSnoozePicker(); return; }
+      if (e.key !== 'Tab') return;
+      var items = Array.prototype.slice.call(el.querySelectorAll('button')).filter(function (b) { return b.offsetParent !== null; });
+      if (!items.length) return;
+      if (e.shiftKey && document.activeElement === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
+    });
+    window.addEventListener('resize', function () { closeSnoozePicker(false); });
+    // Le popover est ancré à un bouton : s'il défile, il ne le suivrait plus.
+    window.addEventListener('scroll', function (e) { if (!el.hidden && !el.contains(e.target)) closeSnoozePicker(false); }, true);
+  }
+
+  function reminderButtons(item) {
+    var doneLabel = item.collection === 'medications' ? 'Terminé' : 'Fait';
+    return '<button type="button" class="rem-btn rem-btn--done" data-rem="done">' + doneLabel + '</button>' +
+      '<button type="button" class="rem-btn rem-btn--later" data-rem="later" aria-haspopup="dialog">Reporter</button>';
+  }
+  function bindReminderButtons(scope, item) {
+    var done = scope.querySelector('[data-rem="done"]');
+    var later = scope.querySelector('[data-rem="later"]');
+    if (done) done.addEventListener('click', function (e) { e.stopPropagation(); applyReminder(item, 'done'); });
+    if (later) later.addEventListener('click', function (e) { e.stopPropagation(); openSnoozePicker(item, later); });
   }
 
   function animalIssueLine(data) {
@@ -1199,7 +1318,7 @@
       var isActive = data.id === state.currentAnimalId;
       var avatarInner = a.avatar
         ? (typeof a.avatar === 'number'
-            ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
+            ? '<img data-avatar-key="' + a.avatar + '" alt="">'
             : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
         : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
       return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
@@ -1705,8 +1824,8 @@
 
   // Serene Pet Care shell — shares the existing routes and persisted records.
   var careLinks = [
-    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Calendrier & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
-    ['Carnet de santé', [['profil', 'Identité & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
+    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
+    ['Carnet de santé', [['historique', 'Frise du carnet', 'clipboard'], ['profil', 'Fiche & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
     ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
   ];
@@ -1751,9 +1870,20 @@
     var a = data ? data.animal : {};
     var portrait = data ? '<div class="care-portrait">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 38) + '</div>' : '';
     var actions = careButton('addVaccin', 'Enregistrer un soin', 'plus', true) + careButton('addWeight', 'Pesée', 'scale') + careButton('addMeal', 'Repas', 'utensils');
-    el.innerHTML = '<div class="care-welcome">' + portrait + '<div class="care-welcome-copy"><h1>' + escapeHtml(greeting) + '</h1><p>' + (data ? 'Retrouvez le carnet de ' + escapeHtml(a.name || 'votre compagnon') + ' et ses prochains soins.' : 'Un petit geste aujourd’hui, une belle vie à leurs côtés.') + '</p></div><div class="care-actions">' + (data ? actions : careButton('addAnimal', 'Créer son carnet', 'plus', true)) + '</div></div>';
+    var dueNow = data ? collectDueItemsForAnimal(data) : [];
+    var lateNow = dueNow.filter(function (x) { return daysUntil(x.next) < 0; }).length;
+    var soonNow = dueNow.filter(function (x) { var d = daysUntil(x.next); return d >= 0 && d <= 30; }).length;
+    var statusChip = '';
+    if (data) {
+      var chipKind = lateNow ? 'late' : soonNow ? 'soon' : 'ok';
+      var chipText = lateNow ? lateNow + ' soin' + (lateNow > 1 ? 's' : '') + ' en retard' : soonNow ? soonNow + ' soin' + (soonNow > 1 ? 's' : '') + ' à prévoir ce mois-ci' : 'Carnet à jour';
+      statusChip = '<span class="care-status care-status--' + chipKind + '">' + escapeHtml(chipText) + '</span>';
+    }
+    var today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    today = today.charAt(0).toUpperCase() + today.slice(1);
+    el.innerHTML = '<div class="care-welcome">' + portrait + '<div class="care-welcome-copy"><h1>' + escapeHtml(greeting) + '</h1><p>' + escapeHtml(today) + '. ' + (data ? 'Retrouvez le carnet de ' + escapeHtml(a.name || 'votre compagnon') + ' et ses prochains soins.' : 'Un petit geste aujourd’hui, une belle vie à leurs côtés.') + '</p>' + statusChip + '</div><div class="care-actions">' + (data ? actions : careButton('addAnimal', 'Ajouter mon animal', 'plus', true)) + '</div></div>';
     if (!data) {
-      el.innerHTML += '<div class="care-intro-grid">' + [['heart','Sa santé, au même endroit','Vaccins, consultations et traitements : gardez une trace de chaque soin.'],['bell','Les bons rappels','Retrouvez les prochaines échéances dans votre agenda.'],['paw','Chaque petit progrès','Poids, repas, activités et souvenirs accompagnent son quotidien.']].map(function (x) { return '<article class="care-card">' + ico(x[0],28) + '<h2>' + x[1] + '</h2><p>' + x[2] + '</p></article>'; }).join('') + '</div>';
+      el.innerHTML += '<section class="care-preview" aria-label="Aperçu du carnet, exemple"><div class="care-preview__head"><span class="care-eyebrow">Exemple de carnet</span><span class="care-preview__tag">Données fictives</span></div><div class="care-preview__body"><div class="care-preview__pet"><svg class="care-ring" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--mint-soft)" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="var(--brand-mid)" stroke-width="8" stroke-linecap="round" stroke-dasharray="165 201" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle">82%</text></svg><div><strong>Nala</strong><small>Labrador · 3 ans · 24,6 kg</small><span class="care-status care-status--soon">2 soins à prévoir</span></div></div><ul class="care-preview__list"><li class="is-late"><span class="care-preview__icon">' + ico('vaccine',18) + '</span><span><b>Rappel vaccin annuel</b><small>En retard de 3 jours</small></span></li><li><span class="care-preview__icon">' + ico('pill',18) + '</span><span><b>Vermifuge</b><small>Dans 6 jours</small></span></li><li><span class="care-preview__icon">' + ico('scale',18) + '</span><span><b>Pesée · 24,6 kg</b><small>Il y a 2 jours, +0,2 kg</small></span></li></ul></div><p class="care-preview__foot">Votre carnet ressemblera à ceci dès le premier animal ajouté.</p></section>';
       return;
     }
     var due = collectDueItemsForAnimal(data);
@@ -1793,7 +1923,6 @@
 
   function renderHome() {
     renderCareDashboard();
-    var emptyEl = document.getElementById('home-empty');
     var urgencyEl = document.getElementById('home-urgency');
     var ensuiteWrap = document.getElementById('home-ensuite-wrap');
     var ensuiteList = document.getElementById('home-ensuite-list');
@@ -1803,14 +1932,11 @@
     if (!urgencyEl) return;
 
     if (state.animals.length === 0) {
-      if (emptyEl) emptyEl.hidden = false;
       urgencyEl.hidden = true;
       if (ensuiteWrap) ensuiteWrap.hidden = true;
       if (petsWrap) petsWrap.hidden = true;
       return;
     }
-    if (emptyEl) emptyEl.hidden = true;
-
     var all = collectAllDueItems();
     var urgent = getMostUrgentItem();
     var clinic = getPrimaryClinicPhone();
@@ -1853,8 +1979,8 @@
         '<div class="home-urgency__sub">' + escapeHtml(sub) + '</div>' +
         '<div class="home-urgency__actions">' +
         '<button type="button" class="home-urgency__btn home-urgency__btn--primary" id="home-urgency-call">' + escapeHtml(callLabel) + '</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">C\'est déjà fait</button>' +
-        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later">Plus tard</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-done">' + (urgent.collection === 'medications' ? 'Terminé' : 'Fait') + '</button>' +
+        '<button type="button" class="home-urgency__btn home-urgency__btn--ghost" id="home-urgency-later" aria-haspopup="dialog">Reporter</button>' +
         '</div>';
       urgencyEl._urgentItem = urgent;
 
@@ -1864,19 +1990,9 @@
         else showDirectory();
       });
       var doneBtn = document.getElementById('home-urgency-done');
-      if (doneBtn) doneBtn.addEventListener('click', function () {
-        if (completeDueItem(urgent)) {
-          showToast('Marqué comme fait', 'success');
-          renderHome();
-        }
-      });
+      if (doneBtn) doneBtn.addEventListener('click', function () { applyReminder(urgent, 'done'); });
       var laterBtn = document.getElementById('home-urgency-later');
-      if (laterBtn) laterBtn.addEventListener('click', function () {
-        if (snoozeDueItem(urgent, 7)) {
-          showToast('Reporté de 7 jours', 'success');
-          renderHome();
-        }
-      });
+      if (laterBtn) laterBtn.addEventListener('click', function () { openSnoozePicker(urgent, laterBtn); });
     }
 
     var queue = all.filter(function (x) { return !urgent || x.id !== urgent.id || x.animalId !== urgent.animalId || x.collection !== urgent.collection; });
@@ -1899,7 +2015,7 @@
           return '<div class="home-queue__row" data-animal-id="' + item.animalId + '" data-collection="' + item.collection + '" data-id="' + item.id + '">' +
             '<span class="home-queue__delay home-queue__delay--' + tone + '">' + escapeHtml(formatJDelay(item.next)) + '</span>' +
             '<span class="home-queue__label">' + escapeHtml((item.name || '') + ' — ' + item.animalName) + '</span>' +
-            '<button type="button" class="home-queue__action" data-action="' + (actionLabel === 'Valider' ? 'validate' : 'open') + '">' + actionLabel + '</button>' +
+            '<span class="home-queue__actions">' + (actionLabel === 'Valider' ? reminderButtons(item) : '<button type="button" class="home-queue__action" data-action="open">Ouvrir</button>') + '</span>' +
             '</div>';
         }).join('');
         ensuiteList.querySelectorAll('.home-queue__row').forEach(function (row) {
@@ -1913,19 +2029,13 @@
             saveState();
             showDetail({ tab: 'actes', nav: 'pets' });
           });
+          if (item) bindReminderButtons(row, item);
           var act = row.querySelector('.home-queue__action');
           if (act) act.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (act.getAttribute('data-action') === 'validate' && item) {
-              if (completeDueItem(item)) {
-                showToast('Validé', 'success');
-                renderHome();
-              }
-            } else {
-              state.currentAnimalId = animalId;
-              saveState();
-              showDetail({ tab: 'actes', nav: 'pets' });
-            }
+            state.currentAnimalId = animalId;
+            saveState();
+            showDetail({ tab: 'actes', nav: 'pets' });
           });
         });
       }
@@ -1940,7 +2050,7 @@
         if (short.length > 18) short = short.slice(0, 16) + '…';
         var avatarInner = a.avatar
           ? (typeof a.avatar === 'number'
-              ? '<img src="" data-avatar-key="' + a.avatar + '" alt="">'
+              ? '<img data-avatar-key="' + a.avatar + '" alt="">'
               : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
           : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
         return '<button type="button" class="home-pet-chip" data-animal-id="' + data.id + '">' +
@@ -2027,9 +2137,19 @@
       })() : '';
       lineEl.textContent = [a.race || a.species, a.sex, age, a.sterilise === 'Oui' ? 'stérilisé' : ''].filter(Boolean).join(' · ');
     }
+    var headerEl = document.getElementById('dossier-header');
+    var statusEl = document.getElementById('dossier-status');
+    if (headerEl && statusEl) {
+      var dueH = collectDueItemsForAnimal(data);
+      var lateH = dueH.filter(function (x) { return daysUntil(x.next) < 0; }).length;
+      var soonH = dueH.filter(function (x) { var dd = daysUntil(x.next); return dd >= 0 && dd <= 30; }).length;
+      var kindH = lateH ? 'late' : soonH ? 'soon' : 'ok';
+      headerEl.setAttribute('data-status', kindH);
+      statusEl.innerHTML = '<span class="care-status care-status--' + kindH + '">' + escapeHtml(lateH ? lateH + ' soin' + (lateH > 1 ? 's' : '') + ' en retard' : soonH ? soonH + ' soin' + (soonH > 1 ? 's' : '') + ' à prévoir ce mois-ci' : 'Carnet à jour') + '</span>';
+    }
     if (avEl) {
       if (a.avatar && typeof a.avatar === 'number') {
-        avEl.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="">';
+        avEl.innerHTML = '<img data-avatar-key="' + a.avatar + '" alt="">';
         getPhotoObjectUrl(a.avatar).then(function (url) {
           var img = avEl.querySelector('img');
           if (img && url) img.src = url;
@@ -2071,90 +2191,124 @@
       stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
   }
 
+  // Fiche : ce qui demande une action d'abord, l'état de santé ensuite, les constantes après ;
+  // l'identité et le propriétaire vivent dans la colonne latérale (CSS).
+  function ficheCompleteness(data) {
+    var a = data.animal, o = getOwner();
+    var fields = [
+      { label: 'Date de naissance', ok: !!a.dob },
+      { label: 'Poids', ok: a.weight != null && a.weight !== '' },
+      { label: 'Race', ok: !!a.race },
+      { label: 'Puce électronique', ok: !!a.chip },
+      { label: 'Clinique référente', ok: !!o.clinic },
+      { label: 'Téléphone', ok: !!o.phone }
+    ];
+    return { fields: fields, done: fields.filter(function (f) { return f.ok; }).length };
+  }
+
+  function friseLastDate(items, key) {
+    var dates = (items || []).map(function (x) { return x[key || 'date']; }).filter(Boolean).sort();
+    return dates.length ? dates[dates.length - 1] : '';
+  }
+
+  function ficheSpark(values) {
+    if (values.length < 2) return '';
+    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values);
+    if (lo === hi) { lo -= 0.5; hi += 0.5; }
+    var pts = values.map(function (v, i) { return [4 + i * 112 / (values.length - 1), 28 - (v - lo) / (hi - lo) * 24]; });
+    var last = pts[pts.length - 1];
+    return '<svg class="fiche-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="none" stroke="var(--brand-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3" fill="var(--brand-mid)"/></svg>';
+  }
+
   function renderFicheV1() {
     renderIdentity();
     renderHealthOverview();
     var data = getCurrent();
     var metrics = document.getElementById('fiche-metrics');
-    var banner = document.getElementById('fiche-banner');
     var domains = document.getElementById('fiche-domains');
+    var watch = document.getElementById('fiche-watch');
+    var complete = document.getElementById('fiche-complete');
     if (!data || !metrics) return;
     var a = data.animal;
-    var tiles = [];
-    if (a.weight != null && a.weight !== '') {
-      tiles.push({ label: 'Poids', value: String(a.weight).replace('.', ',') + ' kg', trend: '', ok: false });
-    }
-    if (a.height != null && a.height !== '') {
-      tiles.push({ label: 'Taille au garrot', value: String(a.height).replace('.', ',') + ' cm', trend: '', ok: false });
-    }
-    // checkup score from last journal? skip if none — no fake data
-    var yearSpend = 0;
-    var consultCount = 0;
-    (data.consultations || []).forEach(function (c) {
-      if (!c.date) return;
-      var dt = isoToLocalDate(c.date);
-      if (!dt) return;
-      var yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-      if (dt >= yearAgo) {
-        consultCount++;
-        var cost = parseFloat(c.cost || c.prix || c.amount || 0);
-        if (!isNaN(cost)) yearSpend += cost;
+    var name = a.name || 'votre compagnon';
+
+    // 0. Complétude de la fiche (relais de l'onboarding en une étape)
+    if (complete) {
+      var c = ficheCompleteness(data);
+      if (c.done === c.fields.length) complete.hidden = true;
+      else {
+        var missing = c.fields.filter(function (f) { return !f.ok; });
+        var ownerOnly = missing.every(function (f) { return f.label === 'Clinique référente' || f.label === 'Téléphone'; });
+        complete.hidden = false;
+        complete.innerHTML = '<div class="fiche-complete__top"><div><strong>Compléter la fiche de ' + escapeHtml(name) + '</strong><span>' + c.done + ' sur ' + c.fields.length + ' renseignés</span></div>' +
+          '<button type="button" class="rem-btn rem-btn--done" data-stitch-action="' + (ownerOnly ? 'editOwner' : 'editAnimal') + '">Compléter</button></div>' +
+          '<div class="fiche-complete__bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + c.fields.length + '" aria-valuenow="' + c.done + '" aria-label="Fiche renseignée à ' + Math.round(c.done / c.fields.length * 100) + ' %"><span style="width:' + (c.done / c.fields.length * 100) + '%"></span></div>' +
+          '<div class="fiche-complete__missing">' + missing.map(function (f) { return '<span>' + escapeHtml(f.label) + '</span>'; }).join('') + '</div>';
       }
+    }
+
+    // 1. À surveiller : soins en retard puis à venir, avec Fait / Reporter
+    if (watch) {
+      var dues = collectDueItemsForAnimal(data).sort(function (x, y) { return x.next.localeCompare(y.next); });
+      if (!dues.length) {
+        watch.innerHTML = '<div class="ag__todo-empty">' + ico('check', 20) + '<span>Aucun rappel programmé.</span></div><p class="fiche-hint">Ajoutez un vaccin ou un vermifuge avec sa date de rappel, vous serez prévenu à temps.</p>';
+      } else {
+        var evs = dues.slice(0, 3).map(function (d) { return agendaDueEvent(d, false); });
+        watch.innerHTML = '<ul class="ag__list">' + evs.map(agendaEventCard).join('') + '</ul>' +
+          (dues.length > 3 ? '<button type="button" class="ag__more" data-care-route="historique">' + (dues.length === 4 ? 'Voir l\u2019autre échéance dans la frise' : 'Voir les ' + (dues.length - 3) + ' autres dans la frise') + '</button>' : '');
+        bindAgendaCards(watch, evs);
+      }
+    }
+
+    // 2. Constantes
+    var tiles = [];
+    var weights = (a.weightHistory || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
+    if (a.weight != null && a.weight !== '') {
+      var trend = '';
+      if (weights.length > 1) {
+        var dl = Number(weights[weights.length - 1].weight) - Number(weights[weights.length - 2].weight);
+        trend = Math.abs(dl) < 0.05 ? 'Stable depuis le ' + fmtDate(weights[weights.length - 2].date) : (dl > 0 ? '+' : '−') + Math.abs(dl).toFixed(1).replace('.', ',') + ' kg depuis le ' + fmtDate(weights[weights.length - 2].date);
+      }
+      tiles.push({ label: 'Poids', value: String(a.weight).replace('.', ',') + ' kg', trend: trend, extra: ficheSpark(weights.slice(-8).map(function (w) { return Number(w.weight); })), route: 'poids' });
+    }
+    if (a.height != null && a.height !== '') tiles.push({ label: 'Taille au garrot', value: String(a.height).replace('.', ',') + ' cm', trend: '', route: 'poids' });
+    var yearSpend = 0, consultCount = 0;
+    var yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    (data.consultations || []).forEach(function (cn) {
+      var dt = cn.date && isoToLocalDate(cn.date);
+      if (!dt || dt < yearAgo) return;
+      consultCount++;
+      var cost = parseFloat(cn.cost || cn.prix || cn.amount || 0);
+      if (!isNaN(cost)) yearSpend += cost;
     });
     if (consultCount > 0 || yearSpend > 0) {
-      tiles.push({
-        label: 'Dépenses 12 mois',
-        value: (yearSpend ? Math.round(yearSpend).toLocaleString('fr-FR') + ' €' : '—'),
-        trend: consultCount ? (consultCount + ' consultation' + (consultCount > 1 ? 's' : '')) : '',
-        ok: false
-      });
+      tiles.push({ label: 'Dépenses 12 mois', value: yearSpend ? Math.round(yearSpend).toLocaleString('fr-FR') + ' €' : '—', trend: consultCount ? consultCount + ' consultation' + (consultCount > 1 ? 's' : '') : '', route: 'consultations' });
     }
     metrics.innerHTML = tiles.map(function (t) {
-      return '<div class="fiche-metric"><div class="fiche-metric__label">' + escapeHtml(t.label) + '</div>' +
-        '<div class="fiche-metric__value">' + escapeHtml(t.value) + '</div>' +
-        (t.trend ? '<div class="fiche-metric__trend' + (t.ok ? ' fiche-metric__trend--ok' : '') + '">' + escapeHtml(t.trend) + '</div>' : '') +
-        '</div>';
-    }).join('') || '<p class="global-view__sub">Renseignez le poids et la taille pour afficher les constantes.</p>';
+      return '<button type="button" class="fiche-metric" data-care-route="' + t.route + '"><span class="fiche-metric__label">' + escapeHtml(t.label) + '</span>' +
+        '<span class="fiche-metric__value">' + escapeHtml(t.value) + '</span>' + (t.extra || '') +
+        (t.trend ? '<span class="fiche-metric__trend">' + escapeHtml(t.trend) + '</span>' : '') + '</button>';
+    }).join('') || '<p class="fiche-hint">Renseignez le poids ou la taille pour suivre la croissance.</p>';
 
-    var overdueItems = collectDueItemsForAnimal(data).filter(function (x) { return daysUntil(x.next) < 0; });
-    if (banner) {
-      if (!overdueItems.length) {
-        banner.hidden = true;
-      } else {
-        banner.hidden = false;
-        var clinic = getPrimaryClinicPhone();
-        var names = overdueItems.slice(0, 2).map(function (x) { return x.name; }).join(', ');
-        banner.innerHTML = '<div><div class="fiche-banner__title">' + overdueItems.length + ' acte' + (overdueItems.length > 1 ? 's' : '') + ' en retard</div>' +
-          '<div class="fiche-banner__sub">' + escapeHtml(names) + '. ' + (clinic ? 'Une visite chez ' + escapeHtml(clinic.name) + ' peut suffire.' : '') + '</div></div>' +
-          (clinic && clinic.phone
-            ? '<a class="dossier-btn dossier-btn--primary" href="tel:' + escapeHtml(clinic.phone.replace(/\s+/g, '')) + '">Appeler</a>'
-            : '<button type="button" class="dossier-btn dossier-btn--primary" id="fiche-banner-dir">Annuaire</button>');
-        var dirBtn = document.getElementById('fiche-banner-dir');
-        if (dirBtn) dirBtn.addEventListener('click', showDirectory);
-      }
-    }
-
+    // 3. Santé en un coup d'œil : quatre domaines cliquables
     if (domains) {
-      var vax = summarizeDomain(data.vaccines, 'name', 'next');
-      var dew = summarizeDomain(data.dewormings, 'name', 'next');
-      var hyg = summarizeDomain(data.hygiene, 'type', 'next');
       var meds = (data.medications || []).filter(function (m) { return m.active !== false; });
       var medSum;
-      if (!meds.length) medSum = { status: 'ok', statusLabel: 'aucun', body: 'Pas de traitement en cours.' };
-      else {
-        var m = meds[0];
-        medSum = { status: 'soon', statusLabel: 'en cours', body: (m.name || 'Traitement') + (m.endDate ? (', fin le ' + fmtDate(m.endDate)) : '') + '.' };
-      }
+      if (!meds.length) medSum = { status: 'ok', statusLabel: 'Aucun', body: 'Pas de traitement en cours.' };
+      else medSum = { status: 'soon', statusLabel: 'En cours', body: (meds[0].name || 'Traitement') + (meds[0].endDate ? ', fin le ' + fmtDate(meds[0].endDate) : '') + '.' };
       var blocks = [
-        { title: 'Vaccins', s: vax },
-        { title: 'Déparasitage', s: dew },
-        { title: 'Hygiène', s: hyg },
-        { title: 'Traitement', s: medSum }
+        { title: 'Vaccins', s: summarizeDomain(data.vaccines, 'name', 'next'), last: friseLastDate(data.vaccines), route: 'vaccins', icon: 'vaccine' },
+        { title: 'Déparasitage', s: summarizeDomain(data.dewormings, 'name', 'next'), last: friseLastDate(data.dewormings), route: 'deworming', icon: 'pill' },
+        { title: 'Hygiène', s: summarizeDomain(data.hygiene, 'type', 'next'), last: friseLastDate(data.hygiene), route: 'hygiene', icon: 'droplet' },
+        { title: 'Traitement', s: medSum, last: friseLastDate(data.medications, 'startDate'), route: 'medications', icon: 'pill' }
       ];
       domains.innerHTML = blocks.map(function (b) {
-        return '<div class="fiche-domain"><div class="fiche-domain__top"><span class="fiche-domain__name">' + b.title + '</span>' +
-          '<span class="fiche-domain__status fiche-domain__status--' + b.s.status + '">' + escapeHtml(b.s.statusLabel) + '</span></div>' +
-          '<div class="fiche-domain__body">' + escapeHtml(b.s.body) + '</div></div>';
+        var st = b.s.status;
+        var label = b.s.statusLabel === '—' ? 'Non suivi' : b.s.statusLabel.charAt(0).toUpperCase() + b.s.statusLabel.slice(1);
+        return '<button type="button" class="fiche-domain" data-care-route="' + b.route + '"><span class="fiche-domain__top"><span class="fiche-domain__icon">' + ico(b.icon, 18) + '</span><span class="fiche-domain__name">' + b.title + '</span></span>' +
+          '<span class="fiche-domain__status fiche-domain__status--' + st + '">' + escapeHtml(label) + '</span>' +
+          '<span class="fiche-domain__body">' + escapeHtml(b.s.body) + '</span>' +
+          (b.last ? '<span class="fiche-domain__last">Dernier : ' + escapeHtml(fmtDate(b.last)) + '</span>' : '') + '</button>';
       }).join('');
     }
   }
@@ -2231,36 +2385,117 @@
     }
   }
 
+  // ——— Agenda ——————————————————————————————————————————
+  // Calendrier du mois (tous les animaux ou un seul), panneau du jour sélectionné
+  // et liste « À faire ». Les soins à faire portent les boutons Fait / Reporter.
+  var AGENDA_TODO_MAX = 8;
+  function localIso(y, m, d) { return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+  function todayLocalIso() { var n = new Date(); return localIso(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function agendaAnimals() {
+    var sel = uiState.agendaPet;
+    if (!sel || sel === 'all') return state.animals;
+    return state.animals.filter(function (a) { return String(a.id) === String(sel); });
+  }
+  function agendaDues() {
+    var dues = [];
+    agendaAnimals().forEach(function (d) { dues = dues.concat(collectDueItemsForAnimal(d)); });
+    return dues.sort(function (x, y) { return x.next.localeCompare(y.next); });
+  }
+  function agendaDueEvent(d, multi) {
+    var c = friseCat(friseDueCat(d)) || { key: 'vaccins', tone: 'care', icon: 'bell', tab: 'vaccins' };
+    var dt = delayTone(d.next);
+    return { kind: 'due', due: d, date: d.next, title: d.name, sub: d.collection === 'medications' ? 'Fin de traitement' : 'À prévoir', tone: dt === 'ok' ? c.tone : dt, badgeTone: c.tone, icon: c.icon, cat: c.key, tab: c.tab, animalName: d.animalName, animalId: d.animalId, multi: multi };
+  }
+  // Tous les événements par date ISO : soins à faire, historique déjà enregistré, anniversaires de l'année affichée.
+  function buildAgendaEvents(year) {
+    var map = {};
+    var animals = agendaAnimals();
+    var multi = animals.length > 1;
+    function add(iso, e) { (map[iso] = map[iso] || []).push(e); }
+    animals.forEach(function (data) {
+      var name = data.animal.name || 'Animal';
+      buildFriseEvents(data).forEach(function (e) {
+        if (e.icon === 'utensils') return; // les repas encombreraient le calendrier
+        add(e.date, Object.assign({}, e, { kind: 'past', badgeTone: e.tone, animalName: name, animalId: data.id, multi: multi }));
+      });
+      collectDueItemsForAnimal(data).forEach(function (d) { add(d.next, agendaDueEvent(d, multi)); });
+      if (data.animal.dob) {
+        var dob = isoToLocalDate(data.animal.dob);
+        if (dob && dob.getFullYear() < year) {
+          add(localIso(year, dob.getMonth(), dob.getDate()), { kind: 'past', title: 'Anniversaire de ' + name, sub: (year - dob.getFullYear()) + ' an' + (year - dob.getFullYear() > 1 ? 's' : ''), tone: 'warm', badgeTone: 'warm', icon: 'cake', animalName: name, animalId: data.id, multi: multi, tab: 'profil' });
+        }
+      }
+    });
+    return map;
+  }
+  function agendaEventCard(e, idx) {
+    var who = e.multi ? '<span class="fr__meta">' + escapeHtml(e.animalName) + '</span>' : '';
+    var badge = '<span class="fr__badge" data-tone="' + e.badgeTone + '">' + ico(e.icon, 18) + '</span>';
+    if (e.kind === 'due') {
+      var when = '<span class="fr__meta fr__meta--' + (e.tone === 'late' || e.tone === 'soon' ? e.tone : 'soon') + '">' + escapeHtml(formatJDelay(e.date)) + '</span>';
+      return '<li class="ag__row" data-tone="' + e.tone + '"><div class="fr__card fr__card--due">' + badge +
+        '<span class="fr__text"><span class="fr__title">' + escapeHtml(e.title) + '</span><span class="fr__sub">' + escapeHtml(e.sub) + when + who + '</span></span>' +
+        '<span class="fr__actions" data-ag-due="' + idx + '">' + reminderButtons(e.due) + '</span></div></li>';
+    }
+    return '<li class="ag__row"><button type="button" class="fr__card" data-ag-open="' + idx + '">' + badge +
+      '<span class="fr__text"><span class="fr__title">' + escapeHtml(e.title) + '</span><span class="fr__sub">' + escapeHtml(e.sub) + (e.meta ? '<span class="fr__meta">' + escapeHtml(e.meta) + '</span>' : '') + who + '</span></span></button></li>';
+  }
+  function bindAgendaCards(scope, events) {
+    scope.querySelectorAll('[data-ag-due]').forEach(function (box) {
+      var e = events[parseInt(box.getAttribute('data-ag-due'), 10)];
+      if (e && e.due) bindReminderButtons(box, e.due);
+    });
+    scope.querySelectorAll('[data-ag-open]').forEach(function (btn) {
+      var e = events[parseInt(btn.getAttribute('data-ag-open'), 10)];
+      btn.addEventListener('click', function () {
+        if (!e) return;
+        state.currentAnimalId = e.animalId; saveState();
+        showDetail({ tab: e.tab || 'profil', nav: 'pets' });
+      });
+    });
+  }
+
   function renderAgendaList() {
     var list = document.getElementById('agenda-list');
     var sub = document.getElementById('agenda-sub');
     if (!list) return;
-    var all = collectAllDueItems();
-    if (sub) sub.textContent = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + ' · ' + state.animals.length + ' animal' + (state.animals.length > 1 ? 'aux' : '');
-    var byDay = {};
-    all.forEach(function (item) {
-      var key = item.next;
-      if (!byDay[key]) byDay[key] = [];
-      byDay[key].push(item);
-    });
-    var days = Object.keys(byDay).sort();
-    if (!days.length) {
-      list.innerHTML = '<div class="agenda-row"><span class="agenda-row__label">Aucune échéance à venir.</span></div>';
+    var animals = agendaAnimals();
+    var multi = animals.length > 1;
+    var dues = agendaDues();
+    var late = dues.filter(function (d) { return daysUntil(d.next) < 0; }).length;
+    if (sub) {
+      sub.textContent = !state.animals.length ? 'Ajoutez un animal pour suivre ses échéances.'
+        : (dues.length ? dues.length + ' soin' + (dues.length > 1 ? 's' : '') + ' à faire' + (late ? ' · ' + late + ' en retard' : '') : 'Tout est à jour');
+    }
+    if (!dues.length) {
+      list.innerHTML = '<div class="ag__todo-empty">' + ico('check', 20) + '<span>' + (state.animals.length ? 'Rien à faire pour le moment.' : 'Aucune échéance.') + '</span></div>';
       return;
     }
-    list.innerHTML = days.slice(0, 12).map(function (day) {
-      var items = byDay[day];
-      var d = daysUntil(day);
-      var dateLabel = isoToLocalDate(day).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: d != null && Math.abs(d) > 20 ? 'short' : undefined });
-      var label = items.length === 1
-        ? ((items[0].name || '') + ' — ' + items[0].animalName)
-        : (items.length + ' actes · ' + items.map(function (i) { return i.animalName; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', '));
-      var today = d === 0;
-      return '<div class="agenda-row" data-day="' + day + '">' +
-        '<span class="agenda-row__date' + (today || (d != null && d < 0) ? ' agenda-row__date--today' : '') + '">' + escapeHtml(dateLabel) + '</span>' +
-        '<span class="agenda-row__label">' + escapeHtml(label) + '</span>' +
-        '<span class="agenda-row__meta">' + escapeHtml(today ? "aujourd'hui" : formatJDelay(day)) + '</span></div>';
+    var events = dues.slice(0, AGENDA_TODO_MAX).map(function (d) { return agendaDueEvent(d, multi); });
+    list.innerHTML = '<ul class="ag__list">' + events.map(agendaEventCard).join('') + '</ul>' +
+      (dues.length > AGENDA_TODO_MAX ? '<button type="button" class="ag__more" data-care-route="historique">' + (dues.length - AGENDA_TODO_MAX === 1 ? 'Voir l\u2019autre échéance dans la frise' : 'Voir les ' + (dues.length - AGENDA_TODO_MAX) + ' autres dans la frise') + '</button>' : '');
+    bindAgendaCards(list, events);
+  }
+
+  function renderAgendaPets() {
+    var box = document.getElementById('ag-pets');
+    if (!box) return;
+    if (state.animals.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
+    var sel = uiState.agendaPet || 'all';
+    box.hidden = false;
+    box.innerHTML = [{ id: 'all', name: 'Tous' }].concat(state.animals.map(function (a) { return { id: a.id, name: a.animal.name || 'Sans nom' }; })).map(function (p) {
+      var on = String(p.id) === String(sel);
+      return '<button type="button" class="fr__chip' + (on ? ' is-on' : '') + '" data-ag-pet="' + p.id + '" aria-pressed="' + (on ? 'true' : 'false') + '"><span>' + escapeHtml(p.name) + '</span></button>';
     }).join('');
+    box.querySelectorAll('[data-ag-pet]').forEach(function (btn) {
+      btn.addEventListener('click', function () { uiState.agendaPet = btn.getAttribute('data-ag-pet'); renderAgenda(); });
+    });
+  }
+
+  function renderAgenda() {
+    renderAgendaPets();
+    renderAgendaList();
+    renderCalendar();
   }
 
   function hideAppViews() {
@@ -2298,7 +2533,7 @@
     void viewHome.offsetWidth;
     viewHome.classList.add('view-enter');
     document.getElementById('animal-select').hidden = true;
-    document.getElementById('fab-container').hidden = true;
+    document.getElementById('fab-container').hidden = !state.animals.length;
     setBottomNavActive('home');
     renderHome();
     saveRoute({ view: 'home' });
@@ -2309,11 +2544,11 @@
     hideAppViews();
     var view = document.getElementById('view-agenda');
     if (view) view.hidden = false;
-    document.getElementById('fab-container').hidden = true;
+    document.getElementById('fab-container').hidden = !state.animals.length;
     document.getElementById('animal-select').hidden = true;
     setBottomNavActive('calendar');
-    renderAgendaList();
-    if (state.animals.length) renderCalendar();
+    setupAgendaGrid();
+    renderAgenda();
     saveRoute({ view: 'agenda' });
   }
 
@@ -2322,7 +2557,7 @@
     hideAppViews();
     var view = document.getElementById('view-annuaire');
     if (view) view.hidden = false;
-    document.getElementById('fab-container').hidden = true;
+    document.getElementById('fab-container').hidden = !state.animals.length;
     document.getElementById('animal-select').hidden = true;
     setBottomNavActive('directory');
     renderVetDirectory();
@@ -2457,7 +2692,7 @@
       av.style.fontSize = '';
 
       if (a.avatar && typeof a.avatar === 'number') {
-        av.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
+        av.innerHTML = '<img data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
         getPhotoObjectUrl(a.avatar).then(function (url) {
           var img = av.querySelector('img[data-avatar-key]');
           if (img && url) img.src = url;
@@ -2773,7 +3008,7 @@
       if (prev) {
         prev.innerHTML = '';
         if (a.avatar && typeof a.avatar === 'number') {
-          prev.innerHTML = '<img src="" data-avatar-key="' + a.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
+          prev.innerHTML = '<img data-avatar-key="' + a.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
           getPhotoObjectUrl(a.avatar).then(function (url) {
             var img = prev.querySelector('img[data-avatar-key]');
             if (img && url) img.src = url;
@@ -5568,16 +5803,16 @@
 
     var events = []
       .concat((data.vaccines || []).filter(function (v) { return v.next; }).map(function (v) {
-        return { type: 'vaccin', date: v.next, icon: ico('vaccine', 18), title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
+        return { type: 'vaccin', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'vaccines', id: v.id, name: v.name || 'Vaccin', next: v.next }, date: v.next, icon: ico('vaccine', 18), title: 'Vaccin : ' + escapeHtml(v.name || ''), sub: v.vet ? 'Vétérinaire : ' + escapeHtml(v.vet) : '—' };
       }))
       .concat((data.dewormings || []).filter(function (d) { return d.next; }).map(function (d) {
-        return { type: 'deworming', date: d.next, icon: ico('pill', 18), title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
+        return { type: 'deworming', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'dewormings', id: d.id, name: d.name || 'Déparasitage', next: d.next }, date: d.next, icon: ico('pill', 18), title: 'Déparasitage : ' + escapeHtml(d.name || ''), sub: 'Type : ' + escapeHtml(d.type || '') };
       }))
       .concat((data.hygiene || []).filter(function (h) { return h.next; }).map(function (h) {
-        return { type: 'hygiene', date: h.next, icon: ico('droplet', 18), title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
+        return { type: 'hygiene', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'hygiene', id: h.id, name: h.type || 'Hygiène', next: h.next }, date: h.next, icon: ico('droplet', 18), title: 'Hygiène : ' + escapeHtml(h.type || ''), sub: h.notes ? escapeHtml(h.notes) : '—' };
       }))
       .concat((data.medications || []).filter(function (m) { return m.active !== false && m.endDate; }).map(function (m) {
-        return { type: 'medication', date: m.endDate, icon: ico('pill', 18), title: 'Fin de traitement : ' + escapeHtml(m.name || ''), sub: m.dosage ? escapeHtml(m.dosage) : '—' };
+        return { type: 'medication', due: { animalId: data.id, animalName: data.animal.name || 'Animal', collection: 'medications', id: m.id, name: m.name || 'Médicament', next: m.endDate }, date: m.endDate, icon: ico('pill', 18), title: 'Fin de traitement : ' + escapeHtml(m.name || ''), sub: m.dosage ? escapeHtml(m.dosage) : '—' };
       }));
 
     // Heat cycle prediction
@@ -5614,10 +5849,10 @@
     if (upcoming.length === 0) {
       cont.innerHTML = '<div class="reminder-empty"><div class="reminder-empty__icon">' + ico('bell', 18) + '</div><p class="reminder-empty__text">Aucun rappel dans la période.</p></div>';
     } else {
-      cont.innerHTML = upcoming.map(function (e) {
+      cont.innerHTML = upcoming.map(function (e, idx) {
         var counterTxt = e.diffDays < 0 ? 'Retard ' + Math.abs(e.diffDays) + ' j' : (e.diffDays === 0 ? "Aujourd'hui" : 'J-' + e.diffDays);
         var dotClass = e.diffDays < 0 ? 'reminder-dot--overdue' : (e.diffDays <= 7 ? 'reminder-dot--soon' : 'reminder-dot--ok');
-        return '<div class="reminder-card">' +
+        return '<div class="reminder-card" data-rem-idx="' + idx + '">' +
           '<div class="reminder-card__dot ' + dotClass + '"></div>' +
           '<div class="reminder-card__icon">' + e.icon + '</div>' +
           '<div class="reminder-card__body">' +
@@ -5626,8 +5861,13 @@
             '<div class="reminder-card__date">' + fmtDate(e.date) + '</div>' +
           '</div>' +
           '<div class="reminder-card__badge ' + e.cls + '">' + counterTxt + '</div>' +
+          (e.due ? '<div class="reminder-card__actions">' + reminderButtons(e.due) + '</div>' : '') +
         '</div>';
       }).join('');
+      cont.querySelectorAll('.reminder-card').forEach(function (card) {
+        var ev = upcoming[parseInt(card.getAttribute('data-rem-idx'), 10)];
+        if (ev && ev.due) bindReminderButtons(card, ev.due);
+      });
     }
 
     var n = data.notifications;
@@ -5777,142 +6017,118 @@
   }
 
   // ——— Calendar view ————————————————————————————————————
-  function renderCalendar() {
-    var data = getCurrent() || state.animals[0] || null;
+  var CAL_MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  var CAL_TONE_ORDER = ['late', 'soon', 'care', 'vet', 'warm', 'plain'];
+
+  function selectCalendarDay(iso, keepFocus) {
+    var p = iso.split('-');
+    uiState.calendarYear = parseInt(p[0], 10);
+    uiState.calendarMonth = parseInt(p[1], 10) - 1;
+    uiState.calendarDay = iso;
+    renderCalendar(keepFocus);
+  }
+
+  function renderCalendar(keepFocus) {
     var grid = document.getElementById('calendar-grid');
     var titleEl = document.getElementById('cal-month-title');
     var detailEl = document.getElementById('calendar-day-detail');
+    var side = document.querySelector('.ag__side');
     if (!grid) return;
-    if (!data) {
-      grid.innerHTML = '';
+    if (!state.animals.length) {
+      grid.innerHTML = '<div class="ag__empty"><p>Le calendrier affichera les soins et rappels de vos animaux.</p><button type="button" class="care-action care-action--primary" data-care-route="addAnimal">' + ico('plus', 18) + '<span>Ajouter mon animal</span></button></div>';
       if (titleEl) titleEl.textContent = '—';
+      if (detailEl) detailEl.hidden = true;
       return;
     }
+    if (detailEl) detailEl.hidden = false;
 
     var year = uiState.calendarYear;
     var month = uiState.calendarMonth;
-    var monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-    titleEl.textContent = monthNames[month] + ' ' + year;
-    if (detailEl) detailEl.hidden = true;
+    titleEl.textContent = CAL_MONTHS[month] + ' ' + year;
 
-    var firstDay = new Date(year, month, 1);
-    var lastDay = new Date(year, month + 1, 0);
-    var startDow = (firstDay.getDay() + 6) % 7; // Monday = 0
-    var daysInMonth = lastDay.getDate();
+    var monthKey = year + '-' + String(month + 1).padStart(2, '0');
+    var todayIso = todayLocalIso();
+    var sel = uiState.calendarDay;
+    if (!sel || sel.slice(0, 7) !== monthKey) sel = todayIso.slice(0, 7) === monthKey ? todayIso : monthKey + '-01';
+    uiState.calendarDay = sel;
 
-    // Collect events for this month
-    var eventsMap = {};
-    function addEvent(isoDate, type) {
-      if (!isoDate) return;
-      var dt = isoToLocalDate(isoDate);
-      if (!dt || dt.getFullYear() !== year || dt.getMonth() !== month) return;
-      var day = dt.getDate();
-      if (!eventsMap[day]) eventsMap[day] = [];
-      eventsMap[day].push(type);
-    }
-
-    data.vaccines.forEach(function (v) { addEvent(v.next, 'vaccine'); addEvent(v.date, 'vaccine'); });
-    data.dewormings.forEach(function (d) { addEvent(d.next, 'deworming'); addEvent(d.date, 'deworming'); });
-    if (Array.isArray(data.consultations)) data.consultations.forEach(function (c) { addEvent(c.date, 'consult'); });
-    (data.hygiene || []).forEach(function (h) { addEvent(h.next, 'hygiene'); addEvent(h.date, 'hygiene'); });
-    (data.activities || []).forEach(function (a) { addEvent(a.date, 'activity'); });
-    // Heat cycles: mark start/end dates
-    if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
-      (data.heatCycles || []).forEach(function (c) { addEvent(c.startDate, 'heat'); if (c.endDate) addEvent(c.endDate, 'heat'); });
-    }
-
-    // Birthday
-    if (data.animal.dob) {
-      var dob = isoToLocalDate(data.animal.dob);
-      if (dob && dob.getMonth() === month) {
-        var day = dob.getDate();
-        if (!eventsMap[day]) eventsMap[day] = [];
-        eventsMap[day].push('birthday');
-      }
-    }
-
+    var events = buildAgendaEvents(year);
+    var startDow = (new Date(year, month, 1).getDay() + 6) % 7; // lundi = 0
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
     var dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-    var html = dayNames.map(function (d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
-
-    var todayObj = new Date();
-    var isCurrentMonth = todayObj.getFullYear() === year && todayObj.getMonth() === month;
-    var todayDate = todayObj.getDate();
-
-    // Empty cells before first day
-    for (var i = 0; i < startDow; i++) {
-      html += '<div class="cal-day cal-other"></div>';
-    }
-
+    var html = dayNames.map(function (d) { return '<div class="cal-header" aria-hidden="true">' + d + '</div>'; }).join('');
+    for (var i = 0; i < startDow; i++) html += '<span class="cal-day cal-other" aria-hidden="true"></span>';
     for (var d = 1; d <= daysInMonth; d++) {
-      var isToday = isCurrentMonth && d === todayDate;
-      var dayEvents = eventsMap[d] || [];
-      var dotsHtml = '';
-      if (dayEvents.length) {
-        var unique = [];
-        dayEvents.forEach(function (t) { if (unique.indexOf(t) === -1) unique.push(t); });
-        dotsHtml = '<div class="cal-dots">' + unique.map(function (t) { return '<span class="cal-event-dot cal-dot-' + t + '"></span>'; }).join('') + '</div>';
-      }
-      html += '<div class="cal-day' + (isToday ? ' cal-today' : '') + '" data-cal-day="' + d + '">' + d + dotsHtml + '</div>';
+      var iso = localIso(year, month, d);
+      var evs = events[iso] || [];
+      var tones = [];
+      CAL_TONE_ORDER.forEach(function (t) { if (evs.some(function (e) { return e.tone === t; })) tones.push(t); });
+      var dots = tones.slice(0, 3).map(function (t) { return '<span class="ag__dot" data-tone="' + t + '"></span>'; }).join('') +
+        (tones.length > 3 ? '<span class="ag__dot-more">+</span>' : '');
+      var sorted = evs.slice().sort(function (x, y) { return CAL_TONE_ORDER.indexOf(x.tone) - CAL_TONE_ORDER.indexOf(y.tone); });
+      var labels = sorted.slice(0, 2).map(function (e) { return '<span class="cal-label" data-tone="' + e.tone + '">' + (e.multi ? '<b>' + escapeHtml((e.animalName || '?').charAt(0).toUpperCase()) + '</b> ' : '') + escapeHtml(e.title) + '</span>'; }).join('') +
+        (sorted.length > 2 ? '<span class="cal-label cal-label--more">+' + (sorted.length - 2) + '</span>' : '');
+      var isSel = iso === sel;
+      var aria = d + ' ' + CAL_MONTHS[month].toLowerCase() + ' ' + year + (evs.length ? ', ' + evs.length + ' événement' + (evs.length > 1 ? 's' : '') : ', aucun événement');
+      html += '<button type="button" class="cal-day' + (iso === todayIso ? ' cal-today' : '') + (isSel ? ' is-sel' : '') + (evs.length ? ' has-ev' : '') + '" data-iso="' + iso + '" aria-pressed="' + (isSel ? 'true' : 'false') + '" aria-label="' + aria + '" tabindex="' + (isSel ? '0' : '-1') + '">' +
+        '<span class="cal-num">' + d + '</span><span class="ag__dots">' + dots + '</span><span class="cal-labels">' + labels + '</span></button>';
     }
-
     grid.innerHTML = html;
+    var todayBtn = document.getElementById('cal-today');
+    if (todayBtn) todayBtn.hidden = sel === todayIso; // inutile quand on est déjà sur aujourd'hui
 
-    grid.querySelectorAll('.cal-day[data-cal-day]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var day = parseInt(el.getAttribute('data-cal-day'), 10);
-        showCalendarDayDetail(data, year, month, day);
-      });
+    grid.querySelectorAll('.cal-day[data-iso]').forEach(function (el) {
+      el.addEventListener('click', function () { selectCalendarDay(el.getAttribute('data-iso'), true); });
     });
+    if (keepFocus) { var cur = grid.querySelector('.is-sel'); if (cur) cur.focus({ preventScroll: true }); }
+
+    // Panneau du jour sélectionné
+    var dayEvents = (events[sel] || []).slice().sort(function (x, y) {
+      var kx = x.kind === 'due' ? 0 : 1, ky = y.kind === 'due' ? 0 : 1;
+      return kx - ky || CAL_TONE_ORDER.indexOf(x.tone) - CAL_TONE_ORDER.indexOf(y.tone);
+    });
+    var selDate = isoToLocalDate(sel);
+    var label = selDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    var rel = relativeDate(sel);
+    detailEl.innerHTML = '<div class="ag__day-head"><h3>' + escapeHtml(label) + '</h3>' + (rel ? '<span class="ag__rel">' + escapeHtml(rel) + '</span>' : '') + '</div>' +
+      (dayEvents.length
+        ? '<ul class="ag__list">' + dayEvents.map(agendaEventCard).join('') + '</ul>'
+        : '<div class="ag__day-empty"><p>Rien de prévu ce jour.</p><button type="button" class="rem-btn rem-btn--later" data-ag-add>Ajouter au carnet</button></div>');
+    bindAgendaCards(detailEl, dayEvents);
+    var addBtn = detailEl.querySelector('[data-ag-add]');
+    if (addBtn) addBtn.addEventListener('click', function () {
+      var trigger = [document.getElementById('fab-btn'), document.getElementById('bottom-add')].filter(function (b) { return b && b.offsetParent; })[0];
+      if (trigger) trigger.click();
+    });
+    if (side) side.hidden = false;
   }
 
-  function showCalendarDayDetail(data, year, month, day) {
-    var detailEl = document.getElementById('calendar-day-detail');
-    if (!detailEl) return;
-
-    var isoDate = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    var events = [];
-
-    data.vaccines.forEach(function (v) {
-      if (v.date === isoDate) events.push({ icon: ico('vaccine', 16), text: 'Vaccin : ' + escapeHtml(v.name) });
-      if (v.next === isoDate) events.push({ icon: ico('vaccine', 16), text: 'Rappel vaccin : ' + escapeHtml(v.name) });
+  function setupAgendaGrid() {
+    var grid = document.getElementById('calendar-grid');
+    if (!grid || grid.dataset.bound) return;
+    grid.dataset.bound = '1';
+    // Clavier : flèches = jour précédent / suivant, haut / bas = semaine, changement de mois automatique.
+    grid.addEventListener('keydown', function (e) {
+      var delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+      if (!delta || !uiState.calendarDay) return;
+      e.preventDefault();
+      var d = isoToLocalDate(uiState.calendarDay);
+      d.setDate(d.getDate() + delta);
+      selectCalendarDay(localIso(d.getFullYear(), d.getMonth(), d.getDate()), true);
     });
-    data.dewormings.forEach(function (d) {
-      if (d.date === isoDate) events.push({ icon: ico('pill', 16), text: 'Déparasitage : ' + escapeHtml(d.name) });
-      if (d.next === isoDate) events.push({ icon: ico('pill', 16), text: 'Rappel déparasitage : ' + escapeHtml(d.name) });
-    });
-    if (Array.isArray(data.consultations)) {
-      data.consultations.forEach(function (c) {
-        if (c.date === isoDate) events.push({ icon: ico('stethoscope', 16), text: 'Consultation : ' + escapeHtml(c.reason) });
-      });
-    }
-    (data.hygiene || []).forEach(function (h) {
-      if (h.date === isoDate) events.push({ icon: ico('droplet', 16), text: 'Hygiène : ' + escapeHtml(h.type) });
-      if (h.next === isoDate) events.push({ icon: ico('droplet', 16), text: 'Rappel hygiène : ' + escapeHtml(h.type) });
-    });
-    (data.activities || []).forEach(function (a) {
-      if (a.date === isoDate) events.push({ icon: ico('activity', 16), text: 'Activité : ' + escapeHtml(a.type) + (a.duration ? ' (' + a.duration + ' min)' : '') });
-    });
-    if (data.animal.sex === 'Femelle' && data.animal.sterilise !== 'Oui') {
-      (data.heatCycles || []).forEach(function (c) {
-        if (c.startDate === isoDate) events.push({ icon: ico('thermom', 16), text: 'Début chaleurs' });
-        if (c.endDate === isoDate) events.push({ icon: ico('thermom', 16), text: 'Fin chaleurs' });
-      });
-    }
-    if (data.animal.dob) {
-      var dob = isoToLocalDate(data.animal.dob);
-      if (dob && dob.getMonth() === month && dob.getDate() === day) {
-        events.push({ icon: ico('cake', 16), text: 'Anniversaire de ' + escapeHtml(data.animal.name || '') });
-      }
-    }
-
-    if (events.length === 0) {
-      detailEl.hidden = true;
-      return;
-    }
-
-    detailEl.hidden = false;
-    detailEl.innerHTML = '<h3>' + fmtDate(isoDate) + '</h3>' +
-      events.map(function (e) { return '<div class="cal-detail-item"><span>' + e.icon + '</span> ' + e.text + '</div>'; }).join('');
+    // Tactile : un balayage horizontal change de mois.
+    var sx = 0, sy = 0;
+    grid.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    grid.addEventListener('touchend', function (e) {
+      var t = e.changedTouches[0];
+      var dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) < 60 || Math.abs(dy) > 40) return;
+      var btn = document.getElementById(dx < 0 ? 'cal-next' : 'cal-prev');
+      if (btn) btn.click();
+    }, { passive: true });
+    var todayBtn = document.getElementById('cal-today');
+    if (todayBtn) todayBtn.addEventListener('click', function () { selectCalendarDay(todayLocalIso(), false); });
   }
 
   // ——— History ——————————————————————————————————————
@@ -6226,57 +6442,169 @@
       weightHtml + nextDueHtml;
   }
 
+  // ——— Frise du carnet ————————————————————————————————————
+  // Un seul fil chronologique : ce qui reste à faire (en retard puis à venir)
+  // en tête, puis tout ce qui a été fait, groupé par mois. Les rubriques
+  // (Vaccins, Consultations…) deviennent des filtres.
+  var FRISE_CATS = [
+    { key: 'all', label: 'Tout' },
+    { key: 'vaccins', label: 'Vaccins', tone: 'care', icon: 'vaccine', tab: 'vaccins' },
+    { key: 'deworming', label: 'Déparasitage', tone: 'care', icon: 'pill', tab: 'deworming' },
+    { key: 'traitements', label: 'Traitements', tone: 'care', icon: 'pill', tab: 'medications' },
+    { key: 'consultations', label: 'Consultations', tone: 'vet', icon: 'stethoscope', tab: 'consultations' },
+    { key: 'hygiene', label: 'Hygiène', tone: 'vet', icon: 'droplet', tab: 'hygiene' },
+    { key: 'weight', label: 'Poids & taille', tone: 'warm', icon: 'scale', tab: 'poids' },
+    { key: 'daily', label: 'Quotidien', tone: 'plain', icon: 'activity', tab: 'activites' },
+    { key: 'notes', label: 'Notes', tone: 'plain', icon: 'fileText', tab: 'suivi' },
+    { key: 'chaleurs', label: 'Chaleurs', tone: 'warm', icon: 'thermom', tab: 'chaleurs' }
+  ];
+  var FRISE_PAGE = 30;
+
+  function friseCat(key) { return FRISE_CATS.filter(function (c) { return c.key === key; })[0]; }
+
+  function buildFriseEvents(data) {
+    var ev = [];
+    function add(cat, date, title, sub, extra) {
+      if (!date) return;
+      var c = friseCat(cat);
+      ev.push(Object.assign({ cat: cat, date: date, title: title, sub: sub || '', tone: c.tone, icon: extra && extra.icon || c.icon, tab: c.tab }, extra || {}));
+    }
+    (data.vaccines || []).forEach(function (v) { add('vaccins', v.date, v.name || 'Vaccin', v.vet ? 'Chez ' + v.vet : 'Vaccin', { meta: v.next ? 'Rappel le ' + fmtDate(v.next) : '' }); });
+    (data.dewormings || []).forEach(function (d) { add('deworming', d.date, d.name || 'Déparasitage', d.type || 'Déparasitage', { meta: d.next ? 'Prochain le ' + fmtDate(d.next) : '' }); });
+    (data.medications || []).forEach(function (m) { add('traitements', m.startDate || m.date, m.name || 'Traitement', [m.dosage, m.endDate ? 'jusqu’au ' + fmtDate(m.endDate) : ''].filter(Boolean).join(' · ') || 'Traitement'); });
+    (data.consultations || []).forEach(function (c) { add('consultations', c.date, c.reason || 'Consultation', c.vet ? 'Chez ' + c.vet : 'Consultation', { meta: c.cost ? fmtCost(c.cost) : '' }); });
+    (data.hygiene || []).forEach(function (h) { add('hygiene', h.date, h.type || 'Hygiène', 'Hygiène', { meta: h.next ? 'Prochain le ' + fmtDate(h.next) : '' }); });
+    var weights = ((data.animal && data.animal.weightHistory) || []).filter(function (w) { return w.date && Number(w.weight) > 0; }).slice().sort(function (x, y) { return x.date.localeCompare(y.date); });
+    weights.forEach(function (w, i) {
+      var delta = i ? Number(w.weight) - Number(weights[i - 1].weight) : null;
+      var d = delta == null || Math.abs(delta) < 0.005 ? '' : (delta > 0 ? '+' : '−') + Math.abs(delta).toFixed(1).replace('.', ',') + ' kg';
+      add('weight', w.date, String(w.weight).replace('.', ',') + ' kg', 'Pesée', { meta: d });
+    });
+    ((data.animal && data.animal.heightHistory) || []).forEach(function (h) { add('weight', h.date, h.height + ' cm', 'Taille', { icon: 'scale' }); });
+    (data.activities || []).forEach(function (a) { add('daily', a.date, a.type || 'Activité', 'Activité', { meta: a.duration ? a.duration + ' min' : '', tab: 'activites' }); });
+    ((data.nutrition && data.nutrition.meals) || []).forEach(function (m) { add('daily', m.date, (m.type || 'Repas') + (m.food ? ' — ' + m.food : ''), 'Repas', { icon: 'utensils', tab: 'nutrition' }); });
+    (data.notes || []).forEach(function (n) { add('notes', n.date, n.title || 'Note', n.category || 'Note'); });
+    (data.heatCycles || []).forEach(function (c) { add('chaleurs', c.startDate, 'Chaleurs' + (c.intensity ? ' — ' + c.intensity : ''), 'Reproduction'); });
+    return ev;
+  }
+
+  function friseDueCat(item) { return { vaccines: 'vaccins', dewormings: 'deworming', hygiene: 'hygiene', medications: 'traitements' }[item.collection]; }
+
   function renderHistory() {
     var data = getCurrent();
     var timeline = document.getElementById('history-timeline');
     if (!data || !timeline) return;
+    var filter = uiState.friseFilter || 'all';
+    var query = (uiState.friseQuery || '').trim().toLowerCase();
 
-    var historyType = document.getElementById('history-type-filter')?.value || 'all';
+    var events = buildFriseEvents(data);
+    var dues = collectDueItemsForAnimal(data);
+
+    // Filtres : effectifs par rubrique (sur toute la frise, hors recherche)
+    var counts = { all: events.length };
+    var hasDue = {};
+    events.forEach(function (e) { counts[e.cat] = (counts[e.cat] || 0) + 1; });
+    dues.forEach(function (d) { var c = friseDueCat(d); if (c) hasDue[c] = true; });
+    var chips = document.getElementById('fr-chips');
+    if (chips) {
+      chips.innerHTML = FRISE_CATS.filter(function (c) { return c.key === 'all' || counts[c.key] || hasDue[c.key]; }).map(function (c) {
+        var on = c.key === filter;
+        return '<button type="button" class="fr__chip' + (on ? ' is-on' : '') + '" data-fr="' + c.key + '" aria-pressed="' + (on ? 'true' : 'false') + '"><span>' + c.label + '</span><b>' + (counts[c.key] || 0) + '</b></button>';
+      }).join('');
+      chips.querySelectorAll('.fr__chip').forEach(function (btn) {
+        btn.addEventListener('click', function () { uiState.friseFilter = btn.getAttribute('data-fr'); uiState.friseLimit = FRISE_PAGE; renderHistory(); });
+      });
+    }
+    if (filter !== 'all' && !counts[filter] && !hasDue[filter]) { uiState.friseFilter = filter = 'all'; }
+
+    function match(text) { return !query || text.toLowerCase().indexOf(query) !== -1; }
+    var todo = dues.filter(function (d) { return (filter === 'all' || friseDueCat(d) === filter) && match(d.name + ' ' + d.animalName); })
+      .sort(function (x, y) { return x.next.localeCompare(y.next); });
+    var past = events.filter(function (e) { return (filter === 'all' || e.cat === filter) && match(e.title + ' ' + e.sub); })
+      .sort(function (x, y) { return y.date.localeCompare(x.date); });
+
+    // Résumé
+    var summary = document.getElementById('fr-summary');
+    if (summary) {
+      var lastCare = events.filter(function (e) { return ['vaccins', 'deworming', 'traitements', 'consultations', 'hygiene'].indexOf(e.cat) !== -1; }).sort(function (x, y) { return y.date.localeCompare(x.date); })[0];
+      var late = dues.filter(function (d) { return daysUntil(d.next) < 0; }).length;
+      summary.innerHTML = '<span class="fr__stat"><b>' + events.length + '</b> événement' + (events.length > 1 ? 's' : '') + '</span>' +
+        (lastCare ? '<span class="fr__stat">Dernier soin <b>' + escapeHtml(relativeDate(lastCare.date)) + '</b></span>' : '') +
+        (late ? '<span class="fr__stat fr__stat--late"><b>' + late + '</b> en retard</span>' : '<span class="fr__stat fr__stat--ok">Rien en retard</span>');
+    }
+
+    // Graphiques poids/taille : seulement quand on regarde les pesées
     var weightContainer = document.getElementById('weight-evolution');
-    if (weightContainer) weightContainer.hidden = !(historyType === 'all' || historyType === 'weight');
+    if (weightContainer) weightContainer.hidden = filter !== 'weight';
     if (weightContainer && !weightContainer.hidden) renderWeightEvolution(data);
     var heightContainer = document.getElementById('height-evolution');
-    if (heightContainer) heightContainer.hidden = !(historyType === 'all' || historyType === 'height');
+    if (heightContainer) heightContainer.hidden = filter !== 'weight';
     if (heightContainer && !heightContainer.hidden) renderHeightEvolution(data);
 
-    var all = []
-      .concat((historyType === 'all' || historyType === 'vaccins') ? data.vaccines.map(function (v) {
-        return { date: v.date, title: escapeHtml(v.name), sub: 'Vaccin · ' + escapeHtml(v.vet || ''), icon: ico('vaccine', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'deworming') ? data.dewormings.map(function (d) {
-        return { date: d.date, title: escapeHtml(d.name), sub: 'Déparasitage ' + escapeHtml(d.type), icon: ico('pill', 16) };
-      }) : [])
-      .concat(((historyType === 'all' || historyType === 'weight') && data.animal && Array.isArray(data.animal.weightHistory)) ? data.animal.weightHistory.map(function (w) {
-        return { date: w.date, title: (w.weight != null ? w.weight : '') + ' kg', sub: 'Pesée', icon: ico('scale', 16) };
-      }) : [])
-      .concat(((historyType === 'all' || historyType === 'height') && data.animal && Array.isArray(data.animal.heightHistory)) ? data.animal.heightHistory.map(function (h) {
-        return { date: h.date, title: (h.height != null ? h.height : '') + ' cm', sub: 'Taille', icon: ico('scale', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'consultations') ? (Array.isArray(data.consultations) ? data.consultations : []).map(function (c) {
-        return { date: c.date, title: escapeHtml(c.reason || ''), sub: 'Consultation · ' + escapeHtml(c.vet || ''), icon: ico('stethoscope', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'journal') ? (Array.isArray(data.notes) ? data.notes : []).map(function (n) {
-        return { date: n.date, title: escapeHtml(n.title || ''), sub: 'Note · ' + escapeHtml(n.category || ''), icon: ico('fileText', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'hygiene') ? (data.hygiene || []).map(function (h) {
-        return { date: h.date, title: escapeHtml(h.type || ''), sub: 'Hygiène', icon: ico('droplet', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'activities') ? (data.activities || []).map(function (a) {
-        return { date: a.date, title: escapeHtml(a.type || ''), sub: 'Activité' + (a.duration ? ' · ' + a.duration + ' min' : ''), icon: ico('activity', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'nutrition') ? (data.nutrition && data.nutrition.meals || []).map(function (m) {
-        return { date: m.date, title: escapeHtml(m.type || '') + (m.food ? ' — ' + escapeHtml(m.food) : ''), sub: 'Repas', icon: ico('utensils', 16) };
-      }) : [])
-      .concat((historyType === 'all' || historyType === 'chaleurs') ? (data.heatCycles || []).map(function (c) {
-        return { date: c.startDate, title: 'Chaleurs — ' + escapeHtml(c.intensity || ''), sub: 'Reproduction', icon: ico('thermom', 16) };
-      }) : [])
-      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    if (!todo.length && !past.length) {
+      timeline.innerHTML = '<li class="fr__empty">' + (events.length || dues.length
+        ? '<p>Aucun résultat pour cette recherche.</p>'
+        : '<p>Le carnet est vide pour l’instant.</p><p class="fr__empty-hint">Ajoutez un vaccin, une pesée ou une consultation avec le bouton « Ajouter ».</p>') + '</li>';
+      return;
+    }
 
-    timeline.innerHTML = all.map(function (e, idx) {
+    function itemHtml(e) {
+      var d = isoToLocalDate(e.date);
+      var day = d ? d.getDate() : '';
+      var mon = d ? d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '') : '';
       var rel = relativeDate(e.date);
-      var relHtml = rel ? '<span class="timeline-relative">' + escapeHtml(rel) + '</span>' : '';
-      return '<div class="timeline-item" style="animation-delay:' + (idx * 0.03) + 's"><div class="timeline-dot"></div><div class="timeline-date">' + fmtDate(e.date) + relHtml + '</div><div class="timeline-content"><div class="timeline-title">' + e.icon + ' ' + e.title + '</div><div class="timeline-sub">' + e.sub + '</div></div></div>';
-    }).join('');
+      var when = fmtDate(e.date) + (rel ? ' · ' + rel : '');
+      var head = '<span class="fr__badge" data-tone="' + e.tone + '">' + ico(e.icon, 18) + '</span>';
+      var body = '<span class="fr__title">' + escapeHtml(e.title) + '</span>' +
+        '<span class="fr__sub">' + escapeHtml(e.sub) + (e.meta ? '<span class="fr__meta">' + escapeHtml(e.meta) + '</span>' : '') + '</span>' +
+        '<span class="fr__when">' + escapeHtml(when) + '</span>';
+      return '<li class="fr__item" data-tone="' + e.tone + '">' +
+        '<time class="fr__date" datetime="' + e.date + '"><b>' + day + '</b><span>' + escapeHtml(mon) + '</span></time>' +
+        '<span class="fr__rail" aria-hidden="true"></span>' +
+        '<button type="button" class="fr__card" data-fr-tab="' + e.tab + '">' + head + '<span class="fr__text">' + body + '</span></button></li>';
+    }
+    function dueHtml(d) {
+      var c = friseCat(friseDueCat(d)) || { tone: 'care', icon: 'bell' };
+      var tone = delayTone(d.next);
+      var when = fmtDate(d.next);
+      return '<li class="fr__item fr__item--due" data-tone="' + tone + '">' +
+        '<time class="fr__date fr__date--' + tone + '" datetime="' + d.next + '"><b>' + escapeHtml(formatJDelay(d.next).replace('aujourd\'hui', 'Auj.')) + '</b></time>' +
+        '<span class="fr__rail" aria-hidden="true"></span>' +
+        '<div class="fr__card fr__card--due"><span class="fr__badge" data-tone="' + c.tone + '">' + ico(c.icon, 18) + '</span>' +
+        '<span class="fr__text"><span class="fr__title">' + escapeHtml(d.name) + '</span>' +
+        '<span class="fr__sub">' + (d.collection === 'medications' ? 'Fin de traitement' : 'À prévoir') + '<span class="fr__meta fr__meta--' + tone + '">' + escapeHtml(when) + ' · ' + escapeHtml(formatJDelay(d.next)) + '</span></span></span>' +
+        '<span class="fr__actions" data-due="' + d.collection + ':' + d.id + '">' + reminderButtons(d) + '</span></div></li>';
+    }
+
+    var limit = uiState.friseLimit || FRISE_PAGE;
+    var shown = past.slice(0, limit);
+    var html = '';
+    if (todo.length) {
+      html += '<li class="fr__group fr__group--todo"><h3>À faire <span>' + todo.length + '</span></h3></li>' + todo.map(dueHtml).join('');
+    }
+    var lastMonth = '';
+    shown.forEach(function (e) {
+      var d = isoToLocalDate(e.date);
+      var month = d ? d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Sans date';
+      month = month.charAt(0).toUpperCase() + month.slice(1);
+      if (month !== lastMonth) { html += '<li class="fr__group"><h3>' + escapeHtml(month) + '</h3></li>'; lastMonth = month; }
+      html += itemHtml(e);
+    });
+    if (past.length > shown.length) {
+      html += '<li class="fr__more"><button type="button" id="fr-more">Afficher les ' + Math.min(FRISE_PAGE, past.length - shown.length) + ' suivants <span>(' + (past.length - shown.length) + ' restants)</span></button></li>';
+    }
+    timeline.innerHTML = html;
+
+    timeline.querySelectorAll('.fr__card[data-fr-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-fr-tab')); });
+    });
+    timeline.querySelectorAll('.fr__actions').forEach(function (box) {
+      var parts = box.getAttribute('data-due').split(':');
+      var item = dues.filter(function (d) { return d.collection === parts[0] && String(d.id) === parts[1]; })[0];
+      if (item) bindReminderButtons(box, item);
+    });
+    var more = document.getElementById('fr-more');
+    if (more) more.addEventListener('click', function () { uiState.friseLimit = limit + FRISE_PAGE; renderHistory(); });
   }
 
   // ——— Tabs ————————————————————————————————————————
@@ -6405,7 +6733,7 @@
     renderActivities();
     renderHeatCycles();
     renderJournal();
-    if (state.viewMode === 'agenda') renderCalendar();
+    if (state.viewMode === 'agenda') renderAgenda();
     renderPedigree();
     if (state.viewMode === 'directory') renderVetDirectory();
   }
@@ -6565,41 +6893,68 @@
     applyTheme(current !== 'dark');
   }
 
-  // ——— FAB ——————————————————————————————————————————
+  // ——— Ajout rapide ——————————————————————————————————
+  // Un seul panneau (#quick-add) pour deux déclencheurs : le bouton flottant
+  // « Ajouter » (desktop ≥ 1024 px) et le « + » central de la barre basse
+  // (mobile/tablette). Le CSS choisit popover ou feuille du bas.
+  var QUICK_ADD_TAB = { vaccin: 'vaccins', deworming: 'deworming', hygiene: 'hygiene', consult: 'consultations', weight: 'poids', meal: 'nutrition', activity: 'activites', note: 'suivi', photo: 'photos' };
+  var QUICK_ADD_MODAL = { vaccin: 'addVaccin', deworming: 'addDeworming', hygiene: 'addHygiene', consult: 'addConsult', weight: 'addWeight', meal: 'addMeal', activity: 'addActivity', note: 'addNote' };
+
   function setupFAB() {
+    var panel = document.getElementById('quick-add');
     var fabBtn = document.getElementById('fab-btn');
-    var fabMenu = document.getElementById('fab-menu');
-    if (!fabBtn || !fabMenu) return;
+    var bottomAdd = document.getElementById('bottom-add');
+    if (!panel || !fabBtn) return;
+    var lastTrigger = null;
 
-    fabBtn.addEventListener('click', function () {
-      var isOpen = !fabMenu.hidden;
-      fabMenu.hidden = isOpen;
-      fabBtn.classList.toggle('fab-open', !isOpen);
-    });
+    panel.querySelectorAll('.qa__icon').forEach(function (span) { span.innerHTML = ico(span.dataset.ico, 22); });
 
-    fabMenu.querySelectorAll('.fab-action').forEach(function (btn) {
+    function isOpen() { return !panel.hidden; }
+    function openPanel(trigger) {
+      var data = getCurrent();
+      if (!data || !state.animals.length) { openModal('addAnimal'); return; }
+      lastTrigger = trigger;
+      document.getElementById('qa-title').textContent = 'Ajouter au carnet de ' + (data.animal.name || 'votre compagnon');
+      panel.hidden = false;
+      fabBtn.setAttribute('aria-expanded', 'true');
+      if (bottomAdd) bottomAdd.classList.add('is-open');
+      var first = panel.querySelector('.qa__item');
+      if (first) first.focus({ preventScroll: true });
+    }
+    function closePanel(restoreFocus) {
+      if (!isOpen()) return;
+      panel.hidden = true;
+      fabBtn.setAttribute('aria-expanded', 'false');
+      if (bottomAdd) bottomAdd.classList.remove('is-open');
+      if (restoreFocus !== false && lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus({ preventScroll: true });
+    }
+
+    fabBtn.addEventListener('click', function () { if (isOpen()) closePanel(); else openPanel(fabBtn); });
+    if (bottomAdd) bottomAdd.addEventListener('click', function () { if (isOpen()) closePanel(); else openPanel(bottomAdd); });
+    panel.querySelectorAll('[data-qa-close]').forEach(function (el) { el.addEventListener('click', function () { closePanel(); }); });
+
+    panel.querySelectorAll('.qa__item').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var action = btn.getAttribute('data-fab');
-        fabMenu.hidden = true;
-        fabBtn.classList.remove('fab-open');
-        if (action === 'vaccin') openModal('addVaccin');
-        if (action === 'deworming') openModal('addDeworming');
-        if (action === 'hygiene') openModal('addHygiene');
+        closePanel(false);
+        // Depuis l'accueil, l'agenda ou l'annuaire : ouvrir d'abord le carnet à la bonne rubrique,
+        // sinon l'enregistrement se ferait sans que l'on voie où il atterrit.
+        if (state.viewMode !== 'detail') showDetail({ tab: QUICK_ADD_TAB[action] || 'profil', nav: 'pets' });
         if (action === 'photo') triggerPhotoUpload();
-        if (action === 'weight') openModal('addWeight');
-        if (action === 'consult') openModal('addConsult');
-        if (action === 'meal') openModal('addMeal');
-        if (action === 'activity') openModal('addActivity');
-        if (action === 'note') openModal('addNote');
+        else if (QUICK_ADD_MODAL[action]) openModal(QUICK_ADD_MODAL[action]);
       });
     });
 
-    // Close FAB on outside click
-    document.addEventListener('click', function (e) {
-      if (!e.target.closest('.fab-container') && !fabMenu.hidden) {
-        fabMenu.hidden = true;
-        fabBtn.classList.remove('fab-open');
-      }
+    // Échap ferme ; Tab reste dans le panneau (dialogue modal).
+    document.addEventListener('keydown', function (e) {
+      if (!isOpen()) return;
+      if (e.key === 'Escape') { e.preventDefault(); closePanel(); return; }
+      if (e.key !== 'Tab') return;
+      var items = Array.prototype.slice.call(panel.querySelectorAll('button:not([hidden])')).filter(function (b) { return b.offsetParent !== null; });
+      if (!items.length) return;
+      var firstEl = items[0], lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
     });
   }
 
@@ -6705,57 +7060,81 @@
   }
 
   // ——— Onboarding ————————————————————————————————————
+  // Une seule étape : prénom + espèce. Date de naissance, photo, puce… se
+  // complètent depuis le profil. Desktop (dialogue à deux colonnes) et mobile
+  // (feuille du bas) partagent ce formulaire, seul le CSS les distingue.
   function showOnboarding() {
+    var nameInput = document.getElementById('ob-name');
+    nameInput.value = '';
+    document.getElementById('ob-name-error').hidden = true;
+    nameInput.removeAttribute('aria-invalid');
     openModal('onboarding');
-    // Repart toujours de l'étape 1 (un replay depuis Centre d'aide peut
-    // survenir après un premier passage déjà arrivé à l'étape 3).
-    document.getElementById('onboarding-step-1').hidden = false;
-    document.getElementById('onboarding-step-2').hidden = true;
-    document.getElementById('onboarding-step-3').hidden = true;
-    // Rejouable depuis Centre d'aide ("Revoir l'introduction") : les
-    // écouteurs ci-dessous visent des éléments statiques du DOM, jamais
-    // recréés — sans ce garde-fou, chaque replay les empilerait (double
-    // création d'animal au submit, transitions d'étape dupliquées).
+    // Sur mobile, ne pas ouvrir le clavier d'office : il masquerait la moitié de la feuille.
+    if (window.matchMedia('(min-width: 720px)').matches) setTimeout(function () { nameInput.focus(); }, 60);
+    // Rejouable depuis Centre d'aide ("Revoir l'introduction") : les écouteurs
+    // visent des éléments statiques du DOM, jamais recréés — sans ce garde-fou,
+    // chaque replay les empilerait (double création d'animal au submit).
     if (uiState.onboardingBound) return;
     uiState.onboardingBound = true;
 
-    document.getElementById('onboarding-next-1').addEventListener('click', function () {
-      document.getElementById('onboarding-step-1').hidden = true;
-      document.getElementById('onboarding-step-2').hidden = false;
+    document.querySelectorAll('.ob__chip-icon').forEach(function (span) { span.innerHTML = ico(span.dataset.ico, 20); });
+
+    var chips = Array.prototype.slice.call(document.querySelectorAll('.ob__chip'));
+    function selectSpecies(chip, focus) {
+      chips.forEach(function (c) {
+        var on = c === chip;
+        c.classList.toggle('is-on', on);
+        c.setAttribute('aria-checked', on ? 'true' : 'false');
+        c.tabIndex = on ? 0 : -1;
+      });
+      document.getElementById('ob-species').value = chip.dataset.species;
+      if (focus) chip.focus();
+    }
+    chips.forEach(function (chip, i) {
+      chip.tabIndex = chip.classList.contains('is-on') ? 0 : -1;
+      chip.addEventListener('click', function () { selectSpecies(chip, false); });
+      chip.addEventListener('keydown', function (e) {
+        var step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!step) return;
+        e.preventDefault();
+        selectSpecies(chips[(i + step + chips.length) % chips.length], true);
+      });
     });
 
-    document.getElementById('onboarding-back-2').addEventListener('click', function () {
-      document.getElementById('onboarding-step-2').hidden = true;
-      document.getElementById('onboarding-step-1').hidden = false;
+    document.getElementById('ob-name').addEventListener('input', function () {
+      document.getElementById('ob-name-error').hidden = true;
+      this.removeAttribute('aria-invalid');
     });
 
     document.getElementById('form-onboarding-animal').addEventListener('submit', function (e) {
       e.preventDefault();
-      var name = document.getElementById('ob-name').value.trim();
-      if (!name) return;
+      var nameInput = document.getElementById('ob-name');
+      var name = nameInput.value.trim();
+      if (!name) {
+        document.getElementById('ob-name-error').hidden = false;
+        nameInput.setAttribute('aria-invalid', 'true');
+        nameInput.focus();
+        return;
+      }
 
       var newAnimal = JSON.parse(JSON.stringify(DEFAULT_ANIMAL));
       newAnimal.id = state.nextId++;
       newAnimal.animal.name = name;
       newAnimal.animal.species = document.getElementById('ob-species').value || 'Canine';
-      newAnimal.animal.dob = document.getElementById('ob-dob').value || '';
 
       state.animals.push(newAnimal);
       state.currentAnimalId = newAnimal.id;
       saveState();
 
-      document.getElementById('onboarding-step-2').hidden = true;
-      document.getElementById('onboarding-step-3').hidden = false;
+      // Le geste utilisateur du submit est requis pour la demande de permission.
+      if (document.getElementById('ob-notif').checked && 'Notification' in window && Notification.permission === 'default') {
+        try { Notification.requestPermission(); } catch (err) { /* navigateur sans support */ }
+      }
+      finishOnboarding();
+      showToast('Le carnet de ' + name + ' est créé', 'success');
     });
 
     document.getElementById('onboarding-skip').addEventListener('click', function () {
-      finishOnboarding();
-    });
-
-    document.getElementById('onboarding-enable-notif').addEventListener('click', function () {
-      if ('Notification' in window) {
-        Notification.requestPermission();
-      }
       finishOnboarding();
     });
   }
@@ -7159,8 +7538,6 @@
 
     // Bindings
     document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });
-    var btnAddHome = document.getElementById('btn-add-animal-home');
-    if (btnAddHome) btnAddHome.addEventListener('click', function () { openModal('addAnimal'); });
     var btnThemeToggle = document.getElementById('btn-theme-toggle');
     if (btnThemeToggle) btnThemeToggle.addEventListener('click', toggleTheme);
 
@@ -7429,8 +7806,8 @@
       });
     });
 
-    var historyFilter = document.getElementById('history-type-filter');
-    if (historyFilter) historyFilter.addEventListener('change', renderHistory);
+    var frSearch = document.getElementById('fr-search');
+    if (frSearch) frSearch.addEventListener('input', function () { uiState.friseQuery = frSearch.value; uiState.friseLimit = FRISE_PAGE; renderHistory(); });
 
     // Calendar nav
     var calPrev = document.getElementById('cal-prev');
@@ -7609,8 +7986,9 @@
     if (dossierUrgence) dossierUrgence.addEventListener('click', function () { showDirectory(); });
     var dossierActe = document.getElementById('dossier-add-acte');
     if (dossierActe) dossierActe.addEventListener('click', function () {
-      switchTab('actes');
-      openModal('addVaccin');
+      var trigger = [document.getElementById('fab-btn'), document.getElementById('bottom-add')].filter(function (b) { return b && b.offsetParent; })[0];
+      if (trigger) trigger.click();
+      else { switchTab('actes'); openModal('addVaccin'); }
     });
     var actesAdd = document.getElementById('actes-add');
     if (actesAdd) actesAdd.addEventListener('click', function () { openModal('addVaccin'); });
@@ -7720,6 +8098,7 @@
 
     // Setup features
     setupFAB();
+    setupSnoozePicker();
     setupQuickDateButtons();
     setupSortableHeaders();
     setupSwipe();
