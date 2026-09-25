@@ -1,0 +1,7 @@
+# Frontend build context
+node_modules
+dist
+.git
+*.log
+.env
+.env.*

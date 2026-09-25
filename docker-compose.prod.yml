@@ -1,0 +1,14 @@
+# Syntaxe: docker-compose.prod.yml
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Active Cookie Secure et HSTS via nginx (TLS terminé en amont ou ajout certs).
+
+services:
+  api:
+    environment:
+      COOKIE_SECURE: "true"
+
+  nginx:
+    ports:
+      - "80:80"
+      # Décommente et monte tes certificats pour du TLS direct :
+      # - "443:443"

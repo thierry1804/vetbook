@@ -1817,31 +1817,33 @@
         <button type="button" class="account-edit" data-care-route="addAnimal"><span class="account-icon" data-account-icon="plus" aria-hidden="true"></span>Ajouter un compagnon</button>
       </section>
       <section class="account-card account-backup" aria-labelledby="account-cloud-title">
-        <div class="account-section-head"><h2 id="account-cloud-title"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span>Cloud &amp; Synchronisation</h2></div>
+        <div class="account-section-head"><h2 id="account-cloud-title"><span class="account-icon" data-account-icon="globe" aria-hidden="true"></span>Compte &amp; Synchronisation</h2></div>
         <p class="account-caption" id="account-cloud-caption">Sauvegarde locale sur cet appareil</p>
         <div id="cloud-sync-section" class="account-cloud-panel">
         <div id="cloud-sync-signedout">
-          <p class="user-profile__hint">Connecte-toi pour sauvegarder tes données dans le cloud et les retrouver sur un autre appareil.</p>
+          <p class="user-profile__hint">Connecte-toi pour synchroniser tes carnets avec le serveur (Postgres) et stocker les photos (MinIO).</p>
           <div class="cloud-sync-google" id="google-signin-container" hidden></div>
           <p class="cloud-sync-divider" id="cloud-sync-divider" hidden>ou</p>
           <div class="cloud-sync-form">
-            <input type="email" id="cloud-sync-email" aria-label="Adresse e-mail de connexion" class="form-input" placeholder="ton@email.com" autocomplete="email">
-            <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Recevoir un lien de connexion</button>
+            <input type="email" id="cloud-sync-email" aria-label="Adresse e-mail" class="form-input" placeholder="ton@email.com" autocomplete="email">
+            <input type="password" id="cloud-sync-password" aria-label="Mot de passe" class="form-input" placeholder="Mot de passe (8 car. min.)" autocomplete="current-password">
+            <button type="button" class="btn-primary" id="btn-cloud-sync-signin">Se connecter</button>
+            <button type="button" class="action-pill" id="btn-cloud-sync-register">Créer un compte</button>
           </div>
           <p class="user-profile__hint" id="cloud-sync-signin-status" hidden></p>
         </div>
 
         <div id="cloud-sync-signedin" hidden>
           <div class="cloud-sync-actions">
-            <button type="button" class="action-pill action-pill--primary" id="btn-cloud-push">Sauvegarder dans le cloud</button>
-            <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le cloud</button>
+            <button type="button" class="action-pill action-pill--primary" id="btn-cloud-push">Sauvegarder maintenant</button>
+            <button type="button" class="action-pill" id="btn-cloud-pull">Restaurer depuis le serveur</button>
           </div>
           <p class="user-profile__hint" id="cloud-sync-status" hidden></p>
 
         </div>
 
         </div>
-        <p class="account-local-notice"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Vos carnets restent disponibles hors ligne sur cet appareil.</p>
+        <p class="account-local-notice"><span class="account-icon" data-account-icon="check" aria-hidden="true"></span>Cache local disponible hors ligne ; le serveur reste la source de vérité une fois connecté.</p>
         <div class="account-data-actions">
 <button type="button" class="account-row" id="account-export-json"><span class="account-icon" data-account-icon="fileText" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter toutes les données</strong><small>Archive intégrale des carnets au format JSON</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="account-export-ics"><span class="account-icon" data-account-icon="calendar" aria-hidden="true"></span><span class="account-row-copy"><strong>Exporter les rappels (.ics)</strong><small>Ajouter les échéances à votre calendrier</small></span><span aria-hidden="true">›</span></button><button type="button" class="account-row" id="btn-user-backup"><span class="account-icon" data-account-icon="download" aria-hidden="true"></span><span class="account-row-copy"><strong>Restaurer une sauvegarde</strong><small>Importer un fichier JSON depuis votre appareil</small></span><span aria-hidden="true">›</span></button>
         </div>

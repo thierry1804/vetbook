@@ -1,19 +1,14 @@
-// Auth maison (remplace Supabase Auth) : lien magique par email + JWT de
-// session. Le token de lien magique n'est jamais stocké en clair (seul son
-// hash SHA-256 est en base, voir db/schema.sql: auth_login_tokens).
+// Auth : JWT de session en cookie httpOnly (+ Bearer legacy).
 import crypto from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 
 const encoder = new TextEncoder();
+export const SESSION_COOKIE = 'applika_session';
 
 function getSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET manquant.');
   return encoder.encode(secret);
-}
-
-export function generateLoginToken() {
-  return crypto.randomBytes(32).toString('base64url');
 }
 
 export function hashToken(token) {
@@ -40,11 +35,34 @@ function getBearerToken(req) {
   return header.slice('Bearer '.length);
 }
 
-// À appeler en tout début de chaque endpoint protégé. Envoie la réponse
-// 401 elle-même et renvoie null si l'utilisateur n'est pas authentifié,
-// pour permettre `const user = await requireUser(req, res); if (!user) return;`.
+export function getSessionTokenFromRequest(req) {
+  if (req.cookies && req.cookies[SESSION_COOKIE]) return req.cookies[SESSION_COOKIE];
+  return getBearerToken(req);
+}
+
+export function setSessionCookie(res, token) {
+  const secure = process.env.COOKIE_SECURE === 'true';
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function clearSessionCookie(res) {
+  const secure = process.env.COOKIE_SECURE === 'true';
+  res.clearCookie(SESSION_COOKIE, {
+    httpOnly: true,
+    secure,
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
 export async function requireUser(req, res) {
-  const token = getBearerToken(req);
+  const token = getSessionTokenFromRequest(req);
   if (!token) {
     res.status(401).json({ error: 'Non authentifié.' });
     return null;
@@ -55,4 +73,8 @@ export async function requireUser(req, res) {
     res.status(401).json({ error: 'Session invalide ou expirée.' });
     return null;
   }
+}
+
+export function isValidEmail(email) {
+  return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }

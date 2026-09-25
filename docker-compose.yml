@@ -1,22 +1,79 @@
-name: vetbook
+# App'lika — stack self-hosted (Nginx + API + Postgres + MinIO)
+# Usage : cp .env.example .env && docker compose up --build
+# Le bucket MinIO est créé par l'API au démarrage (ensureBucket).
 
-# Conteneur unique : app statique + API Express (server.js). Pas de DB locale,
-# pas de reverse proxy — Cloudflare Tunnel termine le HTTPS côté edge et
-# forwarde en clair vers ce port (voir /etc/cloudflared/config.yml,
-# hostname vetbook.boss-etech.net -> http://localhost:3020).
-#
-# Sync cloud (Neon) optionnelle : sans .env (DATABASE_URL, JWT_SECRET, ...),
-# l'app reste 100% locale (localStorage/IndexedDB) — voir README.md.
+name: applika
 
 services:
-  app:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-applika}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-applika}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - applika
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD required}
+    volumes:
+      - miniodata:/data
+    networks:
+      - applika
+
+  api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "3020:3000"
     env_file:
       - .env
     environment:
       PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-applika}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-applika}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-vetbook-media}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - applika
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-3080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - applika
+
+volumes:
+  pgdata:
+  miniodata:
+
+networks:
+  applika:
+    driver: bridge

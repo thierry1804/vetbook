@@ -723,12 +723,34 @@
 
   async function putPhotoBlob(photoId, blob, mimeType) {
     var db = await openPhotoDb();
-    return new Promise(function (resolve, reject) {
+    await new Promise(function (resolve, reject) {
       var tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
       tx.oncomplete = function () { resolve(); };
       tx.onerror = function () { reject(tx.error || new Error('putPhotoBlob')); };
       tx.objectStore(PHOTO_STORE_NAME).put({ id: photoId, blob: blob, mimeType: mimeType || blob.type || '' });
     });
+    // Miroir MinIO si connecté : sync d'abord pour que le pet existe en base.
+    try {
+      if (window.cloudSync && window.cloudSync.isConfigured() && window.cloudSync.uploadPhoto) {
+        var sess = await window.cloudSync.getSession();
+        if (sess && sess.user) {
+          await window.cloudSync.pushAllToCloud().catch(function () { return null; });
+          var petLocalId = state.currentAnimalId != null ? state.currentAnimalId : (state.animals[0] && state.animals[0].id);
+          if (petLocalId != null) {
+            var uploaded = await window.cloudSync.uploadPhoto(petLocalId, photoId, blob, {});
+            if (uploaded && uploaded.id) {
+              var wrap = state.animals.find(function (a) { return a.id === petLocalId; });
+              if (wrap && Array.isArray(wrap.photos)) {
+                var photoMeta = wrap.photos.find(function (p) { return p && p.id === photoId; });
+                if (photoMeta) photoMeta.serverId = uploaded.id;
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('App\'lika: upload MinIO différé', err);
+    }
   }
 
   async function getPhotoRecord(photoId) {
@@ -763,6 +785,18 @@
 
   async function getPhotoObjectUrl(photoId) {
     if (photoUrlCache.has(photoId)) return photoUrlCache.get(photoId);
+    // Préfère l'URL serveur (MinIO via API) si un serverId est connu.
+    try {
+      var wrap = state.animals.find(function (a) {
+        return Array.isArray(a.photos) && a.photos.some(function (p) { return p && p.id === photoId; });
+      });
+      var meta = wrap && wrap.photos.find(function (p) { return p && p.id === photoId; });
+      if (meta && meta.serverId && window.cloudSync && window.cloudSync.getPhotoUrl) {
+        var remote = window.cloudSync.getPhotoUrl(meta.serverId);
+        photoUrlCache.set(photoId, remote);
+        return remote;
+      }
+    } catch (e) { /* fallback IndexedDB */ }
     var rec = await getPhotoRecord(photoId);
     if (!rec || !rec.blob) return '';
     var url = URL.createObjectURL(rec.blob);

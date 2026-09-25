@@ -1,29 +1,6 @@
 /**
- * App'lika — couche de synchronisation cloud (API maison + Neon), Phase B.
- *
- * Remplace l'ancienne intégration Supabase (supabase-js) par des appels
- * fetch vers la petite API serverless du projet (api/*.js) : la logique
- * de mapping champs locaux <-> colonnes cloud vit maintenant côté serveur
- * (voir api/_lib/mapping.js) ; ce fichier ne fait plus que l'auth (lien
- * magique + JWT de session) et les deux appels push/pull.
- *
- * Additif et optionnel : n'intercepte pas les fonctions existantes de
- * app.js (loadState/saveState). Lit et écrit directement les mêmes clés
- * localStorage ('vetbook_data', 'vetbook_vet_directory'), puis recharge
- * la page pour laisser app.js reprendre la main normalement.
- *
- * Sync automatique :
- * - Push : localStorage.setItem est intercepté ; toute écriture de
- *   'vetbook_data' (donc tout ajout/modif/suppression fait par app.js)
- *   programme un push debouncé (répété tant que ça change, envoyé
- *   AUTO_PUSH_DELAY_MS après la dernière modification) si connecté.
- * - Pull : à la connexion (ou session déjà active au chargement), si cet
- *   appareil n'a AUCUNE donnée locale, restauration automatique depuis le
- *   cloud. Si l'appareil a déjà des données locales, jamais d'écrasement
- *   automatique — les boutons manuels restent disponibles pour ce cas.
- *
- * Les photos (album) ne sont pas encore synchronisées : elles restent
- * uniquement en IndexedDB locale.
+ * App'lika — couche sync API (Postgres local + cookies de session).
+ * Auth : email/mot de passe + Google OAuth. Photos : MinIO via /api/files.
  */
 (function () {
   'use strict';
@@ -33,19 +10,15 @@
   var SESSION_KEY = 'vetbook_cloud_session';
 
   var cfg = window.__SUPABASE_CONFIG__;
-  // Le nom de la config globale est resté __SUPABASE_CONFIG__ pour ne pas
-  // devoir toucher app.js (qui y lit vapidPublicKey) ; son contenu n'a
-  // plus rien de Supabase : { apiBaseUrl?, vapidPublicKey }.
   var configured = !!cfg;
   var apiBase = (cfg && cfg.apiBaseUrl) || '';
 
-  // ——— Local storage helpers ———
   var AUTO_PUSH_DELAY_MS = 4000;
   var suppressAutoPush = false;
   var autoPushTimer = null;
-  var currentSession = null; // { token, userId, email } | null
+  var currentSession = null;
   var authListeners = [];
-  var onAutoSyncEvent = null; // hook set by initUI() to reflect status in the UI
+  var onAutoSyncEvent = null;
 
   function readLocal() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { return null; }
@@ -77,10 +50,6 @@
     authListeners.forEach(function (cb) { cb(event, publicSession); });
   }
 
-  // Intercepte toute écriture de 'vetbook_data' faite par app.js (saveState)
-  // pour programmer une sauvegarde cloud différée. N'affecte pas les autres
-  // clés ; les écritures faites par writeLocal() ci-dessus sont exclues via
-  // suppressAutoPush pour ne pas repousser en boucle ce qu'on vient de tirer.
   var nativeSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     nativeSetItem(key, value);
@@ -102,12 +71,18 @@
     }, AUTO_PUSH_DELAY_MS);
   }
 
-  // ——— Client API ———
   function apiFetch(path, options) {
     options = options || {};
-    var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
-    if (currentSession) headers.Authorization = 'Bearer ' + currentSession.token;
-    return fetch(apiBase + path, Object.assign({}, options, { headers: headers })).then(function (res) {
+    var headers = Object.assign({}, options.headers || {});
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return fetch(apiBase + path, Object.assign({ credentials: 'include' }, options, { headers: headers })).then(function (res) {
+      var ct = res.headers.get('content-type') || '';
+      if (ct.indexOf('application/json') === -1) {
+        if (!res.ok) throw new Error('Erreur serveur (' + res.status + ')');
+        return res;
+      }
       return res.json().catch(function () { return {}; }).then(function (body) {
         if (!res.ok) throw new Error(body.error || ('Erreur serveur (' + res.status + ')'));
         return body;
@@ -115,22 +90,45 @@
     });
   }
 
-  // ——— Auth ———
   function isConfigured() { return configured; }
 
-  function signInWithEmail(email) {
-    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée (config.js manquant).'));
-    return apiFetch('/api/auth/request-link', {
+  function applySession(res) {
+    currentSession = {
+      userId: res.userId,
+      email: res.email,
+      name: res.name,
+      picture: res.picture,
+    };
+    writeSession(currentSession);
+    notifyAuthListeners('SIGNED_IN');
+    maybeAutoPull();
+    return true;
+  }
+
+  function register(email, password, name) {
+    if (!configured) return Promise.reject(new Error('API non configurée (config.js manquant).'));
+    return apiFetch('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email: email }),
-    }).then(function () { return true; });
+      body: JSON.stringify({ email: email, password: password, name: name || null }),
+    }).then(applySession);
+  }
+
+  function login(email, password) {
+    if (!configured) return Promise.reject(new Error('API non configurée (config.js manquant).'));
+    return apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: email, password: password }),
+    }).then(applySession);
   }
 
   function signOut() {
-    currentSession = null;
-    writeSession(null);
-    notifyAuthListeners('SIGNED_OUT');
-    return Promise.resolve();
+    return apiFetch('/api/auth/logout', { method: 'POST', body: '{}' }).catch(function () {
+      return null;
+    }).then(function () {
+      currentSession = null;
+      writeSession(null);
+      notifyAuthListeners('SIGNED_OUT');
+    });
   }
 
   function getSession() {
@@ -141,7 +139,21 @@
     authListeners.push(cb);
   }
 
-  // ——— Connexion avec Google (Google Identity Services) ———
+  function refreshSessionFromCookie() {
+    if (!configured) return Promise.resolve(false);
+    return apiFetch('/api/auth/me', { method: 'GET' }).then(function (res) {
+      currentSession = { userId: res.userId, email: res.email, name: res.name, picture: res.picture };
+      writeSession(currentSession);
+      notifyAuthListeners('SIGNED_IN');
+      maybeAutoPull();
+      return true;
+    }).catch(function () {
+      currentSession = null;
+      writeSession(null);
+      return false;
+    });
+  }
+
   var GOOGLE_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
   var googleScriptPromise = null;
 
@@ -160,52 +172,15 @@
     return googleScriptPromise;
   }
 
-  // Échange le jeton Google (credential renvoyé par le bouton GIS) contre
-  // un JWT de session App'lika — même mécanique que consumeLoginTokenFromUrl,
-  // le rattachement compte email <-> compte Google est fait côté serveur
-  // (api/auth/google.js).
   function signInWithGoogleCredential(credential) {
     return apiFetch('/api/auth/google', {
       method: 'POST',
       body: JSON.stringify({ credential: credential }),
-    }).then(function (res) {
-      currentSession = { token: res.token, email: res.email, userId: res.userId, name: res.name, picture: res.picture };
-      writeSession(currentSession);
-      notifyAuthListeners('SIGNED_IN');
-      maybeAutoPull();
-      return true;
-    });
+    }).then(applySession);
   }
 
-  // Vérifie un lien magique (?login_token=...) au chargement de la page,
-  // remplace l'échange de session que faisait Supabase Auth automatiquement
-  // au clic sur le lien.
-  function consumeLoginTokenFromUrl() {
-    if (!configured) return;
-    var params = new URLSearchParams(window.location.search);
-    var token = params.get('login_token');
-    if (!token) return;
-
-    params.delete('login_token');
-    var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
-    window.history.replaceState({}, '', cleanUrl);
-
-    if (onAutoSyncEvent) onAutoSyncEvent('auto-pulling');
-    apiFetch('/api/auth/verify', { method: 'POST', body: JSON.stringify({ token: token }) })
-      .then(function (res) {
-        currentSession = { token: res.token, email: res.email, userId: res.userId, name: res.name, picture: res.picture };
-        writeSession(currentSession);
-        notifyAuthListeners('SIGNED_IN');
-        maybeAutoPull();
-      })
-      .catch(function (err) {
-        if (onAutoSyncEvent) onAutoSyncEvent('error', err);
-      });
-  }
-
-  // ——— Push : abonnement de cet appareil ———
   function subscribeToPush(subscriptionJson) {
-    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!configured) return Promise.reject(new Error('API non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Connecte-toi d\'abord pour activer les notifications push.'));
     return apiFetch('/api/push/subscription', {
       method: 'POST',
@@ -224,7 +199,6 @@
     }).then(function () { return true; });
   }
 
-  // ——— Préférence de compte : rappel mensuel des événements canins ———
   function getDogEventsReminderPref() {
     if (!configured || !currentSession) return Promise.resolve(true);
     return apiFetch('/api/user/dog-events-reminder', { method: 'GET' }).then(function (res) {
@@ -233,7 +207,7 @@
   }
 
   function setDogEventsReminderPref(value) {
-    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!configured) return Promise.reject(new Error('API non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     return apiFetch('/api/user/dog-events-reminder', {
       method: 'POST',
@@ -241,10 +215,6 @@
     }).then(function () { return true; });
   }
 
-  // Restauration auto si l'appareil est vierge. Ne s'exécute qu'une fois
-  // par chargement de page (autoPullDone) : au-delà, on laisse les boutons
-  // manuels décider pour ne jamais écraser en silence des données locales
-  // déjà présentes.
   var autoPullDone = false;
   function maybeAutoPull() {
     if (autoPullDone || !currentSession) return;
@@ -263,9 +233,8 @@
     });
   }
 
-  // ——— Push : local -> cloud ———
   function pushAllToCloud(onProgress) {
-    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!configured) return Promise.reject(new Error('API non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     var state = readLocal();
     var hasAnimals = state && Array.isArray(state.animals) && state.animals.length > 0;
@@ -281,9 +250,8 @@
     }).then(function () { return true; });
   }
 
-  // ——— Pull : cloud -> local (remplace l'état local) ———
   function pullAllFromCloud() {
-    if (!configured) return Promise.reject(new Error('Synchronisation cloud non configurée.'));
+    if (!configured) return Promise.reject(new Error('API non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     return apiFetch('/api/sync/pull', { method: 'GET' }).then(function (res) {
       if (!res.found) return false;
@@ -293,9 +261,28 @@
     });
   }
 
+  function uploadPhoto(petLocalId, localId, blob, meta) {
+    if (!configured || !currentSession) return Promise.reject(new Error('Non connecté.'));
+    var fd = new FormData();
+    fd.append('file', blob, 'photo.jpg');
+    fd.append('petLocalId', String(petLocalId));
+    if (localId != null) fd.append('localId', String(localId));
+    if (meta && meta.caption) fd.append('caption', meta.caption);
+    if (meta && meta.date) fd.append('date', meta.date);
+    return apiFetch('/api/files', { method: 'POST', body: fd, headers: {} });
+  }
+
+  function getPhotoUrl(serverId) {
+    return apiBase + '/api/files/' + serverId;
+  }
+
   window.cloudSync = {
     isConfigured: isConfigured,
-    signInWithEmail: signInWithEmail,
+    register: register,
+    login: login,
+    signInWithEmail: function (email) {
+      return Promise.reject(new Error('Utilise login(email, password) ou register(...).'));
+    },
     signOut: signOut,
     getSession: getSession,
     onAuthChange: onAuthChange,
@@ -305,9 +292,10 @@
     unsubscribeFromPush: unsubscribeFromPush,
     getDogEventsReminderPref: getDogEventsReminderPref,
     setDogEventsReminderPref: setDogEventsReminderPref,
+    uploadPhoto: uploadPhoto,
+    getPhotoUrl: getPhotoUrl,
   };
 
-  // ——— UI : section "Cloud & synchronisation" du profil utilisateur ———
   function initUI() {
     var section = document.getElementById('cloud-sync-section');
     if (!section) return;
@@ -316,9 +304,11 @@
     var signedOutEl = document.getElementById('cloud-sync-signedout');
     var signedInEl = document.getElementById('cloud-sync-signedin');
     var emailInput = document.getElementById('cloud-sync-email');
+    var passwordInput = document.getElementById('cloud-sync-password');
     var signinStatus = document.getElementById('cloud-sync-signin-status');
     var syncStatus = document.getElementById('cloud-sync-status');
     var btnSignin = document.getElementById('btn-cloud-sync-signin');
+    var btnRegister = document.getElementById('btn-cloud-sync-register');
     var btnSignout = document.getElementById('btn-cloud-signout');
     var btnPush = document.getElementById('btn-cloud-push');
     var btnPull = document.getElementById('btn-cloud-pull');
@@ -336,11 +326,6 @@
       el.style.color = isError ? 'var(--color-error)' : '';
     }
 
-    // Affiche la photo du compte connecté (Google) dans un conteneur avatar,
-    // ou restaure l'icône générique par défaut si aucune photo n'est
-    // disponible (compte lien magique). Toujours via un <img> créé en DOM
-    // (pas d'innerHTML avec l'URL) même si celle-ci vient du JWT Google déjà
-    // vérifié côté serveur.
     function renderAvatar(el, defaultHtml, pictureUrl) {
       if (!el) return;
       if (pictureUrl) {
@@ -359,16 +344,12 @@
       var signedIn = !!session;
       if (btnSignout) btnSignout.hidden = !signedIn;
       var accountCaption = document.getElementById('account-cloud-caption');
-      if (accountCaption) accountCaption.textContent = signedIn ? 'Compte connecté · sauvegarde cloud disponible' : 'Connectez-vous pour retrouver vos carnets sur vos appareils';
+      if (accountCaption) accountCaption.textContent = signedIn ? 'Compte connecté · sauvegarde serveur active' : 'Connectez-vous pour synchroniser vos carnets';
       if (signedOutEl) signedOutEl.hidden = signedIn;
       if (signedInEl) signedInEl.hidden = !signedIn;
-      // Avatar principal du profil (haut de l'écran) : app.js ne touche
-      // jamais #user-avatar (seulement le nom/email, dérivés du profil
-      // "propriétaire" local), donc pas de conflit à le mettre à jour ici.
       renderAvatar(profileAvatar, profileAvatarDefault, signedIn ? session.user.picture : '');
-      // Bouton "Mon compte" du header.
       renderAvatar(navAvatar, navAvatarDefault, signedIn ? session.user.picture : '');
-      if (signedIn) showStatus(syncStatus, 'Synchronisation automatique activée — tout changement est sauvegardé dans le cloud quelques secondes après.', false);
+      if (signedIn) showStatus(syncStatus, 'Synchronisation automatique activée — les changements sont sauvegardés sur le serveur.', false);
     }
 
     getSession().then(renderAuthState);
@@ -379,9 +360,9 @@
 
     onAutoSyncEvent = function (kind, err) {
       if (kind === 'pending') showStatus(syncStatus, 'Modifications en attente de sauvegarde...', false);
-      else if (kind === 'synced') showStatus(syncStatus, 'Synchronisé avec le cloud.', false);
-      else if (kind === 'auto-pulling') showStatus(syncStatus, 'Données trouvées dans le cloud, restauration...', false);
-      else if (kind === 'auto-pulled') showStatus(syncStatus, 'Restauré depuis le cloud. Rechargement...', false);
+      else if (kind === 'synced') showStatus(syncStatus, 'Synchronisé avec le serveur.', false);
+      else if (kind === 'auto-pulling') showStatus(syncStatus, 'Données trouvées sur le serveur, restauration...', false);
+      else if (kind === 'auto-pulled') showStatus(syncStatus, 'Restauré depuis le serveur. Rechargement...', false);
       else if (kind === 'error') showStatus(syncStatus, 'Erreur de synchronisation : ' + (err && err.message), true);
     };
 
@@ -406,16 +387,35 @@
       });
     }
 
-    if (btnSignin) btnSignin.addEventListener('click', function () {
+    function readCredentials() {
       var email = (emailInput && emailInput.value || '').trim();
-      if (!email) { showStatus(signinStatus, 'Entre ton email.', true); return; }
+      var password = (passwordInput && passwordInput.value || '');
+      return { email: email, password: password };
+    }
+
+    if (btnSignin) btnSignin.addEventListener('click', function () {
+      var creds = readCredentials();
+      if (!creds.email || !creds.password) { showStatus(signinStatus, 'Email et mot de passe requis.', true); return; }
       btnSignin.disabled = true;
-      showStatus(signinStatus, 'Envoi du lien...', false);
-      signInWithEmail(email).then(function () {
-        showStatus(signinStatus, 'Lien envoyé — vérifie ta boîte mail et clique dessus pour te connecter.', false);
+      showStatus(signinStatus, 'Connexion...', false);
+      login(creds.email, creds.password).then(function () {
+        showStatus(signinStatus, '', false);
       }).catch(function (err) {
         showStatus(signinStatus, 'Erreur : ' + err.message, true);
       }).finally(function () { btnSignin.disabled = false; });
+    });
+
+    if (btnRegister) btnRegister.addEventListener('click', function () {
+      var creds = readCredentials();
+      if (!creds.email || !creds.password) { showStatus(signinStatus, 'Email et mot de passe requis.', true); return; }
+      if (creds.password.length < 8) { showStatus(signinStatus, 'Mot de passe : 8 caractères minimum.', true); return; }
+      btnRegister.disabled = true;
+      showStatus(signinStatus, 'Création du compte...', false);
+      register(creds.email, creds.password).then(function () {
+        showStatus(signinStatus, '', false);
+      }).catch(function (err) {
+        showStatus(signinStatus, 'Erreur : ' + err.message, true);
+      }).finally(function () { btnRegister.disabled = false; });
     });
 
     if (btnSignout) btnSignout.addEventListener('click', function () {
@@ -426,18 +426,18 @@
       btnPush.disabled = true;
       showStatus(syncStatus, 'Sauvegarde en cours...', false);
       pushAllToCloud(function (msg) { showStatus(syncStatus, msg, false); }).then(function () {
-        showStatus(syncStatus, 'Sauvegardé dans le cloud.', false);
+        showStatus(syncStatus, 'Sauvegardé sur le serveur.', false);
       }).catch(function (err) {
         showStatus(syncStatus, 'Erreur : ' + err.message, true);
       }).finally(function () { btnPush.disabled = false; });
     });
 
     if (btnPull) btnPull.addEventListener('click', function () {
-      if (!window.confirm('Ça va remplacer les données locales de cet appareil par celles du cloud. Continuer ?')) return;
+      if (!window.confirm('Ça va remplacer les données locales de cet appareil par celles du serveur. Continuer ?')) return;
       btnPull.disabled = true;
       showStatus(syncStatus, 'Restauration en cours...', false);
       pullAllFromCloud().then(function (found) {
-        if (!found) { showStatus(syncStatus, 'Aucune donnée trouvée dans le cloud pour ce compte.', true); return; }
+        if (!found) { showStatus(syncStatus, 'Aucune donnée trouvée sur le serveur pour ce compte.', true); return; }
         showStatus(syncStatus, 'Restauré. Rechargement...', false);
         window.setTimeout(function () { window.location.reload(); }, 600);
       }).catch(function (err) {
@@ -448,12 +448,13 @@
 
   if (configured) {
     currentSession = readSession();
-    consumeLoginTokenFromUrl();
-    if (currentSession) {
-      // Session déjà active au chargement (retour sur l'appareil) : même
-      // logique de restauration auto que juste après une connexion.
-      window.setTimeout(function () { notifyAuthListeners('SIGNED_IN'); maybeAutoPull(); }, 0);
-    }
+    refreshSessionFromCookie().then(function (ok) {
+      if (!ok && currentSession) {
+        // Cookie absent/expiré : nettoie le cache local de session.
+        currentSession = null;
+        writeSession(null);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

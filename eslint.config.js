@@ -2,10 +2,10 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist', 'vendor', 'icons/source'] },
+  { ignores: ['frontend/dist', 'frontend/vendor', 'frontend/icons/source', '**/node_modules'] },
   {
     ...js.configs.recommended,
-    files: ['app.js', 'sw.js', 'data-layer.js'],
+    files: ['frontend/app.js', 'frontend/sw.js', 'frontend/data-layer.js'],
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'script',
@@ -19,7 +19,7 @@ export default [
   },
   {
     ...js.configs.recommended,
-    files: ['api/**/*.js', 'server.js', 'scripts/**/*.mjs'],
+    files: ['backend/api/**/*.js', 'backend/server.js', 'backend/scripts/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

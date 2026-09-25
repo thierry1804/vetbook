@@ -1,15 +1,10 @@
--- App'lika — schéma Neon (remplace supabase/schema.sql).
--- À exécuter une fois via `psql "$DATABASE_URL" -f db/schema.sql` (ou la console SQL Neon).
--- Idempotent : peut être relancé sans dupliquer (IF NOT EXISTS partout).
+-- App'lika — schéma Postgres local (Docker).
+-- Appliqué au démarrage de l'API (api/_lib/schema.js) ou via
+-- `node scripts/apply-schema.mjs`. Idempotent (IF NOT EXISTS).
 --
--- Différences avec l'ancien schéma Supabase :
--- - `users` remplace `auth.users` (pas de service d'auth intégré sur Neon).
--- - Pas de RLS au niveau base : Neon n'a pas d'équivalent à `auth.uid()`.
---   L'isolation par utilisateur est appliquée dans l'API (api/_lib/db.js),
---   à partir du user_id extrait du JWT de session — jamais depuis le payload
---   client. Voir api/_lib/auth.js.
--- - Pas de bucket "storage" : les photos restent uniquement en IndexedDB
---   locale, comme avant (sync photo = amélioration future non couverte ici).
+-- Isolation par utilisateur dans l'API (JWT cookie), jamais depuis le
+-- payload client. Photos binaires dans MinIO ; métadonnées ici
+-- (photos.storage_path = clé objet MinIO).
 
 create extension if not exists pgcrypto;
 
@@ -41,6 +36,7 @@ alter table users add column if not exists dog_events_reminder boolean not null 
 alter table users add column if not exists google_sub text unique;
 alter table users add column if not exists name text;
 alter table users add column if not exists picture_url text;
+alter table users add column if not exists password_hash text;
 
 -- ═══════════════════════════════════════════════════════════════
 -- 1 animal = 1 "pets" row. Toutes les autres tables référencent
@@ -235,9 +231,14 @@ create table if not exists photos (
   date date,
   caption text,
   storage_path text,
+  content_type text,
+  byte_size bigint,
   created_at timestamptz not null default now(),
   unique (pet_id, local_id)
 );
+
+alter table photos add column if not exists content_type text;
+alter table photos add column if not exists byte_size bigint;
 
 create table if not exists nutrition_meals (
   id uuid primary key default gen_random_uuid(),
