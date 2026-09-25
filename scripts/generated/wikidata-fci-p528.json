@@ -1,0 +1,4658 @@
+{
+  "head" : {
+    "vars" : [ "fci", "labelFr", "labelEn" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pointer anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "001"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Setter"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Setter anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "002"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kerry Blue Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier Kerry Blue"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "003"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cairn Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cairn terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "004"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Cocker Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cocker spaniel anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "005"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Gordon Setter"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Setter Gordon"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "006"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier australien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "008"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bedlington Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bedlington terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "009"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Border Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Border Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "010"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bull Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bull Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "011"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Smooth Fox Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Fox-terrier à poil lisse"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "012"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Toy Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier d'agrément anglais noir et feu"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "013"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Swedish Vallhund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Vallhund suédois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "014"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Belgian Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger belge"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "015"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Old English sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bobtail"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "016"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Griffon Nivernais"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon nivernais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "017"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Briquet Griffon Vendéen"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Briquet griffon vendéen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "019"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Ariégeois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Ariégeois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "020"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Gascon Saintongeois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Gascon saintongeois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "021"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Great Gascony Blue"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand Bleu de Gascogne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "022"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Poitevin hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Poitevin"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "024"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Billy"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Billy"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "025"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Artois Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'Artois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "028"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Porcelaine"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Porcelaine"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "030"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Petit Bleu de Gascogne"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit bleu de Gascogne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "031"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Blue Gascony Griffon"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon bleu de Gascogne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "032"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Large Vendeen Griffon Basset"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand basset griffon vendéen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "033"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Basset Artésien Normand"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Basset artésien normand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "034"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Basset Bleu de Gascogne"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Basset bleu de Gascogne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "035"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Fawn Brittany Basset"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Basset fauve de Bretagne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "036"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portuguese water dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien d'eau portugais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "037"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cardigan Welsh Corgi"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Welsh Corgi Cardigan"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "038"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pembroke Welsh Corgi"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Welsh Corgi Pembroke"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "039"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Soft-coated Wheaten Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier irlandais à poil doux"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "040"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jämthund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien d'élan suédois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "042"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Basenji"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Basenji"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "043"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Beauceron"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Beauceron"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "044"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bernese Mountain Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier bernois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "045"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Appenzeller Sennenhund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier de l’Appenzell"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "046"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Entlebucher Mountain Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier de l'Entlebuch"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "047"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Karelian Bear Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien d'ours de Carélie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "048"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Newfoundland dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terre-neuve"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "050"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Finnish Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien courant finlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "051"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Polish Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Brachet polonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "052"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Komondor"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Komondor"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "053"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kuvasz"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Kuvasz"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "054"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Puli"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Puli"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "055"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pumi"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pumi"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "056"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Vizsla"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque hongrois à poil court"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "057"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Greater Swiss Mountain Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand bouvier suisse"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "058"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Schweizer Laufhund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant suisse"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "059"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Austrian Black and Tan Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien noir et bronzé autrichien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "063"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Austrian Pinscher"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pinscher autrichien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "064"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Maltese"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bichon maltais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "065"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Fawn Brittany Griffon"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon Fauve de Bretagne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "066"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Petit Basset Griffon Vendéen"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit basset griffon Vendéen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "067"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tyrolean Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Brachet tyrolien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "068"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Lakeland Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lakeland Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "070"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Manchester Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Manchester Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "071"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norwich Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Norwich Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "072"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Papillon"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Papillon"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "077"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Welsh Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Welsh terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "078"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Griffon Bruxellois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon bruxellois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "080"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Griffon Bruxellois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon bruxellois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "081"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Griffon Bruxellois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Griffon bruxellois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "082"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "bloodhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de Saint-Hubert"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "084"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "West Highland White Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "West Highland white terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "085"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Yorkshire Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Yorkshire"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "086"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Catalan Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Gos d'Atura Català"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "087"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Ibizan Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Podenco d'Ibiza"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "089"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Burgos Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Perdiguero de Burgos"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "090"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Spanish Mastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Mâtin espagnol"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "091"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Mastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Mâtin des Pyrénées"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "092"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portuguese Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "berger de la Serra de Aires"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "093"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portuguese Podengo"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de garenne portugais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "094"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Brittany"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "épagneul breton"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "095"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Rafeiro do Alentejo"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "rafeiro de l'Alentejo"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "096"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Spitz"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "spitz allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "097"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Wirehaired Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Drahthaar"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "098"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Weimaraner"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque de Weimar"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "099"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Westphalian Dachsbracke"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Basset de Westphalie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "100"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "French Bulldog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "bouledogue français"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "101"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Small Münsterländer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit épagneul de Münster"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "102"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jagdterrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier de chasse allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "103"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'oysel allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "104"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Barbet"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Barbet"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "105"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Blue Picardy Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Épagneul bleu de Picardie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "106"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wirehaired Pointing Griffon"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Korthals"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "107"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Picardy Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Épagneul picard"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "108"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Clumber Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Clumber Spaniel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "109"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Curly Coated Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Retriever à poil bouclé"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "110"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Golden Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Golden retriever"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "111"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Briard"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger de Brie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "113"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pont-Audemer Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Épagneul de Pont-Audemer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "114"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Braque Saint-Germain"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque Saint-Germain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "115"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dogue de Bordeaux"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue de Bordeaux"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "116"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Longhaired Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'arrêt allemand à poil long"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "117"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Large Münsterländer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand Münsterländer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "118"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Shorthaired Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "119"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Irish Setter"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Setter irlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "120"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Flat-Coated Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Flat-Coated Retriever"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "121"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Labrador Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "labrador retriever"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "122"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Field Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Field Spaniel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "123"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Irish Water Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Épagneul d'eau irlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "124"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Springer Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "springer anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "125"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Welsh Springer Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Welsh Springer Spaniel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "126"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "King Charles Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "King Charles Spaniel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "128"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Drever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Drever"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "130"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Hamiltonstövare"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Hamiltonstövare"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "132"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Braque Français"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque français"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "133"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "French Pointing Dog Gascogne Type"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque Français, Type «Gascongne»"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "133"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Braque Français"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque français"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "134"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "French Pointing Dog - Pyrenean type"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque français, type Pyrénées"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "134"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cavalier King Charles Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cavalier King Charles Spaniel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "136"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Mountain Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de montagne des Pyrénées"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "137"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger des Pyrénées"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "138"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Sheepdog Smooth-faced"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger des Pyrénées à face rase"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "138"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Irish Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier irlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "139"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Boston Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier de Boston"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "140"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger des Pyrénées"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "141"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pyrenean Sheepdog Long-haired"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger des Pyrénées à poil long"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "141"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dobermann"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dobermann"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "143"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Boxer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Boxer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "144"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Leonberger"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Leonberg"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "145"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Rhodesian Ridgeback"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de Rhodésie à crête dorsale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "146"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Rottweiler"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Rottweiler"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "147"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "dachshund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "teckel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "148"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bulldog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bulldog anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "149"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Istrian Shorthaired Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant d'Istrie à poil ras"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "151"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Istrian Coarse-haired Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant d'Istrie à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "152"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dalmatian"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dalmatien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "153"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Posavac Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant de la vallée de la Save"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "154"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Barak hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant de Bosnie à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "155"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Rough Collie"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Colley"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "156"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bullmastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "bullmastiff"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "157"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "greyhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lévrier greyhound"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "158"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Foxhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Foxhound anglais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "159"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Irish wolfhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lévrier irlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "160"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "beagle"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "beagle"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "161"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Whippet"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lévrier whippet"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "162"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "basset hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "basset hound"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "163"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Scottish Deerhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Deerhound"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "164"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "American Cocker Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cocker américain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "167"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dandie Dinmont Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dandie Dinmont Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "168"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wire Fox Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "fox-terrier à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "169"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portuguese Cattle Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de Castro Laboreiro"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "170"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bouvier des Ardennes"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier des Ardennes"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "171"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "poodle"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "caniche"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "172"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Estrela Mountain Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de la Serra da Estrela"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "173"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "French Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "épagneul français"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "175"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Picardy Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger picard"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "176"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Ariégeois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Ariégeois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "177"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Braque du Bourbonnais"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque du Bourbonnais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "179"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Braque d'Auvergne"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque d'Auvergne"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "180"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Giant Schnauzer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Schnauzer géant"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "181"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Standard Schnauzer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "schnauzer moyen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "182"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Miniature Schnauzer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Schnauzer miniature"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "183"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "German Pinscher"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "pinscher allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "184"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Miniature Pinscher"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pinscher nain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "185"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Portuguese Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien d'arrêt portugais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "187"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Hovawart"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Hovawart"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "190"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bouvier des Flandres"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier des Flandres"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "191"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kromfohrländer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Kromfohrländer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "192"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Borzoi"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Barzoï"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "193"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bergamasco Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger de Bergame"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "194"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Volpino Italiano"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Volpino Italiano"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "195"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bolognese"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bichon bolonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "196"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Neapolitan Mastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Mâtin napolitain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "197"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Segugio Italiano"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant italien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "198"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Italian Rough-haired Segugio"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant italien à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "198"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cirneco dell'Etna"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cirneco de l'Etna"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "199"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bichon Frisé"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bichon à poil frisé"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "2 15 900"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Italian Greyhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit lévrier italien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "200"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Abruzzo-Maremma Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger de Abruzzes et Maremme"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "201"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bracco Italiano"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque italien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "202"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dunker"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dunker"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "203"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Sabueso Español"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Sabueso Español"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "204"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chow Chow"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chow-chow"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "205"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Japanese Chin"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Épagneul japonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "206"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pekingese"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pékinois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "207"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tibetan Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier tibétain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "209"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Grand Gascon Saintongeois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand Gascon saintongeois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "21"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Petit Gascon Saintongeois"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit Gascon Saintongeois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "21"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Hanover Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de rouge du Hanovre"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "213"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Greek Harehound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant grec"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "214"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pudelpointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Pudelpointer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "216"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bavarian Mountain Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de rouge de Bavière"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "217"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chihuahua"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chihuahua"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "218"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "French Tricolour Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Français tricolore"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "219"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chien Français Blanc et Noir"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien Français blanc et noir"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "220"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wetterhoun"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Wetterhoun"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "221"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dutch Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger hollandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "223"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Drentse Patrijshond"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de perdrix de Drente"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "224"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Fila Brasileiro"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Fila Brasileiro"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "225"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Landseer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Landseer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "226"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Lhasa Apso"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lhassa Apso"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "227"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tibetan Mastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue du Tibet"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "230"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tibetan Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "épagneul tibétain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "231"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Stichelhaar"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'arrêt allemand à poil raide"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "232"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Löwchen"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Petit chien lion"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "233"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Xoloitzcuintle"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien nu mexicain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "234"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Great Dane"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "235"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Silky Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier australien à poil soyeux"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "236"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norwegian Buhund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Buhund norvégien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "237"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Mudi"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Mudi"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "238"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Wirehaired Vizsla"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque hongrois à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "239"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Magyar agár"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lévrier hongrois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "240"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Transylvanian hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Erdélyi kopó"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "241"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norwegian Elkhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'élan norvégien gris"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "242"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cesky Fousek"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Barbu tchèque"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "245"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cesky Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier Tchèque"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "246"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Pharaoh Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien du Pharaon"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "248"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Perro de Presa Mallorquin"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue de Majorque"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "249"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Havanese"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bichon havanais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "250"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Polish Lowland Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger polonais de plaine"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "251"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tatra Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger des Tatras"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "252"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "pug"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "carlin"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "253"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Japanese Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier japonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "259"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tosa"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Tosa Inu"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "260"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Hokkaido inu"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Hokkaïdo"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "261"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Japanese Spitz"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Spitz japonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "262"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chesapeake Bay Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Retriever de la baie de Chesapeake"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "263"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "English Mastiff"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Mastiff"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "264"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norwegian Lundehund"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lundehund"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "265"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Hygen Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Hygenhund"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "266"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Halden Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant de Halden"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "267"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Black Norwegian Elkhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'élan norvégien noir"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "268"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bearded Collie"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Colley barbu"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "271"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norfolk Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Norfolk Terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "272"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Canaan Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de Canaan"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "273"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Greenland Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Groenlandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "274"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Norrbottenspets"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Spitz de Norrbotten"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "276"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Croatian Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger croate"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "277"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Karst Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger du Karst"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "278"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Montenegrin Mountain Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant de montagne du Monténégro"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "279"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Old Danish Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'arrêt danois ancestral"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "281"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Grand Griffon Vendéen"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand griffon vendéen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "282"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Coton de Tulear"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Coton de Tuléar"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "283"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Lapponian Herder"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "berger finnois de Laponie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "284"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Galgo Español"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lévrier Galgo"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "285"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "American Staffordshire Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "american staffordshire terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "286"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Cattle Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier australien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "287"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Chinese Crested Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien chinois à crête"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "288"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Icelandic Sheepdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "berger islandais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "289"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Beagle-Harrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Beagle-harrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "290"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Eurasier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Eurasier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "291"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dogo Argentino"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue argentin"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "292"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Kelpie"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Australian Kelpie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "293"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Otterhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien à loutre"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "294"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Harrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Harrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "295"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Smooth Collie"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Colley à poil court"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "296"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "border collie"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Border Collie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "297"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Lagotto Romagnolo"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien d'eau romagnol"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "298"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Deutsche Bracke"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Brachet allemand"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "299"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Black and Tan Coonhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Coonhound noir et beige"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "300"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "American Water Spaniel"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'eau américain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "301"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Glen of Imaal Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier irlandais Glen of Imaal"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "302"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "American foxhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "foxhound américain"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "303"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "East Siberian Laika"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Laïka de Sibérie orientale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "305"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "West Siberian Laika"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Laïka de Sibérie occidentale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "306"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Azawakh"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Azawakh"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "307"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Dutch Smoushond"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Smous des Pays-Bas"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "308"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Shar Pei"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Shar Pei"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "309"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Peruvian Hairless Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien nu du Pérou"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "310"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Nova Scotia Duck Tolling Retriever"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Retriever de la Nouvelle-Écosse"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "312"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kooikerhondje"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Kooikerhondje"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "314"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Broholmer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Broholmer"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "315"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Français Blanc et Orange"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Français blanc et orange"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "316"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kai Ken"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Kai"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "317"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Kishu"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Kishu"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "318"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Slovakian Rough-haired Pointer"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Braque slovaque à poil dur"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "320"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Majorca Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger de Majorque"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "321"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Great Anglo-French Tricolour Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand anglo-français tricolore"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "322"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Great Anglo-French White and Black Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand anglo-français blanc et noir"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "323"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Great Anglo-French White and Orange Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Grand anglo-français blanc et orange"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "324"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Medium-sized Anglo-French Hound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Anglo-Français de petite vénerie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "325"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Ukrainian Vivcharka"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger de Russie méridionale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "326"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Black Russian Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier noir de Russie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "327"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Caucasian Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger du Caucase"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "328"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Podenco Canario"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Podenco canario"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "329"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Irish Red and White Setter"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Setter irlandais rouge et blanc"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "330"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Anatolian Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger d'Anatolie"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "331"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Czechoslovakian Wolfdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien-loup tchécoslovaque"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "332"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Polish Greyhound"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chart polski"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "333"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Korean Jindo Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Jindo coréen"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "334"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Central Asian Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "berger d'Asie Centrale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "335"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Spanish Water Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien d'eau espagnol"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "336"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Segugio Italiano"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant italien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "337"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Segugio Italiano a Pelo Raso"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant italien à poil ras"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "337"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Thai Ridgeback"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien thaïlandais à crête dorsale"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "338"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Parson Russell Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Parson Russell terrier"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "339"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Azores Cattle Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "fila de São Miguel"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "340"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Brazilian Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Terrier brésilien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "341"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger australien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "342"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cane Corso"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de cour italien"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "343"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jack Russell Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Jack Russell"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "345"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Presa Canario"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Dogue des Canaries"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "346"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "White Swiss Shepherd"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger blanc suisse"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "347"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Mioritic"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de berger roumain de Mioritza"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "349"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Carpathian Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien de berger roumain des Carpathes"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "350"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Australian Stumpy Tail Cattle Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bouvier australien courte queue"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "351"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Cimarrón Uruguayo"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Cimarrón Uruguayo"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "353"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Polish Hunting Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Chien courant polonais"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "354"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Tornjak"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Tornjak"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "355"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Danish Swedish Farmdog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "chien de ferme dano-suédois"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "356"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Bucovina Shepherd Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Berger roumain Bucovina"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "357"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Thai Bangkaew Dog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bangkaew de Thaïlande"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "358"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Miniature Bull Terrier"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Bull Terrier miniature"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "359"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Lancashire Heeler"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Lancashire Heeler"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "360"
+      }
+    }, {
+      "labelEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "continental bulldog"
+      },
+      "labelFr" : {
+        "xml:lang" : "fr",
+        "type" : "literal",
+        "value" : "Continental Bulldog"
+      },
+      "fci" : {
+        "type" : "literal",
+        "value" : "369"
+      }
+    } ]
+  }
+}
