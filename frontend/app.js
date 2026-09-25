@@ -300,6 +300,414 @@
     ],
     Autre: []
   };
+  // Table nom-de-race normalisé -> slug de la page race sur centrale-canine.fr
+  // (générée depuis /toutes-nos-races-de-chiens le 2026-09-25, 390 races LOF/FCI).
+  // Chaque page race a son propre lien "Télécharger le Standard (PDF)" — le numéro
+  // FCI (nécessaire pour construire l'URL du PDF directement) n'est pas dans cette liste,
+  // d'où le lien vers la page plutôt que le PDF lui-même.
+  var CENTRALE_CANINE_BREED_SLUGS = {
+    "affenpinscher":"affenpinscher",
+    "airedaleterrier":"airedale-terrier",
+    "akita":"akita",
+    "akitaamericain":"akita-americain",
+    "alanoespagnol":"alano-espagnol",
+    "anglofrancaisdepetitevenerie":"anglo-francais-de-petite-venerie",
+    "ariegeois":"ariegeois",
+    "azawakh":"azawakh",
+    "bangkaewdethailande":"bangkaew-de-thailande",
+    "barbadodeterceira":"barbado-de-terceira",
+    "barbet":"barbet",
+    "barbutcheque":"barbu-tcheque",
+    "barzoi":"barzoi",
+    "basenji":"basenji",
+    "bassetartesiennormand":"basset-artesien-normand",
+    "bassetbleudegascogne":"basset-bleu-de-gascogne",
+    "bassetdesalpes":"basset-des-alpes",
+    "bassetdewestphalie":"basset-de-westphalie",
+    "bassetfauvedebretagne":"basset-fauve-de-bretagne",
+    "bassethound":"basset-hound",
+    "bassetsuedois":"basset-suedois",
+    "beagle":"beagle",
+    "beagleharrier":"beagle-harrier",
+    "beardedcollie":"bearded-collie",
+    "bedlingtonterrier":"bedlington-terrier",
+    "bergerallemand":"berger-allemand",
+    "bergeramericainminiature":"berger-americain-miniature",
+    "bergeraustralien":"berger-australien",
+    "bergerbergamasque":"berger-bergamasque",
+    "bergerblancsuisse":"berger-blanc-suisse",
+    "bergerdasiecentrale":"berger-dasie-centrale",
+    "bergerdebeauce":"berger-de-beauce",
+    "bergerdeboheme":"berger-de-boheme",
+    "bergerdebosnieherzegovineetdecroatie":"berger-de-bosnie-herzegovine-et-de-croatie",
+    "bergerdebrie":"berger-de-brie",
+    "bergerdelamaremmeetdesabruzzes":"berger-de-la-maremme-et-des-abruzzes",
+    "bergerdelaserradeaires":"berger-de-la-serra-de-aires",
+    "bergerdepicardie":"berger-de-picardie",
+    "bergerderussiemeridionale":"berger-de-russie-meridionale",
+    "bergerdesalpesetdesavoie":"berger-des-alpes-et-de-savoie",
+    "bergerdespyreneesafacerase":"berger-des-pyrenees-face-rase",
+    "bergerdespyreneesapoillong":"berger-des-pyrenees-poil-long",
+    "bergerducaucase":"berger-du-caucase",
+    "bergerdukarst":"berger-du-karst",
+    "bergerfinnoisdelaponie":"berger-finnois-de-laponie",
+    "bergerhollandais":"berger-hollandais",
+    "bergerpolonaisdeplaine":"berger-polonais-de-plaine",
+    "bichonapoilfrise":"bichon-poil-frise",
+    "bichonbolonais":"bichon-bolonais",
+    "bichonhavanais":"bichon-havanais",
+    "bichonmaltais":"bichon-maltais",
+    "biewerterrier":"biewer-terrier",
+    "billy":"billy",
+    "bolonkarussecolore":"bolonka-russe-colore",
+    "bordercollie":"border-collie",
+    "borderterrier":"border-terrier",
+    "bouledoguefrancais":"bouledogue-francais",
+    "bouvieraustralien":"bouvier-australien",
+    "bouvieraustraliencourtequeue":"bouvier-australien-courte-queue",
+    "bouvierbernois":"bouvier-bernois",
+    "bouvierdelappenzell":"bouvier-de-lappenzell",
+    "bouvierdelentlebuch":"bouvier-de-lentlebuch",
+    "bouvierdesardennes":"bouvier-des-ardennes",
+    "bouvierdesflandres":"bouvier-des-flandres",
+    "boxer":"boxer",
+    "brachetallemand":"brachet-allemand",
+    "brachetdestyrieapoildur":"brachet-de-styrie-poil-dur",
+    "brachetnoiretfeu":"brachet-noir-et-feu",
+    "brachetpolonais":"brachet-polonais",
+    "brachettyrolien":"brachet-tyrolien",
+    "braqueallemandapoilcourt":"braque-allemand-poil-court",
+    "braquedauvergne":"braque-d-auvergne",
+    "braquedeburgos":"braque-de-burgos",
+    "braquedelariege":"braque-de-l-ariege",
+    "braquedeweimar":"braque-de-weimar",
+    "braquedubourbonnais":"braque-du-bourbonnais",
+    "braquefrancaistypegascogne":"braque-francais-type-gascogne",
+    "braquefrancaistypepyrenees":"braque-francais-type-pyrenees",
+    "braquehongroisapoilcourt":"braque-hongrois-poil-court",
+    "braquehongroisapoildur":"braque-hongrois-poil-dur",
+    "braqueitalien":"braque-italien",
+    "braquesaintgermain":"braque-saint-germain",
+    "braqueslovaqueapoildur":"braque-slovaque-poil-dur",
+    "briquetdeprovence":"briquet-de-provence",
+    "briquetgriffonvendeen":"briquet-griffon-vendeen",
+    "broholmer":"broholmer",
+    "brunosainthubertfrancais":"bruno-saint-hubert-francais",
+    "buhundnorvegien":"buhund-norvegien",
+    "bulldog":"bulldog",
+    "bulldogcampeirobresilien":"bulldog-campeiro-bresilien",
+    "bulldogcontinental":"bulldog-continental",
+    "bullmastiff":"bullmastiff",
+    "bullterrier":"bull-terrier",
+    "bullterrierminiature":"bull-terrier-miniature",
+    "cairnterrier":"cairn-terrier",
+    "canedapastoredellasila":"cane-da-pastore-della-sila",
+    "canedapastoredioropa":"cane-da-pastore-di-oropa",
+    "canedimannara":"cane-di-mannara",
+    "caniche":"caniche",
+    "caodegadotransmontano":"cao-de-gado-transmontano",
+    "carlin":"carlin",
+    "cavalierkingcharles":"cavalier-king-charles",
+    "chienaloutre":"chien-loutre",
+    "chienchinoisacrete":"chien-chinois-crete",
+    "chiencourantdebosnieapoildur":"chien-courant-de-bosnie-poil-dur",
+    "chiencourantdehalden":"chien-courant-de-halden",
+    "chiencourantdehamilton":"chien-courant-de-hamilton-0",
+    "chiencourantdehygen":"chien-courant-de-hygen",
+    "chiencourantdelavalleedelasave":"chien-courant-de-la-vallee-de-la-save",
+    "chiencourantdemontagnedumontenegro":"chien-courant-de-montagne-du-montenegro",
+    "chiencourantdesapennins":"chien-courant-des-apennins",
+    "chiencourantdeschiller":"chien-courant-de-schiller",
+    "chiencourantdestatras":"chien-courant-des-tatras",
+    "chiencourantdestonie":"chien-courant-destonie",
+    "chiencourantdetransylvanie":"chien-courant-de-transylvanie",
+    "chiencourantdistrieapoildur":"chien-courant-distrie-poil-dur",
+    "chiencourantdistrieapoilras":"chien-courant-distrie-poil-ras",
+    "chiencourantdusmaland":"chien-courant-du-smaland",
+    "chiencourantespagnol":"chien-courant-espagnol",
+    "chiencourantfinlandais":"chien-courant-finlandais",
+    "chiencourantgrec":"chien-courant-grec",
+    "chiencourantitalienapoildur":"chien-courant-italien-poil-dur",
+    "chiencourantitalienapoilras":"chien-courant-italien-poil-ras",
+    "chiencourantnorvegien":"chien-courant-norvegien",
+    "chiencourantpolonais":"chien-courant-polonais",
+    "chiencourantserbe":"chien-courant-serbe",
+    "chiencourantslovaque":"chien-courant-slovaque",
+    "chiencourantsuisse":"chien-courant-suisse",
+    "chiencouranttricoloreserbe":"chien-courant-tricolore-serbe",
+    "chiendarretallemandapoildur":"chien-darret-allemand-poil-dur",
+    "chiendarretallemandapoillong":"chien-darret-allemand-poil-long",
+    "chiendarretallemandapoilraide":"chien-darret-allemand-poil-raide",
+    "chiendarretdanoisancestral":"chien-darret-danois-ancestral",
+    "chiendarretfrison":"chien-darret-frison",
+    "chiendarretportugais":"chien-darret-portugais",
+    "chiendartois":"chien-dartois",
+    "chiendeauamericain":"chien-deau-americain",
+    "chiendeauespagnol":"chien-deau-espagnol",
+    "chiendeaufrison":"chien-deau-frison",
+    "chiendeauportugais":"chien-deau-portugais",
+    "chiendeauromagnol":"chien-deau-romagnol",
+    "chiendebali":"chien-de-bali",
+    "chiendebergeranglaisancestral":"chien-de-berger-anglais-ancestral",
+    "chiendebergerbelge":"chien-de-berger-belge",
+    "chiendebergercatalan":"chien-de-berger-catalan",
+    "chiendebergercroate":"chien-de-berger-croate",
+    "chiendebergerdemajorque":"chien-de-berger-de-majorque",
+    "chiendebergerdesshetland":"chien-de-berger-des-shetland",
+    "chiendebergerdestatras":"chien-de-berger-des-tatras",
+    "chiendebergerislandais":"chien-de-berger-islandais",
+    "chiendebergerkangal":"chien-de-berger-kangal",
+    "chiendebergermacedonienkaraman":"chien-de-berger-macedonien-karaman",
+    "chiendebergerroumaincorb":"chien-de-berger-roumain-corb",
+    "chiendebergerroumaindebucovine":"chien-de-berger-roumain-de-bucovine",
+    "chiendebergerroumaindemioritza":"chien-de-berger-roumain-de-mioritza",
+    "chiendebergerroumaindescarpathes":"chien-de-berger-roumain-des-carpathes",
+    "chiendebergeryougoslavedecharplanina":"chien-de-berger-yougoslave-de-charplanina",
+    "chiendecanaan":"chien-de-canaan",
+    "chiendecastrolaboreiro":"chien-de-castro-laboreiro",
+    "chiendecouritalien":"chien-de-cour-italien",
+    "chiendefermedanosuedois":"chien-de-ferme-dano-suedois",
+    "chiendegarennedescanaries":"chien-de-garenne-des-canaries",
+    "chiendegarenneportugais":"chien-de-garenne-portugais",
+    "chiendelannorvegiengris":"chien-delan-norvegien-gris",
+    "chiendelannorvegiennoir":"chien-delan-norvegien-noir",
+    "chiendelansuedoisjamthund":"chien-delan-suedois-jamthund",
+    "chiendelaserradaestrela":"chien-de-la-serra-da-estrela",
+    "chiendeleonberg":"chien-de-leonberg",
+    "chiendemontagnedelatlas":"chien-de-montagne-de-latlas",
+    "chiendemontagnedespyrenees":"chien-de-montagne-des-pyrenees",
+    "chiendeperdrixdedrente":"chien-de-perdrix-de-drente",
+    "chienderhodesieacretedorsale":"chien-de-rhodesie-crete-dorsale",
+    "chienderougedebaviere":"chien-de-rouge-de-baviere",
+    "chienderougedehanovre":"chien-de-rouge-de-hanovre",
+    "chiendesainthubert":"chien-de-saint-hubert",
+    "chiendetaiwan":"chien-de-taiwan",
+    "chiendoursdecarelie":"chien-dours-de-carelie",
+    "chiendoyselallemand":"chien-doysel-allemand",
+    "chiendugroenland":"chien-du-groenland",
+    "chiendupharaon":"chien-du-pharaon",
+    "chienfinnoisdelaponie":"chien-finnois-de-laponie",
+    "chienfonnese":"chien-fonnese",
+    "chienloupdesaarloos":"chien-loup-de-saarloos",
+    "chienlouptchecoslovaque":"chien-loup-tchecoslovaque",
+    "chiennetfpourlachasseauraton":"chien-n-et-f-pour-la-chasse-au-raton",
+    "chiennorvegiendemacareux":"chien-norvegien-de-macareux",
+    "chiennudumexique":"chien-nu-du-mexique",
+    "chiennuduperou":"chien-nu-du-perou",
+    "chienthailandaisacretedorsale":"chien-thailandais-crete-dorsale",
+    "chihuahua":"chihuahua",
+    "chowchow":"chow-chow",
+    "cimarronuruguayen":"cimarron-uruguayen",
+    "cirnecodeletna":"cirneco-de-l-etna",
+    "clumberspaniel":"clumber-spaniel",
+    "cockerspanielamericain":"cocker-spaniel-americain",
+    "cockerspanielanglais":"cocker-spaniel-anglais",
+    "collieapoilcourt":"collie-poil-court",
+    "collieapoillong":"collie-poil-long",
+    "cotondetulear":"coton-de-tulear",
+    "croise":"croise",
+    "cursinu":"cursinu",
+    "dalmatien":"dalmatien",
+    "dandiedinmontterrier":"dandie-dinmont-terrier",
+    "dobermann":"dobermann",
+    "dogueallemand":"dogue-allemand",
+    "dogueargentin":"dogue-argentin",
+    "doguedebordeaux":"dogue-de-bordeaux",
+    "doguedemajorque":"dogue-de-majorque",
+    "doguedutibet":"dogue-du-tibet",
+    "englishspringerspaniel":"english-springer-spaniel",
+    "epagneulbleudepicardie":"epagneul-bleu-de-picardie",
+    "epagneulbreton":"epagneul-breton",
+    "epagneuldeauirlandais":"epagneul-deau-irlandais",
+    "epagneuldepontaudemer":"epagneul-de-pont-audemer",
+    "epagneuldesaintusuge":"epagneul-de-saint-usuge",
+    "epagneulfrancais":"epagneul-francais",
+    "epagneuljaponais":"epagneul-japonais",
+    "epagneulkingcharles":"epagneul-king-charles",
+    "epagneulnaincontinental":"epagneul-nain-continental",
+    "epagneulpekinois":"epagneul-pekinois",
+    "epagneulpicard":"epagneul-picard",
+    "epagneultibetain":"epagneul-tibetain",
+    "esquimauducanada":"esquimau-du-canada",
+    "eurasier":"eurasier",
+    "euskalartzaintxakurra":"euskal-artzain-txakurra",
+    "fieldspaniel":"field-spaniel",
+    "filabrasileiro":"fila-brasileiro",
+    "filadesaintmiguel":"fila-de-saint-miguel",
+    "foxhoundamericain":"foxhound-americain",
+    "foxhoundanglais":"fox-hound-anglais",
+    "foxterrierpoildur":"fox-terrier-poil-dur",
+    "foxterrierpoillisse":"fox-terrier-poil-lisse",
+    "francaisblancetnoir":"francais-blanc-et-noir",
+    "francaisblancetorange":"francais-blanc-et-orange",
+    "francaistricolore":"francais-tricolore",
+    "gasconsaintongeois":"gascon-saintongeois",
+    "goldenretriever":"golden-retriever",
+    "grandanglofrancaisblancetnoir":"grand-anglo-francais-blanc-et-noir",
+    "grandanglofrancaisblancetorange":"grand-anglo-francais-blanc-et-orange",
+    "grandanglofrancaistricolore":"grand-anglo-francais-tricolore",
+    "grandbassetgriffonvendeen":"grand-basset-griffon-vendeen",
+    "grandbleudegascogne":"grand-bleu-de-gascogne",
+    "grandbouviersuisse":"grand-bouvier-suisse",
+    "grandepagneuldemunster":"grand-epagneul-de-munster",
+    "grandgriffonvendeen":"grand-griffon-vendeen",
+    "greyhound":"greyhound",
+    "griffonapoildurkorthals":"griffon-poil-dur-korthals",
+    "griffonbelge":"griffon-belge",
+    "griffonbleudegascogne":"griffon-bleu-de-gascogne",
+    "griffonbruxellois":"griffon-bruxellois",
+    "griffonfauvedebretagne":"griffon-fauve-de-bretagne",
+    "griffonnivernais":"griffon-nivernais",
+    "harrier":"harrier",
+    "hokkaido":"hokkaido",
+    "hovawart":"hovawart",
+    "huskydesiberie":"husky-de-siberie",
+    "jindocoreen":"jindo-coreen",
+    "kai":"kai",
+    "kazakhtazy":"kazakh-tazy",
+    "kelpieaustralien":"kelpie-australien",
+    "kishu":"kishu",
+    "komondor":"komondor",
+    "kromfohrlander":"kromfohrlander",
+    "kuvasz":"kuvasz",
+    "laikadeiakoutie":"laika-de-iakoutie",
+    "laikadesiberieoccidentale":"laika-de-siberie-occidentale",
+    "laikadesiberieorientale":"laika-de-siberie-orientale",
+    "laikarussoeuropeen":"laika-russo-europeen",
+    "lakelandterrier":"lakeland-terrier",
+    "lancashireheeler":"lancashire-heeler",
+    "landseer":"landseer",
+    "lapphundsuedois":"lapphund-suedois",
+    "levrierafghan":"levrier-afghan",
+    "levrierecossais":"levrier-ecossais",
+    "levrierespagnol":"levrier-espagnol",
+    "levrierhongrois":"levrier-hongrois",
+    "levrierirlandais":"levrier-irlandais",
+    "levrierpolonais":"levrier-polonais",
+    "lhassaapso":"lhassa-apso",
+    "majorero":"majorero",
+    "malamutedelalaska":"malamute-de-lalaska",
+    "manchesterterrier":"manchester-terrier",
+    "maneto":"maneto",
+    "mastiff":"mastiff",
+    "matindelalentejo":"matin-de-lalentejo",
+    "matindespyrenees":"matin-des-pyrenees",
+    "matinespagnol":"matin-espagnol",
+    "matinnapolitain":"matin-napolitain",
+    "mudi":"mudi",
+    "norfolkterrier":"norfolk-terrier",
+    "norwichterrier":"norwich-terrier",
+    "pachonnavarro":"pachon-navarro",
+    "perrodepastorgarafiano":"perro-de-pastor-garafiano",
+    "perroleonesdepastor":"perro-leones-de-pastor",
+    "petitbassetgriffonvendeen":"petit-basset-griffon-vendeen",
+    "petitbleudegascogne":"petit-bleu-de-gascogne",
+    "petitbrabancon":"petit-brabancon",
+    "petitchiencourantsuisse":"petit-chien-courant-suisse",
+    "petitchienhollandaisdechasseaugibierdeau":"petit-chien-hollandais-de-chasse-au-gibier-deau",
+    "petitchienlion":"petit-chien-lion",
+    "petitchienrusse":"petit-chien-russe",
+    "petitepagneuldemunster":"petit-epagneul-de-munster",
+    "petitlevrieritalien":"petit-levrier-italien",
+    "pinscherallemand":"pinscher-allemand",
+    "pinscherautrichien":"pinscher-autrichien",
+    "pinschernain":"pinscher-nain",
+    "pisteurbresilien":"pisteur-bresilien",
+    "podencoandaluz":"podenco-andaluz",
+    "podencodibiza":"podenco-dibiza",
+    "pointeranglais":"pointer-anglais",
+    "poitevin":"poitevin",
+    "porcelaine":"porcelaine",
+    "presacanario":"presa-canario",
+    "pudelpointer":"pudelpointer",
+    "puli":"puli",
+    "pumi":"pumi",
+    "ratierdeprague":"ratier-de-prague",
+    "ratiervalencien":"ratier-valencien",
+    "ratonerobodegueroandaluz":"ratonero-bodeguero-andaluz",
+    "retrieverapoilboucle":"retriever-poil-boucle",
+    "retrieverapoilplat":"retriever-poil-plat",
+    "retrieverdelabaiedechesapeake":"retriever-de-la-baie-de-chesapeake",
+    "retrieverdelanouvelleecosse":"retriever-de-la-nouvelle-ecosse",
+    "retrieverdulabrador":"retriever-du-labrador",
+    "rottweiler":"rottweiler",
+    "sabuesofinocolombiano":"sabueso-fino-colombiano",
+    "saintbernard":"saint-bernard",
+    "saluki":"saluki",
+    "samoyede":"samoyede",
+    "schapendoesneerlandais":"schapendoes-neerlandais",
+    "schipperke":"schipperke",
+    "schnauzergeant":"schnauzer-geant",
+    "schnauzermoyen":"schnauzer-moyen",
+    "schnauzernain":"schnauzer-nain",
+    "sealyhamterrier":"sealyham-terrier",
+    "segugiomaremmano":"segugio-maremmano",
+    "setteranglais":"setter-anglais",
+    "settergordon":"setter-gordon",
+    "setterirlandaisrouge":"setter-irlandais-rouge",
+    "setterirlandaisrougeblanc":"setter-irlandais-rouge-blanc",
+    "sharpei":"shar-pei",
+    "shiba":"shiba",
+    "shihtzu":"shih-tzu",
+    "shikoku":"shikoku",
+    "skyeterrier":"skye-terrier",
+    "sloughi":"sloughi",
+    "smousdespaysbas":"smous-des-pays-bas",
+    "spinodegliiblei":"spino-degli-iblei",
+    "spinone":"spinone",
+    "spitzallemand":"spitz-allemand",
+    "spitzdenorrbotten":"spitz-de-norrbotten",
+    "spitzdesvisigoths":"spitz-des-visigoths",
+    "spitzfinlandais":"spitz-finlandais",
+    "spitzjaponais":"spitz-japonais",
+    "staffordshirebullterrier":"staffordshire-bull-terrier",
+    "staffordshireterrieramericain":"staffordshire-terrier-americain",
+    "sussexspaniel":"sussex-spaniel",
+    "taigan":"taigan",
+    "tchouvatchslovaque":"tchouvatch-slovaque",
+    "teckel":"teckel",
+    "terreneuve":"terre-neuve",
+    "terrierandalou":"terrier-andalou",
+    "terrieraustralien":"terrier-australien",
+    "terrieraustralienapoilsoyeux":"terrier-australien-poil-soyeux",
+    "terrierbresilien":"terrier-bresilien",
+    "terrierdagrementanglaisnoiretfeu":"terrier-dagrement-anglais-noir-et-feu",
+    "terrierdeboston":"terrier-de-boston",
+    "terrierdechasseallemand":"terrier-de-chasse-allemand",
+    "terrierdureverendrussell":"terrier-du-reverend-russell",
+    "terrierecossais":"terrier-ecossais",
+    "terrierirlandais":"terrier-irlandais",
+    "terrierirlandaisapoildoux":"terrier-irlandais-poil-doux",
+    "terrierirlandaisglenofimaal":"terrier-irlandais-glen-imaal",
+    "terrierjackrussell":"terrier-jack-russell",
+    "terrierjaponais":"terrier-japonais",
+    "terrierkerryblue":"terrier-kerry-blue",
+    "terriernoirrusse":"terrier-noir-russe",
+    "terriernuamericain":"terrier-nu-americain",
+    "terriertcheque":"terrier-tcheque",
+    "terriertibetain":"terrier-tibetain",
+    "tosa":"tosa",
+    "volpinoitalien":"volpino-italien",
+    "welshcorgicardigan":"welsh-corgi-cardigan",
+    "welshcorgipembroke":"welsh-corgi-pembroke",
+    "welshspringerspaniel":"welsh-springer-spaniel",
+    "welshterrier":"welsh-terrier",
+    "westhighlandwhiteterrier":"west-highland-white-terrier",
+    "whippet":"whippet",
+    "xarnegopodencovalenciano":"xarnego-podenco-valenciano",
+    "yorkshireterrier":"yorkshire-terrier"
+  };
+
+  // Lien vers la fiche de race officielle (Société Centrale Canine) — contient
+  // toujours le standard FCI en PDF ("Télécharger le Standard") quand il existe,
+  // le club de race et les caractéristiques. On ne connaît pas le numéro FCI
+  // depuis ce nom de race seul, donc pas de lien direct vers le PDF — celui-ci
+  // reste à un clic sur la page. Correspondance insensible aux accents/casse.
+  function centraleCanineBreedUrl(race) {
+    if (!race) return null;
+    var slug = CENTRALE_CANINE_BREED_SLUGS[protectionKey(race)];
+    return slug ? 'https://www.centrale-canine.fr/le-chien-de-race/' + slug : null;
+  }
 
   // Common symptom types suggested in the health journal
   var SYMPTOM_TYPES = [
@@ -2224,12 +2632,14 @@
     var data = getCurrent();
     if (!data) return;
     var a = data.animal, o = getOwner(), pedigree = data.pedigree || {};
+    var breedUrl = centraleCanineBreedUrl(a.race);
     document.getElementById('identity-passport').innerHTML = '<h2>Identité & passeport</h2>' +
       stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
       stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
       stitchInfo('Clinique référente', o.clinic, 'hospital') +
       '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
-      '<button type="button" class="care-action" data-stitch-action="editPedigree">' + ico('trophy', 16) + '<span>Modifier le pedigree</span></button>';
+      '<button type="button" class="care-action" data-stitch-action="editPedigree">' + ico('trophy', 16) + '<span>Modifier le pedigree</span></button>' +
+      (breedUrl ? '<a class="care-action" href="' + breedUrl + '" target="_blank" rel="noopener">' + ico('fileText', 16) + '<span>Standard de la race (Centrale Canine)</span></a>' : '');
     document.getElementById('identity-owner').innerHTML = '<h2>Fiche propriétaire</h2><p>Contact principal pour votre compagnon.</p>' +
       stitchInfo('Nom', o.name, 'user') + stitchInfo('Téléphone', o.phone, 'phone') + stitchInfo('E-mail', o.email, 'fileText') + stitchInfo('Adresse', o.address, 'mapPin') + '<button type="button" class="care-action" data-stitch-action="editOwner">Modifier mes coordonnées</button>';
   }
@@ -2265,6 +2675,7 @@
 
   function renderFicheV1() {
     renderIdentity();
+    renderPedigree();
     renderHealthOverview();
     var data = getCurrent();
     var metrics = document.getElementById('fiche-metrics');
@@ -5322,6 +5733,16 @@
         html += ' <span class="badge badge-verified">' + ico('check', 16) + ' Vérifié</span>';
         if (p.verifiedDate) html += ' <span class="table-muted">le ' + escapeHtml(p.verifiedDate) + '</span>';
       }
+      // LOF Select expose une vraie fiche officielle par numéro — pas d'équivalent
+      // public trouvé côté LOMAD (ACYM), qui ne propose que des démarches sur compte.
+      if (p.registry === 'LOF' && p.registryNumber) {
+        // p.registryNumber = "n° de portée/année" (ex: "123 456/2024", voir LOF_PATTERN) —
+        // seule la partie avant le "/" se rapproche du "numéro LOF" attendu par ce champ
+        // de recherche ; à défaut de certitude totale sur la correspondance exacte des
+        // deux identifiants, ne garder que cette partie plutôt que de les concaténer.
+        var lofNum = p.registryNumber.split('/')[0].replace(/[^0-9]/g, '');
+        if (lofNum) html += ' <a class="pedigree-lof-link" target="_blank" rel="noopener" href="https://www.centrale-canine.fr/lofselect/recherche-chien/identifiant?numLof=' + encodeURIComponent(lofNum) + '">' + ico('search', 14) + ' Vérifier sur LOF Select</a>';
+      }
       html += '</div>';
     }
     if (chip) {
@@ -5331,9 +5752,19 @@
       html += '<div class="pedigree-health"><strong>' + ico('heart', 14) + ' Tests de santé / ADN</strong><p>' + escapeHtml(p.healthNotes).replace(/\n/g, '<br>') + '</p></div>';
     }
 
-    // Tree — 2 branches (paternelle / maternelle) pour que chaque
-    // grand-parent reste visuellement rattaché au bon parent, y compris
-    // quand les branches s'empilent sur mobile (voir CSS .pedigree-branches).
+    // Arbre à 3 générations avec de vraies lignes de filiation (SVG, coordonnées
+    // fixes en % — pas de mesure DOM au runtime, donc robuste à toute taille
+    // d'écran). 2 branches (paternelle / maternelle) qui convergent vers le
+    // sujet ; chaque branche s'empile verticalement sur mobile (voir CSS),
+    // où le connecteur large est alors masqué au profit d'un simple trait.
+    var CONNECTOR_NARROW = '<svg class="pedigree-connector" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="15" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
+      '<line x1="85" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
+      '</svg>';
+    var CONNECTOR_WIDE = '<svg class="pedigree-connector pedigree-connector--wide" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="25" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
+      '<line x1="75" y1="0" x2="50" y2="24" stroke="var(--border)" stroke-width="2"/>' +
+      '</svg>';
     var gp = p.grandparents || {};
     var gpNode = function (n, reg) { return '<div class="pedigree-node pedigree-node-gp">' + escapeHtml(n || '?') + (reg ? '<br><span class="table-muted">' + escapeHtml(reg) + '</span>' : '') + '</div>'; };
     html += '<div class="pedigree-tree">' +
@@ -5344,6 +5775,7 @@
             gpNode(gp.paternalGrandsire, gp.paternalGrandsireRegistry) +
             gpNode(gp.paternalGranddam, gp.paternalGranddamRegistry) +
           '</div>' +
+          CONNECTOR_NARROW +
           '<div class="pedigree-generation pedigree-parents">' +
             '<div class="pedigree-node pedigree-node-parent">♂ ' + escapeHtml((p.sire && p.sire.name) || '?') + (p.sire && p.sire.registry ? '<br><span class="table-muted">' + escapeHtml(p.sire.registry) + '</span>' : '') + '</div>' +
           '</div>' +
@@ -5354,11 +5786,13 @@
             gpNode(gp.maternalGrandsire, gp.maternalGrandsireRegistry) +
             gpNode(gp.maternalGranddam, gp.maternalGranddamRegistry) +
           '</div>' +
+          CONNECTOR_NARROW +
           '<div class="pedigree-generation pedigree-parents">' +
             '<div class="pedigree-node pedigree-node-parent">♀ ' + escapeHtml((p.dam && p.dam.name) || '?') + (p.dam && p.dam.registry ? '<br><span class="table-muted">' + escapeHtml(p.dam.registry) + '</span>' : '') + '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
+      CONNECTOR_WIDE +
       '<div class="pedigree-generation pedigree-subject">' +
         '<div class="pedigree-node pedigree-node-subject">' + name + '</div>' +
       '</div>' +
