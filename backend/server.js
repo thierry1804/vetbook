@@ -30,6 +30,7 @@ import { household } from './api/household/index.js';
 import syncPush from './api/sync/push.js';
 import syncPull from './api/sync/pull.js';
 import pushSubscription from './api/push/subscription.js';
+import lookupAcym from './api/lookup/acym.js';
 import dogEventsReminder from './api/user/dog-events-reminder.js';
 import filesUpload from './api/files/upload.js';
 import filesGet from './api/files/get.js';
@@ -100,6 +101,9 @@ app.all('/api/household/invites', withSub('invites'));
 app.all('/api/household/:sub(invites|members|memberships)/:id', household);
 app.all('/api/household/:ownerId/pets', withSub('pets'));
 app.all('/api/household/:ownerId/photo/:id', withSub('photo'));
+// Recherche LOMAD (proxy vers l'annuaire public ACYM) : limitée, pour ne pas peser sur leur serveur.
+const lookupLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de recherches. Réessayez dans une minute.' } });
+app.all('/api/lookup/acym', lookupLimiter, lookupAcym);
 app.all('/api/sync/push', syncPush);
 app.all('/api/sync/pull', syncPull);
 app.all('/api/push/subscription', pushSubscription);
