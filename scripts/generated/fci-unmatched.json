@@ -1,212 +1,153 @@
-[
-  {
-    "fileId": "002",
-    "names": []
-  },
-  {
-    "fileId": "003",
-    "names": [
-      "TERRIER IRKYBLYIU Y",
-      "IK L",
-      "Irish Soft Coated Wheaten Terrier"
-    ]
-  },
-  {
-    "fileId": "004",
-    "names": [
-      "CAIRN TR ER R",
-      "R TR",
-      "NIN",
-      "Jugoslovenski Ovcarski Pas-Sarplaninac"
-    ]
-  },
-  {
-    "fileId": "005",
-    "names": []
-  },
-  {
-    "fileId": "007",
-    "names": []
-  },
-  {
-    "fileId": "008",
-    "names": []
-  },
-  {
-    "fileId": "009",
-    "names": [
-      "BEDLINGTIGOR",
-      "I IOOG",
-      "Appenzeller Sennenhund"
-    ]
-  },
-  {
-    "fileId": "010",
-    "names": []
-  },
-  {
-    "fileId": "011",
-    "names": []
-  },
-  {
-    "fileId": "012",
-    "names": [
-      "Fox Terrier à poil lisse"
-    ]
-  },
-  {
-    "fileId": "014",
-    "names": [
-      "Västgötaspets"
-    ]
-  },
-  {
-    "fileId": "015",
-    "names": [
-      "BERGER BELGE"
-    ]
-  },
-  {
-    "fileId": "016",
-    "names": []
-  },
-  {
-    "fileId": "017",
-    "names": []
-  },
-  {
-    "fileId": "018",
-    "names": [
-      "BASSET D'ARTOIS"
-    ]
-  },
-  {
-    "fileId": "020",
-    "names": [
-      "Chien de Terre-Neuve"
-    ]
-  },
-  {
-    "fileId": "021",
-    "names": [
-      "Suomenajokoira"
-    ]
-  },
-  {
-    "fileId": "022",
-    "names": []
-  },
-  {
-    "fileId": "024",
-    "names": []
-  },
-  {
-    "fileId": "028",
-    "names": []
-  },
-  {
-    "fileId": "031",
-    "names": []
-  },
-  {
-    "fileId": "032",
-    "names": []
-  },
-  {
-    "fileId": "033",
-    "names": []
-  },
-  {
-    "fileId": "035",
-    "names": []
-  },
-  {
-    "fileId": "036",
-    "names": []
-  },
-  {
-    "fileId": "037",
-    "names": []
-  },
-  {
-    "fileId": "038",
-    "names": [
-      "Scottish Terrier"
-    ]
-  },
-  {
-    "fileId": "039",
-    "names": []
-  },
-  {
-    "fileId": "040",
-    "names": [
-      "TERI TLAN RD NSP OD T ORAN"
-    ]
-  },
-  {
-    "fileId": "041",
-    "names": [
-      "CHIEN DHBBRHB"
-    ]
-  },
-  {
-    "fileId": "042",
-    "names": []
-  },
-  {
-    "fileId": "043",
-    "names": [
-      "BASENNJI J"
-    ]
-  },
-  {
-    "fileId": "045",
-    "names": [
-      "BOUVIER ENS",
-      "IBERVOIVO",
-      "RO I"
-    ]
-  },
-  {
-    "fileId": "046",
-    "names": [
-      "Appenzeller Sennenhund"
-    ]
-  },
-  {
-    "fileId": "047",
-    "names": []
-  },
-  {
-    "fileId": "048",
-    "names": []
-  },
-  {
-    "fileId": "049",
-    "names": []
-  },
-  {
-    "fileId": "050",
-    "names": []
-  },
-  {
-    "fileId": "051",
-    "names": []
-  },
-  {
-    "fileId": "053",
-    "names": [
-      "CHIHENH D"
-    ]
-  },
-  {
-    "fileId": "054",
-    "names": [
-      "UVASZK SK",
-      "SZZSK",
-      "Podengo Português",
-      "A K"
-    ]
-  }
-]
+{
+  "catalogueWithoutPdf": [
+    "alanoespagnol",
+    "barbadodeterceira",
+    "bassetdesalpes",
+    "bergeramericainminiature",
+    "bergerdeboheme",
+    "bergerdesalpesetdesavoie",
+    "biewerterrier",
+    "bolonkarussecolore",
+    "brachetdestyrieapoildur",
+    "braquedelariege",
+    "briquetdeprovence",
+    "brunosainthubertfrancais",
+    "bulldogcampeirobresilien",
+    "canedapastoredellasila",
+    "canedapastoredioropa",
+    "canedimannara",
+    "caodegadotransmontano",
+    "chiencourantdesapennins",
+    "chiencourantdeschiller",
+    "chiencourantdestatras",
+    "chiencourantdestonie",
+    "chiencourantdusmaland",
+    "chiencourantserbe",
+    "chiencourantslovaque",
+    "chiencouranttricoloreserbe",
+    "chiendarretfrison",
+    "chiendebali",
+    "chiendebergeranglaisancestral",
+    "chiendebergermacedonienkaraman",
+    "chiendebergerroumaincorb",
+    "chiendebergeryougoslavedecharplanina",
+    "chiendemontagnedelatlas",
+    "chiendetaiwan",
+    "chienfinnoisdelaponie",
+    "chienfonnese",
+    "chienloupdesaarloos",
+    "chiennetfpourlachasseauraton",
+    "croise",
+    "cursinu",
+    "epagneuldesaintusuge",
+    "esquimauducanada",
+    "euskalartzaintxakurra",
+    "kazakhtazy",
+    "laikadeiakoutie",
+    "laikarussoeuropeen",
+    "lapphundsuedois",
+    "majorero",
+    "maneto",
+    "pachonnavarro",
+    "perrodepastorgarafiano",
+    "perroleonesdepastor",
+    "petitchiencourantsuisse",
+    "petitchienrusse",
+    "pisteurbresilien",
+    "podencoandaluz",
+    "ratierdeprague",
+    "ratiervalencien",
+    "ratonerobodegueroandaluz",
+    "sabuesofinocolombiano",
+    "schapendoesneerlandais",
+    "segugiomaremmano",
+    "spinodegliiblei",
+    "spitzdesvisigoths",
+    "spitzfinlandais",
+    "sussexspaniel",
+    "taigan",
+    "tchouvatchslovaque",
+    "terrierandalou",
+    "terriernuamericain",
+    "xarnegopodencovalenciano"
+  ],
+  "unmatchedWikidata": [
+    {
+      "fci": "014",
+      "labels": [
+        "Vallhund suédois",
+        "Swedish Vallhund"
+      ]
+    },
+    {
+      "fci": "016",
+      "labels": [
+        "Bobtail",
+        "Old English sheepdog"
+      ]
+    },
+    {
+      "fci": "133",
+      "labels": [
+        "Braque français",
+        "Braque Français"
+      ]
+    },
+    {
+      "fci": "134",
+      "labels": [
+        "Braque français",
+        "Braque Français"
+      ]
+    },
+    {
+      "fci": "138",
+      "labels": [
+        "Berger des Pyrénées",
+        "Pyrenean Shepherd"
+      ]
+    },
+    {
+      "fci": "141",
+      "labels": [
+        "Berger des Pyrénées",
+        "Pyrenean Shepherd"
+      ]
+    },
+    {
+      "fci": "198",
+      "labels": [
+        "Chien courant italien",
+        "Segugio Italiano"
+      ]
+    },
+    {
+      "fci": "021",
+      "labels": [
+        "Grand Gascon saintongeois",
+        "Grand Gascon Saintongeois"
+      ]
+    },
+    {
+      "fci": "021",
+      "labels": [
+        "Petit Gascon Saintongeois",
+        "Petit Gascon Saintongeois"
+      ]
+    },
+    {
+      "fci": "300",
+      "labels": [
+        "Coonhound noir et beige",
+        "Black and Tan Coonhound"
+      ]
+    },
+    {
+      "fci": "337",
+      "labels": [
+        "Chien courant italien",
+        "Segugio Italiano"
+      ]
+    }
+  ]
+}

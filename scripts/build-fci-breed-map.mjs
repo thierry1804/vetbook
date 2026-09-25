@@ -1,187 +1,146 @@
 #!/usr/bin/env node
 /**
- * One-shot : construit CENTRALE_CANINE_FCI_FILES depuis les PDF SCC.
- * Usage: node scripts/build-fci-breed-map.mjs
- * Prérequis: pdftotext (poppler-utils), réseau.
+ * Construit CENTRALE_CANINE_FCI_FILES (clé de race du catalogue SCC → n° de fichier PDF).
+ *
+ * Source : scripts/generated/wikidata-fci-p528.json (races FCI via Wikidata P528),
+ * rapprochée des tables CENTRALE_CANINE_BREED_SLUGS / _ALIASES de frontend/app.js.
+ * Aucun accès réseau (le scrape live de centrale-canine.fr est trop lent / bloqué).
+ *
+ * Usage : node scripts/build-fci-breed-map.mjs
+ * Sorties : scripts/generated/centrale-canine-fci-files.js
+ *           scripts/generated/fci-unmatched.json (catalogue sans PDF + labels Wikidata non rapprochés)
  */
-import { readFileSync, writeFileSync, mkdirSync, createWriteStream } from 'fs';
-import { spawnSync } from 'child_process';
-import { pipeline } from 'stream/promises';
-import { Readable } from 'stream';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { readFileSync, writeFileSync } from 'fs';
 
 const APP_JS = new URL('../frontend/app.js', import.meta.url);
-const OUT_DIR = new URL('./generated/', import.meta.url);
+const WIKIDATA = new URL('./generated/wikidata-fci-p528.json', import.meta.url);
 const OUT_FILE = new URL('./generated/centrale-canine-fci-files.js', import.meta.url);
-const UNMATCHED_FILE = new URL('./generated/fci-unmatched.json', import.meta.url);
-const BASE = 'https://www.centrale-canine.fr/sites/default/files/fci_race';
-const MAX_N = 400;
-const CONCURRENCY = 8;
+const OUT_UNMATCHED = new URL('./generated/fci-unmatched.json', import.meta.url);
 
 function protectionKey(name) {
-  return String(name || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '');
+  return String(name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
 }
 
-function extractMap(src, varName) {
-  const re = new RegExp('var ' + varName + ' = \\{([\\s\\S]*?)\\n  \\};');
-  const m = src.match(re);
-  if (!m) throw new Error('Map introuvable: ' + varName);
+// Synonymes Wikidata (clé normalisée d'un label FR/EN) → clé du catalogue SCC.
+// À compléter au vu de fci-unmatched.json.
+const EXTRA = {
+  beauceron: 'bergerdebeauce', labradorretriever: 'retrieverdulabrador', labrador: 'retrieverdulabrador',
+  goldenretriever: 'retrieverdorado', germanshepherddog: 'bergerallemand', germanshepherd: 'bergerallemand',
+  belgianshepherddog: 'chiendebergerbelge', papillon: 'epagneulnaincontinental',
+  foxterrierapoillisse: 'foxterrierpoillisse', smoothfoxterrier: 'foxterrierpoillisse',
+  foxterrierapoildur: 'foxterrierpoildur', wirefoxterrier: 'foxterrierpoildur',
+  chiendelansuedois: 'chiendelansuedoisjamthund', jamthund: 'chiendelansuedoisjamthund',
+  chiennoiretbronzeautrichien: 'brachetnoiretfeu', austrianblackandtanhound: 'brachetnoiretfeu',
+  gosdaturacatala: 'chiendebergercatalan', catalansheepdog: 'chiendebergercatalan',
+  perdigueirodeburgos: 'braquedeburgos', perdiguerodeburgos: 'braquedeburgos', burgosretriever: 'braquedeburgos',
+  rafeirodelalentejo: 'matindelalentejo', rafeirodoalentejo: 'matindelalentejo',
+  drahthaar: 'chiendarretallemandapoildur', germanwirehairedpointer: 'chiendarretallemandapoildur',
+  korthals: 'griffonapoildurkorthals', wirehairedpointinggriffon: 'griffonapoildurkorthals',
+  grandmunsterlander: 'grandepagneuldemunster', largemunsterlander: 'grandepagneuldemunster',
+  braqueallemand: 'braqueallemandapoilcourt', germanshorthairedpointer: 'braqueallemandapoilcourt',
+  setterirlandais: 'setterirlandaisrouge', irishsetter: 'setterirlandaisrouge',
+  flatcoatedretriever: 'retrieverapoilplat', kingcharlesspaniel: 'epagneulkingcharles',
+  drever: 'bassetsuedois', hamiltonstovare: 'chiencourantdehamilton',
+  braquefrancaistypegascongne: 'braquefrancaistypegascogne', frenchpointingdoggascognetype: 'braquefrancaistypegascogne',
+  cavalierkingcharlesspaniel: 'cavalierkingcharles', leonberg: 'chiendeleonberg', leonberger: 'chiendeleonberg',
+  colley: 'collieapoillong', roughcollie: 'collieapoillong', deerhound: 'levrierecossais', scottishdeerhound: 'levrierecossais',
+  cockeramericain: 'cockerspanielamericain', americancockerspaniel: 'cockerspanielamericain',
+  bergerpicard: 'bergerdepicardie', picardyshepherd: 'bergerdepicardie',
+  schnauzerminiature: 'schnauzernain', miniatureschnauzer: 'schnauzernain',
+  bergerdebergame: 'bergerbergamasque', bergamascoshepherd: 'bergerbergamasque',
+  volpinoitaliano: 'volpinoitalien',
+  bergerdeabruzzesetmaremme: 'bergerdelamaremmeetdesabruzzes', abruzzomaremmasheepdog: 'bergerdelamaremmeetdesabruzzes',
+  dunker: 'chiencourantnorvegien', sabuesoespanol: 'chiencourantespagnol',
+  pekinois: 'epagneulpekinois', pekingese: 'epagneulpekinois',
+  chienderougeduhanovre: 'chienderougedehanovre', hanoverhound: 'chienderougedehanovre',
+  chienfrancaisblancetnoir: 'francaisblancetnoir', wetterhoun: 'chiendeaufrison',
+  chiennumexicain: 'chiennudumexique', xoloitzcuintle: 'chiennudumexique',
+  erdelykopo: 'chiencourantdetransylvanie', transylvanianhound: 'chiencourantdetransylvanie',
+  bergerdestatras: 'chiendebergerdestatras', tatrashepherddog: 'chiendebergerdestatras',
+  lundehund: 'chiennorvegiendemacareux', norwegianlundehund: 'chiennorvegiendemacareux',
+  hygenhund: 'chiencourantdehygen', groenlandais: 'chiendugroenland', greenlanddog: 'chiendugroenland',
+  bergercroate: 'chiendebergercroate', croatiansheepdog: 'chiendebergercroate',
+  levriergalgo: 'levrierespagnol', galgoespanol: 'levrierespagnol',
+  americanstaffordshireterrier: 'staffordshireterrieramericain',
+  bergerislandais: 'chiendebergerislandais', icelandicsheepdog: 'chiendebergerislandais',
+  australiankelpie: 'kelpieaustralien', colleyapoilcourt: 'collieapoilcourt', smoothcollie: 'collieapoilcourt',
+  kooikerhondje: 'petitchienhollandaisdechasseaugibierdeau',
+  bergerdemajorque: 'chiendebergerdemajorque', majorcashepherddog: 'chiendebergerdemajorque',
+  blackrussianterrier: 'terriernoirrusse', podencocanario: 'chiendegarennedescanaries',
+  setterirlandaisrougeetblanc: 'setterirlandaisrougeblanc', irishredandwhitesetter: 'setterirlandaisrougeblanc',
+  bergerdanatolie: 'chiendebergerkangal', anatolianshepherd: 'chiendebergerkangal',
+  chartpolski: 'levrierpolonais', polishgreyhound: 'levrierpolonais',
+  parsonrussellterrier: 'terrierdureverendrussell', filadesaomiguel: 'filadesaintmiguel', azorescattledog: 'filadesaintmiguel',
+  jackrussell: 'terrierjackrussell', jackrussellterrier: 'terrierjackrussell',
+  cimarronuruguayo: 'cimarronuruguayen', tornjak: 'bergerdebosnieherzegovineetdecroatie',
+  bergerroumainbucovine: 'chiendebergerroumaindebucovine', bucovinashepherddog: 'chiendebergerroumaindebucovine',
+  continentalbulldog: 'bulldogcontinental',
+};
+
+const src = readFileSync(APP_JS, 'utf8');
+
+// Les tables mélangent clés entre guillemets (SLUGS) et non quotées (ALIASES) : on capte les deux.
+function parseTable(name) {
+  const m = src.match(new RegExp('var ' + name + ' = \\{([\\s\\S]*?)\\n  \\};'));
+  if (!m) throw new Error('table introuvable : ' + name);
   const out = {};
-  for (const [, k, v] of m[1].matchAll(/"([^"]+)":\s*"([^"]+)"/g)) out[k] = v;
+  for (const line of m[1].split('\n')) {
+    const kv = line.match(/^\s*["']?([a-z0-9]+)["']?\s*:\s*["']([^"']+)["']/);
+    if (kv) out[kv[1]] = kv[2];
+  }
   return out;
 }
+const SLUGS = parseTable('CENTRALE_CANINE_BREED_SLUGS');
+const ALIASES = parseTable('CENTRALE_CANINE_BREED_ALIASES');
 
-async function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+const bindings = JSON.parse(readFileSync(WIKIDATA, 'utf8')).results.bindings;
 
-async function fetchWithRetry(url, opts = {}, attempts = 4) {
-  let lastErr;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 25000);
-      const res = await fetch(url, { ...opts, signal: ctrl.signal });
-      clearTimeout(t);
-      return res;
-    } catch (e) {
-      lastErr = e;
-      await sleep(500 * (i + 1) * (i + 1));
-    }
-  }
-  throw lastErr;
-}
-
-async function headOk(fileId) {
-  try {
-    const res = await fetchWithRetry(`${BASE}/${fileId}.pdf`, { method: 'HEAD', redirect: 'follow' });
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
-    return res.ok && ct.includes('pdf') ? fileId : null;
-  } catch {
-    return null;
-  }
-}
-
-async function resolveFileId(n) {
-  const padded = String(n).padStart(3, '0');
-  return (await headOk(padded)) || (await headOk(String(n)));
-}
-
-async function download(fileId, dest) {
-  const res = await fetchWithRetry(`${BASE}/${fileId}.pdf`);
-  if (!res.ok) throw new Error('GET ' + fileId + ' -> ' + res.status);
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
-}
-
-function extractBreedNames(pdfPath) {
-  const r = spawnSync('pdftotext', ['-f', '1', '-l', '1', pdfPath, '-'], { encoding: 'utf8' });
-  if (r.status !== 0) return { fci: null, names: [] };
-  const text = r.stdout || '';
-  const fciM = text.match(/Standard[\s-]*FCI\s*N[°oº]?\s*(\d{1,3})/i);
-  const fci = fciM ? fciM[1] : null;
-  const names = [];
-  const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
-  for (const line of lines) {
-    if (/^FEDERATION|SECRETARIAT|Standard|Cette illustration|©/i.test(line)) continue;
-    if (/^\d{1,2}[./]\d{1,2}[./]\d{2,4}/.test(line)) continue;
-    if (/^_{3,}/.test(line)) continue;
-    // Ignore garbage OCR (long runs of the same letter)
-    if (/(.)\1{8,}/.test(line)) continue;
-    if (/^[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ][A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ0-9 '\-]{2,}$/.test(line)) {
-      names.push(line);
-    }
-    const paren = line.match(/^\(([^)]+)\)$/);
-    if (paren) names.push(paren[1]);
-    // Title Case English / mixed lines
-    if (/^[A-Z][a-z]+(?:[ \-][A-Za-z]+)+$/.test(line) && line.length > 4) {
-      names.push(line);
-    }
-  }
-  return { fci, names };
-}
-
-function matchKey(names, slugs, aliases) {
-  const slugKeys = new Set(Object.keys(slugs));
-  for (const name of names) {
-    const k = protectionKey(name);
-    if (slugKeys.has(k)) return k;
-    if (aliases[k] && slugKeys.has(aliases[k])) return aliases[k];
-  }
+// clé candidate → clé catalogue
+function resolve(candidate) {
+  if (SLUGS[candidate]) return candidate;
+  if (ALIASES[candidate] && SLUGS[ALIASES[candidate]]) return ALIASES[candidate];
+  if (EXTRA[candidate] && SLUGS[EXTRA[candidate]]) return EXTRA[candidate];
   return null;
 }
 
-async function mapPool(items, limit, fn) {
-  const out = new Array(items.length);
-  let i = 0;
-  async function worker() {
-    while (i < items.length) {
-      const idx = i++;
-      out[idx] = await fn(items[idx], idx);
-    }
+const files = {};
+const unmatchedWikidata = [];
+for (const b of bindings) {
+  const fci = String(b.fci.value).trim();
+  if (!/^\d+$/.test(fci)) continue;
+  const fileId = fci.padStart(3, '0');
+  const labels = [b.labelFr && b.labelFr.value, b.labelEn && b.labelEn.value].filter(Boolean);
+  let hit = false;
+  for (const label of labels) {
+    const key = resolve(protectionKey(label));
+    if (key) { if (!files[key]) files[key] = fileId; hit = true; }
   }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
-  return out;
+  if (!hit) unmatchedWikidata.push({ fci: fileId, labels });
 }
 
-function writeOutputs(fciFiles, unmatched) {
-  mkdirSync(OUT_DIR, { recursive: true });
-  const body = Object.keys(fciFiles)
-    .sort()
-    .map((k) => `    "${k}":"${fciFiles[k]}"`)
-    .join(',\n');
-  const js =
-    '  // Généré par scripts/build-fci-breed-map.mjs — ne pas éditer à la main.\n' +
-    '  var CENTRALE_CANINE_FCI_FILES = {\n' +
-    body +
-    '\n  };\n';
-  writeFileSync(OUT_FILE, js);
-  writeFileSync(UNMATCHED_FILE, JSON.stringify(unmatched, null, 2));
-  console.log(
-    'Wrote',
-    OUT_FILE.pathname,
-    'entries=',
-    Object.keys(fciFiles).length,
-    'unmatched=',
-    unmatched.length
-  );
-}
+// Races courantes absentes de la requête Wikidata — n° FCI officiels (PDF vérifiés HTTP 200).
+const MANUAL = {
+  bergerallemand: '166', affenpinscher: '186', airedaleterrier: '007', akita: '255', akitaamericain: '344',
+  saintbernard: '061', shihtzu: '208', samoyede: '212', saluki: '269', huskydesiberie: '270',
+  malamutedelalaska: '243', schipperke: '083', sloughi: '188', spinone: '165', skyeterrier: '075',
+  terrierecossais: '073', sealyhamterrier: '074', staffordshirebullterrier: '076', shiba: '257',
+  shikoku: '319', levrierafghan: '228', petitbrabancon: '082', griffonbelge: '081',
+  chiendebergerdesshetland: '088', bichonapoilfrise: '215',
+};
+for (const [k, v] of Object.entries(MANUAL)) if (SLUGS[k] && !files[k]) files[k] = v;
 
-const src = readFileSync(APP_JS, 'utf8');
-const slugs = extractMap(src, 'CENTRALE_CANINE_BREED_SLUGS');
-const aliases = extractMap(src, 'CENTRALE_CANINE_BREED_ALIASES');
+// Overrides vérifiés à la main (HTTP 200) — priment sur Wikidata.
+const VERIFIED = { bergerdebeauce: '044', retrieverdulabrador: '122', bergeraustralien: '342' };
+for (const [k, v] of Object.entries(VERIFIED)) if (SLUGS[k]) files[k] = v;
 
-console.error('Resolving PDF file ids 1..' + MAX_N + '…');
-const nums = Array.from({ length: MAX_N }, (_, i) => i + 1);
-const fileIds = (await mapPool(nums, CONCURRENCY, (n) => resolveFileId(n))).filter(Boolean);
-console.error('Found', fileIds.length, 'PDF files');
+const keys = Object.keys(files).sort();
+const js = '// Généré par scripts/build-fci-breed-map.mjs — ne pas éditer à la main.\n' +
+  '  var CENTRALE_CANINE_FCI_FILES = {\n' +
+  keys.map((k) => '    "' + k + '":"' + files[k] + '"').join(',\n') + '\n  };\n';
+writeFileSync(OUT_FILE, js);
 
-const fciFiles = {};
-const unmatched = [];
-const tmpPdf = join(tmpdir(), 'vetbook-fci.pdf');
+const catalogueWithoutPdf = Object.keys(SLUGS).filter((k) => !files[k]).sort();
+writeFileSync(OUT_UNMATCHED, JSON.stringify({ catalogueWithoutPdf, unmatchedWikidata }, null, 2) + '\n');
 
-for (let i = 0; i < fileIds.length; i++) {
-  const fileId = fileIds[i];
-  try {
-    await download(fileId, tmpPdf);
-    const { names } = extractBreedNames(tmpPdf);
-    const key = matchKey(names, slugs, aliases);
-    if (key) {
-      fciFiles[key] = fileId;
-      console.error('OK', fileId, '→', key, names[0] || '');
-    } else {
-      unmatched.push({ fileId, names });
-      console.error('NO MATCH', fileId, names.slice(0, 3).join(' | '));
-    }
-  } catch (e) {
-    console.error('ERR', fileId, e.message || e);
-    unmatched.push({ fileId, names: [], error: String(e.message || e) });
-  }
-  if ((i + 1) % 25 === 0) writeOutputs(fciFiles, unmatched);
-}
-
-writeOutputs(fciFiles, unmatched);
+console.log(`Catalogue : ${Object.keys(SLUGS).length} races — avec PDF : ${keys.length} — sans : ${catalogueWithoutPdf.length}`);
+console.log(`Wikidata non rapprochés : ${unmatchedWikidata.length} / ${bindings.length}`);
