@@ -2478,8 +2478,10 @@
     ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
   ];
+  // Rubriques du menu latéral qui dépendent de la formule (mêmes codes que les onglets de la fiche).
+  var CARE_FEATURES = { nutrition: 'nutrition_activity_checkup', activites: 'nutrition_activity_checkup', checkup: 'nutrition_activity_checkup', reproduction: 'reproduction' };
   function careButton(route, label, icon, primary) {
-    return '<button type="button" class="care-action' + (primary ? ' care-action--primary' : '') + '" data-care-route="' + route + '">' + ico(icon, 18) + '<span>' + label + '</span></button>';
+    return '<button type="button" class="care-action' + (primary ? ' care-action--primary' : '') + '" data-care-route="' + route + '"' + (CARE_FEATURES[route] ? ' data-feature="' + CARE_FEATURES[route] + '"' : '') + '>' + ico(icon, 18) + '<span>' + label + '</span></button>';
   }
   function renderCareSidebar() {
     var el = document.getElementById('care-sidebar');
@@ -2489,7 +2491,7 @@
       (state.animals.length ? state.animals.map(function (d) { return '<option value="' + d.id + '"' + (getCurrent().id === d.id ? ' selected' : '') + '>' + escapeHtml(d.animal.name || 'Sans nom') + '</option>'; }).join('') : '<option>Ajouter un animal</option>') + '</select></label>' +
       careLinks.map(function (group) { return '<div class="care-nav-group"><p>' + group[0] + '</p>' + group[1].map(function (link) { return careButton(link[0], link[1], link[2]); }).join('') + '</div>'; }).join('') + '<div class="care-sidebar-foot">Un carnet, toute leur vie.' + careButton('addAnimal', 'Ajouter un animal', 'plus') + '</div>';
     var mobileMenu = document.getElementById('care-mobile-route');
-    mobileMenu.innerHTML = '<option value="">Toutes les rubriques</option>' + careLinks.map(function (group) { return '<optgroup label="' + group[0] + '">' + group[1].map(function (link) { return '<option value="' + link[0] + '">' + link[1] + '</option>'; }).join('') + '</optgroup>'; }).join('');
+    mobileMenu.innerHTML = '<option value="">Toutes les rubriques</option>' + careLinks.map(function (group) { return '<optgroup label="' + group[0] + '">' + group[1].map(function (link) { return '<option value="' + link[0] + '"' + (CARE_FEATURES[link[0]] ? ' data-feature="' + CARE_FEATURES[link[0]] + '"' : '') + '>' + link[1] + '</option>'; }).join('') + '</optgroup>'; }).join('');
     mobileMenu.onchange = function () { var target = el.querySelector('[data-care-route="' + mobileMenu.value + '"]'); if (target) target.click(); };
     document.getElementById('care-pet-select').addEventListener('change', function (e) {
       state.currentAnimalId = Number(e.target.value); saveState(); refreshAll();
@@ -8932,6 +8934,7 @@
     document.querySelectorAll('[data-feature]').forEach(function (el) {
       var locked = !hasFeature(el.getAttribute('data-feature'));
       var hide = locked && mode === 'hide';
+      if (el.tagName === 'OPTION') { el.hidden = hide; return; }
       var host = lockHost(el);
       el.classList.toggle('is-feature-locked', locked && !hide);
       el.classList.toggle('is-feature-hidden', hide);
