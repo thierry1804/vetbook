@@ -85,6 +85,8 @@ export default async function handler(req, res) {
           const pedRow = toRow(ped, PEDIGREE_FIELDS, {
             pet_id: petId, user_id: userId,
             sire_name: ped.sire && ped.sire.name, sire_registry: ped.sire && ped.sire.registry,
+            sire_pet_local_id: ped.sire && ped.sire.petId != null ? ped.sire.petId : null,
+            dam_pet_local_id: ped.dam && ped.dam.petId != null ? ped.dam.petId : null,
             dam_name: ped.dam && ped.dam.name, dam_registry: ped.dam && ped.dam.registry,
             paternal_grandsire: ped.grandparents && ped.grandparents.paternalGrandsire,
             paternal_granddam: ped.grandparents && ped.grandparents.paternalGranddam,
@@ -97,7 +99,7 @@ export default async function handler(req, res) {
           });
           const columns = [
             'pet_id', 'user_id', ...PEDIGREE_FIELDS.map((f) => f[1]),
-            'sire_name', 'sire_registry', 'dam_name', 'dam_registry',
+            'sire_name', 'sire_registry', 'dam_name', 'dam_registry', 'sire_pet_local_id', 'dam_pet_local_id',
             'paternal_grandsire', 'paternal_granddam', 'maternal_grandsire', 'maternal_granddam',
             'paternal_grandsire_registry', 'paternal_granddam_registry', 'maternal_grandsire_registry', 'maternal_granddam_registry',
           ];

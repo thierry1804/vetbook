@@ -88,8 +88,8 @@ export default async function handler(req, res) {
           registryNumber: pedRow.registry_number || '',
           chipNumber: pedRow.chip_number || '',
           healthNotes: pedRow.health_notes || '',
-          sire: { name: pedRow.sire_name || '', registry: pedRow.sire_registry || '' },
-          dam: { name: pedRow.dam_name || '', registry: pedRow.dam_registry || '' },
+          sire: { name: pedRow.sire_name || '', registry: pedRow.sire_registry || '', petId: pedRow.sire_pet_local_id != null ? Number(pedRow.sire_pet_local_id) : null },
+          dam: { name: pedRow.dam_name || '', registry: pedRow.dam_registry || '', petId: pedRow.dam_pet_local_id != null ? Number(pedRow.dam_pet_local_id) : null },
           grandparents: {
             paternalGrandsire: pedRow.paternal_grandsire || '',
             paternalGranddam: pedRow.paternal_granddam || '',

@@ -487,3 +487,8 @@ create table if not exists household_members (
 
 alter table share_links add column if not exists include_contact boolean not null default false;
 alter table share_links add column if not exists include_photos boolean not null default false;
+
+-- Liens père/mère vers d'autres animaux du même compte (local_id de pets) :
+-- le pedigree reprend alors automatiquement les grands-parents de l'animal lié.
+alter table pedigree add column if not exists sire_pet_local_id bigint;
+alter table pedigree add column if not exists dam_pet_local_id bigint;
