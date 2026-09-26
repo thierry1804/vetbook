@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   List, Datagrid, TextField, NumberField, BooleanField, DateField, FunctionField, Edit, Create, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, ArrayInput,
   SimpleFormIterator, DateInput, DateTimeInput, SearchInput, Show, SimpleShowLayout, required, useListContext, useNotify, useRefresh, useUpdateMany, useRecordContext,
-  Toolbar, SaveButton, DeleteWithConfirmButton, TopToolbar, CreateButton, useUnselectAll, useResourceContext,
+  Toolbar, SaveButton, ExportButton, DeleteWithConfirmButton, TopToolbar, CreateButton, useUnselectAll, useResourceContext,
 } from 'react-admin';
 import { useWatch, useFormContext } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
@@ -11,6 +11,8 @@ import { Alert, Box, Button, Card, CardContent, Chip, Tab, Tabs, Typography } fr
 import { permits, api } from './api';
 import { StatusChip, LABELS, sanitizeRich, textOf } from './ui';
 import { Choice, Field, Res, label } from './resources';
+import { ImportDialog, IMPORTABLE } from './ImportDialog';
+import { toCsv, download } from './csv';
 
 // ── Données d'aide : pays ouverts (réglage `open_countries`), mis en cache pour la session.
 let metaCache: Promise<{ countries: { code: string; label: string }[] }> | null = null;
@@ -173,7 +175,15 @@ export function makeResource(res: Res, perms: string[]) {
   const st = statusField(res);
   const stChoices = toChoices(st?.choices);
 
+  const canImport = canWrite && IMPORTABLE.includes(res.name);
+  // Export : mêmes colonnes que le modèle d'import (aller-retour possible via Excel).
+  const exporter = (records: any[]) => {
+    const cols = res.fields.filter((f) => !f.readOnly);
+    const cell = (r: any, f: Field) => (Array.isArray(r[f.name]) ? r[f.name].join('|') : f.type === 'json' && r[f.name] != null ? JSON.stringify(r[f.name]) : r[f.name]);
+    download(`${res.name}.csv`, toCsv([cols.map((c) => c.name), ...records.map((r) => cols.map((c) => cell(r, c)))]));
+  };
   const RList = () => {
+    const [importing, setImporting] = useState(false);
     const countries = useCountryChoices(allowAll(res));
     const filters = [
       ...(res.search ? [<SearchInput key="q" source="q" alwaysOn placeholder="Rechercher" />] : []),
@@ -185,8 +195,10 @@ export function makeResource(res: Res, perms: string[]) {
     return (
       <>
         <PendingBanner section={res.section} />
-        <List filters={filters} perPage={25} title={res.label} exporter={false} sort={{ field: res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC' }}
-          actions={<TopToolbar>{canWrite ? <CreateButton label="Nouveau" variant="contained" /> : null}</TopToolbar>}
+        {canImport ? <ImportDialog res={res} open={importing} onClose={() => setImporting(false)} /> : null}
+        <List filters={filters} perPage={25} title={res.label} sort={{ field: res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC' }}
+          exporter={exporter}
+          actions={<TopToolbar><ExportButton label="Exporter CSV" />{canImport ? <Button size="small" onClick={() => setImporting(true)}>Importer</Button> : null}{canWrite ? <CreateButton label="Nouveau" variant="contained" /> : null}</TopToolbar>}
           empty={false}>
           {st ? <StatusTabs choices={stChoices} /> : null}
           <Datagrid rowClick={canWrite ? 'edit' : 'show'} bulkActionButtons={canWrite && st ? <BulkStatus choices={stChoices.map((c) => String(c.id))} /> : false}>

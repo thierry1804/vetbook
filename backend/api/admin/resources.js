@@ -57,7 +57,7 @@ function parseList(req, def) {
   try { if (req.query.range) range = JSON.parse(req.query.range); } catch { /* défaut */ }
   try { if (req.query.sort) sort = JSON.parse(req.query.sort); } catch { /* défaut */ }
   try { if (req.query.filter) filter = JSON.parse(req.query.filter); } catch { /* défaut */ }
-  const limit = Math.min(Math.max(Number(range[1]) - Number(range[0]) + 1, 1), 200);
+  const limit = Math.min(Math.max(Number(range[1]) - Number(range[0]) + 1, 1), 1000);
   return { offset: Math.max(Number(range[0]) || 0, 0), limit, sort, filter };
 }
 

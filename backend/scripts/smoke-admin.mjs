@@ -275,6 +275,34 @@ await t('contenus : date de publication automatique, état « non publié » par
   assert.equal((await call('GET', '/api/admin/release-status', {})).status, 401);
 });
 
+await t('import en lot : aperçu, doublons, erreurs, brouillon par défaut, audit', async () => {
+  const rows = [
+    { title: `Import A ${tag}`, body: 'Premier paragraphe\nSecond paragraphe', category: 'sante', vet_reviewed: 'oui' },
+    { title: `Import B ${tag}`, body: '<p>Ok</p><script>x()</script>', category: 'hygiene', country: 'mg' },
+    { title: `Import A ${tag}`, body: 'Doublon dans le fichier', category: 'sante' },
+    { title: `Import C ${tag}`, body: 'Catégorie inconnue', category: 'nimporte' },
+    { title: '', body: 'Sans titre', category: 'sante' },
+  ];
+  const count = async () => (await withClient((c) => c.query('select count(*)::int n from content_tips where title like $1', [`Import % ${tag}`]))).rows[0].n;
+  const dry = await call('POST', '/api/admin/import/tips', { cookie: rootC, body: { rows } });
+  assert.equal(dry.status, 200); assert.equal(dry.json.committed, false);
+  assert.deepEqual(dry.json.report.map((r) => r.status), ['ok', 'ok', 'doublon', 'erreur', 'erreur']);
+  assert.equal(await count(), 0, 'l\'aperçu n\'écrit rien');
+  assert.equal((await call('POST', '/api/admin/import/tips', { cookie: anC, body: { rows, commit: true } })).status, 403);
+  const done = await call('POST', '/api/admin/import/tips', { cookie: rootC, body: { rows, commit: true } });
+  assert.equal(done.status, 200); assert.equal(done.json.ok, 2); assert.equal(done.json.errors, 2); assert.equal(done.json.duplicates, 1);
+  const saved = (await withClient((c) => c.query('select title, body, status, country, vet_reviewed, published_at from content_tips where title like $1 order by title', [`Import % ${tag}`]))).rows;
+  assert.equal(saved.length, 2); assert.ok(saved.every((r) => r.status === 'brouillon' && r.published_at === null));
+  assert.equal(saved[0].body, '<p>Premier paragraphe</p><p>Second paragraphe</p>'); assert.equal(saved[0].vet_reviewed, true);
+  assert.ok(!saved[1].body.includes('script')); assert.equal(saved[1].country, 'MG');
+  // second import : tout est doublon
+  const again = await call('POST', '/api/admin/import/tips', { cookie: rootC, body: { rows: rows.slice(0, 2), commit: true } });
+  assert.equal(again.json.ok, 0); assert.equal(again.json.duplicates, 2);
+  assert.equal((await call('POST', '/api/admin/import/tips', { cookie: rootC, body: { rows: [] } })).status, 400);
+  assert.equal((await call('POST', '/api/admin/import/plans', { cookie: rootC, body: { rows } })).status, 404);
+  assert.ok((await withClient((c) => c.query("select 1 from admin_audit_log where action = 'tips.import'"))).rowCount >= 1);
+});
+
 server.close();
 console.log(`\n${ok} vérifications OK`);
 process.exit(0);
