@@ -25,7 +25,10 @@ export const dataProvider: DataProvider = {
   getManyReference: async () => ({ data: [], total: 0 }),
   create: async (resource, { data }) => ({ data: withId((await api(base(resource), { method: 'POST', body: data })).json) }),
   update: async (resource, { id, data }) => ({ data: withId((await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'PUT', body: data })).json) }),
-  updateMany: async () => ({ data: [] }),
+  updateMany: async (resource, { ids, data }) => {
+    for (const id of ids) await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'PUT', body: data });
+    return { data: ids };
+  },
   // Le motif est journalisé (obligatoire pour certaines ressources) : `meta.reason` sinon un motif générique.
   delete: async (resource, { id, meta }) => {
     await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'DELETE', body: { reason: meta?.reason || 'Suppression depuis le backoffice' } });

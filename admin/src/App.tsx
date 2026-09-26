@@ -14,7 +14,8 @@ import { Profile } from './Profile';
 import { AdminList, AdminShow, AdminCreate } from './Admins';
 import { AppLayout } from './Layout';
 import { lightTheme, darkTheme } from './theme';
-import { RES, makeResource } from './resources';
+import { RES } from './resources';
+import { makeResource } from './content';
 import { permits } from './api';
 
 export const App = () => (

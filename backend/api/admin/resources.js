@@ -122,6 +122,7 @@ export function buildResourceRouter() {
       try {
         if (!needReason(req, res)) return;
         const data = writable(req.body || {});
+        if (data.status === 'publie' && 'published_at' in def.cols && !data.published_at) data.published_at = new Date().toISOString();
         const cols = Object.keys(data);
         if (!cols.length) { res.status(400).json({ error: 'Aucun champ valide.' }); return; }
         const row = await withTransaction(async (c) => {
@@ -145,11 +146,13 @@ export function buildResourceRouter() {
         if (!needReason(req, res)) return;
         const data = writable(req.body || {});
         delete data[def.pk];
-        const cols = Object.keys(data);
-        if (!cols.length) { res.status(400).json({ error: 'Aucun champ valide.' }); return; }
+        if (!Object.keys(data).length) { res.status(400).json({ error: 'Aucun champ valide.' }); return; }
         const out = await withTransaction(async (c) => {
           const before = (await c.query(`select * from ${def.table} where ${def.pk}::text = $1 for update`, [req.params.id])).rows[0];
           if (!before) return null;
+          // Publication : la date est posée automatiquement la première fois.
+          if (data.status === 'publie' && 'published_at' in def.cols && !data.published_at && !before.published_at) data.published_at = new Date().toISOString();
+          const cols = Object.keys(data);
           const after = (await c.query(
             `update ${def.table} set ${cols.map((k, i) => `${k} = $${i + 2}`).join(',')} where ${def.pk}::text = $1 returning *, ${def.pk} as id`,
             [req.params.id, ...cols.map((k) => data[k])])).rows[0];

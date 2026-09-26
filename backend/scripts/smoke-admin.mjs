@@ -263,6 +263,18 @@ await t('administrateurs : création, garde-fous, réinitialisation, changement 
   for (const a of ['admin.create', 'admin.password_change', 'admin.update', 'admin.reset_credentials']) assert.ok(audits.includes(a), a);
 });
 
+await t('contenus : date de publication automatique, état « non publié » par section', async () => {
+  const mkTip = await call('POST', '/api/admin/r/tips', { cookie: rootC, body: { title: `Conseil ${tag}`, body: '<p>Texte</p>', category: 'sante', status: 'brouillon' } });
+  assert.equal(mkTip.status, 201); assert.equal(mkTip.json.published_at, null);
+  const pub = await call('PUT', `/api/admin/r/tips/${mkTip.json.id}`, { cookie: rootC, body: { status: 'publie' } });
+  assert.equal(pub.status, 200); assert.ok(pub.json.published_at, 'published_at posé à la publication');
+  const meta = await call('GET', '/api/admin/meta', { cookie: rootC });
+  assert.equal(meta.status, 200); assert.ok(Array.isArray(meta.json.countries));
+  const st = await call('GET', '/api/admin/release-status', { cookie: rootC });
+  assert.equal(st.status, 200); assert.equal(st.json.changed.tips, true); assert.equal(typeof st.json.pending, 'boolean');
+  assert.equal((await call('GET', '/api/admin/release-status', {})).status, 401);
+});
+
 server.close();
 console.log(`\n${ok} vérifications OK`);
 process.exit(0);

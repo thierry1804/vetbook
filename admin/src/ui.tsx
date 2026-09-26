@@ -9,7 +9,7 @@ const TONES: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'
   suspendu: 'error', en_retard: 'error', failed: 'error', error: 'error', echec: 'error',
   archive: 'default', archived: 'default', retire: 'default', resilie: 'default', desactive: 'default',
 };
-const LABELS: Record<string, string> = {
+export const LABELS: Record<string, string> = {
   actif: 'Actif', publie: 'Publié', valide: 'Validé', commercialise: 'Commercialisé', published: 'Publiée', brouillon: 'Brouillon', a_valider: 'À valider', essai: 'Essai',
   draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
 };
@@ -57,3 +57,22 @@ export const PageHeader = ({ title, subtitle, actions }: { title: string; subtit
     {actions}
   </Box>
 );
+
+// Liste blanche identique à celle de l'app (aperçu fidèle) : rien d'autre que du texte mis en forme n'est inséré.
+const RICH_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'UL', 'OL', 'LI', 'H2', 'H3', 'H4', 'BLOCKQUOTE', 'CODE', 'PRE', 'HR', 'A']);
+export function sanitizeRich(html: string): string {
+  const doc = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
+  const walk = (node: Node, out: HTMLElement) => {
+    node.childNodes.forEach((n) => {
+      if (n.nodeType === 3) { out.appendChild(document.createTextNode(n.nodeValue || '')); return; }
+      if (n.nodeType !== 1) return;
+      const el = n as HTMLElement;
+      if (!RICH_TAGS.has(el.tagName)) { walk(el, out); return; }
+      const copy = document.createElement(el.tagName.toLowerCase());
+      if (el.tagName === 'A') { const href = (el.getAttribute('href') || '').trim(); if (/^(https?:|mailto:|tel:)/i.test(href)) copy.setAttribute('href', href); }
+      walk(el, copy); out.appendChild(copy);
+    });
+  };
+  const box = document.createElement('div'); walk(doc.body, box); return box.innerHTML;
+}
+export const textOf = (html: string) => new DOMParser().parseFromString(html || '', 'text/html').body.textContent?.replace(/\s+/g, ' ').trim() || '';

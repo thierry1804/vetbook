@@ -11,6 +11,7 @@ import { verifyTotp } from '../_lib/totp.js';
 import { getSetting } from '../_lib/entitlements.js';
 import { buildResourceRouter } from './resources.js';
 import { mountAdminUsers } from './admins.js';
+import { mountMeta } from './meta.js';
 import { buildReleaseContent } from '../_lib/ref-release.js';
 
 // ADMIN_LOGIN_RATE_MAX : uniquement pour les tests automatisés (défaut 10 tentatives / 15 min / IP).
@@ -337,6 +338,7 @@ export function buildAdminRouter() {
   });
 
   mountAdminUsers(router);
+  mountMeta(router);
   router.use(buildResourceRouter());
   router.use((err, _req, res, _next) => { console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
   return router;
