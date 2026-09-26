@@ -59,7 +59,8 @@ export const UserShow = () => {
   const [dlg, setDlg] = useState<null | 'suspend' | 'reactivate' | 'logout-everywhere' | 'mark-verified' | 'subscription' | 'payment'>(null);
   const [plan, setPlan] = useState('premium'); const [subStatus, setSubStatus] = useState('actif'); const [endsAt, setEndsAt] = useState('');
   const [amount, setAmount] = useState(''); const [method, setMethod] = useState('mvola'); const [ref, setRef] = useState('');
-  if (!u) return null;
+  // Le cache de la liste préremplit `u` avec une ligne partielle : on attend la fiche complète.
+  if (!u || !Array.isArray(u.pets)) return null;
   const done = (msg: string) => { notify(msg); refetch(); refresh(); };
   const act = (name: string, ok: string) => async (reason: string) => {
     try { await api(`/users/${u.id}/${name}`, { method: 'POST', body: { reason } }); done(ok); } catch (e: any) { notify(e.message, { type: 'error' }); throw e; }

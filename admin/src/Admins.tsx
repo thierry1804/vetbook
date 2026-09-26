@@ -75,7 +75,7 @@ export const AdminShow = () => {
   const [reason, setReason] = useState(''); const [role, setRole] = useState(''); const [status, setStatus] = useState(''); const [name, setName] = useState('');
   const [creds, setCreds] = useState<any>(null);
   useEffect(() => { if (a) { setRole(a.role_code); setStatus(a.status); setName(a.name); } }, [a]);
-  if (!a) return null;
+  if (!a || !Array.isArray(a.sessions)) return null;
   const close = () => { setDlg(null); setReason(''); };
   const run = async (fn: () => Promise<any>, ok: string) => { try { const r = await fn(); notify(ok, { type: 'success' }); close(); refetch(); refresh(); return r; } catch (e: any) { notify(e.message, { type: 'error' }); } };
   const locked = a.locked_until && new Date(a.locked_until) > new Date();
