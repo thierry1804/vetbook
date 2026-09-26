@@ -11,7 +11,7 @@ export default async function handler(req, res) {
       const s = (k, d) => getSetting(c, k, d);
       const plans = (await c.query('select * from plans where visible and not archived order by sort_order, code')).rows;
       const pf = (await c.query('select plan_code, feature_code, enabled, quota from plan_features')).rows;
-      const features = (await c.query('select code, label, kind from features order by code')).rows;
+      const features = (await c.query('select code, label, kind, category from features order by sort_order, code')).rows;
       const byPlan = {};
       for (const r of pf) (byPlan[r.plan_code] || (byPlan[r.plan_code] = {}))[r.feature_code] = { enabled: r.enabled, quota: r.quota != null ? Number(r.quota) : null };
 
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         maintenance: await s('maintenance', { enabled: false, message: '' }),
         minClientVersion: await s('min_client_version', null),
         contact: await s('contact', {}),
-        featureLabels: Object.fromEntries(features.map((f) => [f.code, { label: f.label, kind: f.kind }])),
+        featureLabels: Object.fromEntries(features.map((f) => [f.code, { label: f.label, kind: f.kind, category: f.category }])),
         plans: [...offers.values()].filter((o) => o.audience === 'owner').sort((a, b) => a.sortOrder - b.sortOrder),
       };
     });

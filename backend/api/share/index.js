@@ -6,7 +6,7 @@
 //   GET    /api/share/public/:token/photo/:id  (public, si le lien inclut les photos)
 import { hashToken, requireUser } from '../_lib/auth.js';
 import { withClient } from '../_lib/db.js';
-import { checkFeature, effectiveLimit } from '../_lib/entitlements.js';
+import { checkFeature, effectiveLimit, guardFeature } from '../_lib/entitlements.js';
 import { appUrl } from '../_lib/mailer.js';
 import { getObject } from '../_lib/minio.js';
 import { newRawToken } from '../_lib/tokens.js';
@@ -34,6 +34,7 @@ export async function shareLinks(req, res) {
     if (req.method === 'POST') {
       const b = req.body && typeof req.body === 'object' ? req.body : {};
       const petLocalId = Number(b.petLocalId);
+      if (!(await guardFeature(res, session.userId, 'vet_share'))) return;
       const maxDays = (await effectiveLimit(session.userId, 'share_link_days', 'max_share_days', MAX_DAYS)) || MAX_DAYS;
       let days = Math.min(maxDays, Math.max(1, Math.round(Number(b.days) || 7)));
       // Durée maximale du lien selon la formule (quota share_link_days ; sans effet tant que l'application des droits est désactivée).

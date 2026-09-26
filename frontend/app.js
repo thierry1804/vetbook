@@ -2478,10 +2478,8 @@
     ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
   ];
-  // Rubriques du menu latéral qui dépendent de la formule (mêmes codes que les onglets de la fiche).
-  var CARE_FEATURES = { nutrition: 'nutrition_activity_checkup', activites: 'nutrition_activity_checkup', checkup: 'nutrition_activity_checkup', reproduction: 'reproduction' };
   function careButton(route, label, icon, primary) {
-    return '<button type="button" class="care-action' + (primary ? ' care-action--primary' : '') + '" data-care-route="' + route + '"' + (CARE_FEATURES[route] ? ' data-feature="' + CARE_FEATURES[route] + '"' : '') + '>' + ico(icon, 18) + '<span>' + label + '</span></button>';
+    return '<button type="button" class="care-action' + (primary ? ' care-action--primary' : '') + '" data-care-route="' + route + '">' + ico(icon, 18) + '<span>' + label + '</span></button>';
   }
   function renderCareSidebar() {
     var el = document.getElementById('care-sidebar');
@@ -2491,7 +2489,7 @@
       (state.animals.length ? state.animals.map(function (d) { return '<option value="' + d.id + '"' + (getCurrent().id === d.id ? ' selected' : '') + '>' + escapeHtml(d.animal.name || 'Sans nom') + '</option>'; }).join('') : '<option>Ajouter un animal</option>') + '</select></label>' +
       careLinks.map(function (group) { return '<div class="care-nav-group"><p>' + group[0] + '</p>' + group[1].map(function (link) { return careButton(link[0], link[1], link[2]); }).join('') + '</div>'; }).join('') + '<div class="care-sidebar-foot">Un carnet, toute leur vie.' + careButton('addAnimal', 'Ajouter un animal', 'plus') + '</div>';
     var mobileMenu = document.getElementById('care-mobile-route');
-    mobileMenu.innerHTML = '<option value="">Toutes les rubriques</option>' + careLinks.map(function (group) { return '<optgroup label="' + group[0] + '">' + group[1].map(function (link) { return '<option value="' + link[0] + '"' + (CARE_FEATURES[link[0]] ? ' data-feature="' + CARE_FEATURES[link[0]] + '"' : '') + '>' + link[1] + '</option>'; }).join('') + '</optgroup>'; }).join('');
+    mobileMenu.innerHTML = '<option value="">Toutes les rubriques</option>' + careLinks.map(function (group) { return '<optgroup label="' + group[0] + '">' + group[1].map(function (link) { return '<option value="' + link[0] + '">' + link[1] + '</option>'; }).join('') + '</optgroup>'; }).join('');
     mobileMenu.onchange = function () { var target = el.querySelector('[data-care-route="' + mobileMenu.value + '"]'); if (target) target.click(); };
     document.getElementById('care-pet-select').addEventListener('change', function (e) {
       state.currentAnimalId = Number(e.target.value); saveState(); refreshAll();
@@ -2846,7 +2844,7 @@
       stitchInfo('Clinique référente', o.clinic, 'hospital') +
       '<div class="identity-passport__actions">' +
         '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
-        '<button type="button" class="care-action care-action--icon" data-stitch-action="editPedigree" data-feature="pedigree_edit" aria-label="Modifier le pedigree" title="Modifier le pedigree">' + ico('edit', 16) + '</button>' +
+        '<button type="button" class="care-action care-action--icon" data-stitch-action="editPedigree" aria-label="Modifier le pedigree" title="Modifier le pedigree">' + ico('edit', 16) + '</button>' +
       '</div>' +
       (breedLink
         ? '<a class="care-action identity-breed-link" href="' + breedLink.url + '" target="_blank" rel="noopener">' +
@@ -3254,6 +3252,7 @@
   }
 
   function showAgenda() {
+    if (!hasFeature('calendar_agenda')) { showFeatureLocked('calendar_agenda'); return; }
     state.viewMode = 'agenda';
     hideAppViews();
     var view = document.getElementById('view-agenda');
@@ -3267,6 +3266,7 @@
   }
 
   function showDirectory() {
+    if (!hasFeature('vet_directory')) { showFeatureLocked('vet_directory'); return; }
     state.viewMode = 'directory';
     hideAppViews();
     var view = document.getElementById('view-annuaire');
@@ -6547,6 +6547,8 @@
   }
 
   function showCommunity(panel) {
+    var communityGate = ROUTE_FEATURES[panel];
+    if (communityGate && !hasFeature(communityGate)) { showFeatureLocked(communityGate); return; }
     setBottomNavActive('community');
     markCareRoute(panel);
     hideAppViews();
@@ -8700,9 +8702,13 @@
   var REF_CONTENT = null;
   var EMBEDDED = null;
   var FEATURE_LABELS = {
-    reproduction: 'Suivi de reproduction', pedigree_edit: 'Saisie du pedigree et recherche ACYM',
-    push_reminders: 'Rappels push', export_pdf_ics: 'Export PDF et .ics', sms_reminders: 'Rappels par SMS',
-    practice_portal: 'Portail vétérinaire', nutrition_activity_checkup: 'Nutrition, activités et check-up'
+    health_records: 'Carnet de santé', medications: 'Traitements en cours', consultations: 'Consultations', hygiene_care: 'Soins d\'hygiène',
+    journal_notes: 'Journal de suivi', weight_tracking: 'Courbe de poids', nutrition_plan: 'Nutrition et repas', activities: 'Activités et balades',
+    health_checkup: 'Check-up santé', heat_cycles: 'Chaleurs et cycles', reproduction: 'Suivi de reproduction', pedigree_edit: 'Saisie du pedigree',
+    acym_lookup: 'Recherche ACYM (LOMAD)', breed_standard: 'Standard de race', calendar_agenda: 'Agenda et rappels', push_reminders: 'Rappels push',
+    email_reminders: 'Rappels par e-mail', sms_reminders: 'Rappels par SMS', monthly_summary: 'Résumé mensuel', vet_directory: 'Annuaire et urgences',
+    community_events: 'Événements', community_tips: 'Astuces et conseils', vet_share: 'Lien de partage vétérinaire', qr_identity: 'Carte d\'identité et QR code',
+    export_pdf_ics: 'Export PDF et .ics', cloud_sync: 'Synchronisation cloud', practice_portal: 'Portail vétérinaire'
   };
   var QUOTA_LABELS = {
     animals: 'le nombre d\'animaux', photos_count: 'le nombre de photos', photos_storage_mb: 'l\'espace photo',
@@ -8812,6 +8818,11 @@
     if (!x || !x.enabled) return QUOTA_LABELS[code] ? 0 : null;
     return x.quota != null ? x.quota : null;
   }
+  function labelFromConfig(code) {
+    var c = publicConfig();
+    var f = c && c.featureLabels && c.featureLabels[code];
+    return f && f.label ? f.label : null;
+  }
   function quotaReached(code, current) {
     var q = featureQuota(code);
     return q != null && current >= q;
@@ -8820,7 +8831,7 @@
   function showFeatureLocked(code, quota) {
     var isQuota = quota || (!FEATURE_LABELS[code] && QUOTA_LABELS[code]);
     var msg = isQuota ? 'Tu as atteint la limite de ta formule pour ' + (QUOTA_LABELS[code] || 'cette ressource') + '.'
-      : (FEATURE_LABELS[code] || 'Cette fonctionnalité') + ' : non inclus dans ta formule.';
+      : (FEATURE_LABELS[code] || labelFromConfig(code) || 'Cette fonctionnalité') + ' : non inclus dans ta formule.';
     var container = document.getElementById('toast-container');
     if (!container) return;
     var toast = document.createElement('div');
@@ -8918,8 +8929,40 @@
   }
 
   // Cadenas : les entrées d'une fonctionnalité hors formule sont marquées (le clic explique et propose les formules).
-  var GATED_MODALS = { addMeal: 'nutrition_activity_checkup', editMeal: 'nutrition_activity_checkup', editNutritionPlan: 'nutrition_activity_checkup', addActivity: 'nutrition_activity_checkup', editActivity: 'nutrition_activity_checkup', addMating: 'reproduction', editMating: 'reproduction' };
-  var GATED_TABS = { reproduction: 'reproduction', nutrition: 'nutrition_activity_checkup', checkup: 'nutrition_activity_checkup', activites: 'nutrition_activity_checkup' };
+  // Table unique « entrée de l'app → fonctionnalité de la formule » (mêmes codes que la matrice des droits du backoffice).
+  // Onglets de fiche, rubriques du menu, navigation, boutons d'ajout rapide, actions et fenêtres en dérivent.
+  var ROUTE_FEATURES = {
+    actes: 'health_records', vaccins: 'health_records', deworming: 'health_records', historique: 'health_records',
+    medications: 'medications', consultations: 'consultations', hygiene: 'hygiene_care', suivi: 'journal_notes', journal: 'journal_notes',
+    poids: 'weight_tracking', nutrition: 'nutrition_plan', activites: 'activities', checkup: 'health_checkup', chaleurs: 'heat_cycles',
+    reproduction: 'reproduction', alertes: 'calendar_agenda', calendrier: 'calendar_agenda', calendar: 'calendar_agenda',
+    annuaire: 'vet_directory', directory: 'vet_directory', events: 'community_events', tips: 'community_tips'
+  };
+  var FAB_FEATURES = { weight: 'weight_tracking', vaccin: 'health_records', deworming: 'health_records', consult: 'consultations', hygiene: 'hygiene_care', note: 'journal_notes', meal: 'nutrition_plan', activity: 'activities' };
+  var ACTION_FEATURES = { editPedigree: 'pedigree_edit', 'export-ics': 'export_pdf_ics', 'download-qr': 'qr_identity' };
+  var ID_FEATURES = { 'btn-export-ics': 'export_pdf_ics', 'btn-monthly-summary': 'monthly_summary', 'btn-ped-acym': 'acym_lookup', 'btn-ped-acym-open': 'acym_lookup', 'btn-add-tip': 'community_tips', 'btn-push-toggle': 'push_reminders', 'pet-tile-nutrition-go': 'nutrition_plan' };
+  var GATED_MODALS = {
+    addVaccin: 'health_records', editVaccin: 'health_records', addDeworming: 'health_records', editDeworming: 'health_records',
+    addWeight: 'weight_tracking', editWeight: 'weight_tracking', addHeight: 'weight_tracking', editHeight: 'weight_tracking',
+    addConsult: 'consultations', editConsult: 'consultations', addMedication: 'medications', editMedication: 'medications',
+    addNote: 'journal_notes', editNote: 'journal_notes', addHygiene: 'hygiene_care', editHygiene: 'hygiene_care',
+    addHeatCycle: 'heat_cycles', editHeatCycle: 'heat_cycles', addMating: 'reproduction', editMating: 'reproduction',
+    addMeal: 'nutrition_plan', editMeal: 'nutrition_plan', editNutritionPlan: 'nutrition_plan', addActivity: 'activities', editActivity: 'activities',
+    monthlySummary: 'monthly_summary', pushSettings: 'push_reminders', addTip: 'community_tips'
+  };
+  var GATED_TABS = ROUTE_FEATURES;
+  // Pose data-feature sur toutes les entrées concernées, y compris celles créées dynamiquement.
+  function tagFeatures() {
+    var tag = function (el, code) { if (code && el.getAttribute('data-feature') !== code) el.setAttribute('data-feature', code); };
+    document.querySelectorAll('.tab[data-tab]').forEach(function (el) { tag(el, ROUTE_FEATURES[el.getAttribute('data-tab')]); });
+    document.querySelectorAll('[data-care-route]').forEach(function (el) { tag(el, ROUTE_FEATURES[el.getAttribute('data-care-route')]); });
+    document.querySelectorAll('[data-nav]').forEach(function (el) { tag(el, ROUTE_FEATURES[el.getAttribute('data-nav')]); });
+    document.querySelectorAll('#care-mobile-route option[value]').forEach(function (el) { tag(el, ROUTE_FEATURES[el.value]); });
+    document.querySelectorAll('[data-fab]').forEach(function (el) { tag(el, FAB_FEATURES[el.getAttribute('data-fab')]); });
+    document.querySelectorAll('[data-stitch-action]').forEach(function (el) { tag(el, ACTION_FEATURES[el.getAttribute('data-stitch-action')]); });
+    Object.keys(ID_FEATURES).forEach(function (id) { var el = document.getElementById(id); if (el) tag(el, ID_FEATURES[id]); });
+    document.querySelectorAll('.identity-breed-link').forEach(function (el) { tag(el, 'breed_standard'); });
+  }
   var LOCK_SVG = '<svg class="feature-lock" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>';
   // Toute entrée marquée data-feature="code" (onglets, menus, boutons, cartes) suit la formule : verrouillée (cadenas,
   // le toucher ouvre les formules) ou masquée, selon le réglage `gated_ui` du backoffice (« lock » par défaut).
@@ -8930,6 +8973,7 @@
     return el;
   }
   function applyLocks() {
+    tagFeatures();
     var mode = gatedMode();
     document.querySelectorAll('[data-feature]').forEach(function (el) {
       var locked = !hasFeature(el.getAttribute('data-feature'));

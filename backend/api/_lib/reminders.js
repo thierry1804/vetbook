@@ -11,6 +11,7 @@ import webpush from 'web-push';
 import { withClient } from './db.js';
 import { sendMail } from './mailer.js';
 import { appUrl } from './mailer.js';
+import { computeEntitlements } from './entitlements.js';
 
 function daysDiff(dateStr) {
   const today = new Date();
@@ -221,7 +222,7 @@ async function sendMonthlySummaryPings(client, userPrefs) {
     const currentMonth = currentMonthKey.slice(0, 7);
     if (lastSentMonth === currentMonth) continue;
 
-    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`, userPrefs);
+    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`, userPrefs, 'monthly_summary');
     await client.query('update notification_prefs set last_monthly_summary_sent = $1 where pet_id = $2', [currentMonthKey, pet.pet_id]);
     sent++;
   }
@@ -241,15 +242,19 @@ async function sendDogEventsReminders(client, userPrefs) {
   const { rows: users } = await client.query('select id from users where dog_events_reminder = true');
   const body = monthEvents.map((e) => e.title).join(', ');
   for (const u of users) {
-    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body, userPrefs);
+    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body, userPrefs, 'community_events');
   }
   return users.length;
 }
 
 // Envoie sur les canaux choisis par l'utilisateur : push (sauf heures calmes) et/ou e-mail.
-async function sendToUser(client, userId, title, body, userPrefs) {
+async function sendToUser(client, userId, title, body, userPrefs, feature = null) {
   const prefs = (userPrefs && userPrefs.get(userId)) || notifPrefs(null);
-  if (prefs.email) {
+  // Droits de la formule (uniquement quand ils sont appliqués) : canal e-mail, canal push et, le cas échéant, la rubrique (résumé mensuel).
+  const ent = await computeEntitlements(client, userId);
+  const allowed = (code) => !ent.enforced || !!(ent.features[code] && ent.features[code].enabled);
+  if (feature && !allowed(feature)) return;
+  if (prefs.email && allowed('email_reminders')) {
     const { rows } = await client.query('select email from users where id = $1', [userId]);
     if (rows[0]) {
       await sendMail({
@@ -259,7 +264,7 @@ async function sendToUser(client, userId, title, body, userPrefs) {
       });
     }
   }
-  if (!prefs.push || inQuietHours(prefs.quietHours)) return;
+  if (!prefs.push || !allowed('push_reminders') || inQuietHours(prefs.quietHours)) return;
   const { rows: subs } = await client.query('select * from push_subscriptions where user_id = $1', [userId]);
 
   await Promise.all(subs.map(async (sub) => {

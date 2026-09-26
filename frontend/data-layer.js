@@ -72,7 +72,11 @@
     }
   };
 
+  // Formule sans synchronisation cloud : les données restent sur l'appareil, aucun envoi automatique.
+  function syncAllowed() { return !(window.applikaPlan && window.applikaPlan.hasFeature && !window.applikaPlan.hasFeature('cloud_sync')); }
+
   function scheduleAutoPush() {
+    if (!syncAllowed()) return;
     if (autoPushTimer) clearTimeout(autoPushTimer);
     emitSync('pending');
     autoPushTimer = setTimeout(function () {
@@ -235,7 +239,7 @@
 
   var autoPullDone = false;
   function maybeAutoPull() {
-    if (autoPullDone || !currentSession) return;
+    if (autoPullDone || !currentSession || !syncAllowed()) return;
     autoPullDone = true;
     var local = readLocal();
     var isEmpty = !local || !Array.isArray(local.animals) || local.animals.length === 0;

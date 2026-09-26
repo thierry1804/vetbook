@@ -4,7 +4,7 @@
 // tables de correspondance) est le même, simplement déplacé côté serveur.
 // user_id vient toujours du JWT vérifié, jamais du payload.
 import { withTransaction, withClient } from '../_lib/db.js';
-import { computeEntitlements } from '../_lib/entitlements.js';
+import { computeEntitlements, guardFeature } from '../_lib/entitlements.js';
 import { requireUser } from '../_lib/auth.js';
 import {
   ANIMAL_FIELDS, OWNER_FIELDS, PEDIGREE_FIELDS, NUTRITION_PLAN_FIELDS, NOTIF_FIELDS,
@@ -19,6 +19,7 @@ export default async function handler(req, res) {
 
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await guardFeature(res, user.userId, 'cloud_sync'))) return;
 
   const body = req.body || {};
   const state = body.state;

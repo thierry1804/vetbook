@@ -73,11 +73,13 @@ export const PlanMatrix = () => {
         <Table size="small">
           <TableHead><TableRow><TableCell>Fonctionnalité</TableCell><TableCell>Code</TableCell><TableCell align="center">Incluse</TableCell><TableCell>Quota (vide = illimité)</TableCell></TableRow></TableHead>
           <TableBody>{rows.map((r, i) => (
-            <TableRow key={r.feature_code}>
+            <React.Fragment key={r.feature_code}>
+            {i === 0 || rows[i - 1].category !== r.category ? <TableRow><TableCell colSpan={4} sx={{ bgcolor: 'action.hover', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>{r.category || 'Autres'}</TableCell></TableRow> : null}
+            <TableRow>
               <TableCell>{r.label}</TableCell><TableCell><code>{r.feature_code}</code></TableCell>
               <TableCell align="center"><Checkbox checked={!!r.enabled} disabled={!canWrite} onChange={(e) => set(i, { enabled: e.target.checked })} /></TableCell>
               <TableCell>{r.kind === 'quota' ? <TextField size="small" type="number" disabled={!canWrite || !r.enabled} value={r.quota ?? ''} onChange={(e) => set(i, { quota: e.target.value === '' ? null : Number(e.target.value) })} /> : '—'}</TableCell>
-            </TableRow>))}</TableBody>
+            </TableRow></React.Fragment>))}</TableBody>
         </Table>
       </CardContent></Card>
     </Box>

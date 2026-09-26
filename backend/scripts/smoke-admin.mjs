@@ -174,7 +174,7 @@ await t('configuration publique : pays, contact, formules mensuel/annuel et droi
   assert.equal(by.premium.monthly.priceMga, 5000); assert.equal(by.premium.yearly.priceMga, 50000); assert.equal(by.premium.trialDays, 30);
   assert.equal(by.eleveur.monthly.priceMga, 20000); assert.equal(by.eleveur.yearly.priceMga, 200000);
   assert.equal(by.gratuit.features.animals.quota, 1); assert.equal(by.gratuit.features.photos_count.quota, 20);
-  assert.equal(by.eleveur.features.reproduction.enabled, true); assert.ok(!by.premium.features.reproduction);
+  assert.equal(by.eleveur.features.reproduction.enabled, true); assert.ok(!by.premium.features.reproduction?.enabled);
   assert.ok(r.featureLabels.reproduction.label);
   // un changement de prix dans le backoffice se voit immédiatement
   await call('PUT', '/api/admin/r/plans/premium', { cookie: rootC, body: { price_mga: 6000 } });
@@ -321,6 +321,30 @@ await t('réglages : un texte simple (hide) est accepté, le JSON aussi', async 
   assert.equal((await call('GET', '/api/public-config', {})).status === 200 || true, true);
   assert.equal((await put('"lock"')).status, 200);
   assert.equal((await withClient((c) => c.query("select value from app_settings where key = 'gated_ui'"))).rows[0].value, 'lock');
+});
+
+await t('catalogue exhaustif : catégories, valeurs de départ par formule, migration de l\'ancien code', async () => {
+  const q = async (sql, params) => (await withClient((c) => c.query(sql, params))).rows;
+  const feats = await q('select code, category from features');
+  assert.ok(feats.length >= 32 && feats.every((f) => f.category), 'toutes les fonctionnalités ont une catégorie');
+  const free = Object.fromEntries((await q("select feature_code, enabled, quota from plan_features where plan_code = 'gratuit'")).map((r) => [r.feature_code, r]));
+  for (const code of ['nutrition_plan', 'weight_tracking', 'calendar_agenda', 'cloud_sync', 'vet_share']) assert.equal(free[code]?.enabled, true, code + ' ouvert en gratuit');
+  for (const code of ['reproduction', 'acym_lookup', 'email_reminders', 'monthly_summary', 'export_pdf_ics']) assert.equal(free[code]?.enabled, false, code + ' fermé en gratuit');
+  const prem = Object.fromEntries((await q("select feature_code, enabled from plan_features where plan_code = 'premium'")).map((r) => [r.feature_code, r.enabled]));
+  assert.equal(prem.acym_lookup, true); assert.equal(prem.reproduction, false);
+  // migration : un ancien code « nutrition_activity_checkup » fermé pour gratuit se propage aux trois nouveaux, puis disparaît
+  await q("insert into features (code, label) values ('nutrition_activity_checkup', 'Ancien') on conflict do nothing");
+  await q("insert into plan_features (plan_code, feature_code, enabled) values ('gratuit', 'nutrition_activity_checkup', false) on conflict do nothing");
+  await q("delete from plan_features where plan_code = 'gratuit' and feature_code in ('nutrition_plan', 'activities', 'health_checkup')");
+  await q("delete from app_settings where key = 'seed_features_v3'");
+  await seedAdminDefaults();
+  const after = Object.fromEntries((await q("select feature_code, enabled from plan_features where plan_code = 'gratuit'")).map((r) => [r.feature_code, r.enabled]));
+  assert.equal(after.nutrition_plan, false); assert.equal(after.activities, false); assert.equal(after.health_checkup, false);
+  assert.equal((await q("select 1 from features where code = 'nutrition_activity_checkup'")).length, 0);
+  // remise en état pour la suite
+  await q("update plan_features set enabled = true where plan_code = 'gratuit' and feature_code in ('nutrition_plan', 'activities', 'health_checkup')");
+  const m = await call('GET', '/api/admin/plans/gratuit/features', { cookie: rootC });
+  assert.equal(m.status, 200); assert.ok(m.json.length >= 32 && m.json[0].category);
 });
 
 server.close();

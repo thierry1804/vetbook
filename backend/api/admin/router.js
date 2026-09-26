@@ -269,8 +269,8 @@ export function buildAdminRouter() {
   router.get('/plans/:code/features', requireAdmin('billing.read'), async (req, res, next) => {
     try {
       res.json((await withClient((c) => c.query(
-        `select f.code as feature_code, f.label, f.kind, coalesce(pf.enabled,false) as enabled, pf.quota
-           from features f left join plan_features pf on pf.feature_code = f.code and pf.plan_code = $1 order by f.code`, [req.params.code]))).rows);
+        `select f.code as feature_code, f.label, f.kind, f.category, coalesce(pf.enabled,false) as enabled, pf.quota
+           from features f left join plan_features pf on pf.feature_code = f.code and pf.plan_code = $1 order by f.sort_order, f.code`, [req.params.code]))).rows);
     } catch (err) { next(err); }
   });
 

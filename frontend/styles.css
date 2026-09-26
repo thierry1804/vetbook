@@ -8539,3 +8539,4 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 .cms-body a, .community-tip-content a { text-decoration: underline; }
 
 .is-feature-hidden { display: none !important; }
+.acc-plan__cat { margin-top: 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .6; display: block !important; }

@@ -255,6 +255,8 @@ create table if not exists features (
   label text not null,
   kind text not null default 'boolean'
 );
+alter table features add column if not exists category text;
+alter table features add column if not exists sort_order integer not null default 0;
 
 create table if not exists plan_features (
   plan_code text not null references plans(code) on delete cascade,

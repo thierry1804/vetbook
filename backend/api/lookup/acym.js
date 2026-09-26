@@ -6,6 +6,7 @@
 // pas pour reconstituer l'arbre. Requête déclenchée à la main par un utilisateur
 // connecté (proxy nécessaire : le navigateur ne peut pas poster vers ce domaine).
 import { requireUser } from '../_lib/auth.js';
+import { guardFeature } from '../_lib/entitlements.js';
 
 const ACYM_URL = 'https://acymadagascar.org/recherche/';
 const MAX_RESULTS = 25;
@@ -48,6 +49,7 @@ export default async function handler(req, res) {
   }
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await guardFeature(res, user.userId, 'acym_lookup'))) return;
 
   const q = (k) => (typeof req.query[k] === 'string' ? req.query[k].trim().slice(0, 80) : '');
   const name = q('name'), owner = q('owner'), breeder = q('breeder'), race = q('race');

@@ -467,7 +467,7 @@
       '<div class="acc-card"><h3>Canaux</h3>' +
         toggleRow('nt-push', 'Notifications push', esc(permTxt) + (signedIn() ? '' : '. <b>Une connexion est nécessaire pour les recevoir application fermée.</b>'), n.push, ' data-pref="notifications.push" data-type="bool" data-feature="push_reminders"') +
         '<div class="acc-actions acc-actions--start"><button type="button" class="acc-btn" data-act="push-settings" data-feature="push_reminders">' + icon('bell', 18) + 'Autoriser ce navigateur</button></div>' +
-        toggleRow('nt-email', 'Rappels par e-mail', signedIn() ? 'Envoyés à ' + esc(acc.user.email) + (acc.user.emailVerified ? '' : ' (adresse non vérifiée)') : 'Nécessite un compte connecté', n.email, ' data-pref="notifications.email" data-type="bool"' + (signedIn() ? '' : ' disabled')) +
+        toggleRow('nt-email', 'Rappels par e-mail', signedIn() ? 'Envoyés à ' + esc(acc.user.email) + (acc.user.emailVerified ? '' : ' (adresse non vérifiée)') : 'Nécessite un compte connecté', n.email, ' data-pref="notifications.email" data-type="bool" data-feature="email_reminders"' + (signedIn() ? '' : ' disabled')) +
       '</div>' +
       '<div class="acc-card"><h3>Délais de rappel</h3><p class="acc-hint">Combien de temps à l’avance vous prévenir avant chaque échéance. Un soin en retard est toujours signalé.</p>' +
         leadSelect('vaccineLeadDays', 'Vaccins') + leadSelect('dewormingLeadDays', 'Déparasitage') + leadSelect('hygieneLeadDays', 'Hygiène et soins') + leadSelect('medicationLeadDays', 'Fin de traitement') + '</div>' +
@@ -580,7 +580,12 @@
         (cfg.enforced ? '' : '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>') +
         (usage ? '<ul class="acc-plan__list">' + usage + '</ul>' : '') + '</div>' +
       '<div class="acc-plans">' + cfg.plans.map(function (o) {
-        var feats = Object.keys(labels).map(function (k) { return featureLine(k, o.features && o.features[k], labels); }).join('');
+        var lastCat = null;
+        var feats = Object.keys(labels).map(function (k) {
+          var cat = labels[k].category || '', head = cat && cat !== lastCat ? '<li class="acc-plan__cat">' + esc(cat) + '</li>' : '';
+          lastCat = cat || lastCat;
+          return head + featureLine(k, o.features && o.features[k], labels);
+        }).join('');
         var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
         return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
           (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul></div>';
@@ -603,7 +608,7 @@
     if (!acc.user) return '<div class="acc-card"><h3>Le partage nécessite un compte</h3><p class="acc-hint">Créez un compte pour transmettre un carnet à votre vétérinaire par un lien sécurisé ou pour inviter un proche.</p><div class="acc-actions acc-actions--start"><button type="button" class="acc-btn acc-btn--primary" data-act="goto" data-panel="security">Se connecter ou créer un compte</button></div></div>';
     var pets = ctx() ? ctx().getState().animals : [];
     return '' +
-      '<div class="acc-card"><h3>Lien pour le vétérinaire</h3><p class="acc-hint">Un lien en lecture seule vers le carnet d’un animal : vaccins, traitements, consultations, poids. Il expire automatiquement et se révoque à tout moment.</p>' +
+      '<div class="acc-card" data-feature="vet_share"><h3>Lien pour le vétérinaire</h3><p class="acc-hint">Un lien en lecture seule vers le carnet d’un animal : vaccins, traitements, consultations, poids. Il expire automatiquement et se révoque à tout moment.</p>' +
         (pets.length ? '<form class="acc-form" data-form="share" novalidate><div class="acc-grid"><div class="acc-field"><label for="sh-pet">Animal</label><select id="sh-pet" name="sh-pet">' + pets.map(function (a) { return '<option value="' + a.id + '">' + esc(a.animal.name || 'Sans nom') + '</option>'; }).join('') + '</select></div>' +
           '<div class="acc-field"><label for="sh-days">Validité</label><select id="sh-days" name="sh-days">' + shareDayOptions() + '</select></div></div>' +
           field('sh-label', 'Destinataire (facultatif)', 'text', '', { placeholder: 'Dr Martin, clinique des Lilas…' }) +
@@ -658,7 +663,7 @@
       (consent && consent.acceptedAt ? '<p class="acc-line">' + icon('check', 16) + '<span>Accepté le ' + esc(window.applikaPrefs.formatDate(consent.acceptedAt)) + ' (version ' + esc(consent.version) + ')</span></p>' :
         '<div class="acc-banner acc-banner--warn">' + icon('info', 18) + '<span>Vous n’avez pas encore accepté les conditions d’utilisation et la politique de confidentialité.</span></div><div class="acc-actions acc-actions--start"><button type="button" class="acc-btn acc-btn--primary" data-act="accept-consent">J’accepte</button></div>');
     return '' +
-      '<div class="acc-card"><h3>Synchronisation</h3>' +
+      '<div class="acc-card" data-feature="cloud_sync"><h3>Synchronisation</h3>' +
         (acc.user ? '<p class="acc-line" id="acc-syncline">' + icon('refresh', 16) + '<span>' + (last ? 'Dernière sauvegarde ' + esc(ago(last)) : 'Sauvegarde automatique active') + '</span></p><p class="acc-hint">Chaque modification est envoyée au serveur dans les secondes qui suivent.</p><div class="acc-actions acc-actions--start"><button type="button" class="acc-btn acc-btn--primary" data-act="sync-now">Sauvegarder maintenant</button><button type="button" class="acc-btn" data-act="sync-restore">Restaurer depuis le serveur</button></div><p class="acc-status" id="sync-status" role="status" aria-live="polite" hidden></p>' :
           '<p class="acc-hint">Sauvegarde locale sur cet appareil uniquement. <button type="button" class="acc-link" data-act="goto" data-panel="security">Connectez-vous</button> pour retrouver vos carnets partout.</p>') + '</div>' +
       '<div class="acc-card"><h3>Espace utilisé</h3><ul class="acc-list acc-list--plain"><li class="acc-kv"><span>Sur cet appareil</span><b id="st-local">…</b></li>' + (acc.user ? '<li class="acc-kv"><span>Photos sur le serveur</span><b id="st-server">…</b></li>' : '') + '</ul></div>' +

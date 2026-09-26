@@ -5,6 +5,7 @@
 // faire automatiquement (voir db/schema.sql).
 import { withClient } from '../_lib/db.js';
 import { requireUser } from '../_lib/auth.js';
+import { guardFeature } from '../_lib/entitlements.js';
 import {
   ANIMAL_FIELDS, OWNER_FIELDS, NUTRITION_PLAN_FIELDS, NOTIF_FIELDS,
   MEAL_FIELDS, CHILD_ARRAYS, VET_CONTACT_FIELDS, fromRow,
@@ -19,6 +20,7 @@ export default async function handler(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
   const userId = user.userId;
+  if (!(await guardFeature(res, userId, 'cloud_sync'))) return;
 
   try {
     const result = await withClient(async (client) => {
