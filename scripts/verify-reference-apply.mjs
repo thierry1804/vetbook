@@ -24,14 +24,15 @@ const sb = {
 };
 vm.createContext(sb);
 vm.runInContext(`
-var REF_KEY='vetbook_ref', ENT_KEY='vetbook_entitlements';
+var REF_KEY='vetbook_ref', ENT_KEY='vetbook_entitlements', COUNTRY_KEY='vetbook_country', REF_CONTENT=null, EMBEDDED=null;
+var DEFAULT_VET_ENTRIES=[{ id: 1, name: 'Antipoison FR', phone: '3115', emergency: true }];
 var BREED_DB = { Canine: [{ name: 'Embarqué', weightMin: 1, weightMax: 2 }], 'Féline': [{ name: 'Chat embarqué', weightMin: 3, weightMax: 4 }] };
 var VACCINE_DB = { Canine: ['Vieux vaccin'] };
 var SYMPTOM_TYPES = ['Embarqué'], HYGIENE_TYPES = ['Bain'], MEAL_TYPES = ['Croquettes'], ACTIVITY_TYPES = ['Promenade'], MET_TABLE = { Promenade: 3 };
 var CHECKUP_QUESTIONS = [{ key: 'appetite', label: 'Appétit', icon: '<old-icon>', levels: ['Normal'] }];
 var DEFAULT_TIPS = [{ id: 1, title: 'Embarqué' }], DEFAULT_DOG_EVENTS = [{ id: 1, title: 'Embarqué' }];
 var LOF_PATTERN = /^old$/, LOMAD_PATTERN = /^old$/;
-${fn('readJson')}${fn('refCountryOk')}${fn('applyReference')}${fn('currentEntitlements')}${fn('hasFeature')}${fn('featureQuota')}
+${fn('readJson')}${fn('currentCountry')}${fn('refCountryOk')}${fn('referenceVetEntries')}${fn('applyReference')}${fn('currentEntitlements')}${fn('hasFeature')}${fn('featureQuota')}
 `, sb);
 const run = (code) => vm.runInContext(code, sb);
 let n = 0;
@@ -81,6 +82,23 @@ t('filtre par pays : vide = tout, sinon uniquement le pays choisi', () => {
   delete store.vetbook_country;
   run('applyReference(release)');
   assert.equal(run('DEFAULT_TIPS.length'), 2);
+});
+
+t('annuaire : urgences et cliniques par pays, repli FR seulement si pays vide/FR', () => {
+  delete store.vetbook_country;
+  run('REF_CONTENT = null');
+  assert.equal(run('referenceVetEntries().length'), 1);                       // repli embarqué (antipoison FR)
+  store.vetbook_country = 'MG';
+  assert.equal(run('referenceVetEntries().length'), 0);                       // jamais de 3115 pour Madagascar
+  run(`REF_CONTENT = { emergencyNumbers: [{ country: 'MG', label: 'Urgence MG', phone: '034 00', hours: '24h' }, { country: 'FR', label: 'Urgence FR', phone: '3115' }],
+    clinics: [{ id: 7, name: 'Clinique Tana', city: 'Antananarivo', country: 'MG', on_call: true, lat: '-18.9', lng: '47.5' }, { id: 8, name: 'Clinique Lyon', country: 'FR' }] }`);
+  const mg = JSON.parse(JSON.stringify(run('referenceVetEntries()')));
+  assert.deepEqual(mg.map((e) => e.name), ['Urgence MG', 'Clinique Tana']);
+  assert.equal(mg[1].emergency, true);                                        // clinique de garde = urgence
+  assert.equal(mg[1].lat, -18.9);
+  delete store.vetbook_country;
+  assert.equal(run('referenceVetEntries().length'), 4);                       // pays vide : tout
+  run('REF_CONTENT = null');
 });
 
 t('droits : ouverts par défaut, appliqués seulement si enforced', () => {

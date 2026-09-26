@@ -17,7 +17,7 @@
 | Journal des envois d'e-mail, suivi du cron de rappels | oui | `mailer.js` → `message_log`, `send-reminders.mjs` → `job_runs` |
 | Tableau de bord (indicateurs simples) | oui | `GET /api/admin/dashboard` |
 | Seed des référentiels codés en dur (races, vaccins, listes, check-up, conseils, événements, registres) | oui | `scripts/extract-reference.mjs`, `backend/db/seed/reference.json`, `backend/scripts/seed-reference.mjs` |
-| **Application d'administration (interface)** | **non** | à faire, voir §4 |
+| **Application d'administration (interface)** | oui | `admin/` (React-Admin + Vite, TypeScript), servie par Nginx sur l'hôte `vetbook-admin.boss-etech.net` ; WYSIWYG (Tiptap) pour conseils et pages ; matrice formules × droits ; versions à quatre yeux ; fiche utilisateur avec actions motivées |
 | Paiements automatiques, campagnes, SMS, portail vétérinaire, RGPD, stockage, intégrations | non | V2 / V3 de la spec |
 
 Créer le premier compte : `docker compose exec api node scripts/create-admin.mjs --email a@b.mg --name "Nom" [--role super_admin] [--reset-2fa]`. Le mot de passe vient de `ADMIN_PASSWORD`, sinon il est généré et affiché une seule fois avec l'URI `otpauth://` à scanner.
@@ -60,3 +60,11 @@ Vérification hors navigateur : `node scripts/verify-reference-apply.mjs` (4 gro
 - Qui fournit les contenus malgaches et qui valide les référentiels médicaux (référent vétérinaire).
 - Front d'administration : React-Admin ou vanilla.
 - Accès support aux carnets : à mentionner dans les CGU avant activation. Déclaration CMIL : statut à vérifier.
+
+## 6. Mise à jour du 26/09/2026 (après la première mise en production)
+
+- **Interface admin** : `admin/` (build dans `nginx/Dockerfile`, étape `admin-build`). Hôte dédié, CSP stricte, `/api/admin` bloqué sur l'hôte public de l'app. Route Cloudflare à créer : `cloudflared tunnel route dns alterra-dev vetbook-admin.boss-etech.net` + entrée d'ingress vers `localhost:3080`.
+- **Formules et prix** : Gratuit / Premium 5 000 Ar (50 000/an, essai 30 j) / Éleveur 20 000 / Cabinet 60 000 ; tout est modifiable (ressources Formules, Fonctionnalités, matrice des droits, réglages). `subscriptions_enforced` reste à `false` tant que la décision n'est pas prise.
+- **Front** : urgences et cliniques lues dans la version publiée, par pays (repli FR embarqué seulement si pays vide ou FR) ; écran de choix du pays (premier lancement + Mon compte > Affichage, enregistré dans les préférences serveur) ; panneau « Formule et abonnement » (prix issus de `/api/public-config`, contact et procédure de souscription paramétrables) ; cadenas et message « Voir les formules » ; quota d'animaux contrôlé côté client ; HTML du CMS rendu via une liste blanche ; pages `kind = help` affichées dans le Centre d'aide ; bandeau de maintenance.
+- **Serveur** : quotas appliqués (animaux, photos, stockage, foyer, durée des liens) dès que `subscriptions_enforced = true`.
+- Reste : SMS, paiements automatiques, campagnes, RGPD, portail vétérinaire (V2/V3 de la spec).

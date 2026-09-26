@@ -290,6 +290,9 @@
   function getReference(since) {
     return apiFetch('/api/ref' + (since ? '?since=' + encodeURIComponent(since) : ''), { method: 'GET' });
   }
+  function getPublicConfig() {
+    return apiFetch('/api/public-config', { method: 'GET' });
+  }
   function getEntitlements() {
     return apiFetch('/api/me/entitlements', { method: 'GET' });
   }
@@ -329,6 +332,7 @@
     getPhotoUrl: getPhotoUrl,
     getReference: getReference,
     getEntitlements: getEntitlements,
+    getPublicConfig: getPublicConfig,
     lookupAcym: lookupAcym,
     api: apiFetch,
     refresh: refreshSessionFromCookie,

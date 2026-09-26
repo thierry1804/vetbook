@@ -79,6 +79,12 @@ export async function seedAdminDefaults() {
       await c.query("insert into plan_features (plan_code, feature_code, enabled, quota) values ('gratuit', 'photos_count', true, 20) on conflict (plan_code, feature_code) do nothing");
       await c.query("insert into app_settings (key, value) values ('seed_photos_count_v1', 'true') on conflict (key) do nothing");
     }
+    // Migration unique : « nombre de photos » illimité (quota vide) pour les formules payantes.
+    if ((await c.query("select 1 from app_settings where key = 'seed_photos_count_v2'")).rowCount === 0) {
+      await c.query(`insert into plan_features (plan_code, feature_code, enabled, quota)
+                     select code, 'photos_count', true, null from plans where code <> 'gratuit' on conflict (plan_code, feature_code) do nothing`);
+      await c.query("insert into app_settings (key, value) values ('seed_photos_count_v2', 'true') on conflict (key) do nothing");
+    }
     for (const [key, value] of Object.entries(SETTINGS)) {
       await c.query('insert into app_settings (key, value) values ($1,$2) on conflict (key) do nothing', [key, JSON.stringify(value)]);
     }

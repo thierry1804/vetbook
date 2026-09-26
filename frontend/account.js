@@ -154,7 +154,9 @@
     refresh: '<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15"/>',
     paw: '<path d="M12 21c-1.5 0-3-.5-4-1.5C6 18 5.5 16 6 14c.5-2 2-4 4-5s4-1 5.5 0 2.5 3 2.5 5-.5 4-2 5.5S13.5 21 12 21z"/><circle cx="8" cy="7" r="1.5"/><circle cx="16" cy="7" r="1.5"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
-    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/>'
   };
   function icon(name, size) {
     var s = size || 20;
@@ -296,6 +298,7 @@
     { key: 'security', label: 'Compte et sécurité', icon: 'shield' },
     { key: 'notifications', label: 'Notifications', icon: 'bell' },
     { key: 'display', label: 'Affichage et accessibilité', icon: 'eye' },
+    { key: 'plan', label: 'Formule et abonnement', icon: 'star' },
     { key: 'sharing', label: 'Partage', icon: 'share' },
     { key: 'data', label: 'Données et confidentialité', icon: 'database' },
     { key: 'help', label: 'Aide', icon: 'help' }
@@ -309,6 +312,7 @@
     if (key === 'display') return (document.documentElement.getAttribute('data-theme') === 'dark' ? 'Sombre' : 'Clair') + ' · ' + { normal: 'texte normal', large: 'texte grand', xlarge: 'texte très grand' }[prefs.accessibility.textSize];
     if (key === 'sharing') return acc.user ? (acc.links ? acc.links.filter(function (l) { return l.active; }).length + ' lien(s) actif(s)' : 'Vétérinaire et foyer') : 'Connexion requise';
     if (key === 'data') { var ls = configured() && cs().lastSyncAt ? cs().lastSyncAt() : null; return acc.user ? (ls ? 'Synchronisé ' + ago(ls) : 'Sauvegarde serveur active') : 'Sauvegarde locale'; }
+    if (key === 'plan') { var e = window.applikaPlan && window.applikaPlan.entitlements(); return e && e.plan ? planName(e.plan) : 'Gratuit'; }
     if (key === 'help') return 'Centre d’aide, introduction';
     return id.email;
   }
@@ -338,7 +342,7 @@
   function renderPanel() {
     var body = $('#acc-panel-body', root);
     if (!body) return;
-    var fn = { profile: panelProfile, security: panelSecurity, notifications: panelNotifications, display: panelDisplay, sharing: panelSharing, data: panelData, help: panelHelp }[acc.panel];
+    var fn = { profile: panelProfile, security: panelSecurity, notifications: panelNotifications, display: panelDisplay, plan: panelPlan, sharing: panelSharing, data: panelData, help: panelHelp }[acc.panel];
     body.innerHTML = fn();
     bindMeters(body);
     afterPanel();
@@ -498,7 +502,91 @@
         '<p class="acc-hint">Les unités changent l’affichage. La saisie des pesées et des tailles se fait toujours en kg et en cm.</p></div>' +
       '<div class="acc-card"><h3>Au lancement</h3><div class="acc-field"><label for="dp">Animal affiché en premier</label><select id="dp" data-pref="defaultPetLocalId" data-type="pet"><option value=""' + (prefs.defaultPetLocalId == null ? ' selected' : '') + '>Le dernier consulté</option>' +
         pets.map(function (a) { return '<option value="' + a.id + '"' + (Number(prefs.defaultPetLocalId) === a.id ? ' selected' : '') + '>' + esc(a.animal.name || 'Sans nom') + '</option>'; }).join('') + '</select></div>' +
+        countryField() +
         '<div class="acc-field"><label for="lang">Langue</label><select id="lang" disabled><option>Français</option></select><small class="acc-hint">L’application est disponible en français uniquement pour l’instant.</small></div></div>';
+  }
+
+  // ——— Pays et formule ——————————————————————————————————————
+  function plans() { return window.applikaPlan || null; }
+  function countries() { var c = plans() && plans().config(); return (c && c.countries) || []; }
+  function countryLabel(code) { var f = countries().filter(function (c) { return c.code === code; })[0]; return f ? f.label : code || ''; }
+  function countryField() {
+    var list = countries();
+    if (list.length < 2) return '';
+    var cur = plans().country();
+    return '<div class="acc-field"><label for="ctry">Pays</label><select id="ctry" data-act-change="country"><option value="">Tous les pays</option>' +
+      list.map(function (c) { return '<option value="' + esc(c.code) + '"' + (c.code === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') +
+      '</select><small class="acc-hint">Détermine les numéros d’urgence, cliniques, conseils et événements affichés.</small></div>';
+  }
+  function chooseCountry(o) {
+    var list = countries();
+    if (list.length < 2) return;
+    var cur = plans().country();
+    openDialog(
+      '<h2 id="accd-title">' + (o && o.first ? 'Où vis-tu ?' : 'Choisir le pays') + '</h2>' +
+      '<p class="acc-hint">Nous affichons les numéros d’urgence, cliniques, conseils et événements de ton pays. Tu pourras changer dans Mon compte → Affichage.</p>' +
+      '<div class="acc-list">' + list.map(function (c) {
+        return '<button type="button" class="acc-row acc-row--btn' + (c.code === cur ? ' is-on' : '') + '" data-pick-country="' + esc(c.code) + '"><span class="acc-row__icon">' + icon('globe', 20) + '</span><span class="acc-row__text"><b>' + esc(c.label) + '</b></span></button>';
+      }).join('') + '</div>' +
+      '<div class="acc-actions"><button type="button" class="acc-btn" data-dlg-close>' + (o && o.first ? 'Plus tard' : 'Annuler') + '</button></div>'
+    ).addEventListener('click', function (e) {
+      var b = e.target.closest('[data-pick-country]'); if (!b) return;
+      applyCountry(b.getAttribute('data-pick-country'));
+      closeDialog();
+    });
+    if (o && o.first) { try { localStorage.setItem('vetbook_country_asked', '1'); } catch (e) { /* rien */ } }
+  }
+  function applyCountry(code) {
+    plans().setCountry(code);
+    setPrefs({ country: code || null });
+    refreshNavHints();
+    if (acc.panel === 'display') renderPanel();
+    toast(code ? 'Pays : ' + countryLabel(code) : 'Tous les pays affichés', 'success');
+  }
+
+  function fmtMga(n) { return Number(n || 0).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' Ar'; }
+  function planBase(code) { return String(code || 'gratuit').replace(/_annuel$/, ''); }
+  function planName(code) {
+    var base = planBase(code), c = plans() && plans().config();
+    var o = c && c.plans.filter(function (p) { return p.code === base; })[0];
+    return o ? o.name : ({ gratuit: 'Gratuit', premium: 'Premium', eleveur: 'Éleveur', cabinet: 'Cabinet' }[base] || base);
+  }
+  function featureLine(code, f, labels) {
+    var l = (labels[code] && labels[code].label) || code;
+    if (!f || !f.enabled) return '<li class="acc-plan__off">' + icon('lock', 14) + '<span>' + esc(l) + '</span></li>';
+    var q = f.quota != null ? ' <b>' + esc(f.quota) + '</b>' : (labels[code] && labels[code].kind === 'quota' ? ' <b>illimité</b>' : '');
+    return '<li>' + icon('check', 14) + '<span>' + esc(l) + q + '</span></li>';
+  }
+  function panelPlan() {
+    var P = plans(), cfg = P && P.config();
+    if (!cfg || !cfg.plans || !cfg.plans.length) return '<div class="acc-card"><h3>Formules</h3><p class="acc-hint">Les formules ne sont pas disponibles pour le moment. Vérifie ta connexion puis réessaie.</p><div class="acc-actions"><button type="button" class="acc-btn" data-act="plan-refresh">' + icon('refresh', 18) + 'Actualiser</button></div></div>';
+    var ent = P.entitlements(), cur = ent && ent.plan ? planBase(ent.plan) : 'gratuit', labels = cfg.featureLabels || {};
+    var counts = P.counts();
+    var usage = '';
+    if (ent && ent.enforced && ent.features) {
+      usage = Object.keys(ent.features).filter(function (k) { return ent.features[k].enabled && ent.features[k].quota != null && labels[k] && labels[k].kind === 'quota'; }).map(function (k) {
+        var used = k === 'animals' ? counts.animals : null;
+        return '<li>' + icon('check', 14) + '<span>' + esc(labels[k].label) + ' : <b>' + (used != null ? used + ' / ' : 'jusqu’à ') + esc(ent.features[k].quota) + '</b></span></li>';
+      }).join('');
+    }
+    var contact = cfg.contact || {};
+    var contactLinks = [
+      contact.whatsapp ? '<a class="acc-btn" href="https://wa.me/' + esc(String(contact.whatsapp).replace(/[^0-9]/g, '')) + '" target="_blank" rel="noopener noreferrer">WhatsApp</a>' : '',
+      contact.phone ? '<a class="acc-btn" href="tel:' + esc(contact.phone) + '">' + esc(contact.phone) + '</a>' : '',
+      contact.email ? '<a class="acc-btn" href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + '</a>' : ''
+    ].join('');
+    return '' +
+      '<div class="acc-card"><h3>Ta formule</h3><p><b>' + esc(planName(cur)) + '</b>' + (ent && ent.status === 'essai' ? ' <span class="acc-chip">Essai</span>' : '') + '</p>' +
+        (cfg.enforced ? '' : '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>') +
+        (usage ? '<ul class="acc-plan__list">' + usage + '</ul>' : '') + '</div>' +
+      '<div class="acc-plans">' + cfg.plans.map(function (o) {
+        var feats = Object.keys(labels).map(function (k) { return featureLine(k, o.features && o.features[k], labels); }).join('');
+        var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
+        return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
+          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul></div>';
+      }).join('') + '</div>' +
+      '<div class="acc-card"><h3>Souscrire</h3><p class="acc-hint">' + esc(contact.subscribe_instructions || 'Contacte-nous pour souscrire.') + '</p>' +
+        (contactLinks ? '<div class="acc-actions">' + contactLinks + '</div>' : '') + '</div>';
   }
 
   // ——— Panneau : partage ————————————————————————————————————
@@ -584,6 +672,7 @@
     if (acc.panel === 'security') { $$('.acc-form[data-form="register"], .acc-form[data-form="login"]', root); mountGoogle(); if (acc.user && !acc.sessions) loadSessions(); }
     if (acc.panel === 'sharing' && acc.user) { if (!acc.links) loadLinks(); if (!acc.household) loadHousehold(); if (acc.justCreatedLink) renderQr(); }
     if (acc.panel === 'data') loadStorage();
+    if (acc.panel === 'plan' && plans() && !acc.planRefreshed) { acc.planRefreshed = true; plans().refresh(); }
   }
   function setHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
 
@@ -728,6 +817,7 @@
     open: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
     goto: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
     back: function () { acc.mobileOpen = false; render(); scrollTop(); },
+    'plan-refresh': function () { if (plans()) plans().refresh(); },
     'open-pet': function (t) { var c = ctx(); if (c) c.openPet(Number(t.dataset.pet)); },
     'add-pet': function () { var c = ctx(); if (c) c.openModal('addAnimal'); },
     'avatar-pick': function () { var i = document.getElementById('acc-avatar-input'); if (i) i.click(); },
@@ -976,6 +1066,7 @@
     view.addEventListener('change', function (e) {
       var t = e.target;
       if (t.id === 'acc-avatar-input') { onAvatarChosen(t.files && t.files[0]); t.value = ''; return; }
+      if (t.dataset.actChange === 'country') { applyCountry(t.value); return; }
       if (t.dataset.actChange === 'events-toggle') { var c = ctx(); if (c) c.toggleDogEvents(t.checked); return; }
       var path = t.dataset.pref; if (!path) return;
       var v = t.type === 'checkbox' ? t.checked : t.value;
@@ -990,6 +1081,7 @@
 
   function show() {
     bind();
+    acc.planRefreshed = false;
     // Ouverture depuis un lien e-mail ou une section demandée : on garde l'état ; sinon la liste (mobile) / le profil (bureau).
     render();
     if (configured()) {
@@ -1009,7 +1101,8 @@
     updateNavAvatar();
   }
 
-  window.applikaAccount = { show: show, render: render, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, init: init, updateNavAvatar: updateNavAvatar };
+  window.applikaAccount = { chooseCountry: chooseCountry, refreshPlan: function () { if (acc.panel === 'plan') renderPanel(); },
+    show: show, render: render, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, init: init, updateNavAvatar: updateNavAvatar };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(init, 0); });
   else setTimeout(init, 0);

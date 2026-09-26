@@ -18,3 +18,5 @@ design
 supabase
 infra
 README.md
+admin/node_modules
+admin/dist

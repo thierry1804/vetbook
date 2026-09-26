@@ -29,6 +29,7 @@ export function sanitizePreferences(input, current) {
     units: { weight: oneOf(u.weight, ['kg', 'lb'], 'kg'), height: oneOf(u.height, ['cm', 'in'], 'cm') },
     dateFormat: oneOf(src.dateFormat !== undefined ? src.dateFormat : base.dateFormat, ['fr-short', 'fr-long', 'fr-numeric', 'iso'], 'fr-short'),
     weekStart: oneOf(src.weekStart !== undefined ? src.weekStart : base.weekStart, ['mon', 'sun'], 'mon'),
+    country: (() => { const v = src.country !== undefined ? src.country : base.country; return typeof v === 'string' && /^[A-Za-z]{2}$/.test(v) ? v.toUpperCase() : null; })(),
     defaultPetLocalId: src.defaultPetLocalId !== undefined
       ? (Number.isFinite(Number(src.defaultPetLocalId)) && src.defaultPetLocalId !== null ? Number(src.defaultPetLocalId) : null)
       : (base.defaultPetLocalId ?? null),

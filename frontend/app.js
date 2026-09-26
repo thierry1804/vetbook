@@ -3678,6 +3678,7 @@
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
     if (name === 'editPedigree' && !hasFeature('pedigree_edit')) { showFeatureLocked('pedigree_edit'); return; }
+    if (name === 'addAnimal' && state.animals.length && quotaReached('animals', state.animals.length)) { showFeatureLocked('animals', true); return; }
     var data = getCurrent();
     if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner' && name !== 'language' && name !== 'backup' && name !== 'pushSettings') return;
 
@@ -6236,16 +6237,54 @@
     { id: 2, name: 'Centre Antipoison VetAgro Sup', clinic: 'VetAgro Sup', phone: '04 78 87 10 40', email: '', address: 'Lyon', hours: '24h/24', emergency: true, favorite: false, notes: 'Centre antipoison vétérinaire', lat: 45.7640, lng: 4.8357 }
   ];
 
+  // Contacts d'urgence et cliniques du référentiel publié (backoffice) : lecture seule, filtrés par pays,
+  // ajoutés aux contacts de l'utilisateur sans jamais être enregistrés avec eux (seuls les favoris le sont).
+  // Sans référentiel, repli sur les centres antipoison français embarqués (pays vide ou FR uniquement).
+  function referenceVetEntries() {
+    var c = REF_CONTENT || {};
+    var out = [];
+    (c.emergencyNumbers || []).filter(refCountryOk).forEach(function (n) {
+      out.push({ _ref: true, _key: 'n|' + n.country + '|' + n.label + '|' + n.phone, name: n.label, clinic: '', phone: n.phone, email: '', address: '', hours: n.hours || '', emergency: true, notes: '' });
+    });
+    (c.clinics || []).filter(refCountryOk).forEach(function (k) {
+      out.push({ _ref: true, _key: 'c|' + k.id, name: k.name, clinic: '', phone: k.phone || '', email: k.email || '',
+        address: [k.address, k.city].filter(Boolean).join(', '), hours: k.hours || '', emergency: !!(k.emergency || k.on_call),
+        notes: k.on_call ? 'Clinique de garde' : '', lat: k.lat != null ? Number(k.lat) : null, lng: k.lng != null ? Number(k.lng) : null });
+    });
+    var ctry = currentCountry();
+    if (!out.some(function (e) { return e.emergency; }) && (!ctry || ctry === 'FR')) {
+      DEFAULT_VET_ENTRIES.forEach(function (d) { out.push(Object.assign({}, d, { _ref: true, _key: 'd|' + d.id })); });
+    }
+    return out;
+  }
+
   function loadVetDirectory() {
+    var dir = null;
     try {
       var raw = localStorage.getItem(VET_DIRECTORY_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) dir = JSON.parse(raw);
     } catch (e) {}
-    return { entries: DEFAULT_VET_ENTRIES.slice(), nextId: 10 };
+    if (!dir) dir = { entries: [], nextId: 10 };
+    var favs = dir.refFavs || {};
+    // Anciennes installations : les 2 centres antipoison français étaient enregistrés comme contacts modifiables.
+    var legacy = dir.entries.filter(function (e) { return (e.id === 1 || e.id === 2) && e.notes === 'Centre antipoison vétérinaire'; });
+    legacy.forEach(function (e) { if (e.favorite) favs['d|' + e.id] = true; });
+    dir.entries = dir.entries.filter(function (e) { return legacy.indexOf(e) === -1; });
+    referenceVetEntries().forEach(function (e, i) {
+      e.id = -(i + 1); e.favorite = !!favs[e._key];
+      dir.entries.push(e);
+    });
+    return dir;
   }
 
   function saveVetDirectory(dir) {
-    try { localStorage.setItem(VET_DIRECTORY_KEY, JSON.stringify(dir)); } catch (e) {}
+    var refFavs = {};
+    dir.entries.forEach(function (e) { if (e._ref && e.favorite) refFavs[e._key] = true; });
+    try {
+      localStorage.setItem(VET_DIRECTORY_KEY, JSON.stringify({
+        entries: dir.entries.filter(function (e) { return !e._ref; }), nextId: dir.nextId, refFavs: refFavs
+      }));
+    } catch (e) {}
   }
 
   function renderVetDirectory() {
@@ -6421,8 +6460,8 @@
       '</div>' +
       '<div class="vet-card__actions">' +
         (e.phone ? '<a href="tel:' + escapeHtml(e.phone) + '" class="vet-card__btn vet-card__btn--primary vet-card__btn--icon" aria-label="Appeler" title="Appeler">' + ico('phone', 16) + '</a>' : '') +
-        iconOnlyBtn('vet-card__btn vet-card__btn--outline vet-card__btn--icon', 'edit', 'Modifier', 'data-vet-edit="' + e.id + '"') +
-        iconOnlyBtn('vet-card__btn vet-card__btn--ghost vet-card__btn--icon', 'trash', 'Supprimer', 'data-vet-delete="' + e.id + '"') +
+        (e._ref ? '' : iconOnlyBtn('vet-card__btn vet-card__btn--outline vet-card__btn--icon', 'edit', 'Modifier', 'data-vet-edit="' + e.id + '"') +
+        iconOnlyBtn('vet-card__btn vet-card__btn--ghost vet-card__btn--icon', 'trash', 'Supprimer', 'data-vet-delete="' + e.id + '"')) +
       '</div></div>';
   }
 
@@ -6578,7 +6617,7 @@
     }
 
     var tipQuery = (document.getElementById('tips-search')?.value || '').toLocaleLowerCase('fr');
-    allTips = allTips.filter(function (tip) { return (tip.title + ' ' + tip.content).toLocaleLowerCase('fr').includes(tipQuery); });
+    allTips = allTips.filter(function (tip) { return (tip.title + ' ' + htmlToText(tip.content)).toLocaleLowerCase('fr').includes(tipQuery); });
     var categoryLabels = { sante: 'Santé', alimentation: 'Alimentation', education: 'Éducation', hygiene: 'Hygiène', comportement: 'Comportement' };
 
     var html = '<div class="community-tips-grid">';
@@ -6592,7 +6631,7 @@
           '<span class="community-tip-author">' + escapeHtml(tip.author || 'Utilisateur') + '</span>' +
         '</div>' +
         '<div class="community-tip-title">' + escapeHtml(tip.title) + '</div>' +
-        '<div class="community-tip-content">' + escapeHtml(tip.content) + '</div>' +
+        '<div class="community-tip-content">' + richContent(tip.content) + '</div>' +
         (tip.userAdded ? iconOnlyBtn('btn-delete community-tip-delete', 'trash', 'Supprimer', 'data-tip-id="' + tip.id + '"') : '') +
         '</div>';
     });
@@ -8548,6 +8587,7 @@
   }
 
   async function exportUpcomingRemindersIcs() {
+    if (!hasFeature('export_pdf_ics')) { showFeatureLocked('export_pdf_ics'); return; }
     var wrap = getCurrent();
     if (!wrap) throw new Error('Aucun animal');
 
@@ -8640,9 +8680,18 @@
   // en mémoire, jamais l'inverse. Aucune version publiée = aucun changement.
   var REF_KEY = 'vetbook_ref';
   var ENT_KEY = 'vetbook_entitlements';
+  var PUB_KEY = 'vetbook_public_config';
+  var COUNTRY_KEY = 'vetbook_country';
+  var REF_CONTENT = null;
+  var EMBEDDED = null;
   var FEATURE_LABELS = {
     reproduction: 'Le suivi de reproduction', pedigree_edit: 'La saisie du pedigree et la recherche ACYM',
-    push_reminders: 'Les rappels push', export_pdf_ics: 'L\'export PDF et .ics', sms_reminders: 'Les rappels par SMS'
+    push_reminders: 'Les rappels push', export_pdf_ics: 'L\'export PDF et .ics', sms_reminders: 'Les rappels par SMS',
+    practice_portal: 'Le portail vétérinaire', nutrition_activity_checkup: 'La nutrition, les activités et le check-up'
+  };
+  var QUOTA_LABELS = {
+    animals: 'le nombre d\'animaux', photos_count: 'le nombre de photos', photos_storage_mb: 'l\'espace photo',
+    household_members: 'le nombre de membres du foyer', share_link_days: 'la durée des liens de partage'
   };
 
   function readJson(key) {
@@ -8650,15 +8699,19 @@
   }
 
   // Pays choisi par l'utilisateur (vide = tout afficher) : les entrées d'un autre pays sont masquées.
+  function currentCountry() {
+    try { return localStorage.getItem(COUNTRY_KEY) || ''; } catch (e) { return ''; }
+  }
   function refCountryOk(item) {
-    var ctry = '';
-    try { ctry = localStorage.getItem('vetbook_country') || ''; } catch (e) { /* stockage indisponible */ }
+    var ctry = currentCountry();
     return !ctry || !item.country || item.country === 'ALL' || item.country === ctry;
   }
 
   function applyReference(release) {
     if (!release || !release.content) return false;
     var c = release.content;
+    REF_CONTENT = c;
+    if (!EMBEDDED) EMBEDDED = { tips: DEFAULT_TIPS, events: DEFAULT_DOG_EVENTS };
     var filled = function (a) { return Array.isArray(a) && a.length > 0; };
     var labels = function (a) { return a.map(function (x) { return typeof x === 'string' ? x : x.label; }); };
     try {
@@ -8686,11 +8739,11 @@
       }
       if (filled(c.tips)) {
         var tips = c.tips.filter(refCountryOk);
-        if (tips.length) DEFAULT_TIPS = tips.map(function (t, i) { return { id: t.id || i + 1, title: t.title, content: t.content || t.body, category: t.category, author: t.author || 'App\'lika' }; });
+        DEFAULT_TIPS = tips.length ? tips.map(function (t, i) { return { id: t.id || i + 1, title: t.title, content: t.content || t.body, category: t.category, author: t.author || 'App\'lika' }; }) : EMBEDDED.tips;
       }
       if (filled(c.events)) {
         var evs = c.events.filter(refCountryOk);
-        if (evs.length) DEFAULT_DOG_EVENTS = evs.map(function (e, i) { return { id: e.id || i + 1, title: e.title, month: e.month, day: e.day, description: e.description || '', recurring: e.recurring !== false }; });
+        DEFAULT_DOG_EVENTS = evs.length ? evs.map(function (e, i) { return { id: e.id || i + 1, title: e.title, month: e.month, day: e.day, description: e.description || '', recurring: e.recurring !== false }; }) : EMBEDDED.events;
       }
       var R = c.registries || {};
       [['LOF', function (re) { LOF_PATTERN = re; }], ['LOMAD', function (re) { LOMAD_PATTERN = re; }]].forEach(function (pair) {
@@ -8710,7 +8763,7 @@
     window.cloudSync.getReference(cached && cached.version).then(function (res) {
       if (!res || res.unchanged || !res.content || !(res.version > 0)) return;
       try { localStorage.setItem(REF_KEY, JSON.stringify({ version: res.version, publishedAt: res.publishedAt, content: res.content })); } catch (e) { /* quota */ }
-      if (applyReference(res)) { try { refreshAll(); } catch (e) { /* vue non prête */ } }
+      if (applyReference(res)) { try { refreshAll(); } catch (e) { /* vue non prête */ } renderHelpPages(); }
     }).catch(function () { /* hors ligne ou backoffice absent : repli sur le cache / les constantes */ });
   }
 
@@ -8728,14 +8781,132 @@
     var f = e && e.enforced && e.features && e.features[code];
     return f && f.quota != null ? f.quota : null;
   }
-  function showFeatureLocked(code) {
-    showToast((FEATURE_LABELS[code] || 'Cette fonctionnalité') + ' n\'est pas incluse dans ta formule.', 'info', 5000);
+  function quotaReached(code, current) {
+    var q = featureQuota(code);
+    return q != null && current >= q;
+  }
+  // Message + accès direct aux formules (Mon compte). `quota` : limite atteinte plutôt que fonctionnalité absente.
+  function showFeatureLocked(code, quota) {
+    var isQuota = quota || (!FEATURE_LABELS[code] && QUOTA_LABELS[code]);
+    var msg = isQuota ? 'Tu as atteint la limite de ta formule pour ' + (QUOTA_LABELS[code] || 'cette ressource') + '.'
+      : (FEATURE_LABELS[code] || 'Cette fonctionnalité') + ' n\'est pas incluse dans ta formule.';
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-info toast-undo';
+    var text = document.createElement('span'); text.textContent = msg;
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'toast-undo-btn'; btn.textContent = 'Voir les formules';
+    btn.addEventListener('click', function () { toast.remove(); openPlans(); });
+    toast.appendChild(text); toast.appendChild(btn);
+    container.appendChild(toast);
+    setTimeout(function () { toast.classList.add('toast-out'); setTimeout(function () { toast.remove(); }, 300); }, 7000);
+    trackLockedView(code);
+  }
+  // KPI « fonctionnalités bloquées consultées » : simple compteur local, remonté avec les préférences.
+  function trackLockedView(code) {
+    try {
+      var k = readJson('vetbook_locked_views') || {};
+      k[code] = (k[code] || 0) + 1;
+      localStorage.setItem('vetbook_locked_views', JSON.stringify(k));
+    } catch (e) { /* stockage indisponible */ }
+  }
+  function openPlans() {
+    if (!window.applikaAccount) return;
+    window.applikaAccount.openSection('plan');
+    showUserProfile();
+  }
+
+  // Contenu du CMS (WYSIWYG) : HTML assaini côté serveur ET ici (liste blanche) avant insertion ;
+  // les anciens contenus en texte brut restent affichés tels quels.
+  var RICH_TAGS = { P: 1, BR: 1, STRONG: 1, B: 1, EM: 1, I: 1, U: 1, S: 1, UL: 1, OL: 1, LI: 1, H1: 1, H2: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, CODE: 1, PRE: 1, HR: 1, A: 1 };
+  function sanitizeRich(html) {
+    var doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+    function walk(node, out) {
+      Array.prototype.forEach.call(node.childNodes, function (n) {
+        if (n.nodeType === 3) { out.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName;
+        if (!RICH_TAGS[tag]) { walk(n, out); return; }
+        var el = document.createElement(tag.toLowerCase());
+        if (tag === 'A') {
+          var href = (n.getAttribute('href') || '').trim();
+          if (/^(https?:|mailto:|tel:)/i.test(href)) { el.setAttribute('href', href); el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+        }
+        walk(n, el);
+        out.appendChild(el);
+      });
+      return out;
+    }
+    var box = document.createElement('div');
+    walk(doc.body, box);
+    return box.innerHTML;
+  }
+  function richContent(v) {
+    var str = String(v == null ? '' : v);
+    if (/<[a-z][\s\S]*>/i.test(str)) return sanitizeRich(str);
+    return escapeHtml(str).replace(/\n/g, '<br>');
+  }
+  function htmlToText(v) {
+    var str = String(v == null ? '' : v);
+    if (!/<[a-z][\s\S]*>/i.test(str)) return str;
+    var doc = new DOMParser().parseFromString(str, 'text/html');
+    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Configuration publique (pays ouverts, contact, formules et prix, maintenance) : cache pour le hors ligne.
+  function publicConfig() { return readJson(PUB_KEY); }
+  function refreshPublicConfig() {
+    if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getPublicConfig) return Promise.resolve();
+    return window.cloudSync.getPublicConfig().then(function (cfg) {
+      if (!cfg || !cfg.plans) return;
+      try { localStorage.setItem(PUB_KEY, JSON.stringify(cfg)); } catch (e) { /* quota */ }
+      showMaintenanceBanner(cfg.maintenance);
+      maybePromptCountry(cfg);
+      applyLocks();
+    }).catch(function () { /* hors ligne : configuration en cache */ });
+  }
+  function showMaintenanceBanner(m) {
+    var el = document.getElementById('maintenance-banner');
+    if (!m || !m.enabled) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'maintenance-banner'; el.setAttribute('role', 'status'); document.body.insertBefore(el, document.body.firstChild); }
+    el.textContent = m.message || 'Maintenance en cours : certaines fonctions peuvent être indisponibles.';
+  }
+
+  function setCountry(code) {
+    try { if (code) localStorage.setItem(COUNTRY_KEY, code); else localStorage.removeItem(COUNTRY_KEY); localStorage.setItem('vetbook_country_asked', '1'); } catch (e) { /* stockage indisponible */ }
+    applyReference(readJson(REF_KEY));
+    try { refreshAll(); } catch (e) { /* vue non prête */ }
+    if (state.viewMode === 'directory') renderVetDirectory();
+  }
+  // Premier lancement (ou pays jamais choisi) : écran de choix quand plusieurs pays sont ouverts.
+  function maybePromptCountry(cfg) {
+    try { if (localStorage.getItem('vetbook_country_asked') || currentCountry()) return; } catch (e) { return; }
+    if (!cfg.countries || cfg.countries.length < 2 || !window.applikaAccount || !window.applikaAccount.chooseCountry) return;
+    if (!localStorage.getItem(ONBOARDING_KEY) && !state.animals.length) return; // l'introduction passe d'abord
+    window.applikaAccount.chooseCountry({ first: true });
+  }
+
+  // Cadenas : les entrées d'une fonctionnalité hors formule sont marquées (le clic explique et propose les formules).
+  var LOCK_TARGETS = [['reproduction', '.tab[data-tab="reproduction"]'], ['export_pdf_ics', '#btn-export-ics'], ['pedigree_edit', '[data-stitch-action="editPedigree"]']];
+  var LOCK_SVG = '<svg class="feature-lock" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>';
+  function applyLocks() {
+    LOCK_TARGETS.forEach(function (t) {
+      var locked = !hasFeature(t[0]);
+      document.querySelectorAll(t[1]).forEach(function (el) {
+        el.classList.toggle('is-feature-locked', locked);
+        var ic = el.querySelector(':scope > .feature-lock');
+        if (locked && !ic) el.insertAdjacentHTML('beforeend', LOCK_SVG);
+        if (!locked && ic) ic.remove();
+      });
+    });
   }
   function refreshEntitlements() {
     if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getEntitlements) return;
     window.cloudSync.getEntitlements().then(function (e) {
       if (!e || !e.features) return;
       try { localStorage.setItem(ENT_KEY, JSON.stringify(e)); } catch (err) { /* quota */ }
+      applyLocks();
+      if (window.applikaAccount && window.applikaAccount.refreshPlan) window.applikaAccount.refreshPlan();
     }).catch(function () { /* garde les droits en cache */ });
   }
 
@@ -8793,10 +8964,18 @@
         if (event === 'SIGNED_OUT') { try { localStorage.removeItem(ENT_KEY); } catch (e) { /* rien */ } var sb = document.getElementById('suspended-banner'); if (sb) sb.remove(); }
       });
       refreshReference();
+      refreshPublicConfig();
       window.cloudSync.getSession().then(function (sess) { if (sess) refreshEntitlements(); });
     }
+    applyLocks();
     window.addEventListener('applika:account-suspended', showSuspendedBanner);
     window.addEventListener('applika:feature-locked', function (e) { showFeatureLocked(e.detail && e.detail.feature); });
+    window.applikaPlan = {
+      config: publicConfig, entitlements: currentEntitlements, hasFeature: hasFeature, featureQuota: featureQuota,
+      country: currentCountry, setCountry: setCountry, refresh: function () { refreshEntitlements(); return refreshPublicConfig(); },
+      counts: function () { return { animals: state.animals.length }; }, richContent: richContent, lockedViews: function () { return readJson('vetbook_locked_views') || {}; }
+    };
+    renderHelpPages();
 
     // Bindings
     document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });
@@ -9395,7 +9574,19 @@
     saveRoute({ view: 'favorites' });
   }
 
+  // Pages « aide » publiées depuis le backoffice, affichées au-dessus de la FAQ embarquée.
+  function renderHelpPages() {
+    var box = document.getElementById('help-cms'), list = document.getElementById('help-cms-list');
+    if (!box || !list) return;
+    var pages = ((REF_CONTENT && REF_CONTENT.pages) || []).filter(function (p) { return p.kind === 'help'; });
+    box.hidden = !pages.length;
+    list.innerHTML = pages.map(function (p) {
+      return '<details class="help-faq"><summary class="help-faq__summary">' + escapeHtml(p.title) + '</summary><div class="help-faq__body cms-body">' + richContent(p.body) + '</div></details>';
+    }).join('');
+  }
+
   function showHelp() {
+    renderHelpPages();
     setBottomNavActive('help');
     markCareRoute('help');
     hideAppViews();

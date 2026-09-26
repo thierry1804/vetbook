@@ -8520,3 +8520,20 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
   padding: 10px 16px; text-align: center; font-size: 13px; font-weight: 600; line-height: 1.4;
   background: #b91c1c; color: #fff;
 }
+
+/* Backoffice : cadenas, formules, bandeau de maintenance, contenus du CMS */
+.is-feature-locked { opacity: .75; }
+.feature-lock { margin-left: 6px; vertical-align: -2px; flex: none; }
+#maintenance-banner { position: sticky; top: 0; z-index: 60; padding: 10px 16px; text-align: center; font-size: .9rem; background: var(--warning-bg, #fff4d6); color: var(--warning-fg, #5c4300); border-bottom: 1px solid rgba(0,0,0,.08); }
+.acc-plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-block: 12px; }
+.acc-plan.is-current { outline: 2px solid var(--accent, #1f3d34); }
+.acc-plan__price { margin: 4px 0 8px; font-size: 1.05rem; }
+.acc-plan__price small { display: block; font-weight: 400; opacity: .7; }
+.acc-plan__list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; font-size: .9rem; }
+.acc-plan__list li { display: flex; gap: 8px; align-items: flex-start; }
+.acc-plan__list svg { flex: none; margin-top: 3px; }
+.acc-plan__off { opacity: .55; text-decoration: line-through; }
+.acc-list .is-on { outline: 2px solid var(--accent, #1f3d34); border-radius: 12px; }
+.cms-body p, .community-tip-content p { margin: 0 0 .6em; }
+.cms-body ul, .cms-body ol, .community-tip-content ul, .community-tip-content ol { margin: 0 0 .6em 1.2em; padding: 0; }
+.cms-body a, .community-tip-content a { text-decoration: underline; }
