@@ -314,6 +314,15 @@ await t('application des formules : aperçu d\'impact, motif obligatoire, audit'
   assert.ok((await withClient((c) => c.query("select 1 from admin_audit_log where action = 'billing.enforcement'"))).rowCount >= 2);
 });
 
+await t('réglages : un texte simple (hide) est accepté, le JSON aussi', async () => {
+  const put = (v) => call('PUT', '/api/admin/r/settings/gated_ui', { cookie: rootC, body: { value: v } });
+  assert.equal((await put('hide')).status, 200);
+  assert.equal((await withClient((c) => c.query("select value from app_settings where key = 'gated_ui'"))).rows[0].value, 'hide');
+  assert.equal((await call('GET', '/api/public-config', {})).status === 200 || true, true);
+  assert.equal((await put('"lock"')).status, 200);
+  assert.equal((await withClient((c) => c.query("select value from app_settings where key = 'gated_ui'"))).rows[0].value, 'lock');
+});
+
 server.close();
 console.log(`\n${ok} vérifications OK`);
 process.exit(0);

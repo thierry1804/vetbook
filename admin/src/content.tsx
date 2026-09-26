@@ -109,7 +109,7 @@ function FieldInput({ fl, isEdit, res, countries }: { fl: Field; isEdit: boolean
     case 'bool': return <BooleanInput {...p} validate={undefined} />;
     case 'date': return <DateInput {...p} />;
     case 'ts': return <DateTimeInput {...p} />;
-    case 'json': return <TextInput {...p} multiline minRows={4} format={jsonFormat} parse={jsonParse} validate={jsonValidate} sx={{ fontFamily: 'monospace' }} />;
+    case 'json': return <TextInput {...p} multiline minRows={4} format={jsonFormat} parse={fl.lenient ? (v: string) => { const j = jsonParse(v); return j === null && v.trim() !== '' ? v : j; } : jsonParse} validate={fl.lenient ? undefined : jsonValidate} sx={{ fontFamily: 'monospace' }} />;
     case 'texts': return <ArrayInput source={fl.name} label={label(fl)}><SimpleFormIterator inline><TextInput source="" label={false} /></SimpleFormIterator></ArrayInput>;
     case 'country': return <SelectInput {...p} choices={countries} emptyText={allowAll(res) ? undefined : '—'} />;
     case 'select': return <SelectInput {...p} choices={toChoices(fl.choices)} emptyText="—" />;

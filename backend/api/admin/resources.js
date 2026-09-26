@@ -32,7 +32,7 @@ export const RESOURCES = {
   payments: R('payments', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['reference', 'method'], order: 'paid_at', readOnly: true }),
   invoices: R('invoices', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['number'], order: 'issued_at', readOnly: true }),
   overrides: R('entitlement_overrides', 'id', { read: 'billing.read', write: 'billing.extend' }, { user_id: 'text', feature_code: 'text', enabled: 'bool', quota: 'num', reason: 'text', expires_at: 'ts' }, { order: 'id', deletable: true, reasonRequired: true }),
-  settings: R('app_settings', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', value: 'json' }, { search: ['key'], order: 'key' }),
+  settings: R('app_settings', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', value: 'jsonish' }, { search: ['key'], order: 'key' }),
   flags: R('feature_flags', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', enabled: 'bool', note: 'text' }, { search: ['key'], order: 'key', deletable: true }),
   jobs: R('job_runs', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { order: 'id', readOnly: true }),
   messages: R('message_log', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { search: ['recipient', 'template'], order: 'id', readOnly: true }),
@@ -47,6 +47,8 @@ export function coerce(type, v) {
     case 'html': return cleanHtml(v);
     case 'bool': return v === true || v === 'true' || v === 1;
     case 'json': return JSON.stringify(typeof v === 'string' ? JSON.parse(v) : v);
+    // Réglages : un texte simple (ex. hide) est une valeur valide ; on tente JSON d'abord (true, 12, [..], {..}).
+    case 'jsonish': { if (typeof v !== 'string') return JSON.stringify(v); try { return JSON.stringify(JSON.parse(v)); } catch { return JSON.stringify(v); } }
     case 'texts': { if (!Array.isArray(v)) throw new Error('liste attendue'); return v.map(String); }
     default: return String(v);
   }

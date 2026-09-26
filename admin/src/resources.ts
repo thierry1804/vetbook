@@ -1,7 +1,7 @@
 // Description des ressources du backoffice (champs, droits, groupes). Les écrans sont générés dans content.tsx.
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select | country
 export type Choice = string | { id: string | number; name: string };
-export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string };
+export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean };
 export type Res = {
   name: string; label: string; perm: string; write?: string; fields: Field[]; readOnly?: boolean; deletable?: boolean;
   pk?: string; search?: boolean; group: string; createPk?: boolean; reason?: boolean; section?: string; defaults?: Record<string, any>; excerpt?: string; filters?: string[]; preview?: 'tip' | 'page' | 'event';
@@ -85,7 +85,7 @@ export const RES: Res[] = [
   { name: 'invoices', label: 'Factures', group: 'Abonnements', perm: 'billing.read', readOnly: true, search: true, fields: [
     f('number', 'text', { list: true }), f('user_id', 'text', { list: true }), f('amount_mga', 'int', { list: true }), f('issued_at', 'ts', { list: true })] },
   { name: 'settings', label: 'Réglages', group: 'Système', perm: 'system.read', write: 'system.write', createPk: true, search: true, fields: [
-    f('key', 'text', { required: true, list: true }), f('value', 'json', { list: true })] },
+    f('key', 'text', { required: true, list: true }), f('value', 'json', { list: true, lenient: true, help: 'Texte simple accepté (ex. hide) ; sinon JSON : true, 12, ["MG"], {"a": 1}.' })] },
   { name: 'flags', label: 'Feature flags', group: 'Système', perm: 'system.read', write: 'system.write', deletable: true, createPk: true, search: true, fields: [
     f('key', 'text', { required: true, list: true }), f('enabled', 'bool', { list: true }), f('note', 'text', { list: true })] },
   { name: 'jobs', label: 'Tâches planifiées', group: 'Système', perm: 'notifications.read', readOnly: true, fields: [
