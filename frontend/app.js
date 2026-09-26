@@ -3962,6 +3962,7 @@
       document.getElementById('ped-gp-md-reg').value = gpd.maternalGranddamRegistry || '';
       document.getElementById('ped-health-notes').value = ped.healthNotes || '';
       toggleLofVerifyControls();
+      setupPedigreeLinks(data, ped);
     }
 
     // Vet contact modals
@@ -5989,7 +5990,7 @@
         ' <a class="pedigree-lof-link" target="_blank" rel="noopener" href="' + lofSelectChipUrl(chip) + '">' + ico('search', 14) + ' Chercher sur LOF Select</a></div>';
     }
     if (p.registry === 'LOMAD') {
-      html += '<div class="pedigree-chip"><a class="pedigree-lof-link" target="_blank" rel="noopener" href="https://acymadagascar.org/recherche">' + ico('search', 14) + ' Annuaire ACYM (LOMAD)</a></div>';
+      html += '<div class="pedigree-chip"><a class="pedigree-lof-link" href="https://acymadagascar.org/recherche" data-acym-open="' + name + '">' + ico('search', 14) + ' Chercher ' + name + ' sur l\'ACYM (LOMAD)</a></div>';
     }
     if (p.healthNotes) {
       html += '<div class="pedigree-health"><strong>' + ico('heart', 14) + ' Tests de santé / ADN</strong><p>' + escapeHtml(p.healthNotes).replace(/\n/g, '<br>') + '</p></div>';
@@ -5998,13 +5999,15 @@
     // Arbre à 3 générations, lu de gauche à droite : sujet → parents → grands-parents.
     // Les traits de filiation sont en CSS pur (voir .ped-* dans styles.css) : chaque
     // parent est centré sur sa paire de grands-parents, sans mesure DOM.
-    var gp = p.grandparents || {};
-    var pedNode = function (role, mod, n, reg) {
+    var rp = resolvedPedigree(data);
+    var gp = rp.gp;
+    var pedNode = function (role, mod, n, reg, petId) {
       var empty = !n;
-      return '<div class="ped-node ped-node--' + mod + (empty ? ' is-empty' : '') + '">' +
+      return '<div class="ped-node ped-node--' + mod + (empty ? ' is-empty' : '') + (petId != null ? ' is-linked' : '') + '">' +
         '<span class="ped-node__role">' + role + '</span>' +
         '<span class="ped-node__name">' + (empty ? 'Non renseigné' : escapeHtml(n)) + '</span>' +
-        (reg && !empty ? '<span class="ped-node__reg">' + escapeHtml(reg) + '</span>' : '') + '</div>';
+        (reg && !empty ? '<span class="ped-node__reg">' + escapeHtml(reg) + '</span>' : '') +
+        (petId != null ? '<button type="button" class="ped-node__link" data-ped-pet="' + petId + '">Voir sa fiche ↗</button>' : '') + '</div>';
     };
     var animalSex = data.animal.sex === 'Femelle' ? 'female' : (data.animal.sex === 'Mâle' ? 'male' : 'subject');
     html += '<div class="ped-wrap" role="group" aria-label="Arbre généalogique de ' + name + '">' +
@@ -6015,8 +6018,8 @@
             (p.registryNumber ? '<span class="ped-node__reg" style="color:#fff;opacity:.85">' + escapeHtml(p.registryNumber) + '</span>' : '') + '</div>' +
         '</div>' +
         '<div class="ped__col ped__col--parents">' +
-          '<div class="ped__slot">' + pedNode('Père', 'male', p.sire && p.sire.name, p.sire && p.sire.registry) + '</div>' +
-          '<div class="ped__slot">' + pedNode('Mère', 'female', p.dam && p.dam.name, p.dam && p.dam.registry) + '</div>' +
+          '<div class="ped__slot">' + pedNode('Père', 'male', rp.sire.name, rp.sire.registry, rp.sire.petId) + '</div>' +
+          '<div class="ped__slot">' + pedNode('Mère', 'female', rp.dam.name, rp.dam.registry, rp.dam.petId) + '</div>' +
         '</div>' +
         '<div class="ped__col ped__col--gp">' +
           '<div class="ped__pair">' +
@@ -6036,6 +6039,108 @@
     }
 
     container.innerHTML = html;
+    if (!container.dataset.pedBound) {
+      container.dataset.pedBound = '1';
+      container.addEventListener('click', function (e) {
+        var acym = e.target.closest('[data-acym-open]');
+        if (acym) { e.preventDefault(); openAcymSearch(acym.getAttribute('data-acym-open')); return; }
+        var link = e.target.closest('[data-ped-pet]');
+        if (link) {
+          var id = Number(link.getAttribute('data-ped-pet'));
+          if (state.animals.some(function (a) { return a.id === id; })) { state.currentAnimalId = id; saveState(); showDetail({ tab: 'profil' }); }
+        }
+      });
+    }
+  }
+
+  // Père/mère liés à un animal du même compte (pedigree.sire.petId / dam.petId) : le
+  // nom, le n° de registre et les grands-parents de la branche sont lus en direct sur
+  // la fiche de l'animal lié (récursif, profondeur bornée). Lien cassé (animal supprimé)
+  // = repli sur les valeurs saisies/enregistrées.
+  function resolvedPedigree(data, depth) {
+    depth = depth || 0;
+    var p = data.pedigree || {};
+    var out = {
+      sire: { name: (p.sire && p.sire.name) || '', registry: (p.sire && p.sire.registry) || '', petId: null },
+      dam: { name: (p.dam && p.dam.name) || '', registry: (p.dam && p.dam.registry) || '', petId: null },
+      gp: Object.assign({}, p.grandparents || {})
+    };
+    if (depth > 3) return out;
+    [['sire', 'paternal'], ['dam', 'maternal']].forEach(function (pair) {
+      var side = pair[0], prefix = pair[1];
+      var id = p[side] && p[side].petId;
+      if (id == null || id === data.id) return;
+      var pet = state.animals.find(function (a) { return a.id === id; });
+      if (!pet) return;
+      var pr = resolvedPedigree(pet, depth + 1);
+      var pp = pet.pedigree || {};
+      out[side] = { name: pet.animal.name || out[side].name, registry: pp.registryNumber || out[side].registry, petId: pet.id };
+      out.gp[prefix + 'Grandsire'] = pr.sire.name; out.gp[prefix + 'GrandsireRegistry'] = pr.sire.registry;
+      out.gp[prefix + 'Granddam'] = pr.dam.name; out.gp[prefix + 'GranddamRegistry'] = pr.dam.registry;
+    });
+    return out;
+  }
+
+  // ACYM : recherche par POST (pas d'URL à ouvrir) — formulaire caché soumis dans un
+  // nouvel onglet, la page de résultats s'affiche directement (aucun jeton requis).
+  function openAcymSearch(name) {
+    var f = document.createElement('form');
+    f.method = 'POST'; f.action = 'https://acymadagascar.org/recherche/'; f.target = '_blank';
+    f.style.display = 'none';
+    [['nomChien', name || ''], ['nomElevage', ''], ['nomProprietaire', ''], ['race', '']].forEach(function (kv) {
+      var i = document.createElement('input'); i.type = 'hidden'; i.name = kv[0]; i.value = kv[1]; f.appendChild(i);
+    });
+    document.body.appendChild(f); f.submit(); document.body.removeChild(f);
+  }
+
+  // Modale pedigree : listes « lier à un de mes animaux » + verrouillage des champs liés.
+  function pedigreeLinkCandidates(data, side) {
+    var sex = side === 'sire' ? 'Mâle' : 'Femelle';
+    return state.animals.filter(function (a) {
+      return a.id !== data.id && a.animal.sex === sex && (a.animal.species || 'Canine') === (data.animal.species || 'Canine');
+    });
+  }
+  function syncPedigreeLinkUI() {
+    var data = getCurrent();
+    var anyLinked = false;
+    [['sire', 'ps', 'pd', 'paternal'], ['dam', 'ms', 'md', 'maternal']].forEach(function (c) {
+      var side = c[0];
+      var sel = document.getElementById('ped-' + side + '-link');
+      var pet = sel && sel.value !== '' ? state.animals.find(function (a) { return String(a.id) === sel.value; }) : null;
+      var fields = ['ped-' + side + '-name', 'ped-' + side + '-reg', 'ped-gp-' + c[1], 'ped-gp-' + c[2], 'ped-gp-' + c[1] + '-reg', 'ped-gp-' + c[2] + '-reg'];
+      if (pet && data) {
+        anyLinked = true;
+        var probe = { id: data.id, animal: data.animal, pedigree: {} };
+        probe.pedigree[side] = { petId: pet.id };
+        var pr = resolvedPedigree(probe), g = pr.gp, pre = c[3];
+        document.getElementById('ped-' + side + '-name').value = pr[side].name;
+        document.getElementById('ped-' + side + '-reg').value = pr[side].registry;
+        document.getElementById('ped-gp-' + c[1]).value = g[pre + 'Grandsire'] || '';
+        document.getElementById('ped-gp-' + c[2]).value = g[pre + 'Granddam'] || '';
+        document.getElementById('ped-gp-' + c[1] + '-reg').value = g[pre + 'GrandsireRegistry'] || '';
+        document.getElementById('ped-gp-' + c[2] + '-reg').value = g[pre + 'GranddamRegistry'] || '';
+      }
+      fields.forEach(function (id) { var el = document.getElementById(id); if (el) el.readOnly = !!pet; });
+    });
+    var hint = document.getElementById('ped-link-hint');
+    if (hint) hint.hidden = !anyLinked;
+  }
+  function setupPedigreeLinks(data, ped) {
+    [['sire', ped.sire], ['dam', ped.dam]].forEach(function (pair) {
+      var side = pair[0], cur = pair[1] && pair[1].petId;
+      var sel = document.getElementById('ped-' + side + '-link');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Saisie manuelle —</option>' + pedigreeLinkCandidates(data, side).map(function (a) {
+        return '<option value="' + a.id + '">' + escapeHtml(a.animal.name || 'Sans nom') + (a.animal.race ? ' (' + escapeHtml(a.animal.race) + ')' : '') + '</option>';
+      }).join('');
+      sel.value = cur != null && Array.prototype.some.call(sel.options, function (o) { return o.value === String(cur); }) ? String(cur) : '';
+      sel.parentNode.hidden = sel.options.length <= 1;
+    });
+    syncPedigreeLinkUI();
+  }
+  function pedLinkValue(id) {
+    var el = document.getElementById(id);
+    return el && el.value !== '' ? Number(el.value) : null;
   }
 
   function lofSelectChipUrl(chip) {
@@ -6103,8 +6208,8 @@
       registry: registry,
       registryNumber: regNumber,
       chipNumber: document.getElementById('ped-chip').value.trim(),
-      sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim() },
-      dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim() },
+      sire: { name: document.getElementById('ped-sire-name').value.trim(), registry: document.getElementById('ped-sire-reg').value.trim(), petId: pedLinkValue('ped-sire-link') },
+      dam: { name: document.getElementById('ped-dam-name').value.trim(), registry: document.getElementById('ped-dam-reg').value.trim(), petId: pedLinkValue('ped-dam-link') },
       healthNotes: document.getElementById('ped-health-notes').value.trim(),
       grandparents: {
         paternalGrandsire: document.getElementById('ped-gp-ps').value.trim(),
@@ -8955,6 +9060,9 @@
     // LOF/LOMAD verify
     document.getElementById('btn-verify-lof').addEventListener('click', function () { simulateVerification(); });
     document.getElementById('btn-ped-acym').addEventListener('click', runAcymLookup);
+    document.getElementById('btn-ped-acym-open').addEventListener('click', function () { openAcymSearch((document.getElementById('ped-acym-query').value || '').trim()); });
+    document.getElementById('ped-sire-link').addEventListener('change', syncPedigreeLinkUI);
+    document.getElementById('ped-dam-link').addEventListener('change', syncPedigreeLinkUI);
     document.getElementById('ped-acym-query').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runAcymLookup(); } });
     document.getElementById('ped-chip').addEventListener('input', refreshPedigreeLookup);
     document.getElementById('ped-acym-results').addEventListener('click', function (e) {

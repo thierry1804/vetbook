@@ -3746,6 +3746,12 @@ button:active {
 .ped-lookup__row .form-input { flex: 1; min-width: 0; }
 .ped-lookup__link { display: inline-block; margin: 8px 0 4px; font-size: 13px; font-weight: 600; color: var(--teal-dark); text-decoration: none; }
 .ped-lookup__link:hover { text-decoration: underline; }
+button.ped-lookup__link { display: block; border: 0; background: none; padding: 0; cursor: pointer; font-family: inherit; text-align: left; }
+.ped-node__link { align-self: flex-start; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; font-weight: 600; color: var(--teal-dark); cursor: pointer; }
+.ped-node__link:hover, .ped-node__link:focus-visible { text-decoration: underline; outline: none; }
+.ped-node--subject .ped-node__link { color: #fff; }
+.ped-node.is-linked { box-shadow: 0 0 0 2px rgba(15, 118, 110, .18), 0 1px 2px rgba(15, 23, 42, .06); }
+input[readonly].form-input { background: var(--warm-gray); color: var(--text-muted); }
 .ped-acym-results { margin-top: 8px; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card-bg); }
 .ped-acym-results p { margin: 0; padding: 10px 12px; font-size: 13px; color: var(--text-muted); }
 .ped-acym-item { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; cursor: pointer; font: inherit; color: var(--text); }

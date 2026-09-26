@@ -1696,21 +1696,25 @@
             <button type="button" class="btn-icon" id="btn-ped-acym"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Chercher</button>
           </div>
           <div id="ped-acym-results" class="ped-acym-results" role="status" aria-live="polite" hidden></div>
+          <button type="button" class="ped-lookup__link" id="btn-ped-acym-open">Ouvrir cette recherche sur acymadagascar.org ↗</button>
           <a class="ped-lookup__link" id="ped-lof-chip-link" target="_blank" rel="noopener" hidden>Chercher ce n° de puce sur LOF Select (SCC) ↗</a>
           <p class="table-muted"><small>ACYM : recherche par nom, l'annuaire public ne donne ni n° de puce ni ascendance. LOF Select : ouvert dans un nouvel onglet (protection anti-robots, pas d'import automatique).</small></p>
         </div>
         <div class="form-group"><label class="form-label" for="ped-chip">N° Puce</label><input class="form-input" id="ped-chip" placeholder="N° de puce électronique"></div>
         <h3 style="margin:12px 0 8px;font-size:0.95rem">♂ Père</h3>
+        <div class="form-group"><label class="form-label" for="ped-sire-link">Lier à un de mes chiens mâles</label><select class="form-input" id="ped-sire-link"><option value="">— Saisie manuelle —</option></select></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-sire-name">Nom</label><input class="form-input" id="ped-sire-name"></div>
           <div class="form-group"><label class="form-label" for="ped-sire-reg">Registre</label><input class="form-input" id="ped-sire-reg" placeholder="LOF / LOMAD..."></div>
         </div>
         <h3 style="margin:12px 0 8px;font-size:0.95rem">♀ Mère</h3>
+        <div class="form-group"><label class="form-label" for="ped-dam-link">Lier à une de mes chiennes</label><select class="form-input" id="ped-dam-link"><option value="">— Saisie manuelle —</option></select></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-dam-name">Nom</label><input class="form-input" id="ped-dam-name"></div>
           <div class="form-group"><label class="form-label" for="ped-dam-reg">Registre</label><input class="form-input" id="ped-dam-reg" placeholder="LOF / LOMAD..."></div>
         </div>
         <h3 style="margin:12px 0 8px;font-size:0.95rem">Grands-parents</h3>
+        <p class="table-muted" id="ped-link-hint" hidden><small>Les grands-parents d'une branche liée sont repris automatiquement du pedigree de l'animal lié.</small></p>
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="ped-gp-ps">GP paternel ♂</label><input class="form-input" id="ped-gp-ps" placeholder="Grand-père paternel"></div>
           <div class="form-group"><label class="form-label" for="ped-gp-ps-reg">Registre</label><input class="form-input" id="ped-gp-ps-reg" placeholder="LOF / LOMAD..."></div>
