@@ -65,9 +65,10 @@ const MyUserMenu = () => {
   );
 };
 
-const MyAppBar = ({ onPalette }: { onPalette: () => void }) => (
+const OPEN_PALETTE = 'applika:open-palette';
+const MyAppBar = () => (
   <AppBar userMenu={<MyUserMenu />} toolbar={<>
-    <Tooltip title="Aller à… (Ctrl+K)"><IconButton onClick={onPalette} aria-label="Rechercher un écran"><SearchIcon /></IconButton></Tooltip>
+    <Tooltip title="Aller à… (Ctrl+K)"><IconButton onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE))} aria-label="Rechercher un écran"><SearchIcon /></IconButton></Tooltip>
     <ToggleThemeButton />
   </>}>
     <TitlePortal />
@@ -101,11 +102,13 @@ export const AppLayout = (props: any) => {
   const [palette, setPalette] = useState(false);
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((v) => !v); } };
-    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
+    const open = () => setPalette(true);
+    window.addEventListener('keydown', h); window.addEventListener(OPEN_PALETTE, open);
+    return () => { window.removeEventListener('keydown', h); window.removeEventListener(OPEN_PALETTE, open); };
   }, []);
   return (
     <>
-      <Layout {...props} appBar={() => <MyAppBar onPalette={() => setPalette(true)} />} menu={MyMenu} />
+      <Layout {...props} appBar={MyAppBar} menu={MyMenu} />
       <CommandPalette open={palette} onClose={() => setPalette(false)} perms={permissions || []} />
     </>
   );
