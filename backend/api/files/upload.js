@@ -3,9 +3,10 @@ import multer from 'multer';
 import { requireUser } from '../_lib/auth.js';
 import { withClient } from '../_lib/db.js';
 import { putObject } from '../_lib/minio.js';
+import { effectiveLimit, guardQuota } from '../_lib/entitlements.js';
 
 const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const MAX_BYTES = 12 * 1024 * 1024;
+const MAX_BYTES = 50 * 1024 * 1024; // plafond dur ; la limite réglable (max_upload_mb) est vérifiée après réception
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -54,6 +55,20 @@ export default async function handler(req, res) {
 
   if (!req.file) {
     res.status(400).json({ error: 'Fichier manquant.' });
+    return;
+  }
+
+  // Limites réglables (backoffice) : taille max par fichier, nombre de photos et stockage de la formule.
+  const maxMb = await effectiveLimit(user.userId, null, 'max_upload_mb', 12);
+  if (maxMb != null && req.file.size > maxMb * 1024 * 1024) {
+    res.status(400).json({ error: `Fichier trop volumineux (max ${maxMb} Mo).` });
+    return;
+  }
+  const usage = (await withClient((c) => c.query('select count(*)::int as n, coalesce(sum(byte_size),0)::bigint as bytes from photos where user_id = $1', [user.userId]))).rows[0];
+  if (!(await guardQuota(res, user.userId, 'photos_count', usage.n, null, null))) return;
+  const storageMb = await effectiveLimit(user.userId, 'photos_storage_mb', 'storage_quota_mb', null);
+  if (storageMb != null && Number(usage.bytes) + req.file.size > storageMb * 1024 * 1024) {
+    res.status(402).json({ error: 'Espace photo de votre formule atteint.', feature: 'photos_storage_mb', quota: storageMb });
     return;
   }
 

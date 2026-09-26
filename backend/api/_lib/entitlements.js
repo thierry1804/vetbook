@@ -57,3 +57,29 @@ export async function guardFeature(res, userId, code) {
   }
   return true;
 }
+
+// Limite effective d'une quantité : la plus stricte entre le réglage global (app_settings, `fallback` si absent)
+// et le quota de la formule quand les droits sont appliqués (fonctionnalité fermée = 0). null = illimité.
+export async function effectiveLimit(userId, code, settingKey, fallback) {
+  return withClient(async (client) => {
+    let limit = settingKey ? await getSetting(client, settingKey, fallback) : fallback;
+    if (limit != null) limit = Number(limit);
+    const e = await computeEntitlements(client, userId);
+    if (e.enforced && code) {
+      const f = e.features[code];
+      if (!f || !f.enabled) return 0;
+      if (f.quota != null) limit = limit == null ? f.quota : Math.min(limit, f.quota);
+    }
+    return limit;
+  });
+}
+
+// 402 si `current` a déjà atteint la limite effective (voir effectiveLimit). Renvoie true si l'action est permise.
+export async function guardQuota(res, userId, code, current, settingKey, fallback) {
+  const limit = await effectiveLimit(userId, code, settingKey, fallback);
+  if (limit != null && current >= limit) {
+    res.status(402).json({ error: 'Limite de votre formule atteinte.', feature: code, quota: limit });
+    return false;
+  }
+  return true;
+}

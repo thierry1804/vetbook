@@ -3,8 +3,9 @@
 import express from 'express';
 import { withClient, withTransaction } from '../_lib/db.js';
 import { requireAdmin, audit } from '../_lib/admin-auth.js';
+import { cleanHtml } from '../_lib/html.js';
 
-// type : text | int | num | bool | json | date | ts | texts (text[])
+// type : text | html (WYSIWYG, assaini) | int | num | bool | json | date | ts | texts (text[])
 const R = (table, pk, perms, cols, opts = {}) => ({ table, pk, perms, cols, ...opts });
 const ref = { read: 'referentiels.read', write: 'referentiels.write' };
 const contents = { read: 'contents.read', write: 'contents.write' };
@@ -19,9 +20,9 @@ export const RESOURCES = {
   lists: R('ref_lists', 'id', ref, { list_type: 'text', label: 'text', sort_order: 'int', meta: 'json', active: 'bool' }, { search: ['label', 'list_type'], order: 'list_type', deletable: true }),
   checkup: R('ref_checkup_criteria', 'key', ref, { key: 'text', label: 'text', icon: 'text', levels: 'json', advice: 'json', sort_order: 'int', active: 'bool' }, { search: ['key', 'label'], order: 'sort_order', deletable: true }),
   registries: R('ref_registries', 'code', ref, { code: 'text', label: 'text', country: 'text', number_regex: 'text', lookup_url: 'text', delays: 'json', status: 'text' }, { search: ['code', 'label'], order: 'code' }),
-  tips: R('content_tips', 'id', contents, { title: 'text', body: 'text', category: 'text', species: 'text', country: 'text', author: 'text', vet_reviewed: 'bool', featured: 'bool', status: 'text', published_at: 'ts' }, { search: ['title', 'body'], order: 'id', deletable: true }),
+  tips: R('content_tips', 'id', contents, { title: 'text', body: 'html', category: 'text', species: 'text', country: 'text', author: 'text', vet_reviewed: 'bool', featured: 'bool', status: 'text', published_at: 'ts' }, { search: ['title', 'body'], order: 'id', deletable: true }),
   events: R('content_events', 'id', contents, { title: 'text', description: 'text', month: 'int', day: 'int', event_date: 'date', recurring: 'bool', location: 'text', country: 'text', link: 'text', status: 'text' }, { search: ['title'], order: 'id', deletable: true }),
-  pages: R('content_pages', 'id', contents, { slug: 'text', kind: 'text', title: 'text', body: 'text', version: 'text', status: 'text', force_reaccept: 'bool', published_at: 'ts' }, { search: ['slug', 'title'], order: 'id', deletable: true }),
+  pages: R('content_pages', 'id', contents, { slug: 'text', kind: 'text', title: 'text', body: 'html', version: 'text', status: 'text', force_reaccept: 'bool', published_at: 'ts' }, { search: ['slug', 'title'], order: 'id', deletable: true }),
   clinics: R('directory_clinics', 'id', directory, { name: 'text', address: 'text', city: 'text', country: 'text', lat: 'num', lng: 'num', phone: 'text', email: 'text', hours: 'text', on_call: 'bool', emergency: 'bool', species: 'texts', source: 'text', status: 'text' }, { search: ['name', 'city'], order: 'id', deletable: true }),
   emergency_numbers: R('emergency_numbers', 'id', directory, { country: 'text', label: 'text', phone: 'text', hours: 'text', sort_order: 'int', status: 'text' }, { search: ['label', 'country'], order: 'country', deletable: true }),
   plans: R('plans', 'code', plansPerm, { code: 'text', name: 'text', audience: 'text', price_mga: 'int', period: 'text', trial_days: 'int', country: 'text', visible: 'bool', archived: 'bool', sort_order: 'int' }, { search: ['code', 'name'], order: 'sort_order' }),
@@ -39,10 +40,11 @@ export const RESOURCES = {
 
 export function coerce(type, v) {
   if (v === undefined) return undefined;
-  if (v === null || v === '') return type === 'text' ? (v === '' ? '' : null) : null;
+  if (v === null || v === '') return (type === 'text' || type === 'html') ? (v === '' ? '' : null) : null;
   switch (type) {
     case 'int': { const n = Number(v); if (!Number.isInteger(n)) throw new Error('entier attendu'); return n; }
     case 'num': { const n = Number(v); if (!Number.isFinite(n)) throw new Error('nombre attendu'); return n; }
+    case 'html': return cleanHtml(v);
     case 'bool': return v === true || v === 'true' || v === 1;
     case 'json': return JSON.stringify(typeof v === 'string' ? JSON.parse(v) : v);
     case 'texts': { if (!Array.isArray(v)) throw new Error('liste attendue'); return v.map(String); }

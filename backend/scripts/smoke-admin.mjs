@@ -12,6 +12,8 @@ import { totpAt, newTotpSecret, verifyTotp } from '../api/_lib/totp.js';
 import { signSessionToken } from '../api/_lib/auth.js';
 import refHandler from '../api/ref/index.js';
 import meEntitlements from '../api/me/entitlements.js';
+import publicConfig from '../api/public-config.js';
+import syncPush from '../api/sync/push.js';
 
 // Le limiteur de login (10 / 15 min) fausserait le test de verrouillage : plafond relevé avant de charger le routeur.
 process.env.ADMIN_LOGIN_RATE_MAX ||= '1000';
@@ -39,7 +41,7 @@ await seedAdminDefaults();
 
 const app = express(); app.use(cookieParser()); app.use(express.json());
 app.use('/api/admin', buildAdminRouter());
-app.get('/api/ref', refHandler); app.get('/api/me/entitlements', meEntitlements);
+app.get('/api/ref', refHandler); app.get('/api/me/entitlements', meEntitlements); app.get('/api/public-config', publicConfig); app.all('/api/sync/push', syncPush);
 const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}`;
 const call = async (method, path, { body, cookie } = {}) => {
   const r = await fetch(base + path, { method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -153,6 +155,58 @@ await t('droits : gratuit par défaut, application désactivée = tout ouvert, a
   await call('POST', '/api/admin/r/overrides', { cookie: rootC, body: { user_id: uid, feature_code: 'reproduction', enabled: true, reason: 'Partenaire élevage' } });
   e = await get(); assert.equal(e.features.reproduction.enabled, true);
   await withClient((c) => c.query("update app_settings set value = 'false' where key = 'subscriptions_enforced'"));
+});
+
+await t('CMS : le HTML de l\'éditeur est assaini côté serveur', async () => {
+  const dirty = '<p>ok <strong>gras</strong></p><script>alert(1)</script><img src=x onerror="alert(1)"><a href="javascript:alert(1)">piège</a><a href="https://exemple.mg">lien</a>';
+  const r = await call('POST', '/api/admin/r/tips', { cookie: rootC, body: { title: `XSS ${tag}`, body: dirty, category: 'sante', country: 'ALL', status: 'brouillon' } });
+  assert.equal(r.status, 201);
+  assert.ok(r.json.body.includes('<p>ok <strong>gras</strong></p>'));
+  assert.ok(!/script|onerror|javascript:|<img/i.test(r.json.body), r.json.body);
+  assert.ok(r.json.body.includes('href="https://exemple.mg"') && r.json.body.includes('rel="noopener noreferrer"'));
+});
+
+await t('configuration publique : pays, contact, formules mensuel/annuel et droits (tout est paramétrable)', async () => {
+  const r = await (await fetch(base + '/api/public-config')).json();
+  assert.equal(r.currency, 'MGA'); assert.equal(r.defaultCountry, 'MG'); assert.ok(r.countries.some((c) => c.code === 'MG'));
+  const by = Object.fromEntries(r.plans.map((p) => [p.code, p]));
+  assert.deepEqual(Object.keys(by), ['gratuit', 'premium', 'eleveur']);          // le plan Cabinet (audience practice) n'est pas proposé aux particuliers
+  assert.equal(by.premium.monthly.priceMga, 5000); assert.equal(by.premium.yearly.priceMga, 50000); assert.equal(by.premium.trialDays, 30);
+  assert.equal(by.eleveur.monthly.priceMga, 20000); assert.equal(by.eleveur.yearly.priceMga, 200000);
+  assert.equal(by.gratuit.features.animals.quota, 1); assert.equal(by.gratuit.features.photos_count.quota, 20);
+  assert.equal(by.eleveur.features.reproduction.enabled, true); assert.ok(!by.premium.features.reproduction);
+  assert.ok(r.featureLabels.reproduction.label);
+  // un changement de prix dans le backoffice se voit immédiatement
+  await call('PUT', '/api/admin/r/plans/premium', { cookie: rootC, body: { price_mga: 6000 } });
+  assert.equal((await (await fetch(base + '/api/public-config')).json()).plans.find((p) => p.code === 'premium').monthly.priceMga, 6000);
+  await call('PUT', '/api/admin/r/plans/premium', { cookie: rootC, body: { price_mga: 5000 } });
+});
+
+await t('quotas serveur : animaux refusés au-delà de la formule, saillies ignorées sans « reproduction »', async () => {
+  const tok = await signSessionToken(uid, 'u1@test.mg');
+  const push = async (animals) => {
+    const r = await fetch(base + '/api/sync/push', { method: 'POST', headers: { 'content-type': 'application/json', cookie: `applika_session=${tok}` }, body: JSON.stringify({ state: { animals, nextId: 99 } }) });
+    return { status: r.status, json: await r.json() };
+  };
+  const pet = (id) => ({ id, animal: { name: `Chien ${id}` }, matings: [{ id: 1, date: '2026-01-01' }] });
+  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'gratuit', reason: 'Test quotas' } });
+  await withClient((c) => c.query("update app_settings set value = 'true' where key = 'subscriptions_enforced'"));
+  await withClient((c) => c.query('delete from pets where user_id = $1', [uid]));
+  await withClient((c) => c.query('delete from entitlement_overrides where user_id = $1', [uid])); // celle du test précédent ouvrait « reproduction »
+  const two = await push([pet(1), pet(2)]);
+  assert.equal(two.status, 402); assert.equal(two.json.feature, 'animals'); assert.equal(two.json.quota, 1);
+  const one = await push([pet(1)]);
+  assert.equal(one.status, 200); assert.deepEqual(one.json.ignored, ['reproduction']);
+  assert.equal((await withClient((c) => c.query('select count(*)::int n from matings where user_id = $1', [uid]))).rows[0].n, 0);
+  // formule Éleveur : plus de limite, saillies conservées
+  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'eleveur', reason: 'Test quotas' } });
+  const many = await push([pet(1), pet(2), pet(3)]);
+  assert.equal(many.status, 200); assert.deepEqual(many.json.ignored, []);
+  assert.equal((await withClient((c) => c.query('select count(*)::int n from matings where user_id = $1', [uid]))).rows[0].n, 3);
+  // application désactivée : tout passe
+  await withClient((c) => c.query("update app_settings set value = 'false' where key = 'subscriptions_enforced'"));
+  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'gratuit', reason: 'Fin des tests' } });
+  assert.equal((await push([pet(1), pet(2)])).status, 200);
 });
 
 await t('tableau de bord + verrouillage après 5 échecs', async () => {

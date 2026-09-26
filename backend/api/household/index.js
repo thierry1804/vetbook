@@ -12,6 +12,7 @@ import { withClient } from '../_lib/db.js';
 import { sendMail } from '../_lib/mailer.js';
 import { householdInvite } from '../_lib/emails.js';
 import { getObject } from '../_lib/minio.js';
+import { effectiveLimit } from '../_lib/entitlements.js';
 import { newRawToken } from '../_lib/tokens.js';
 import { petSnapshot } from '../_lib/snapshot.js';
 
@@ -62,7 +63,8 @@ export async function household(req, res) {
         const count = (await c.query(
           `select (select count(*) from household_members where owner_id = $1) + (select count(*) from household_invites where owner_id = $1 and accepted_at is null and revoked_at is null and expires_at > now()) as n`,
           [session.userId])).rows[0].n;
-        if (Number(count) >= MAX_MEMBERS) return { error: 'LIMIT' };
+        const maxMembers = await effectiveLimit(session.userId, 'household_members', 'max_household_members', MAX_MEMBERS);
+        if (maxMembers != null && Number(count) >= maxMembers) return { error: 'LIMIT', max: maxMembers };
         const already = (await c.query('select 1 from household_members m join users u on u.id = m.member_id where m.owner_id = $1 and u.email = $2', [session.userId, email])).rows[0];
         if (already) return { error: 'ALREADY' };
         await c.query('update household_invites set revoked_at = now() where owner_id = $1 and email = $2 and accepted_at is null and revoked_at is null', [session.userId, email]);
@@ -72,7 +74,7 @@ export async function household(req, res) {
           [session.userId, email, hashToken(raw), String(INVITE_DAYS)]);
         return { raw, invite: ins.rows[0], ownerName: me.name || me.first_name };
       });
-      const errors = { SELF: 'Vous ne pouvez pas vous inviter vous-même.', LIMIT: `Votre foyer est limité à ${MAX_MEMBERS} personnes.`, ALREADY: 'Cette personne fait déjà partie de votre foyer.' };
+      const errors = { SELF: 'Vous ne pouvez pas vous inviter vous-même.', LIMIT: `Votre foyer est limité à ${out.max != null ? out.max : MAX_MEMBERS} personne(s) dans votre formule.`, ALREADY: 'Cette personne fait déjà partie de votre foyer.' };
       if (out.error) { res.status(400).json({ error: errors[out.error] }); return; }
       await sendMail({ to: email, ...householdInvite(out.raw, out.ownerName) });
       res.status(201).json({ id: out.invite.id, email, expiresAt: out.invite.expires_at });

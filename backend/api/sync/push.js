@@ -3,7 +3,8 @@
 // data-layer.js directement via supabase-js. Le mapping (toRow/fromRow,
 // tables de correspondance) est le même, simplement déplacé côté serveur.
 // user_id vient toujours du JWT vérifié, jamais du payload.
-import { withTransaction } from '../_lib/db.js';
+import { withTransaction, withClient } from '../_lib/db.js';
+import { computeEntitlements } from '../_lib/entitlements.js';
 import { requireUser } from '../_lib/auth.js';
 import {
   ANIMAL_FIELDS, OWNER_FIELDS, PEDIGREE_FIELDS, NUTRITION_PLAN_FIELDS, NOTIF_FIELDS,
@@ -31,6 +32,25 @@ export default async function handler(req, res) {
 
   const userId = user.userId;
 
+  // Droits d'abonnement (sans effet tant que app_settings.subscriptions_enforced = false) : refus des
+  // nouveaux animaux au-delà du quota, et les saillies d'une formule sans « reproduction » sont ignorées
+  // (jamais de blocage de la synchro d'un compte rétrogradé).
+  const ignored = [];
+  const ent = await withClient((c) => computeEntitlements(c, userId));
+  if (ent.enforced) {
+    const quota = ent.features.animals && ent.features.animals.enabled ? ent.features.animals.quota : 0;
+    if (quota != null) {
+      const existing = new Set((await withClient((c) => c.query('select local_id from pets where user_id = $1', [userId]))).rows.map((r) => Number(r.local_id)));
+      const fresh = (state.animals || []).filter((w) => !existing.has(Number(w.id))).length;
+      if (fresh > 0 && existing.size + fresh > quota) {
+        res.status(402).json({ error: 'Nombre d\'animaux maximal de votre formule atteint.', feature: 'animals', quota, plan: ent.plan });
+        return;
+      }
+    }
+  }
+  const reproductionOpen = !ent.enforced || (ent.features.reproduction && ent.features.reproduction.enabled);
+  if (!reproductionOpen) ignored.push('reproduction');
+
   try {
     await withTransaction(async (client) => {
       // Le profil propriétaire est global au compte (table `owners`, clé
@@ -48,6 +68,7 @@ export default async function handler(req, res) {
         const petId = pet.id;
 
         for (const [localKey, table, fields] of CHILD_ARRAYS) {
+          if (localKey === 'matings' && !reproductionOpen) continue;
           const items = Array.isArray(wrapper[localKey]) ? wrapper[localKey] : [];
           if (!items.length) continue;
           const rows = items.map((item) => toRow(item, fields, { pet_id: petId, user_id: userId, local_id: item.id }));
@@ -125,7 +146,7 @@ export default async function handler(req, res) {
       }
     });
 
-    res.status(200).json({ ok: true });
+    res.status(200).json({ ok: true, ignored });
   } catch (err) {
     console.error('sync/push', err);
     res.status(500).json({ error: 'Erreur lors de la synchronisation.' });

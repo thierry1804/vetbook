@@ -7,6 +7,7 @@ const FEATURES = [
   ['animals', 'Nombre d\'animaux', 'quota'],
   ['health_records', 'Carnet de santé et rappels dans l\'app', 'boolean'],
   ['push_reminders', 'Rappels push et résumé mensuel', 'boolean'],
+  ['photos_count', 'Nombre de photos', 'quota'],
   ['photos_storage_mb', 'Stockage photos (Mo)', 'quota'],
   ['share_link_days', 'Durée du lien vétérinaire (jours)', 'quota'],
   ['household_members', 'Membres du foyer', 'quota'],
@@ -21,7 +22,7 @@ const FEATURES = [
 // [plan, {feature: [enabled, quota]}]
 const OWNER_BASE = { health_records: [true, null], nutrition_activity_checkup: [true, null] };
 const PLAN_FEATURES = {
-  gratuit: { ...OWNER_BASE, animals: [true, 1], photos_storage_mb: [true, 60], share_link_days: [true, 7] },
+  gratuit: { ...OWNER_BASE, animals: [true, 1], photos_count: [true, 20], photos_storage_mb: [true, 60], share_link_days: [true, 7] },
   premium: { ...OWNER_BASE, animals: [true, 5], push_reminders: [true, null], photos_storage_mb: [true, 500], share_link_days: [true, 90],
     household_members: [true, 3], pedigree_edit: [true, null], export_pdf_ics: [true, null] },
   eleveur: { ...OWNER_BASE, animals: [true, null], push_reminders: [true, null], photos_storage_mb: [true, 5000], share_link_days: [true, 90],
@@ -36,7 +37,13 @@ const PLANS = [
   ['eleveur', 'eleveur', 'Éleveur', 'owner', 20000, 200000, 0],
   ['cabinet', 'cabinet', 'Cabinet', 'practice', 60000, 600000, 0],
 ];
+// Paramètres publics lus par l'app (GET /api/public-config) : pays ouverts, contact et procédure d'abonnement.
+const PUBLIC_SETTINGS = {
+  open_countries: [{ code: 'MG', label: 'Madagascar' }, { code: 'FR', label: 'France' }],
+  contact: { email: '', phone: '', whatsapp: '', subscribe_instructions: 'Pour souscrire, contacte-nous : le paiement se fait par mobile money (MVola, Orange Money, Airtel Money) et ton abonnement est activé sous 24 h.' },
+};
 const SETTINGS = {
+  ...PUBLIC_SETTINGS,
   subscriptions_enforced: false, four_eyes_publish: true, default_country: 'MG',
   max_share_days: 90, max_household_members: 10, max_upload_mb: 12, storage_quota_mb: null,
   maintenance: { enabled: false, message: '' }, min_client_version: null,
@@ -66,6 +73,11 @@ export async function seedAdminDefaults() {
           }
         }
       }
+    }
+    // Migration unique : le quota « nombre de photos » de la formule gratuite (spec : 20 photos).
+    if ((await c.query("select 1 from app_settings where key = 'seed_photos_count_v1'")).rowCount === 0) {
+      await c.query("insert into plan_features (plan_code, feature_code, enabled, quota) values ('gratuit', 'photos_count', true, 20) on conflict (plan_code, feature_code) do nothing");
+      await c.query("insert into app_settings (key, value) values ('seed_photos_count_v1', 'true') on conflict (key) do nothing");
     }
     for (const [key, value] of Object.entries(SETTINGS)) {
       await c.query('insert into app_settings (key, value) values ($1,$2) on conflict (key) do nothing', [key, JSON.stringify(value)]);

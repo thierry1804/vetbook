@@ -32,6 +32,7 @@ import syncPull from './api/sync/pull.js';
 import pushSubscription from './api/push/subscription.js';
 import lookupAcym from './api/lookup/acym.js';
 import refHandler from './api/ref/index.js';
+import publicConfig from './api/public-config.js';
 import meEntitlements from './api/me/entitlements.js';
 import { buildAdminRouter } from './api/admin/router.js';
 import { seedAdminDefaults } from './api/_lib/admin-seed.js';
@@ -111,6 +112,7 @@ app.all('/api/lookup/acym', lookupLimiter, lookupAcym);
 // Backoffice (auth admin séparée, RBAC, audit) et endpoints consommés par le front propriétaire.
 app.use('/api/admin', buildAdminRouter());
 app.get('/api/ref', refHandler);
+app.get('/api/public-config', publicConfig);
 app.get('/api/me/entitlements', meEntitlements);
 app.all('/api/sync/push', syncPush);
 app.all('/api/sync/pull', syncPull);
