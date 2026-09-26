@@ -3,6 +3,7 @@
 // Équivalent de subscribeToPush()/unsubscribeFromPush() de data-layer.js.
 import { withClient } from '../_lib/db.js';
 import { requireUser } from '../_lib/auth.js';
+import { guardFeature } from '../_lib/entitlements.js';
 
 export default async function handler(req, res) {
   const user = await requireUser(req, res);
@@ -12,6 +13,8 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
+      // Rappels push : fonctionnalité de formule (refus 402 seulement si app_settings.subscriptions_enforced = true).
+      if (!(await guardFeature(res, userId, 'push_reminders'))) return;
       const endpoint = body.endpoint;
       const p256dh = body.keys && body.keys.p256dh;
       const authKey = body.keys && body.keys.auth;

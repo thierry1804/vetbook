@@ -1,7 +1,7 @@
 // POST /api/auth/google  { credential }
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { withClient } from '../_lib/db.js';
-import { setSessionCookie, startSession } from '../_lib/auth.js';
+import { isSuspended, setSessionCookie, startSession } from '../_lib/auth.js';
 import { USER_COLUMNS, publicUser } from '../_lib/profile.js';
 
 const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
@@ -66,9 +66,14 @@ export default async function handler(req, res) {
         userId = ins.rows[0].id;
       }
       const { rows } = await client.query(`select ${USER_COLUMNS} from users where id = $1`, [userId]);
+      if (await isSuspended(client, userId)) return { suspended: true };
       return { user: rows[0], sessionToken: await startSession(client, rows[0], req) };
     });
 
+    if (out.suspended) {
+      res.status(403).json({ error: 'Compte suspendu. Contactez le support.', code: 'ACCOUNT_SUSPENDED' });
+      return;
+    }
     setSessionCookie(res, out.sessionToken);
     res.status(200).json(publicUser(out.user));
   } catch (err) {

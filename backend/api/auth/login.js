@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 import { withClient } from '../_lib/db.js';
-import { isValidEmail, setSessionCookie, startSession } from '../_lib/auth.js';
+import { isSuspended, isValidEmail, setSessionCookie, startSession } from '../_lib/auth.js';
 import { USER_COLUMNS, publicUser } from '../_lib/profile.js';
 
 export default async function handler(req, res) {
@@ -24,11 +24,16 @@ export default async function handler(req, res) {
       const user = rows[0];
       if (!user || !user.password_hash) return null;
       if (!(await argon2.verify(user.password_hash, password))) return null;
+      if (await isSuspended(client, user.id)) return { suspended: true };
       return { user, sessionToken: await startSession(client, user, req) };
     });
 
     if (!result) {
       res.status(401).json({ error: 'Adresse e-mail ou mot de passe incorrect.' });
+      return;
+    }
+    if (result.suspended) {
+      res.status(403).json({ error: 'Compte suspendu. Contactez le support.', code: 'ACCOUNT_SUSPENDED' });
       return;
     }
     setSessionCookie(res, result.sessionToken);

@@ -6,6 +6,7 @@
 //   GET    /api/share/public/:token/photo/:id  (public, si le lien inclut les photos)
 import { hashToken, requireUser } from '../_lib/auth.js';
 import { withClient } from '../_lib/db.js';
+import { checkFeature } from '../_lib/entitlements.js';
 import { appUrl } from '../_lib/mailer.js';
 import { getObject } from '../_lib/minio.js';
 import { newRawToken } from '../_lib/tokens.js';
@@ -33,7 +34,10 @@ export async function shareLinks(req, res) {
     if (req.method === 'POST') {
       const b = req.body && typeof req.body === 'object' ? req.body : {};
       const petLocalId = Number(b.petLocalId);
-      const days = Math.min(MAX_DAYS, Math.max(1, Math.round(Number(b.days) || 7)));
+      let days = Math.min(MAX_DAYS, Math.max(1, Math.round(Number(b.days) || 7)));
+      // Durée maximale du lien selon la formule (quota share_link_days ; sans effet tant que l'application des droits est désactivée).
+      const ent = await checkFeature(session.userId, 'share_link_days');
+      if (ent.quota != null) days = Math.min(days, ent.quota);
       if (!Number.isFinite(petLocalId)) { res.status(400).json({ error: 'Animal invalide.' }); return; }
       const raw = newRawToken();
       const created = await withClient(async (c) => {

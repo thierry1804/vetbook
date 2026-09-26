@@ -81,6 +81,12 @@ export function clearSessionCookie(res) {
 // Vérifie le JWT puis l'état de la session en base : appareil révoqué, expiré, ou émis avant le
 // dernier « se déconnecter partout » (session_epoch). Les anciens jetons sans "sid" restent
 // acceptés jusqu'à leur expiration, sauf s'ils précèdent session_epoch.
+// Compte suspendu depuis le backoffice (users.status) : ni connexion ni appel d'API.
+export async function isSuspended(client, userId) {
+  const { rows } = await client.query('select status from users where id = $1', [userId]);
+  return !!rows[0] && rows[0].status === 'suspendu';
+}
+
 export async function requireUser(req, res) {
   const token = getSessionTokenFromRequest(req);
   if (!token) {
@@ -96,8 +102,9 @@ export async function requireUser(req, res) {
   }
   try {
     const ok = await withClient(async (client) => {
-      const u = await client.query('select session_epoch from users where id = $1', [claims.userId]);
+      const u = await client.query('select session_epoch, status from users where id = $1', [claims.userId]);
       if (!u.rows[0]) return false;
+      if (u.rows[0].status === 'suspendu') return 'suspended';
       // iat est en secondes, session_epoch en millisecondes : une seconde de tolérance.
       if (claims.iat && claims.iat * 1000 + 1000 < new Date(u.rows[0].session_epoch).getTime()) return false;
       if (claims.sid) {
@@ -112,6 +119,11 @@ export async function requireUser(req, res) {
       }
       return true;
     });
+    if (ok === 'suspended') {
+      clearSessionCookie(res);
+      res.status(403).json({ error: 'Compte suspendu. Contactez le support.', code: 'ACCOUNT_SUSPENDED' });
+      return null;
+    }
     if (!ok) {
       clearSessionCookie(res);
       res.status(401).json({ error: 'Session invalide ou expirée.' });
