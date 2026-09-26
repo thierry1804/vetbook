@@ -97,7 +97,11 @@ function FieldInput({ fl, isEdit, res, countries }: { fl: Field; isEdit: boolean
   if (fl.readOnly) p.disabled = true;
   if (isEdit && res.createPk && fl.name === res.fields[0].name) p.disabled = true;
   switch (fl.type) {
-    case 'html': return <RichTextInput source={fl.name} label={label(fl)} fullWidth toolbar={<RichTextInputToolbar><LevelSelect /><FormatButtons /><ListButtons /><LinkButtons /><QuoteButtons /><ClearButtons /></RichTextInputToolbar>} />;
+    case 'html': return <RichTextInput source={fl.name} label={label(fl)} fullWidth
+      sx={{ '& .RaRichTextInput-editorContent': { border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' },
+        '& .ProseMirror': { minHeight: 360, maxHeight: '60vh', overflowY: 'auto', p: 2, outline: 'none', fontSize: 16, lineHeight: 1.6, '& p': { my: 1 }, '& h2,& h3,& h4': { mt: 2, mb: 1 }, '& blockquote': { borderLeft: 3, borderColor: 'primary.main', pl: 2, ml: 0, color: 'text.secondary' } },
+        '& .ProseMirror p.is-editor-empty:first-of-type::before': { color: 'text.disabled', content: 'attr(data-placeholder)', float: 'left', height: 0, pointerEvents: 'none' } }}
+      toolbar={<RichTextInputToolbar><LevelSelect /><FormatButtons /><ListButtons /><LinkButtons /><QuoteButtons /><ClearButtons /></RichTextInputToolbar>} />;
     case 'longtext': return <TextInput {...p} multiline minRows={3} />;
     case 'int': case 'num': return <NumberInput {...p} step={fl.type === 'int' ? 1 : 'any'} />;
     case 'bool': return <BooleanInput {...p} validate={undefined} />;
