@@ -24,7 +24,8 @@ const sb = {
 };
 vm.createContext(sb);
 vm.runInContext(`
-var REF_KEY='vetbook_ref', ENT_KEY='vetbook_entitlements', COUNTRY_KEY='vetbook_country', REF_CONTENT=null, EMBEDDED=null;
+var REF_KEY='vetbook_ref', ENT_KEY='vetbook_entitlements', COUNTRY_KEY='vetbook_country', PUB_KEY='vetbook_public_config', REF_CONTENT=null, EMBEDDED=null;
+var QUOTA_LABELS = { animals: 'a', photos_count: 'p', household_members: 'h', share_link_days: 's' };
 var DEFAULT_VET_ENTRIES=[{ id: 1, name: 'Antipoison FR', phone: '3115', emergency: true }];
 var BREED_DB = { Canine: [{ name: 'Embarqué', weightMin: 1, weightMax: 2 }], 'Féline': [{ name: 'Chat embarqué', weightMin: 3, weightMax: 4 }] };
 var VACCINE_DB = { Canine: ['Vieux vaccin'] };
@@ -32,7 +33,7 @@ var SYMPTOM_TYPES = ['Embarqué'], HYGIENE_TYPES = ['Bain'], MEAL_TYPES = ['Croq
 var CHECKUP_QUESTIONS = [{ key: 'appetite', label: 'Appétit', icon: '<old-icon>', levels: ['Normal'] }];
 var DEFAULT_TIPS = [{ id: 1, title: 'Embarqué' }], DEFAULT_DOG_EVENTS = [{ id: 1, title: 'Embarqué' }];
 var LOF_PATTERN = /^old$/, LOMAD_PATTERN = /^old$/;
-${fn('readJson')}${fn('currentCountry')}${fn('refCountryOk')}${fn('referenceVetEntries')}${fn('applyReference')}${fn('currentEntitlements')}${fn('hasFeature')}${fn('featureQuota')}
+${fn('readJson')}${fn('currentCountry')}${fn('refCountryOk')}${fn('referenceVetEntries')}${fn('applyReference')}${fn('currentEntitlements')}${fn('publicConfig')}${fn('activeFeatures')}${fn('hasFeature')}${fn('featureQuota')}
 `, sb);
 const run = (code) => vm.runInContext(code, sb);
 let n = 0;
@@ -112,6 +113,25 @@ t('droits : ouverts par défaut, appliqués seulement si enforced', () => {
   assert.equal(run('featureQuota("reproduction")'), null);
   store.vetbook_entitlements = '{corrompu';
   assert.equal(run('hasFeature("reproduction")'), true);                      // cache illisible → ouvert
+});
+
+t('formules : sans droits connus, tout utilisateur est en « gratuit » dès que le serveur applique les formules', () => {
+  delete store.vetbook_entitlements;
+  store.vetbook_public_config = JSON.stringify({ enforced: false, plans: [{ code: 'gratuit', features: { reproduction: { enabled: false, quota: null } } }] });
+  assert.equal(run('hasFeature("reproduction")'), true);                       // non appliqué : ouvert
+  store.vetbook_public_config = JSON.stringify({ enforced: true, plans: [{ code: 'gratuit', features: {
+    animals: { enabled: true, quota: 1 }, photos_count: { enabled: true, quota: 20 }, reproduction: { enabled: false, quota: null }, health_records: { enabled: true, quota: null } } }] });
+  assert.equal(run('hasFeature("reproduction")'), false);
+  assert.equal(run('hasFeature("health_records")'), true);
+  assert.equal(run('featureQuota("animals")'), 1);
+  assert.equal(run('featureQuota("photos_count")'), 20);
+  assert.equal(run('featureQuota("household_members")'), 0);                   // quota absent de la formule = fermé
+  assert.equal(run('featureQuota("reproduction")'), null);                     // fonctionnalité booléenne : pas de quota
+  // les droits du compte connecté priment sur le repli
+  store.vetbook_entitlements = JSON.stringify({ enforced: true, features: { reproduction: { enabled: true, quota: null }, animals: { enabled: true, quota: 5 } } });
+  assert.equal(run('hasFeature("reproduction")'), true);
+  assert.equal(run('featureQuota("animals")'), 5);
+  delete store.vetbook_entitlements; delete store.vetbook_public_config;
 });
 
 console.log(`\n${n} vérifications OK`);

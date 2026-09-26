@@ -1,9 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { useNotify, usePermissions, Title } from 'react-admin';
-import { Box, Button, Card, CardContent, Checkbox, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import { api, permits } from './api';
 
 // Matrice « formule × fonctionnalité » : case = droit accordé, nombre = quota (vide = illimité). Tout est paramétrable.
+// Interrupteur global : tant qu'il est éteint, tout le monde a accès à tout ; allumé, chaque compte sans abonnement est en « gratuit ».
+function Enforcement({ canWrite }: { canWrite: boolean }) {
+  const notify = useNotify();
+  const [st, setSt] = useState<any>(null); const [open, setOpen] = useState(false); const [reason, setReason] = useState('');
+  const load = () => api('/enforcement').then((r) => setSt(r.json)).catch(() => undefined);
+  useEffect(() => { load(); }, []);
+  if (!st) return null;
+  const affected = st.over.animals + st.over.photos_count;
+  const toggle = async () => {
+    try { await api('/enforcement', { method: 'PUT', body: { enabled: !st.enforced, reason } }); notify(st.enforced ? 'Formules désactivées : tout est ouvert' : 'Formules appliquées', { type: 'success' }); setOpen(false); setReason(''); load(); }
+    catch (e: any) { notify(e.message, { type: 'error' }); }
+  };
+  return (
+    <Card sx={{ mb: 2, borderColor: st.enforced ? 'success.main' : 'warning.main' }}><CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Box sx={{ flex: 1, minWidth: 260 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: .5 }}>
+          <Typography variant="subtitle1">Application des formules</Typography>
+          <Chip size="small" color={st.enforced ? 'success' : 'warning'} label={st.enforced ? 'Appliquées' : 'Désactivées (tout est ouvert)'} />
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          {st.free_users} compte(s) sans abonnement seraient en formule Gratuit (limites : {st.limits.animals ?? '∞'} animal(aux), {st.limits.photos_count ?? '∞'} photos).
+          {affected ? ` ${st.over.animals} dépassent la limite d'animaux, ${st.over.photos_count} celle des photos : leurs données restent visibles, mais ils ne pourront rien ajouter tant qu'ils n'ont pas de formule adaptée.` : ' Aucun compte ne dépasse ces limites.'}
+        </Typography>
+      </Box>
+      {canWrite ? <Button variant="contained" color={st.enforced ? 'warning' : 'primary'} onClick={() => setOpen(true)}>{st.enforced ? 'Désactiver' : 'Appliquer les formules'}</Button> : null}
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{st.enforced ? 'Désactiver l\'application des formules' : 'Appliquer les formules à tous les utilisateurs'}</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: '8px !important' }}>
+          {!st.enforced ? <Alert severity={affected ? 'warning' : 'info'}>Dès l'enregistrement, l'app et le serveur appliquent les droits et quotas de chaque formule. {affected ? `${affected} compte(s) dépassent déjà les limites du plan Gratuit.` : ''}</Alert> : <Alert severity="info">Tout redevient accessible à tous, sans limite de formule.</Alert>}
+          <TextField label="Motif (5 caractères min., journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={2} />
+        </DialogContent>
+        <DialogActions><Button onClick={() => setOpen(false)}>Annuler</Button><Button variant="contained" disabled={reason.trim().length < 5} onClick={toggle}>Confirmer</Button></DialogActions>
+      </Dialog>
+    </CardContent></Card>
+  );
+}
+
 export const PlanMatrix = () => {
   const { permissions } = usePermissions(); const notify = useNotify();
   const canWrite = permits(permissions, 'billing.plans_write');
@@ -20,6 +57,7 @@ export const PlanMatrix = () => {
   return (
     <Box sx={{ p: 2 }}>
       <Title title="Matrice des droits" />
+      <Enforcement canWrite={canWrite} />
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <TextField select size="small" label="Formule" value={code} onChange={(e) => setCode(e.target.value)} sx={{ minWidth: 220 }}>
           {plans.map((p) => <MenuItem key={p.code} value={p.code}>{p.name} — {Number(p.price_mga).toLocaleString('fr-FR')} MGA / {p.period}</MenuItem>)}

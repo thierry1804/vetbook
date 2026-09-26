@@ -590,13 +590,22 @@
   }
 
   // ——— Panneau : partage ————————————————————————————————————
+  // Durées proposées : celles que la formule autorise (quota « durée du lien », en jours).
+  function shareDayOptions() {
+    var q = plans() ? plans().featureQuota('share_link_days') : null;
+    var all = [[1, '24 heures'], [7, '7 jours'], [30, '30 jours'], [90, '90 jours']];
+    var ok = all.filter(function (o) { return q == null || o[0] <= q; });
+    if (!ok.length) ok = [[1, '24 heures']];
+    var pick = ok.some(function (o) { return o[0] === 7; }) ? 7 : ok[ok.length - 1][0];
+    return ok.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === pick ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  }
   function panelSharing() {
     if (!acc.user) return '<div class="acc-card"><h3>Le partage nécessite un compte</h3><p class="acc-hint">Créez un compte pour transmettre un carnet à votre vétérinaire par un lien sécurisé ou pour inviter un proche.</p><div class="acc-actions acc-actions--start"><button type="button" class="acc-btn acc-btn--primary" data-act="goto" data-panel="security">Se connecter ou créer un compte</button></div></div>';
     var pets = ctx() ? ctx().getState().animals : [];
     return '' +
       '<div class="acc-card"><h3>Lien pour le vétérinaire</h3><p class="acc-hint">Un lien en lecture seule vers le carnet d’un animal : vaccins, traitements, consultations, poids. Il expire automatiquement et se révoque à tout moment.</p>' +
         (pets.length ? '<form class="acc-form" data-form="share" novalidate><div class="acc-grid"><div class="acc-field"><label for="sh-pet">Animal</label><select id="sh-pet" name="sh-pet">' + pets.map(function (a) { return '<option value="' + a.id + '">' + esc(a.animal.name || 'Sans nom') + '</option>'; }).join('') + '</select></div>' +
-          '<div class="acc-field"><label for="sh-days">Validité</label><select id="sh-days" name="sh-days"><option value="1">24 heures</option><option value="7" selected>7 jours</option><option value="30">30 jours</option><option value="90">90 jours</option></select></div></div>' +
+          '<div class="acc-field"><label for="sh-days">Validité</label><select id="sh-days" name="sh-days">' + shareDayOptions() + '</select></div></div>' +
           field('sh-label', 'Destinataire (facultatif)', 'text', '', { placeholder: 'Dr Martin, clinique des Lilas…' }) +
           '<fieldset class="acc-fieldset"><legend>Contenu partagé en plus</legend>' +
             '<label class="acc-check"><input type="checkbox" name="sh-notes"><span>Notes de suivi (journal)</span></label>' +

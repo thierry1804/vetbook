@@ -303,6 +303,17 @@ await t('import en lot : aperçu, doublons, erreurs, brouillon par défaut, audi
   assert.ok((await withClient((c) => c.query("select 1 from admin_audit_log where action = 'tips.import'"))).rowCount >= 1);
 });
 
+await t('application des formules : aperçu d\'impact, motif obligatoire, audit', async () => {
+  const g = await call('GET', '/api/admin/enforcement', { cookie: rootC });
+  assert.equal(g.status, 200); assert.equal(typeof g.json.enforced, 'boolean'); assert.equal(typeof g.json.free_users, 'number'); assert.equal(g.json.limits.animals, 1);
+  assert.equal((await call('PUT', '/api/admin/enforcement', { cookie: rootC, body: { enabled: true } })).status, 400);
+  assert.equal((await call('PUT', '/api/admin/enforcement', { cookie: anC, body: { enabled: true, reason: 'Test droits' } })).status, 403);
+  assert.equal((await call('PUT', '/api/admin/enforcement', { cookie: rootC, body: { enabled: true, reason: 'Ouverture des formules' } })).status, 200);
+  assert.equal((await call('GET', '/api/admin/enforcement', { cookie: rootC })).json.enforced, true);
+  assert.equal((await call('PUT', '/api/admin/enforcement', { cookie: rootC, body: { enabled: false, reason: 'Retour arrière test' } })).status, 200);
+  assert.ok((await withClient((c) => c.query("select 1 from admin_audit_log where action = 'billing.enforcement'"))).rowCount >= 2);
+});
+
 server.close();
 console.log(`\n${ok} vérifications OK`);
 process.exit(0);

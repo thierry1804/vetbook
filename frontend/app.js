@@ -4364,6 +4364,14 @@
   }
 
   function processPhotoFiles(fileArr) {
+    // Quota « nombre de photos » de la formule (total tous animaux) : on n'accepte que ce qu'il reste de place.
+    var photoQuota = featureQuota('photos_count');
+    if (photoQuota != null) {
+      var have = state.animals.reduce(function (n, a) { return n + (Array.isArray(a.photos) ? a.photos.length : 0); }, 0);
+      var room = photoQuota - have;
+      if (room <= 0) { showFeatureLocked('photos_count', true); return; }
+      if (fileArr.length > room) { fileArr = fileArr.slice(0, room); showToast('Limite de ta formule : seules ' + room + ' photo(s) sont ajoutées.', 'info', 5000); }
+    }
     var data = getCurrent();
     if (!data) return;
     var todayStr = todayISO();
@@ -7786,7 +7794,8 @@
 
   function switchTab(tabName) {
     if (!tabName) return;
-    if (tabName === 'reproduction' && !hasFeature('reproduction')) { showFeatureLocked('reproduction'); return; }
+    var gate = GATED_TABS[tabName];
+    if (gate && !hasFeature(gate)) { showFeatureLocked(gate); return; }
     if (tabName === 'calendrier') { showAgenda(); return; }
     if (tabName === 'annuaire') { showDirectory(); return; }
 
@@ -8431,9 +8440,11 @@
     if (toggleBtn) toggleBtn.disabled = true;
 
     getPushSubscriptionState().then(function (state2) {
+      if (!state2.subscription && !hasFeature('push_reminders')) { showFeatureLocked('push_reminders'); return null; }
       var action = state2.subscription ? unsubscribeFromPush() : subscribeToPush();
       return action;
-    }).then(function () {
+    }).then(function (res) {
+      if (res === null) { if (toggleBtn) toggleBtn.disabled = false; return; }
       refreshPushSettingsUI();
       showToast('Préférences de notifications push mises à jour', 'success');
     }).catch(function (err) {
@@ -8770,16 +8781,32 @@
   // Droits : tant que le serveur ne les applique pas (enforced = false), tout est ouvert. Les droits
   // sont gardés en cache : un abonné ne perd pas l'accès faute de réseau (validUntil = simple indication).
   function currentEntitlements() { return readJson(ENT_KEY); }
-  function hasFeature(code) {
+  // Droits en vigueur : ceux du compte connecté (mis en cache) ; sans droits connus (pas de compte, ou hors ligne
+  // depuis toujours), tout utilisateur est en formule « gratuit » dès que le serveur applique les formules.
+  // null = formules non appliquées (tout est ouvert).
+  function activeFeatures() {
     var e = currentEntitlements();
-    if (!e || !e.enforced) return true;
-    var f = e.features && e.features[code];
-    return !!(f && f.enabled);
+    if (e) return e.enforced ? (e.features || {}) : null;
+    var cfg = publicConfig();
+    if (cfg && cfg.enforced) {
+      var free = (cfg.plans || []).filter(function (p) { return p.code === 'gratuit'; })[0];
+      if (free) return free.features || {};
+    }
+    return null;
   }
+  function hasFeature(code) {
+    var f = activeFeatures();
+    if (!f) return true;
+    var x = f[code];
+    return !!(x && x.enabled);
+  }
+  // Limite d'une quantité : null = illimitée ; 0 = fonctionnalité fermée (comme le serveur).
   function featureQuota(code) {
-    var e = currentEntitlements();
-    var f = e && e.enforced && e.features && e.features[code];
-    return f && f.quota != null ? f.quota : null;
+    var f = activeFeatures();
+    if (!f) return null;
+    var x = f[code];
+    if (!x || !x.enabled) return QUOTA_LABELS[code] ? 0 : null;
+    return x.quota != null ? x.quota : null;
   }
   function quotaReached(code, current) {
     var q = featureQuota(code);
@@ -8887,7 +8914,8 @@
   }
 
   // Cadenas : les entrées d'une fonctionnalité hors formule sont marquées (le clic explique et propose les formules).
-  var LOCK_TARGETS = [['reproduction', '.tab[data-tab="reproduction"]'], ['export_pdf_ics', '#btn-export-ics'], ['pedigree_edit', '[data-stitch-action="editPedigree"]']];
+  var GATED_TABS = { reproduction: 'reproduction', nutrition: 'nutrition_activity_checkup', checkup: 'nutrition_activity_checkup', activites: 'nutrition_activity_checkup' };
+  var LOCK_TARGETS = [['reproduction', '.tab[data-tab="reproduction"]'], ['nutrition_activity_checkup', '.tab[data-tab="nutrition"]'], ['nutrition_activity_checkup', '.tab[data-tab="checkup"]'], ['nutrition_activity_checkup', '.tab[data-tab="activites"]'], ['export_pdf_ics', '#btn-export-ics'], ['pedigree_edit', '[data-stitch-action="editPedigree"]']];
   var LOCK_SVG = '<svg class="feature-lock" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>';
   function applyLocks() {
     LOCK_TARGETS.forEach(function (t) {
