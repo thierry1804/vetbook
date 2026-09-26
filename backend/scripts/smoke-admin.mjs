@@ -222,6 +222,47 @@ await t('logout révoque la session', async () => {
   assert.equal((await call('GET', '/api/admin/auth/me', { cookie: c })).status, 401);
 });
 
+await t('administrateurs : création, garde-fous, réinitialisation, changement de mot de passe', async () => {
+  // réservé au super admin
+  assert.equal((await call('GET', '/api/admin/admins', { cookie: supC })).status, 403);
+  assert.equal((await call('POST', '/api/admin/admins', { cookie: supC, body: { email: 'x@test.mg', name: 'X', role_code: 'editor' } })).status, 403);
+  const email = `new-${tag}@test.mg`;
+  const created = await call('POST', '/api/admin/admins', { cookie: rootC, body: { email, name: 'Nouveau', role_code: 'editor' } });
+  assert.equal(created.status, 201);
+  assert.ok(created.json.credentials.password.length >= 15 && created.json.credentials.totp_secret && !('password_hash' in created.json));
+  assert.equal((await call('POST', '/api/admin/admins', { cookie: rootC, body: { email, name: 'Doublon', role_code: 'editor' } })).status, 409);
+  assert.equal((await call('POST', '/api/admin/admins', { cookie: rootC, body: { email: 'y@test.mg', name: 'Y', role_code: 'inconnu' } })).status, 400);
+  // le nouveau compte se connecte avec les identifiants fournis
+  const cr = created.json.credentials;
+  const l = await call('POST', '/api/admin/auth/login', { body: { email, password: cr.password, totp: totpAt(cr.totp_secret) } });
+  assert.equal(l.status, 200);
+  // changement de mot de passe : ancien refusé, trop court refusé, valide accepté, ancien mot de passe invalide ensuite
+  const cp = (cur, nxt) => call('POST', '/api/admin/auth/change-password', { cookie: l.cookie, body: { current: cur, next: nxt } });
+  assert.equal((await cp('faux', 'Un-Nouveau-Mot-De-Passe-1')).status, 403);
+  assert.equal((await cp(cr.password, 'court')).status, 400);
+  assert.equal((await cp(cr.password, 'Un-Nouveau-Mot-De-Passe-1')).status, 200);
+  assert.equal((await call('GET', '/api/admin/auth/me', { cookie: l.cookie })).status, 200);   // la session courante reste ouverte
+  assert.equal((await call('POST', '/api/admin/auth/login', { body: { email, password: cr.password, totp: totpAt(cr.totp_secret) } })).status, 401);
+  // changement de rôle : motif obligatoire, sessions révoquées
+  const id = created.json.id;
+  assert.equal((await call('PUT', `/api/admin/admins/${id}`, { cookie: rootC, body: { role_code: 'support' } })).status, 400);
+  assert.equal((await call('PUT', `/api/admin/admins/${id}`, { cookie: rootC, body: { role_code: 'support', reason: 'Changement de poste' } })).status, 200);
+  assert.equal((await call('GET', '/api/admin/auth/me', { cookie: l.cookie })).status, 401);
+  // garde-fous : ni auto-rétrogradation ni dernier super admin
+  const suId = (await call('GET', '/api/admin/auth/me', { cookie: rootC })).json.id;
+  assert.equal((await call('PUT', `/api/admin/admins/${suId}`, { cookie: rootC, body: { role_code: 'support', reason: 'Test garde-fou' } })).status, 400);
+  assert.equal((await call('PUT', `/api/admin/admins/${suId}`, { cookie: rootC, body: { status: 'desactive', reason: 'Test garde-fou' } })).status, 400);
+  // désactivation puis connexion refusée ; réinitialisation redonne des identifiants (le compte reste désactivé)
+  assert.equal((await call('PUT', `/api/admin/admins/${id}`, { cookie: rootC, body: { status: 'desactive', reason: 'Départ' } })).status, 200);
+  const rs = await call('POST', `/api/admin/admins/${id}/reset-credentials`, { cookie: rootC, body: { reason: 'Perte du téléphone' } });
+  assert.equal(rs.status, 200); assert.ok(rs.json.credentials.password);
+  assert.equal((await call('POST', '/api/admin/auth/login', { body: { email, password: rs.json.credentials.password, totp: totpAt(rs.json.credentials.totp_secret) } })).status, 401);
+  assert.equal((await call('PUT', `/api/admin/admins/${id}`, { cookie: rootC, body: { status: 'actif', reason: 'Retour' } })).status, 200);
+  assert.equal((await call('POST', '/api/admin/auth/login', { body: { email, password: rs.json.credentials.password, totp: totpAt(rs.json.credentials.totp_secret) } })).status, 200);
+  const audits = (await withClient((c) => c.query("select action from admin_audit_log where action like 'admin.%'"))).rows.map((r) => r.action);
+  for (const a of ['admin.create', 'admin.password_change', 'admin.update', 'admin.reset_credentials']) assert.ok(audits.includes(a), a);
+});
+
 server.close();
 console.log(`\n${ok} vérifications OK`);
 process.exit(0);

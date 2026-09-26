@@ -4,8 +4,10 @@ import {
   Edit, Create, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, ArrayInput, SimpleFormIterator, DateInput, DateTimeInput,
   SearchInput, SelectField, FunctionField, Show, SimpleShowLayout, required, usePermissions,
 } from 'react-admin';
-import { RichTextInput } from 'ra-input-rich-text';
+import { RichTextInput, RichTextInputToolbar, LevelSelect, FormatButtons, ListButtons, LinkButtons, QuoteButtons, ClearButtons } from 'ra-input-rich-text';
+import { Box, Chip } from '@mui/material';
 import { permits } from './api';
+import { StatusChip } from './ui';
 
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select
 export type Field = { name: string; type?: string; label?: string; choices?: string[]; required?: boolean; list?: boolean; readOnly?: boolean };
@@ -106,11 +108,11 @@ const listField = (fl: Field) => {
   switch (fl.type) {
     case 'bool': return <BooleanField {...p} />;
     case 'int': case 'num': return <NumberField {...p} />;
-    case 'date': return <DateField {...p} />;
-    case 'ts': return <DateField {...p} showTime />;
+    case 'date': return <DateField locales="fr-FR" {...p} />;
+    case 'ts': return <DateField locales="fr-FR" {...p} showTime />;
     case 'json': return <FunctionField {...p} render={(r: any) => JSON.stringify(r[fl.name] ?? null).slice(0, 60)} />;
     case 'texts': return <FunctionField {...p} render={(r: any) => (r[fl.name] || []).join(', ')} />;
-    case 'select': return <SelectField {...p} choices={(fl.choices || []).map((c) => ({ id: c, name: c }))} />;
+    case 'select': return <FunctionField {...p} render={(r: any) => (fl.name === 'status' ? <StatusChip value={r[fl.name]} /> : (r[fl.name] ?? ''))} />;
     default: return <TextField {...p} />;
   }
 };
@@ -124,7 +126,8 @@ const input = (fl: Field, isEdit: boolean, res: Res) => {
   const p: any = { key: fl.name, source: fl.name, label: label(fl), validate: fl.required ? required() : undefined, fullWidth: true };
   if (isEdit && res.createPk && fl.name === (res.pk || res.fields[0].name)) p.disabled = true;
   switch (fl.type) {
-    case 'html': return <RichTextInput key={fl.name} source={fl.name} label={label(fl)} fullWidth />;
+    case 'html': return <RichTextInput key={fl.name} source={fl.name} label={label(fl)} fullWidth
+      toolbar={<RichTextInputToolbar><LevelSelect /><FormatButtons /><ListButtons /><LinkButtons /><QuoteButtons /><ClearButtons /></RichTextInputToolbar>} />;
     case 'longtext': return <TextInput {...p} multiline minRows={3} />;
     case 'int': case 'num': return <NumberInput {...p} step={fl.type === 'int' ? 1 : 'any'} />;
     case 'bool': return <BooleanInput {...p} validate={undefined} />;
@@ -144,7 +147,7 @@ export function makeResource(res: Res, perms: string[]) {
   const canWrite = !res.readOnly && permits(perms, res.write);
   const filters = res.search ? [<SearchInput key="q" source="q" alwaysOn placeholder="Rechercher" />] : [];
   const RList = () => (
-    <List filters={filters} perPage={25} sort={{ field: res.fields.find((x) => x.list)?.name || 'id', order: 'ASC' }} exporter={false}>
+    <List filters={filters} perPage={25} title={res.label} sort={{ field: res.fields.find((x) => x.list)?.name || 'id', order: 'ASC' }} exporter={false}>
       <Datagrid rowClick={canWrite ? 'edit' : 'show'} bulkActionButtons={false}>{res.fields.filter((x) => x.list).map(listField)}</Datagrid>
     </List>
   );
@@ -152,9 +155,14 @@ export function makeResource(res: Res, perms: string[]) {
     <Show><SimpleShowLayout>{res.fields.map(listField)}</SimpleShowLayout></Show>
   );
   const form = (isEdit: boolean) => (
-    <SimpleForm>
-      {res.reason ? <TextInput source="reason" label="Motif (journalisé)" validate={required()} fullWidth /> : null}
-      {res.fields.map((fl) => input(fl, isEdit, res))}
+    <SimpleForm sx={{ maxWidth: 980 }}>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, width: '100%', alignItems: 'start' }}>
+        {res.reason ? <Box sx={{ gridColumn: '1 / -1' }}><TextInput source="reason" label="Motif (journalisé)" validate={required()} fullWidth /></Box> : null}
+        {res.fields.map((fl) => {
+          const wide = ['html', 'json', 'longtext', 'texts'].includes(fl.type || '');
+          return <Box key={fl.name} sx={wide ? { gridColumn: '1 / -1' } : undefined}>{input(fl, isEdit, res)}</Box>;
+        })}
+      </Box>
     </SimpleForm>
   );
   const REdit = () => <Edit mutationMode="pessimistic">{form(true)}</Edit>;

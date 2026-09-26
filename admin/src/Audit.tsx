@@ -15,7 +15,7 @@ const Detail = () => {
 export const AuditList = () => (
   <List filters={[<SearchInput key="q" source="q" alwaysOn placeholder="Action, admin, cible" />]} perPage={50} sort={{ field: 'id', order: 'DESC' }} exporter={false}>
     <Datagrid expand={<Detail />} bulkActionButtons={false} rowClick="expand">
-      <DateField source="created_at" label="Date" showTime />
+      <DateField locales="fr-FR" source="created_at" label="Date" showTime />
       <TextField source="admin_email" label="Administrateur" />
       <TextField source="action" label="Action" />
       <TextField source="target_type" label="Cible" />

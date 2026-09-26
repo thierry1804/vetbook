@@ -4,9 +4,10 @@ import {
 } from 'react-admin';
 import { useParams } from 'react-router-dom';
 import {
-  Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField as MuiText, Typography,
+  Avatar, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField as MuiText, Typography,
 } from '@mui/material';
 import { api, permits } from './api';
+import { StatusChip } from './ui';
 
 const mb = (b: number) => `${(b / 1e6).toFixed(1)} Mo`;
 
@@ -20,13 +21,16 @@ const filters = [
 export const UserList = () => (
   <List filters={filters} perPage={25} sort={{ field: 'created_at', order: 'DESC' }} exporter={false}>
     <Datagrid rowClick="show" bulkActionButtons={false}>
-      <TextField source="email" label="E-mail" />
-      <TextField source="name" label="Nom" />
-      <FunctionField label="Statut" render={(r: any) => <Chip size="small" color={r.status === 'suspendu' ? 'error' : 'success'} label={r.status} />} />
+      <FunctionField label="Utilisateur" render={(r: any) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: 'primary.main' }}>{String(r.name || r.email || '?').split(/[\s@.]+/).filter(Boolean).map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}</Avatar>
+          <Box><Typography variant="body2" fontWeight={600}>{r.name || '—'}</Typography><Typography variant="caption" color="text.secondary">{r.email}</Typography></Box>
+        </Box>)} />
+      <FunctionField label="Statut" render={(r: any) => <StatusChip value={r.status} />} />
       <BooleanField source="google" label="Google" />
       <NumberField source="animals" label="Animaux" />
-      <DateField source="last_seen_at" label="Dernière activité" showTime />
-      <DateField source="created_at" label="Inscription" />
+      <DateField locales="fr-FR" source="last_seen_at" label="Dernière activité" showTime />
+      <DateField locales="fr-FR" source="created_at" label="Inscription" />
     </Datagrid>
   </List>
 );
@@ -66,7 +70,7 @@ export const UserShow = () => {
     <Box sx={{ p: 2, display: 'grid', gap: 2 }}>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         <Typography variant="h5" sx={{ mr: 1 }}>{u.name || u.email}</Typography>
-        <Chip color={u.status === 'suspendu' ? 'error' : 'success'} label={u.status} />
+        <StatusChip value={u.status} />
         {u.email_verified_at ? <Chip label="e-mail vérifié" variant="outlined" /> : <Chip label="e-mail non vérifié" color="warning" variant="outlined" />}
         {u.google ? <Chip label="Google" variant="outlined" /> : null}
         <Box sx={{ flex: 1 }} />

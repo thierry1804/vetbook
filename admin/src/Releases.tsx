@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { List, Datagrid, TextField, DateField, FunctionField, useNotify, useRefresh, usePermissions, TopToolbar, Button as RaButton } from 'react-admin';
 import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, TextField as MuiText, Typography } from '@mui/material';
 import { api, permits } from './api';
+import { StatusChip } from './ui';
 
 const COLORS: Record<string, any> = { draft: 'warning', published: 'success', archived: 'default' };
 
@@ -43,12 +44,12 @@ export const ReleaseList = () => (
   <List actions={<Actions />} pagination={false} sort={{ field: 'version', order: 'DESC' }} exporter={false}>
     <Datagrid bulkActionButtons={false}>
       <TextField source="version" label="Version" />
-      <FunctionField label="Statut" render={(r: any) => <Chip size="small" color={COLORS[r.status]} label={r.status} />} />
+      <FunctionField label="Statut" render={(r: any) => <StatusChip value={r.status} />} />
       <TextField source="note" label="Note" />
       <TextField source="created_by_email" label="Créée par" />
-      <DateField source="created_at" label="Créée le" showTime />
+      <DateField locales="fr-FR" source="created_at" label="Créée le" showTime />
       <TextField source="published_by_email" label="Publiée par" />
-      <DateField source="published_at" label="Publiée le" showTime />
+      <DateField locales="fr-FR" source="published_at" label="Publiée le" showTime />
       <FunctionField label="" render={(r: any) => <PublishButton r={r} />} />
     </Datagrid>
   </List>

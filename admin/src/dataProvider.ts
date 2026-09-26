@@ -2,7 +2,7 @@ import type { DataProvider } from 'react-admin';
 import { api } from './api';
 
 // Ressources servies par des routes dédiées ; toutes les autres passent par /r/<ressource> (CRUD générique).
-const DEDICATED = new Set(['users', 'audit', 'releases']);
+const DEDICATED = new Set(['users', 'audit', 'releases', 'admins']);
 const base = (resource: string) => (DEDICATED.has(resource) ? `/${resource}` : `/r/${resource}`);
 const withId = (row: any) => ({ ...row, id: row.id ?? row.code ?? row.key });
 
