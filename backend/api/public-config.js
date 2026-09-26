@@ -29,6 +29,7 @@ export default async function handler(req, res) {
         enforced: (await s('subscriptions_enforced', false)) === true,
         countries: await s('open_countries', []),
         defaultCountry: await s('default_country', 'MG'),
+        gatedUi: (await s('gated_ui', 'lock')) === 'hide' ? 'hide' : 'lock',
         maintenance: await s('maintenance', { enabled: false, message: '' }),
         minClientVersion: await s('min_client_version', null),
         contact: await s('contact', {}),

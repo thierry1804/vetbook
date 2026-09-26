@@ -7,13 +7,14 @@ import { api, permits } from './api';
 // Interrupteur global : tant qu'il est éteint, tout le monde a accès à tout ; allumé, chaque compte sans abonnement est en « gratuit ».
 function Enforcement({ canWrite }: { canWrite: boolean }) {
   const notify = useNotify();
-  const [st, setSt] = useState<any>(null); const [open, setOpen] = useState(false); const [reason, setReason] = useState('');
+  const [st, setSt] = useState<any>(null); const [open, setOpen] = useState(false); const [reason, setReason] = useState(''); const [ui, setUi] = useState('lock');
   const load = () => api('/enforcement').then((r) => setSt(r.json)).catch(() => undefined);
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (st) setUi(st.gated_ui); }, [st]);
   if (!st) return null;
   const affected = st.over.animals + st.over.photos_count;
   const toggle = async () => {
-    try { await api('/enforcement', { method: 'PUT', body: { enabled: !st.enforced, reason } }); notify(st.enforced ? 'Formules désactivées : tout est ouvert' : 'Formules appliquées', { type: 'success' }); setOpen(false); setReason(''); load(); }
+    try { await api('/enforcement', { method: 'PUT', body: { enabled: !st.enforced, reason, gated_ui: ui } }); notify(st.enforced ? 'Formules désactivées : tout est ouvert' : 'Formules appliquées', { type: 'success' }); setOpen(false); setReason(''); load(); }
     catch (e: any) { notify(e.message, { type: 'error' }); }
   };
   return (
@@ -33,6 +34,9 @@ function Enforcement({ canWrite }: { canWrite: boolean }) {
         <DialogTitle>{st.enforced ? 'Désactiver l\'application des formules' : 'Appliquer les formules à tous les utilisateurs'}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: '8px !important' }}>
           {!st.enforced ? <Alert severity={affected ? 'warning' : 'info'}>Dès l'enregistrement, l'app et le serveur appliquent les droits et quotas de chaque formule. {affected ? `${affected} compte(s) dépassent déjà les limites du plan Gratuit.` : ''}</Alert> : <Alert severity="info">Tout redevient accessible à tous, sans limite de formule.</Alert>}
+          <TextField select label="Fonctionnalités hors formule dans l'app" value={ui} onChange={(e) => setUi(e.target.value)} helperText="Cadenas : visibles, un toucher propose de passer à une formule supérieure. Masquées : elles disparaissent des menus.">
+            <MenuItem value="lock">Afficher avec un cadenas (recommandé)</MenuItem><MenuItem value="hide">Masquer</MenuItem>
+          </TextField>
           <TextField label="Motif (5 caractères min., journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={2} />
         </DialogContent>
         <DialogActions><Button onClick={() => setOpen(false)}>Annuler</Button><Button variant="contained" disabled={reason.trim().length < 5} onClick={toggle}>Confirmer</Button></DialogActions>

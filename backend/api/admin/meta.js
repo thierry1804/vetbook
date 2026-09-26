@@ -42,7 +42,7 @@ export function mountMeta(router) {
         const animalsQ = await q('animals'); const photosQ = await q('photos_count');
         const over = async (table, limit) => (limit == null ? 0 : Number((await c.query(
           `select count(*) n from (select u.id from users u join ${table} t on t.user_id = u.id where ${free} group by u.id having count(*) > $1) x`, [limit])).rows[0].n));
-        return { enforced, free_users: total, limits: { animals: animalsQ, photos_count: photosQ },
+        return { enforced, gated_ui: (await getSetting(c, 'gated_ui', 'lock')) === 'hide' ? 'hide' : 'lock', free_users: total, limits: { animals: animalsQ, photos_count: photosQ },
           over: { animals: await over('pets', animalsQ), photos_count: await over('photos', photosQ) } };
       });
       res.json(out);
@@ -52,8 +52,11 @@ export function mountMeta(router) {
   router.put('/enforcement', requireAdmin('billing.plans_write'), async (req, res, next) => {
     try {
       if (typeof req.body?.enabled !== 'boolean') { res.status(400).json({ error: 'Valeur « enabled » (booléen) requise.' }); return; }
+      const ui = req.body?.gated_ui;
+      if (ui !== undefined && !['lock', 'hide'].includes(ui)) { res.status(400).json({ error: '« gated_ui » : lock ou hide.' }); return; }
       const reason = requireReason(req, res); if (!reason) return;
       await withTransaction(async (c) => {
+        if (ui) await c.query("insert into app_settings (key, value) values ('gated_ui', $1) on conflict (key) do update set value = excluded.value", [JSON.stringify(ui)]);
         const before = await getSetting(c, 'subscriptions_enforced', false);
         await c.query("insert into app_settings (key, value) values ('subscriptions_enforced', $1) on conflict (key) do update set value = excluded.value", [JSON.stringify(req.body.enabled)]);
         await audit(req, res, { action: 'billing.enforcement', targetType: 'setting', targetId: 'subscriptions_enforced', before: { enabled: before }, after: { enabled: req.body.enabled }, reason }, c);

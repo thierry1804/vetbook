@@ -40,6 +40,7 @@ const PLANS = [
 // Paramètres publics lus par l'app (GET /api/public-config) : pays ouverts, contact et procédure d'abonnement.
 const PUBLIC_SETTINGS = {
   open_countries: [{ code: 'MG', label: 'Madagascar' }, { code: 'FR', label: 'France' }],
+  gated_ui: 'lock',
   contact: { email: '', phone: '', whatsapp: '', subscribe_instructions: 'Pour souscrire, contacte-nous : le paiement se fait par mobile money (MVola, Orange Money, Airtel Money) et ton abonnement est activé sous 24 h.' },
 };
 const SETTINGS = {

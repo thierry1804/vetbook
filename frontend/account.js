@@ -465,8 +465,8 @@
     var eventsOn = localStorage.getItem('vetbook_dog_events_reminder_enabled') !== 'false';
     return '' +
       '<div class="acc-card"><h3>Canaux</h3>' +
-        toggleRow('nt-push', 'Notifications push', esc(permTxt) + (signedIn() ? '' : '. <b>Une connexion est nécessaire pour les recevoir application fermée.</b>'), n.push, ' data-pref="notifications.push" data-type="bool"') +
-        '<div class="acc-actions acc-actions--start"><button type="button" class="acc-btn" data-act="push-settings">' + icon('bell', 18) + 'Autoriser ce navigateur</button></div>' +
+        toggleRow('nt-push', 'Notifications push', esc(permTxt) + (signedIn() ? '' : '. <b>Une connexion est nécessaire pour les recevoir application fermée.</b>'), n.push, ' data-pref="notifications.push" data-type="bool" data-feature="push_reminders"') +
+        '<div class="acc-actions acc-actions--start"><button type="button" class="acc-btn" data-act="push-settings" data-feature="push_reminders">' + icon('bell', 18) + 'Autoriser ce navigateur</button></div>' +
         toggleRow('nt-email', 'Rappels par e-mail', signedIn() ? 'Envoyés à ' + esc(acc.user.email) + (acc.user.emailVerified ? '' : ' (adresse non vérifiée)') : 'Nécessite un compte connecté', n.email, ' data-pref="notifications.email" data-type="bool"' + (signedIn() ? '' : ' disabled')) +
       '</div>' +
       '<div class="acc-card"><h3>Délais de rappel</h3><p class="acc-hint">Combien de temps à l’avance vous prévenir avant chaque échéance. Un soin en retard est toujours signalé.</p>' +
@@ -614,7 +614,7 @@
           '<p class="acc-status" id="sh-status" role="status" aria-live="polite" hidden></p><div class="acc-actions"><button type="submit" class="acc-btn acc-btn--primary">' + icon('link', 18) + 'Créer le lien</button></div></form>' : '<p class="acc-hint">Ajoutez un animal pour créer un lien.</p>') +
         '<div id="acc-newlink">' + (acc.justCreatedLink ? newLinkHtml(acc.justCreatedLink) : '') + '</div>' +
         '<h4 class="acc-sub">Liens créés</h4><div id="acc-links">' + (acc.links ? linksHtml() : '<p class="acc-hint">Chargement…</p>') + '</div></div>' +
-      '<div class="acc-card"><h3>Foyer</h3><p class="acc-hint">Invitez un proche à consulter vos carnets en lecture seule. Il garde son propre compte ; vous pouvez le retirer à tout moment. La modification partagée des carnets n’est pas encore disponible.</p>' +
+      '<div class="acc-card" data-feature="household_members"><h3>Foyer</h3><p class="acc-hint">Invitez un proche à consulter vos carnets en lecture seule. Il garde son propre compte ; vous pouvez le retirer à tout moment. La modification partagée des carnets n’est pas encore disponible.</p>' +
         '<form class="acc-form acc-form--inline" data-form="invite" novalidate>' + field('iv-email', 'Adresse e-mail du proche', 'email', '', { autocomplete: 'off', required: true }) + '<button type="submit" class="acc-btn acc-btn--primary">Inviter</button></form>' +
         '<p class="acc-status" id="iv-status" role="status" aria-live="polite" hidden></p><div id="acc-household">' + (acc.household ? householdHtml() : '<p class="acc-hint">Chargement…</p>') + '</div></div>';
   }

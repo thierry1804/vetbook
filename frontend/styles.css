@@ -8537,3 +8537,5 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 .cms-body p, .community-tip-content p { margin: 0 0 .6em; }
 .cms-body ul, .cms-body ol, .community-tip-content ul, .community-tip-content ol { margin: 0 0 .6em 1.2em; padding: 0; }
 .cms-body a, .community-tip-content a { text-decoration: underline; }
+
+.is-feature-hidden { display: none !important; }
