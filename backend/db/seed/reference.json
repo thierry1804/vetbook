@@ -1,0 +1,1277 @@
+{
+  "generatedFrom": "frontend/app.js",
+  "breeds": [
+    {
+      "species": "Canine",
+      "name": "Labrador Retriever",
+      "weightMin": 25,
+      "weightMax": 36,
+      "fci": "122",
+      "slug": "retriever-du-labrador"
+    },
+    {
+      "species": "Canine",
+      "name": "Golden Retriever",
+      "weightMin": 25,
+      "weightMax": 34,
+      "fci": "111",
+      "slug": "golden-retriever"
+    },
+    {
+      "species": "Canine",
+      "name": "Berger Allemand",
+      "weightMin": 22,
+      "weightMax": 40,
+      "fci": "166",
+      "slug": "berger-allemand"
+    },
+    {
+      "species": "Canine",
+      "name": "Berger Australien",
+      "weightMin": 16,
+      "weightMax": 32,
+      "fci": "342",
+      "slug": "berger-australien"
+    },
+    {
+      "species": "Canine",
+      "name": "Border Collie",
+      "weightMin": 12,
+      "weightMax": 20,
+      "fci": "297",
+      "slug": "border-collie"
+    },
+    {
+      "species": "Canine",
+      "name": "Bouledogue Français",
+      "weightMin": 8,
+      "weightMax": 14,
+      "fci": "101",
+      "slug": "bouledogue-francais"
+    },
+    {
+      "species": "Canine",
+      "name": "Bouledogue Anglais",
+      "weightMin": 18,
+      "weightMax": 25,
+      "fci": "149",
+      "slug": "bulldog"
+    },
+    {
+      "species": "Canine",
+      "name": "Cavalier King Charles",
+      "weightMin": 5,
+      "weightMax": 8,
+      "fci": "136",
+      "slug": "cavalier-king-charles"
+    },
+    {
+      "species": "Canine",
+      "name": "Chihuahua",
+      "weightMin": 1.5,
+      "weightMax": 3,
+      "fci": "218",
+      "slug": "chihuahua"
+    },
+    {
+      "species": "Canine",
+      "name": "Cocker Spaniel",
+      "weightMin": 12,
+      "weightMax": 16,
+      "fci": "005",
+      "slug": "cocker-spaniel-anglais"
+    },
+    {
+      "species": "Canine",
+      "name": "Beagle",
+      "weightMin": 9,
+      "weightMax": 13,
+      "fci": "161",
+      "slug": "beagle"
+    },
+    {
+      "species": "Canine",
+      "name": "Jack Russell Terrier",
+      "weightMin": 5,
+      "weightMax": 8,
+      "fci": "345",
+      "slug": "terrier-jack-russell"
+    },
+    {
+      "species": "Canine",
+      "name": "Yorkshire Terrier",
+      "weightMin": 2,
+      "weightMax": 3.5,
+      "fci": "086",
+      "slug": "yorkshire-terrier"
+    },
+    {
+      "species": "Canine",
+      "name": "Shih Tzu",
+      "weightMin": 4,
+      "weightMax": 7.5,
+      "fci": "208",
+      "slug": "shih-tzu"
+    },
+    {
+      "species": "Canine",
+      "name": "Caniche (Toy)",
+      "weightMin": 3,
+      "weightMax": 4,
+      "fci": "172",
+      "slug": "caniche"
+    },
+    {
+      "species": "Canine",
+      "name": "Caniche (Moyen)",
+      "weightMin": 8,
+      "weightMax": 15,
+      "fci": "172",
+      "slug": "caniche"
+    },
+    {
+      "species": "Canine",
+      "name": "Caniche (Standard)",
+      "weightMin": 20,
+      "weightMax": 32,
+      "fci": "172",
+      "slug": "caniche"
+    },
+    {
+      "species": "Canine",
+      "name": "Rottweiler",
+      "weightMin": 35,
+      "weightMax": 60,
+      "fci": "147",
+      "slug": "rottweiler"
+    },
+    {
+      "species": "Canine",
+      "name": "Boxer",
+      "weightMin": 25,
+      "weightMax": 32,
+      "fci": "144",
+      "slug": "boxer"
+    },
+    {
+      "species": "Canine",
+      "name": "Dogue Allemand",
+      "weightMin": 50,
+      "weightMax": 90,
+      "fci": "235",
+      "slug": "dogue-allemand"
+    },
+    {
+      "species": "Canine",
+      "name": "Saint-Bernard",
+      "weightMin": 55,
+      "weightMax": 90,
+      "fci": "061",
+      "slug": "saint-bernard"
+    },
+    {
+      "species": "Canine",
+      "name": "Husky Sibérien",
+      "weightMin": 16,
+      "weightMax": 27,
+      "fci": "270",
+      "slug": "husky-de-siberie"
+    },
+    {
+      "species": "Canine",
+      "name": "Malamute d'Alaska",
+      "weightMin": 34,
+      "weightMax": 43,
+      "fci": "243",
+      "slug": "malamute-de-lalaska"
+    },
+    {
+      "species": "Canine",
+      "name": "Dalmatien",
+      "weightMin": 20,
+      "weightMax": 32,
+      "fci": "153",
+      "slug": "dalmatien"
+    },
+    {
+      "species": "Canine",
+      "name": "Shar Pei",
+      "weightMin": 18,
+      "weightMax": 30,
+      "fci": "309",
+      "slug": "shar-pei"
+    },
+    {
+      "species": "Canine",
+      "name": "Akita Inu",
+      "weightMin": 30,
+      "weightMax": 45,
+      "fci": "255",
+      "slug": "akita"
+    },
+    {
+      "species": "Canine",
+      "name": "Bichon Frisé",
+      "weightMin": 3,
+      "weightMax": 6,
+      "fci": "215",
+      "slug": "bichon-poil-frise"
+    },
+    {
+      "species": "Canine",
+      "name": "Teckel (Standard)",
+      "weightMin": 7,
+      "weightMax": 15,
+      "fci": "148",
+      "slug": "teckel"
+    },
+    {
+      "species": "Canine",
+      "name": "Teckel (Nain)",
+      "weightMin": 3.5,
+      "weightMax": 6.5,
+      "fci": "148",
+      "slug": "teckel"
+    },
+    {
+      "species": "Canine",
+      "name": "Setter Anglais",
+      "weightMin": 20,
+      "weightMax": 32,
+      "fci": "002",
+      "slug": "setter-anglais"
+    },
+    {
+      "species": "Canine",
+      "name": "Épagneul Breton",
+      "weightMin": 13,
+      "weightMax": 20,
+      "fci": "095",
+      "slug": "epagneul-breton"
+    },
+    {
+      "species": "Canine",
+      "name": "Braque Allemand",
+      "weightMin": 20,
+      "weightMax": 32,
+      "fci": "119",
+      "slug": "braque-allemand-poil-court"
+    },
+    {
+      "species": "Canine",
+      "name": "Berger Belge Malinois",
+      "weightMin": 20,
+      "weightMax": 30,
+      "fci": "015",
+      "slug": "chien-de-berger-belge"
+    },
+    {
+      "species": "Canine",
+      "name": "Terre-Neuve",
+      "weightMin": 45,
+      "weightMax": 68,
+      "fci": "050",
+      "slug": "terre-neuve"
+    },
+    {
+      "species": "Canine",
+      "name": "Bull Terrier",
+      "weightMin": 20,
+      "weightMax": 32,
+      "fci": "011",
+      "slug": "bull-terrier"
+    },
+    {
+      "species": "Canine",
+      "name": "Staffordshire Bull Terrier",
+      "weightMin": 11,
+      "weightMax": 17,
+      "fci": "076",
+      "slug": "staffordshire-bull-terrier"
+    },
+    {
+      "species": "Canine",
+      "name": "American Staffordshire Terrier",
+      "weightMin": 25,
+      "weightMax": 40,
+      "fci": "286",
+      "slug": "staffordshire-terrier-americain"
+    },
+    {
+      "species": "Canine",
+      "name": "Pug (Carlin)",
+      "weightMin": 6,
+      "weightMax": 8,
+      "fci": "253",
+      "slug": "carlin"
+    },
+    {
+      "species": "Canine",
+      "name": "Pékinois",
+      "weightMin": 3,
+      "weightMax": 6,
+      "fci": "207",
+      "slug": "epagneul-pekinois"
+    },
+    {
+      "species": "Canine",
+      "name": "Whippet",
+      "weightMin": 9,
+      "weightMax": 19,
+      "fci": "162",
+      "slug": "whippet"
+    },
+    {
+      "species": "Canine",
+      "name": "Lévrier Afghan",
+      "weightMin": 22,
+      "weightMax": 27,
+      "fci": "228",
+      "slug": "levrier-afghan"
+    },
+    {
+      "species": "Canine",
+      "name": "Bichon Maltais",
+      "weightMin": 2,
+      "weightMax": 4,
+      "fci": "065",
+      "slug": "bichon-maltais"
+    },
+    {
+      "species": "Canine",
+      "name": "Spitz Nain (Poméranien)",
+      "weightMin": 1.5,
+      "weightMax": 3,
+      "fci": "097",
+      "slug": "spitz-allemand"
+    },
+    {
+      "species": "Canine",
+      "name": "Colley",
+      "weightMin": 18,
+      "weightMax": 30,
+      "fci": "156",
+      "slug": "collie-poil-long"
+    },
+    {
+      "species": "Canine",
+      "name": "Fox Terrier",
+      "weightMin": 7,
+      "weightMax": 9,
+      "fci": "169",
+      "slug": "fox-terrier-poil-dur"
+    },
+    {
+      "species": "Canine",
+      "name": "Épagneul Cavalier",
+      "weightMin": 5,
+      "weightMax": 8,
+      "fci": "136",
+      "slug": "cavalier-king-charles"
+    },
+    {
+      "species": "Féline",
+      "name": "Européen",
+      "weightMin": 3,
+      "weightMax": 6,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Maine Coon",
+      "weightMin": 4.5,
+      "weightMax": 11,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Persan",
+      "weightMin": 3,
+      "weightMax": 6,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Siamois",
+      "weightMin": 2.5,
+      "weightMax": 5,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Bengal",
+      "weightMin": 3.5,
+      "weightMax": 7,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "British Shorthair",
+      "weightMin": 3.5,
+      "weightMax": 8,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Ragdoll",
+      "weightMin": 4.5,
+      "weightMax": 9,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Sacré de Birmanie",
+      "weightMin": 3,
+      "weightMax": 6,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Sphynx",
+      "weightMin": 2.5,
+      "weightMax": 5.5,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Abyssin",
+      "weightMin": 3,
+      "weightMax": 5,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Norvégien",
+      "weightMin": 3.5,
+      "weightMax": 9,
+      "fci": null,
+      "slug": null
+    },
+    {
+      "species": "Féline",
+      "name": "Chartreux",
+      "weightMin": 3,
+      "weightMax": 7,
+      "fci": null,
+      "slug": null
+    }
+  ],
+  "vaccines": [
+    {
+      "species": "Canine",
+      "name": "Nobivac DHPPi"
+    },
+    {
+      "species": "Canine",
+      "name": "Nobivac Rabies"
+    },
+    {
+      "species": "Canine",
+      "name": "Nobivac L4"
+    },
+    {
+      "species": "Canine",
+      "name": "Nobivac KC"
+    },
+    {
+      "species": "Canine",
+      "name": "Eurican DHPPi2-LR"
+    },
+    {
+      "species": "Canine",
+      "name": "Eurican DHPPi2-L"
+    },
+    {
+      "species": "Canine",
+      "name": "Eurican Herpes"
+    },
+    {
+      "species": "Canine",
+      "name": "Canigen DHPPi/L"
+    },
+    {
+      "species": "Canine",
+      "name": "Canigen R"
+    },
+    {
+      "species": "Canine",
+      "name": "Vanguard Plus 5"
+    },
+    {
+      "species": "Canine",
+      "name": "Rabisin"
+    },
+    {
+      "species": "Canine",
+      "name": "Versican Plus DHPPi/L4R"
+    },
+    {
+      "species": "Féline",
+      "name": "Purevax RCPCh"
+    },
+    {
+      "species": "Féline",
+      "name": "Purevax RCP"
+    },
+    {
+      "species": "Féline",
+      "name": "Purevax FeLV"
+    },
+    {
+      "species": "Féline",
+      "name": "Nobivac Tricat Trio"
+    },
+    {
+      "species": "Féline",
+      "name": "Nobivac Rabies"
+    },
+    {
+      "species": "Féline",
+      "name": "Felocell CVR"
+    },
+    {
+      "species": "Féline",
+      "name": "Leucofeligen FeLV/RCP"
+    },
+    {
+      "species": "Féline",
+      "name": "Rabisin"
+    },
+    {
+      "species": "Féline",
+      "name": "Versifel CVR"
+    }
+  ],
+  "lists": {
+    "symptom": [
+      "Vomissements",
+      "Diarrhée",
+      "Perte d'appétit",
+      "Léthargie / fatigue",
+      "Toux",
+      "Éternuements",
+      "Boiterie",
+      "Démangeaisons",
+      "Perte de poils",
+      "Soif excessive",
+      "Difficulté à uriner",
+      "Halètement excessif",
+      "Gonflement",
+      "Douleur apparente",
+      "Changement de comportement",
+      "Autre"
+    ],
+    "hygiene": [
+      "Brossage dents",
+      "Coupe griffes",
+      "Bain",
+      "Toilettage",
+      "Nettoyage oreilles",
+      "Nettoyage yeux"
+    ],
+    "meal": [
+      "Croquettes",
+      "Pâtée",
+      "BARF",
+      "Ration ménagère",
+      "Friandise"
+    ],
+    "activity": [
+      {
+        "label": "Promenade",
+        "met": 3
+      },
+      {
+        "label": "Course",
+        "met": 8
+      },
+      {
+        "label": "Jeu",
+        "met": 4
+      },
+      {
+        "label": "Natation",
+        "met": 6
+      },
+      {
+        "label": "Agility",
+        "met": 5.5
+      },
+      {
+        "label": "Autre",
+        "met": 3.5
+      }
+    ]
+  },
+  "checkup": [
+    {
+      "key": "appetite",
+      "label": "Appétit",
+      "icon": "utensils",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 0
+    },
+    {
+      "key": "energy",
+      "label": "Énergie",
+      "icon": "zap",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 1
+    },
+    {
+      "key": "hydration",
+      "label": "Hydratation",
+      "icon": "💧",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 2
+    },
+    {
+      "key": "coat",
+      "label": "Pelage",
+      "icon": "sparkle",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 3
+    },
+    {
+      "key": "eyes",
+      "label": "Yeux",
+      "icon": "eye",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 4
+    },
+    {
+      "key": "ears",
+      "label": "Oreilles",
+      "icon": "👂",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 5
+    },
+    {
+      "key": "gums",
+      "label": "Gencives",
+      "icon": "🦷",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 6
+    },
+    {
+      "key": "mobility",
+      "label": "Mobilité",
+      "icon": "🦿",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 7
+    },
+    {
+      "key": "behavior",
+      "label": "Comportement",
+      "icon": "🧠",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 8
+    },
+    {
+      "key": "weight",
+      "label": "Poids",
+      "icon": "scale",
+      "levels": [
+        "Normal",
+        "À surveiller",
+        "Préoccupant"
+      ],
+      "order": 9
+    }
+  ],
+  "registries": [
+    {
+      "code": "LOF",
+      "label": "LOF (Livre des Origines Français)",
+      "country": "FR",
+      "regex": "^\\d{1,3}\\s?\\d{3}\\/\\d{4,5}$",
+      "lookupUrl": "https://www.centrale-canine.fr/lofselect/recherche-chien/identifiant",
+      "delays": {}
+    },
+    {
+      "code": "LOMAD",
+      "label": "LOMAD (Livre des Origines de Madagascar)",
+      "country": "MG",
+      "regex": "^\\d{6,15}$",
+      "lookupUrl": "https://acymadagascar.org/recherche",
+      "delays": {
+        "matingDeclarationDays": 28,
+        "birthDeclarationDays": 28,
+        "lomadRegistrationDays": 168
+      }
+    }
+  ],
+  "tips": [
+    {
+      "title": "Vérifiez les gencives régulièrement",
+      "body": "Des gencives roses et humides sont signe de bonne santé. Des gencives pâles, bleues ou jaunes nécessitent une visite vétérinaire.",
+      "category": "sante",
+      "author": "App'lika"
+    },
+    {
+      "title": "Rappels de vaccins annuels",
+      "body": "N'oubliez pas les rappels annuels (DHPPi, Leptospirose, Rage). Consultez votre vétérinaire pour le protocole adapté.",
+      "category": "sante",
+      "author": "App'lika"
+    },
+    {
+      "title": "Évitez les aliments toxiques",
+      "body": "Chocolat, raisins, oignons, ail, xylitol et noix de macadamia sont toxiques pour les chiens. Gardez-les hors de portée.",
+      "category": "alimentation",
+      "author": "App'lika"
+    },
+    {
+      "title": "Transition alimentaire progressive",
+      "body": "Changez la nourriture sur 7 à 10 jours en mélangeant progressivement l'ancien et le nouveau aliment.",
+      "category": "alimentation",
+      "author": "App'lika"
+    },
+    {
+      "title": "Eau fraîche toujours disponible",
+      "body": "Un chien doit boire environ 50-70 ml d'eau par kg de poids par jour. Renouvelez l'eau régulièrement.",
+      "category": "alimentation",
+      "author": "App'lika"
+    },
+    {
+      "title": "Socialisation avant 4 mois",
+      "body": "La période critique de socialisation est entre 3 et 14 semaines. Exposez votre chiot à différentes personnes, animaux et environnements.",
+      "category": "education",
+      "author": "App'lika"
+    },
+    {
+      "title": "Renforcement positif",
+      "body": "Récompensez les bons comportements plutôt que de punir les mauvais. Friandises, caresses et jeu sont vos meilleurs outils.",
+      "category": "education",
+      "author": "App'lika"
+    },
+    {
+      "title": "Brossage dentaire 2-3 fois/semaine",
+      "body": "Le tartre s'accumule vite. Utilisez un dentifrice spécial chien (jamais de dentifrice humain) et une brosse adaptée.",
+      "category": "hygiene",
+      "author": "App'lika"
+    },
+    {
+      "title": "Coupe des griffes régulière",
+      "body": "Coupez les griffes toutes les 2-4 semaines. Si vous entendez les griffes cliquer sur le sol, elles sont trop longues.",
+      "category": "hygiene",
+      "author": "App'lika"
+    },
+    {
+      "title": "Nettoyage des oreilles",
+      "body": "Nettoyez les oreilles toutes les semaines, surtout pour les races à oreilles tombantes. Utilisez un produit auriculaire vétérinaire.",
+      "category": "hygiene",
+      "author": "App'lika"
+    },
+    {
+      "title": "Signes de stress à surveiller",
+      "body": "Bâillements fréquents, léchage des babines, queue entre les pattes, oreilles plaquées : votre chien peut être stressé.",
+      "category": "comportement",
+      "author": "App'lika"
+    },
+    {
+      "title": "Exercice quotidien adapté",
+      "body": "Un chien adulte a besoin de 30 min à 2h d'exercice par jour selon sa race. Variez les activités : marche, jeu, nage.",
+      "category": "comportement",
+      "author": "App'lika"
+    },
+    {
+      "title": "Protection anti-parasitaire toute l'année",
+      "body": "Les puces et tiques sont actives même en hiver. Maintenez un traitement antiparasitaire régulier toute l'année.",
+      "category": "sante",
+      "author": "App'lika"
+    },
+    {
+      "title": "Attention au coup de chaleur",
+      "body": "Ne laissez jamais un chien dans une voiture fermée. Signes : halètement excessif, bave, titubation. Refroidissez progressivement.",
+      "category": "sante",
+      "author": "App'lika"
+    },
+    {
+      "title": "Enrichissement mental",
+      "body": "Jouets distributeurs, jeux de flair, tricks : un chien mentalement stimulé est un chien équilibré et heureux.",
+      "category": "comportement",
+      "author": "App'lika"
+    }
+  ],
+  "events": [
+    {
+      "title": "Salon International de l'Agriculture",
+      "description": "Concours canins et présentation de races au SIA, Paris.",
+      "month": 2,
+      "day": 22,
+      "recurring": true
+    },
+    {
+      "title": "Exposition Canine de Paris",
+      "description": "Exposition internationale organisée par la SCC.",
+      "month": 3,
+      "day": 8,
+      "recurring": true
+    },
+    {
+      "title": "Journée mondiale du chien de sauvetage",
+      "description": "Célébration des chiens de recherche et sauvetage.",
+      "month": 4,
+      "day": 28,
+      "recurring": true
+    },
+    {
+      "title": "Journée mondiale des animaux de compagnie",
+      "description": "Journée dédiée à nos compagnons.",
+      "month": 4,
+      "day": 11,
+      "recurring": true
+    },
+    {
+      "title": "Fête de la Nature",
+      "description": "Sorties canines en pleine nature dans toute la France.",
+      "month": 5,
+      "day": 22,
+      "recurring": true
+    },
+    {
+      "title": "Game Fair",
+      "description": "Grand rassemblement autour de la chasse et des chiens de travail.",
+      "month": 6,
+      "day": 14,
+      "recurring": true
+    },
+    {
+      "title": "Journée mondiale du chien",
+      "description": "La journée internationale dédiée à nos meilleurs amis !",
+      "month": 8,
+      "day": 26,
+      "recurring": true
+    },
+    {
+      "title": "Septembre : mois de l'adoption",
+      "description": "Campagnes d'adoption dans les refuges partout en France.",
+      "month": 9,
+      "day": 1,
+      "recurring": true
+    },
+    {
+      "title": "Journée mondiale des animaux",
+      "description": "Sensibilisation au bien-être animal dans le monde.",
+      "month": 10,
+      "day": 4,
+      "recurring": true
+    },
+    {
+      "title": "Exposition Canine d'Automne",
+      "description": "Exposition nationale d'automne, Paris-Villepinte.",
+      "month": 10,
+      "day": 19,
+      "recurring": true
+    },
+    {
+      "title": "Semaine Vétérinaire",
+      "description": "Semaine de sensibilisation à la santé animale.",
+      "month": 11,
+      "day": 18,
+      "recurring": true
+    },
+    {
+      "title": "Journée du bénévolat animalier",
+      "description": "Bénévolat dans les refuges et associations.",
+      "month": 12,
+      "day": 5,
+      "recurring": true
+    },
+    {
+      "title": "Noël des animaux",
+      "description": "Collectes et dons pour les animaux des refuges.",
+      "month": 12,
+      "day": 24,
+      "recurring": true
+    }
+  ],
+  "emergency": [
+    {
+      "country": "FR",
+      "label": "Centre antipoison vétérinaire (3115)",
+      "phone": "3115",
+      "hours": "24h/24"
+    },
+    {
+      "country": "FR",
+      "label": "Centre Antipoison Animal CAPAE-Ouest",
+      "phone": "02 40 68 77 40",
+      "hours": "24h/24"
+    },
+    {
+      "country": "FR",
+      "label": "Centre Antipoison VetAgro Sup",
+      "phone": "04 78 87 10 40",
+      "hours": "24h/24"
+    }
+  ],
+  "fciFiles": {
+    "affenpinscher": "186",
+    "airedaleterrier": "007",
+    "akita": "255",
+    "akitaamericain": "344",
+    "anglofrancaisdepetitevenerie": "325",
+    "ariegeois": "020",
+    "azawakh": "307",
+    "bangkaewdethailande": "358",
+    "barbet": "105",
+    "barbutcheque": "245",
+    "barzoi": "193",
+    "basenji": "043",
+    "bassetartesiennormand": "034",
+    "bassetbleudegascogne": "035",
+    "bassetdewestphalie": "100",
+    "bassetfauvedebretagne": "036",
+    "bassethound": "163",
+    "bassetsuedois": "130",
+    "beagle": "161",
+    "beagleharrier": "290",
+    "beardedcollie": "271",
+    "bedlingtonterrier": "009",
+    "bergerallemand": "166",
+    "bergeraustralien": "342",
+    "bergerbergamasque": "194",
+    "bergerblancsuisse": "347",
+    "bergerdasiecentrale": "335",
+    "bergerdebeauce": "044",
+    "bergerdebosnieherzegovineetdecroatie": "355",
+    "bergerdebrie": "113",
+    "bergerdelamaremmeetdesabruzzes": "201",
+    "bergerdelaserradeaires": "093",
+    "bergerdepicardie": "176",
+    "bergerderussiemeridionale": "326",
+    "bergerdespyreneesafacerase": "138",
+    "bergerdespyreneesapoillong": "141",
+    "bergerducaucase": "328",
+    "bergerdukarst": "278",
+    "bergerfinnoisdelaponie": "284",
+    "bergerhollandais": "223",
+    "bergerpolonaisdeplaine": "251",
+    "bichonapoilfrise": "215",
+    "bichonbolonais": "196",
+    "bichonhavanais": "250",
+    "bichonmaltais": "065",
+    "billy": "025",
+    "bordercollie": "297",
+    "borderterrier": "010",
+    "bouledoguefrancais": "101",
+    "bouvieraustralien": "287",
+    "bouvieraustraliencourtequeue": "351",
+    "bouvierbernois": "045",
+    "bouvierdelappenzell": "046",
+    "bouvierdelentlebuch": "047",
+    "bouvierdesardennes": "171",
+    "bouvierdesflandres": "191",
+    "boxer": "144",
+    "brachetallemand": "299",
+    "brachetnoiretfeu": "063",
+    "brachetpolonais": "052",
+    "brachettyrolien": "068",
+    "braqueallemandapoilcourt": "119",
+    "braquedauvergne": "180",
+    "braquedeburgos": "090",
+    "braquedeweimar": "099",
+    "braquedubourbonnais": "179",
+    "braquefrancaistypegascogne": "133",
+    "braquefrancaistypepyrenees": "134",
+    "braquehongroisapoilcourt": "057",
+    "braquehongroisapoildur": "239",
+    "braqueitalien": "202",
+    "braquesaintgermain": "115",
+    "braqueslovaqueapoildur": "320",
+    "briquetgriffonvendeen": "019",
+    "broholmer": "315",
+    "buhundnorvegien": "237",
+    "bulldog": "149",
+    "bulldogcontinental": "369",
+    "bullmastiff": "157",
+    "bullterrier": "011",
+    "bullterrierminiature": "359",
+    "cairnterrier": "004",
+    "caniche": "172",
+    "carlin": "253",
+    "cavalierkingcharles": "136",
+    "chienaloutre": "294",
+    "chienchinoisacrete": "288",
+    "chiencourantdebosnieapoildur": "155",
+    "chiencourantdehalden": "267",
+    "chiencourantdehamilton": "132",
+    "chiencourantdehygen": "266",
+    "chiencourantdelavalleedelasave": "154",
+    "chiencourantdemontagnedumontenegro": "279",
+    "chiencourantdetransylvanie": "241",
+    "chiencourantdistrieapoildur": "152",
+    "chiencourantdistrieapoilras": "151",
+    "chiencourantespagnol": "204",
+    "chiencourantfinlandais": "051",
+    "chiencourantgrec": "214",
+    "chiencourantitalienapoildur": "198",
+    "chiencourantitalienapoilras": "337",
+    "chiencourantnorvegien": "203",
+    "chiencourantpolonais": "354",
+    "chiencourantsuisse": "059",
+    "chiendarretallemandapoildur": "098",
+    "chiendarretallemandapoillong": "117",
+    "chiendarretallemandapoilraide": "232",
+    "chiendarretdanoisancestral": "281",
+    "chiendarretportugais": "187",
+    "chiendartois": "028",
+    "chiendeauamericain": "301",
+    "chiendeauespagnol": "336",
+    "chiendeaufrison": "221",
+    "chiendeauportugais": "037",
+    "chiendeauromagnol": "298",
+    "chiendebergerbelge": "015",
+    "chiendebergercatalan": "087",
+    "chiendebergercroate": "277",
+    "chiendebergerdemajorque": "321",
+    "chiendebergerdesshetland": "088",
+    "chiendebergerdestatras": "252",
+    "chiendebergerislandais": "289",
+    "chiendebergerkangal": "331",
+    "chiendebergerroumaindebucovine": "357",
+    "chiendebergerroumaindemioritza": "349",
+    "chiendebergerroumaindescarpathes": "350",
+    "chiendecanaan": "273",
+    "chiendecastrolaboreiro": "170",
+    "chiendecouritalien": "343",
+    "chiendefermedanosuedois": "356",
+    "chiendegarennedescanaries": "329",
+    "chiendegarenneportugais": "094",
+    "chiendelannorvegiengris": "242",
+    "chiendelannorvegiennoir": "268",
+    "chiendelansuedoisjamthund": "042",
+    "chiendelaserradaestrela": "173",
+    "chiendeleonberg": "145",
+    "chiendemontagnedespyrenees": "137",
+    "chiendeperdrixdedrente": "224",
+    "chienderhodesieacretedorsale": "146",
+    "chienderougedebaviere": "217",
+    "chienderougedehanovre": "213",
+    "chiendesainthubert": "084",
+    "chiendoursdecarelie": "048",
+    "chiendoyselallemand": "104",
+    "chiendugroenland": "274",
+    "chiendupharaon": "248",
+    "chienlouptchecoslovaque": "332",
+    "chiennorvegiendemacareux": "265",
+    "chiennudumexique": "234",
+    "chiennuduperou": "310",
+    "chienthailandaisacretedorsale": "338",
+    "chihuahua": "218",
+    "chowchow": "205",
+    "cimarronuruguayen": "353",
+    "cirnecodeletna": "199",
+    "clumberspaniel": "109",
+    "cockerspanielamericain": "167",
+    "cockerspanielanglais": "005",
+    "collieapoilcourt": "296",
+    "collieapoillong": "156",
+    "cotondetulear": "283",
+    "dalmatien": "153",
+    "dandiedinmontterrier": "168",
+    "dobermann": "143",
+    "dogueallemand": "235",
+    "dogueargentin": "292",
+    "doguedebordeaux": "116",
+    "doguedemajorque": "249",
+    "doguedutibet": "230",
+    "englishspringerspaniel": "125",
+    "epagneulbleudepicardie": "106",
+    "epagneulbreton": "095",
+    "epagneuldeauirlandais": "124",
+    "epagneuldepontaudemer": "114",
+    "epagneulfrancais": "175",
+    "epagneuljaponais": "206",
+    "epagneulkingcharles": "128",
+    "epagneulnaincontinental": "077",
+    "epagneulpekinois": "207",
+    "epagneulpicard": "108",
+    "epagneultibetain": "231",
+    "eurasier": "291",
+    "fieldspaniel": "123",
+    "filabrasileiro": "225",
+    "filadesaintmiguel": "340",
+    "foxhoundamericain": "303",
+    "foxhoundanglais": "159",
+    "foxterrierpoildur": "169",
+    "foxterrierpoillisse": "012",
+    "francaisblancetnoir": "220",
+    "francaisblancetorange": "316",
+    "francaistricolore": "219",
+    "gasconsaintongeois": "021",
+    "goldenretriever": "111",
+    "grandanglofrancaisblancetnoir": "323",
+    "grandanglofrancaisblancetorange": "324",
+    "grandanglofrancaistricolore": "322",
+    "grandbassetgriffonvendeen": "033",
+    "grandbleudegascogne": "022",
+    "grandbouviersuisse": "058",
+    "grandepagneuldemunster": "118",
+    "grandgriffonvendeen": "282",
+    "greyhound": "158",
+    "griffonapoildurkorthals": "107",
+    "griffonbelge": "081",
+    "griffonbleudegascogne": "032",
+    "griffonbruxellois": "080",
+    "griffonfauvedebretagne": "066",
+    "griffonnivernais": "017",
+    "harrier": "295",
+    "hokkaido": "261",
+    "hovawart": "190",
+    "huskydesiberie": "270",
+    "jindocoreen": "334",
+    "kai": "317",
+    "kelpieaustralien": "293",
+    "kishu": "318",
+    "komondor": "053",
+    "kromfohrlander": "192",
+    "kuvasz": "054",
+    "laikadesiberieoccidentale": "306",
+    "laikadesiberieorientale": "305",
+    "lakelandterrier": "070",
+    "lancashireheeler": "360",
+    "landseer": "226",
+    "levrierafghan": "228",
+    "levrierecossais": "164",
+    "levrierespagnol": "285",
+    "levrierhongrois": "240",
+    "levrierirlandais": "160",
+    "levrierpolonais": "333",
+    "lhassaapso": "227",
+    "malamutedelalaska": "243",
+    "manchesterterrier": "071",
+    "mastiff": "264",
+    "matindelalentejo": "096",
+    "matindespyrenees": "092",
+    "matinespagnol": "091",
+    "matinnapolitain": "197",
+    "mudi": "238",
+    "norfolkterrier": "272",
+    "norwichterrier": "072",
+    "petitbassetgriffonvendeen": "067",
+    "petitbleudegascogne": "031",
+    "petitbrabancon": "082",
+    "petitchienhollandaisdechasseaugibierdeau": "314",
+    "petitchienlion": "233",
+    "petitepagneuldemunster": "102",
+    "petitlevrieritalien": "200",
+    "pinscherallemand": "184",
+    "pinscherautrichien": "064",
+    "pinschernain": "185",
+    "podencodibiza": "089",
+    "pointeranglais": "001",
+    "poitevin": "024",
+    "porcelaine": "030",
+    "presacanario": "346",
+    "pudelpointer": "216",
+    "puli": "055",
+    "pumi": "056",
+    "retrieverapoilboucle": "110",
+    "retrieverapoilplat": "121",
+    "retrieverdelabaiedechesapeake": "263",
+    "retrieverdelanouvelleecosse": "312",
+    "retrieverdulabrador": "122",
+    "rottweiler": "147",
+    "saintbernard": "061",
+    "saluki": "269",
+    "samoyede": "212",
+    "schipperke": "083",
+    "schnauzergeant": "181",
+    "schnauzermoyen": "182",
+    "schnauzernain": "183",
+    "sealyhamterrier": "074",
+    "setteranglais": "002",
+    "settergordon": "006",
+    "setterirlandaisrouge": "120",
+    "setterirlandaisrougeblanc": "330",
+    "sharpei": "309",
+    "shiba": "257",
+    "shihtzu": "208",
+    "shikoku": "319",
+    "skyeterrier": "075",
+    "sloughi": "188",
+    "smousdespaysbas": "308",
+    "spinone": "165",
+    "spitzallemand": "097",
+    "spitzdenorrbotten": "276",
+    "spitzjaponais": "262",
+    "staffordshirebullterrier": "076",
+    "staffordshireterrieramericain": "286",
+    "teckel": "148",
+    "terreneuve": "050",
+    "terrieraustralien": "008",
+    "terrieraustralienapoilsoyeux": "236",
+    "terrierbresilien": "341",
+    "terrierdagrementanglaisnoiretfeu": "013",
+    "terrierdeboston": "140",
+    "terrierdechasseallemand": "103",
+    "terrierdureverendrussell": "339",
+    "terrierecossais": "073",
+    "terrierirlandais": "139",
+    "terrierirlandaisapoildoux": "040",
+    "terrierirlandaisglenofimaal": "302",
+    "terrierjackrussell": "345",
+    "terrierjaponais": "259",
+    "terrierkerryblue": "003",
+    "terriernoirrusse": "327",
+    "terriertcheque": "246",
+    "terriertibetain": "209",
+    "tosa": "260",
+    "volpinoitalien": "195",
+    "welshcorgicardigan": "038",
+    "welshcorgipembroke": "039",
+    "welshspringerspaniel": "126",
+    "welshterrier": "078",
+    "westhighlandwhiteterrier": "085",
+    "whippet": "162",
+    "yorkshireterrier": "086"
+  }
+}
