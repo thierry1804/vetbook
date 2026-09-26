@@ -50,6 +50,10 @@ self.addEventListener('fetch', function (event) {
   // Cross-origin requests (Overpass API, Google Fonts, ...) are left to the
   // network/browser cache; nothing to vendor locally beyond app assets.
   if (event.request.url.indexOf(self.location.origin) !== 0) return;
+  // API : jamais mise en cache (données de santé, réponses authentifiées) sauf les référentiels
+  // publics /api/ref, servis hors ligne par le repli réseau → cache ci-dessous.
+  var path = new URL(event.request.url).pathname;
+  if (path.indexOf('/api/') === 0 && path !== '/api/ref') return;
 
   if (isHashedAsset(event.request.url)) {
     event.respondWith(

@@ -3677,6 +3677,7 @@
 
   // ——— Modals —————————————————————————————————————————
   function openModal(name) {
+    if (name === 'editPedigree' && !hasFeature('pedigree_edit')) { showFeatureLocked('pedigree_edit'); return; }
     var data = getCurrent();
     if (!data && name !== 'addAnimal' && name !== 'onboarding' && name !== 'editOwner' && name !== 'language' && name !== 'backup' && name !== 'pushSettings') return;
 
@@ -7746,6 +7747,7 @@
 
   function switchTab(tabName) {
     if (!tabName) return;
+    if (tabName === 'reproduction' && !hasFeature('reproduction')) { showFeatureLocked('reproduction'); return; }
     if (tabName === 'calendrier') { showAgenda(); return; }
     if (tabName === 'annuaire') { showDirectory(); return; }
 
@@ -8632,8 +8634,122 @@
   }
 
   // ——— Init ————————————————————————————————————————————
+  // ——— Backoffice : référentiels versionnés, droits d'abonnement, compte suspendu ———————————
+  // Les constantes de ce fichier (BREED_DB, VACCINE_DB, listes, check-up, conseils, événements, formats de
+  // registre) restent le REPLI hors ligne : une version publiée par le backoffice (GET /api/ref) les remplace
+  // en mémoire, jamais l'inverse. Aucune version publiée = aucun changement.
+  var REF_KEY = 'vetbook_ref';
+  var ENT_KEY = 'vetbook_entitlements';
+  var FEATURE_LABELS = {
+    reproduction: 'Le suivi de reproduction', pedigree_edit: 'La saisie du pedigree et la recherche ACYM',
+    push_reminders: 'Les rappels push', export_pdf_ics: 'L\'export PDF et .ics', sms_reminders: 'Les rappels par SMS'
+  };
+
+  function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+  }
+
+  // Pays choisi par l'utilisateur (vide = tout afficher) : les entrées d'un autre pays sont masquées.
+  function refCountryOk(item) {
+    var ctry = '';
+    try { ctry = localStorage.getItem('vetbook_country') || ''; } catch (e) { /* stockage indisponible */ }
+    return !ctry || !item.country || item.country === 'ALL' || item.country === ctry;
+  }
+
+  function applyReference(release) {
+    if (!release || !release.content) return false;
+    var c = release.content;
+    var filled = function (a) { return Array.isArray(a) && a.length > 0; };
+    var labels = function (a) { return a.map(function (x) { return typeof x === 'string' ? x : x.label; }); };
+    try {
+      Object.keys(c.breedDb || {}).forEach(function (k) {
+        if (filled(c.breedDb[k])) BREED_DB[k] = c.breedDb[k].map(function (b) { return { name: b.name, weightMin: b.weightMin, weightMax: b.weightMax }; });
+      });
+      Object.keys(c.vaccineDb || {}).forEach(function (k) { if (filled(c.vaccineDb[k])) VACCINE_DB[k] = c.vaccineDb[k].slice(); });
+      var L = c.lists || {};
+      if (filled(L.symptom)) SYMPTOM_TYPES = labels(L.symptom);
+      if (filled(L.hygiene)) HYGIENE_TYPES = labels(L.hygiene);
+      if (filled(L.meal)) MEAL_TYPES = labels(L.meal);
+      if (filled(L.activity)) {
+        ACTIVITY_TYPES = labels(L.activity);
+        var met = {};
+        L.activity.forEach(function (a) { if (a && a.label && typeof a.met === 'number') met[a.label] = a.met; });
+        if (Object.keys(met).length) MET_TABLE = Object.assign({}, MET_TABLE, met);
+      }
+      if (filled(c.checkupQuestions)) {
+        var byKey = {};
+        CHECKUP_QUESTIONS.forEach(function (q) { byKey[q.key] = q; });
+        CHECKUP_QUESTIONS = c.checkupQuestions.map(function (k) {
+          var old = byKey[k.key];
+          return { key: k.key, label: k.label, icon: old ? old.icon : ico(k.icon || 'clipboard', 18), levels: k.levels && k.levels.length ? k.levels : (old ? old.levels : []), advice: k.advice || null };
+        });
+      }
+      if (filled(c.tips)) {
+        var tips = c.tips.filter(refCountryOk);
+        if (tips.length) DEFAULT_TIPS = tips.map(function (t, i) { return { id: t.id || i + 1, title: t.title, content: t.content || t.body, category: t.category, author: t.author || 'App\'lika' }; });
+      }
+      if (filled(c.events)) {
+        var evs = c.events.filter(refCountryOk);
+        if (evs.length) DEFAULT_DOG_EVENTS = evs.map(function (e, i) { return { id: e.id || i + 1, title: e.title, month: e.month, day: e.day, description: e.description || '', recurring: e.recurring !== false }; });
+      }
+      var R = c.registries || {};
+      [['LOF', function (re) { LOF_PATTERN = re; }], ['LOMAD', function (re) { LOMAD_PATTERN = re; }]].forEach(function (pair) {
+        var r = R[pair[0]], rx = r && (r.pattern || r.regex);
+        if (rx) { try { pair[1](new RegExp(rx)); } catch (e) { /* regex invalide : on garde celle embarquée */ } }
+      });
+      return true;
+    } catch (e) {
+      console.warn('App\'lika: référentiels ignorés', e);
+      return false;
+    }
+  }
+
+  function refreshReference() {
+    if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getReference) return;
+    var cached = readJson(REF_KEY);
+    window.cloudSync.getReference(cached && cached.version).then(function (res) {
+      if (!res || res.unchanged || !res.content || !(res.version > 0)) return;
+      try { localStorage.setItem(REF_KEY, JSON.stringify({ version: res.version, publishedAt: res.publishedAt, content: res.content })); } catch (e) { /* quota */ }
+      if (applyReference(res)) { try { refreshAll(); } catch (e) { /* vue non prête */ } }
+    }).catch(function () { /* hors ligne ou backoffice absent : repli sur le cache / les constantes */ });
+  }
+
+  // Droits : tant que le serveur ne les applique pas (enforced = false), tout est ouvert. Les droits
+  // sont gardés en cache : un abonné ne perd pas l'accès faute de réseau (validUntil = simple indication).
+  function currentEntitlements() { return readJson(ENT_KEY); }
+  function hasFeature(code) {
+    var e = currentEntitlements();
+    if (!e || !e.enforced) return true;
+    var f = e.features && e.features[code];
+    return !!(f && f.enabled);
+  }
+  function featureQuota(code) {
+    var e = currentEntitlements();
+    var f = e && e.enforced && e.features && e.features[code];
+    return f && f.quota != null ? f.quota : null;
+  }
+  function showFeatureLocked(code) {
+    showToast((FEATURE_LABELS[code] || 'Cette fonctionnalité') + ' n\'est pas incluse dans ta formule.', 'info', 5000);
+  }
+  function refreshEntitlements() {
+    if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getEntitlements) return;
+    window.cloudSync.getEntitlements().then(function (e) {
+      if (!e || !e.features) return;
+      try { localStorage.setItem(ENT_KEY, JSON.stringify(e)); } catch (err) { /* quota */ }
+    }).catch(function () { /* garde les droits en cache */ });
+  }
+
+  function showSuspendedBanner() {
+    if (document.getElementById('suspended-banner')) return;
+    var b = document.createElement('div');
+    b.id = 'suspended-banner'; b.setAttribute('role', 'alert');
+    b.textContent = 'Ce compte est suspendu : la synchronisation est désactivée. Contacte le support pour le réactiver. Tes données locales restent disponibles.';
+    document.body.insertBefore(b, document.body.firstChild);
+  }
+
   async function init() {
     initTheme();
+    applyReference(readJson(REF_KEY));
     var hasData = loadState();
     // Préférence « animal affiché en premier » (profil > Affichage) : appliquée au lancement seulement.
     if (hasData && window.applikaPrefs) {
@@ -8673,9 +8789,14 @@
     if (window.cloudSync && window.cloudSync.isConfigured()) {
       window.cloudSync.getSession().then(fillOwnerFromCloudSession);
       window.cloudSync.onAuthChange(function (event, session) {
-        if (event === 'SIGNED_IN') fillOwnerFromCloudSession(session);
+        if (event === 'SIGNED_IN') { fillOwnerFromCloudSession(session); refreshEntitlements(); }
+        if (event === 'SIGNED_OUT') { try { localStorage.removeItem(ENT_KEY); } catch (e) { /* rien */ } var sb = document.getElementById('suspended-banner'); if (sb) sb.remove(); }
       });
+      refreshReference();
+      window.cloudSync.getSession().then(function (sess) { if (sess) refreshEntitlements(); });
     }
+    window.addEventListener('applika:account-suspended', showSuspendedBanner);
+    window.addEventListener('applika:feature-locked', function (e) { showFeatureLocked(e.detail && e.detail.feature); });
 
     // Bindings
     document.getElementById('logo-home').addEventListener('click', function (e) { e.preventDefault(); showHome(); });

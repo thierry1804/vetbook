@@ -8513,3 +8513,10 @@ html[data-reduce-motion="true"] *, html[data-reduce-motion="true"] *::before, ht
 html[data-contrast="high"] { --text-muted: #334155; --text-label: #1e293b; --border: #64748b; --border-soft: #94a3b8; }
 html[data-contrast="high"][data-theme="dark"] { --text-muted: #d5dee9; --text-label: #e6edf5; --border: #94a3b8; --border-soft: #64748b; }
 html[data-contrast="high"] :focus-visible { outline-width: 3px; }
+
+/* Backoffice : compte suspendu (voir showSuspendedBanner dans app.js) */
+#suspended-banner {
+  position: sticky; top: 0; z-index: 3000;
+  padding: 10px 16px; text-align: center; font-size: 13px; font-weight: 600; line-height: 1.4;
+  background: #b91c1c; color: #fff;
+}

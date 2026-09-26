@@ -98,7 +98,14 @@
         return res;
       }
       return res.json().catch(function () { return {}; }).then(function (body) {
-        if (!res.ok) throw new Error(body.error || ('Erreur serveur (' + res.status + ')'));
+        if (!res.ok) {
+          var err = new Error(body.error || ('Erreur serveur (' + res.status + ')'));
+          err.status = res.status; err.code = body.code || null; err.feature = body.feature || null;
+          // Backoffice : compte suspendu (403) ou fonctionnalité hors formule (402) — l'app affiche un message dédié.
+          if (res.status === 403 && body.code === 'ACCOUNT_SUSPENDED') window.dispatchEvent(new CustomEvent('applika:account-suspended'));
+          if (res.status === 402) window.dispatchEvent(new CustomEvent('applika:feature-locked', { detail: { feature: body.feature || null } }));
+          throw err;
+        }
         return body;
       });
     });
@@ -279,6 +286,14 @@
     return apiFetch('/api/lookup/acym?' + qs, { method: 'GET' });
   }
 
+  // Backoffice : référentiels publiés (public, versionné) et droits d'abonnement du compte connecté.
+  function getReference(since) {
+    return apiFetch('/api/ref' + (since ? '?since=' + encodeURIComponent(since) : ''), { method: 'GET' });
+  }
+  function getEntitlements() {
+    return apiFetch('/api/me/entitlements', { method: 'GET' });
+  }
+
   function uploadPhoto(petLocalId, localId, blob, meta) {
     if (!configured || !currentSession) return Promise.reject(new Error('Non connecté.'));
     var fd = new FormData();
@@ -312,6 +327,8 @@
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
     getPhotoUrl: getPhotoUrl,
+    getReference: getReference,
+    getEntitlements: getEntitlements,
     lookupAcym: lookupAcym,
     api: apiFetch,
     refresh: refreshSessionFromCookie,
