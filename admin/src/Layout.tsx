@@ -13,6 +13,9 @@ import { NAV } from './nav';
 import { ICONS } from './icons';
 import { permits } from './api';
 
+const SIDEBAR_WIDTH = 264;
+const SIDEBAR_CLOSED_WIDTH = 64;
+
 // ── Palette de commandes (Ctrl/⌘ + K) : accès direct à n'importe quel écran.
 function CommandPalette({ open, onClose, perms }: { open: boolean; onClose: () => void; perms: string[] }) {
   const navigate = useNavigate();
@@ -97,6 +100,80 @@ const MyMenu = () => {
   );
 };
 
+
+// Barre de défilement du menu, dessinée par React : certains navigateurs/combinaisons n'affichent pas la barre
+// native sur cet élément imbriqué (position: fixed sous plusieurs Paper/Drawer de MUI) malgré un défilement
+// pleinement fonctionnel au clavier/molette. Celle-ci est un élément normal, donc toujours peinte, et cliquable.
+function SidebarScrollTrack() {
+  const [open] = useSidebarState();
+  const [metrics, setMetrics] = useState<{ top: number; height: number; ratio: number; thumbH: number; thumbTop: number } | null>(null);
+  const elRef = React.useRef<HTMLElement | null>(null);
+  const dragRef = React.useRef<{ startY: number; startTop: number } | null>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      const el = elRef.current;
+      if (!el || el.scrollHeight <= el.clientHeight + 1) { setMetrics(null); return; }
+      const rect = el.getBoundingClientRect();
+      const thumbH = Math.max(32, (el.clientHeight / el.scrollHeight) * rect.height);
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const thumbTop = maxScroll > 0 ? (el.scrollTop / maxScroll) * (rect.height - thumbH) : 0;
+      setMetrics({ top: rect.top, height: rect.height, ratio: rect.height / el.scrollHeight, thumbH, thumbTop });
+    };
+    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
+    let attached: HTMLElement | null = null;
+    const attach = () => {
+      const el = document.querySelector('.RaSidebar-fixed') as HTMLElement | null;
+      if (el && el !== attached) {
+        if (attached) attached.removeEventListener('scroll', onScroll);
+        attached = el; elRef.current = el;
+        el.addEventListener('scroll', onScroll, { passive: true });
+        update();
+      } else if (el) update();
+    };
+    attach();
+    const mo = new MutationObserver(attach);
+    mo.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', update);
+    const poll = window.setInterval(update, 800);
+    return () => {
+      mo.disconnect(); cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.clearInterval(poll);
+      if (attached) attached.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  const onThumbDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = { startY: e.clientY, startTop: metrics?.thumbTop || 0 };
+    const onMove = (ev: MouseEvent) => {
+      const el = elRef.current; if (!el || !dragRef.current || !metrics) return;
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const trackH = metrics.height - metrics.thumbH;
+      const dy = ev.clientY - dragRef.current.startY;
+      const nextTop = Math.min(Math.max(dragRef.current.startTop + dy, 0), trackH);
+      el.scrollTop = trackH > 0 ? (nextTop / trackH) * maxScroll : 0;
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  };
+
+  if (!metrics) return null;
+  const left = (open ? SIDEBAR_WIDTH : SIDEBAR_CLOSED_WIDTH) - 9;
+  return (
+    <Box aria-hidden sx={{ position: 'fixed', left, top: metrics.top, width: 7, height: metrics.height, zIndex: (t) => t.zIndex.drawer + 1, pointerEvents: 'none' }}>
+      <Box sx={{ position: 'absolute', inset: 0, borderRadius: 4, bgcolor: 'action.hover' }} />
+      <Box onMouseDown={onThumbDown}
+        sx={{ position: 'absolute', left: 0, width: 7, top: metrics.thumbTop, height: metrics.thumbH, borderRadius: 4,
+          bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.3)'),
+          pointerEvents: 'auto', cursor: 'grab',
+          '&:hover': { bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.5)') } }} />
+    </Box>
+  );
+}
+
 export const AppLayout = (props: any) => {
   const { permissions } = usePermissions();
   const [palette, setPalette] = useState(false);
@@ -109,6 +186,7 @@ export const AppLayout = (props: any) => {
   return (
     <>
       <Layout {...props} appBar={MyAppBar} menu={MyMenu} />
+      <SidebarScrollTrack />
       <CommandPalette open={palette} onClose={() => setPalette(false)} perms={permissions || []} />
     </>
   );

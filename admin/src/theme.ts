@@ -28,16 +28,21 @@ const shared = (mode: 'light' | 'dark'): ThemeOptions => ({
     RaDatagrid: { styleOverrides: { root: { '& .RaDatagrid-headerCell': { backgroundColor: 'transparent' }, '& .RaDatagrid-row:hover': { backgroundColor: 'rgba(31,92,75,.05)' } } } },
     RaList: { styleOverrides: { root: { '& .RaList-content': { border: '1px solid rgba(128,128,128,.18)', borderRadius: 12 } } } },
     // Le menu latéral est fixe (hauteur de l'écran) : sans défilement propre, les dernières entrées (Système,
-    // Administration…) restent inaccessibles quand le panneau de droite est court. Barre de défilement discrète
-    // plutôt que masquée (RaSidebar la cache par défaut), pour que le défilement se voie et pas seulement au survol.
+    // Administration…) restent inaccessibles quand le panneau de droite est court. `scroll` (pas `auto`) force la
+    // barre à exister en permanence, espace réservé dès le rendu, sans dépendre d'un réglage « barres au survol »
+    // du système ; les règles ::-webkit-scrollbar forcent en plus le tracé classique (non en incrustation).
     RaSidebar: { styleOverrides: { root: {
+      // Le Paper de MUI (.MuiDrawer-paper, 264px, son propre overflow:auto) rognait les 15px que la barre de
+      // .RaSidebar-fixed (position:fixed, 279px avec sa barre) réserve en plus : la barre existait mais restait
+      // coupée par ce parent, donc invisible. Seul l'élément interne doit défiler ; le Paper redevient transparent.
+      '& .MuiDrawer-paper': { overflow: 'visible' },
       '& .RaSidebar-fixed': {
-        backgroundColor: 'transparent', overflowY: 'auto', paddingBottom: 16,
-        scrollbarWidth: 'auto', scrollbarColor: 'rgba(128,128,128,.6) rgba(128,128,128,.08)', msOverflowStyle: 'auto',
-        '&::-webkit-scrollbar': { display: 'block', width: 10 },
-        '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(128,128,128,.08)' },
-        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(128,128,128,.55)', borderRadius: 5, border: '2px solid transparent', backgroundClip: 'content-box' },
-        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(128,128,128,.8)' },
+        backgroundColor: 'transparent', overflowY: 'scroll', overflowX: 'hidden', scrollbarGutter: 'stable', paddingBottom: 16,
+        scrollbarWidth: 'auto', scrollbarColor: 'rgba(120,120,120,.7) rgba(120,120,120,.12)', msOverflowStyle: 'auto',
+        '&::-webkit-scrollbar': { display: 'block', width: 12 },
+        '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(120,120,120,.12)', borderLeft: '1px solid rgba(120,120,120,.18)' },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(120,120,120,.65)', borderRadius: 6, minHeight: 40 },
+        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(120,120,120,.9)' },
       },
     } } },
   },
