@@ -27,7 +27,16 @@ const shared = (mode: 'light' | 'dark'): ThemeOptions => ({
     MuiTableCell: { styleOverrides: { head: { fontWeight: 650, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', opacity: .75 } } },
     RaDatagrid: { styleOverrides: { root: { '& .RaDatagrid-headerCell': { backgroundColor: 'transparent' }, '& .RaDatagrid-row:hover': { backgroundColor: 'rgba(31,92,75,.05)' } } } },
     RaList: { styleOverrides: { root: { '& .RaList-content': { border: '1px solid rgba(128,128,128,.18)', borderRadius: 12 } } } },
-    RaSidebar: { styleOverrides: { root: { '& .RaSidebar-fixed': { backgroundColor: 'transparent' } } } },
+    // Le menu latéral est fixe (hauteur de l'écran) : sans défilement propre, les dernières entrées (Système,
+    // Administration…) restent inaccessibles quand le panneau de droite est court. Barre de défilement discrète
+    // plutôt que masquée (RaSidebar la cache par défaut), pour que le défilement se voie et pas seulement au survol.
+    RaSidebar: { styleOverrides: { root: {
+      '& .RaSidebar-fixed': {
+        backgroundColor: 'transparent', overflowY: 'auto', scrollbarWidth: 'thin', msOverflowStyle: 'auto',
+        '&::-webkit-scrollbar': { display: 'block', width: 6 },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(128,128,128,.35)', borderRadius: 3 },
+      },
+    } } },
   },
 } as ThemeOptions);
 
