@@ -237,13 +237,20 @@
     }).then(function () { return true; });
   }
 
+  // Verrou survivant au rechargement forcé ci-dessous (sessionStorage, pas une simple variable de module :
+  // un `location.reload()` recrée le module et remettrait `autoPullDone` à zéro). Sans lui, un compte connecté
+  // sans aucun animal (juste un profil propriétaire, pris pour « des données trouvées ») rechargeait en boucle :
+  // pull → found=true (profil seul) → reload → nouveau module → pull → found=true → reload → ...
   var autoPullDone = false;
+  var AUTO_PULL_ONCE_KEY = 'vetbook_auto_pull_once';
   function maybeAutoPull() {
     if (autoPullDone || !currentSession || !syncAllowed()) return;
-    autoPullDone = true;
+    try { if (sessionStorage.getItem(AUTO_PULL_ONCE_KEY)) { autoPullDone = true; return; } } catch (e) { /* stockage indisponible : on retente, au pire un seul rechargement de plus */ }
     var local = readLocal();
     var isEmpty = !local || !Array.isArray(local.animals) || local.animals.length === 0;
     if (!isEmpty) return;
+    autoPullDone = true;
+    try { sessionStorage.setItem(AUTO_PULL_ONCE_KEY, '1'); } catch (e) { /* stockage indisponible */ }
     emitSync('auto-pulling');
     pullAllFromCloud().then(function (found) {
       if (found) {
