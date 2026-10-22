@@ -32,9 +32,12 @@ const shared = (mode: 'light' | 'dark'): ThemeOptions => ({
     // plutôt que masquée (RaSidebar la cache par défaut), pour que le défilement se voie et pas seulement au survol.
     RaSidebar: { styleOverrides: { root: {
       '& .RaSidebar-fixed': {
-        backgroundColor: 'transparent', overflowY: 'auto', scrollbarWidth: 'thin', msOverflowStyle: 'auto',
-        '&::-webkit-scrollbar': { display: 'block', width: 6 },
-        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(128,128,128,.35)', borderRadius: 3 },
+        backgroundColor: 'transparent', overflowY: 'auto', paddingBottom: 16,
+        scrollbarWidth: 'auto', scrollbarColor: 'rgba(128,128,128,.6) rgba(128,128,128,.08)', msOverflowStyle: 'auto',
+        '&::-webkit-scrollbar': { display: 'block', width: 10 },
+        '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(128,128,128,.08)' },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(128,128,128,.55)', borderRadius: 5, border: '2px solid transparent', backgroundClip: 'content-box' },
+        '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(128,128,128,.8)' },
       },
     } } },
   },
