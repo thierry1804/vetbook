@@ -122,7 +122,7 @@ export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; 
               <Table size="small" stickyHeader>
                 <TableHead><TableRow><TableCell>#</TableCell>{shown.map((c) => <TableCell key={c.name}>{label(c)}</TableCell>)}<TableCell>Résultat</TableCell></TableRow></TableHead>
                 <TableBody>{report.report.slice(0, 300).map((r: any, i: number) => (
-                  <TableRow key={i} sx={r.status === 'erreur' ? { bgcolor: 'rgba(211,47,47,.06)' } : undefined}>
+                  <TableRow key={i} sx={r.status === 'erreur' ? { bgcolor: (t) => (t.palette.mode === 'light' ? 'rgba(154,68,51,.07)' : 'rgba(212,143,126,.08)') } : undefined}>
                     <TableCell>{r.row}</TableCell>
                     {shown.map((c) => <TableCell key={c.name} sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(rows[i]?.[c.name] ?? '').slice(0, 80)}</TableCell>)}
                     <TableCell>{r.status === 'erreur' ? <Typography variant="caption" color="error">{r.error}</Typography> : <Chip size="small" variant="outlined" color={r.status === 'ok' ? 'success' : 'warning'} label={STATUS_TEXT[r.status]} />}</TableCell>

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { List, Datagrid, TextField, DateField, FunctionField, useNotify, useRefresh, usePermissions, TopToolbar, Button as RaButton } from 'react-admin';
-import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, TextField as MuiText, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField as MuiText, Typography } from '@mui/material';
 import { api, permits } from './api';
 import { StatusChip } from './ui';
-
-const COLORS: Record<string, any> = { draft: 'warning', published: 'success', archived: 'default' };
 
 const Actions = () => {
   const { permissions } = usePermissions(); const notify = useNotify(); const refresh = useRefresh();
@@ -41,7 +39,7 @@ const PublishButton = ({ r }: { r: any }) => {
 };
 
 export const ReleaseList = () => (
-  <List actions={<Actions />} pagination={false} sort={{ field: 'version', order: 'DESC' }} exporter={false}>
+  <List actions={<Actions />} pagination={false} sort={{ field: 'version', order: 'DESC' }} exporter={false} title="Versions publiées">
     <Datagrid bulkActionButtons={false}>
       <TextField source="version" label="Version" />
       <FunctionField label="Statut" render={(r: any) => <StatusChip value={r.status} />} />

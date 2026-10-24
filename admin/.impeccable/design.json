@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T00:00:00Z",
+  "title": "Design System: App'lika Backoffice",
+  "extensions": {
+    "colorMeta": {
+      "accent-light": { "role": "primary", "displayName": "Vert App'lika", "canonical": "#1f5c4b", "tonalRamp": ["#0c241c", "#133628", "#1a4835", "#1f5c4b", "#3c7a66", "#6ba38f", "#a3c9bd", "#dcece7"] },
+      "accent-dark": { "role": "primary", "displayName": "Vert App'lika (sombre)", "canonical": "#6bcdac", "tonalRamp": ["#0f2a21", "#184233", "#255c48", "#357b63", "#4a9c81", "#6bcdac", "#9fdfc9", "#d4f1e6"] },
+      "bg-light": { "role": "neutral", "displayName": "Fond chaud", "canonical": "#f6f4f0" },
+      "bg-dark": { "role": "neutral", "displayName": "Fond chaud (sombre)", "canonical": "#17160f" },
+      "success-light": { "role": "neutral", "displayName": "Succès", "canonical": "#3c7a5a" },
+      "warning-light": { "role": "neutral", "displayName": "Attention", "canonical": "#8f6a28" },
+      "error-light": { "role": "neutral", "displayName": "Erreur", "canonical": "#9a4433" }
+    },
+    "typographyMeta": {
+      "heading": { "displayName": "Titre", "purpose": "Titres de page et de carte (H5/H6)." },
+      "body": { "displayName": "Corps", "purpose": "Texte courant, valeurs de fiche, cellules de tableau." },
+      "label": { "displayName": "Étiquette", "purpose": "Overline : groupes de menu, en-têtes de section, en-têtes de colonne." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "row-hover", "value": "background-color 120ms ease", "purpose": "Survol de ligne de tableau — seule transition authored de la surface." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "600px" },
+      { "name": "md", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Pastille d'état (point + libellé) : succès/attention/erreur/neutre, fond teinté 10-14%, texte en couleur pleine.",
+      "html": "<span class=\"ds-status-chip\"><span class=\"ds-status-dot\"></span>Actif</span>",
+      "css": ".ds-status-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; background: rgba(60,122,90,.12); color: #3c7a5a; font-size: 12px; font-weight: 650; line-height: 1.6; white-space: nowrap; } .ds-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale : fond vert accent, pas d'élévation.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary { background: #1f5c4b; color: #fff; padding: 8px 16px; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; font-family: Inter, sans-serif; cursor: pointer; transition: background 150ms ease; } .ds-btn-primary:hover { background: #184a3c; } .ds-btn-primary:focus-visible { outline: 2px solid #1f5c4b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Action secondaire : contour filet, texte neutre.",
+      "html": "<button class=\"ds-btn-outline\">Annuler</button>",
+      "css": ".ds-btn-outline { background: transparent; color: #201d17; padding: 8px 16px; border: 1px solid rgba(32,29,23,.12); border-radius: 8px; font-weight: 600; font-size: 13px; font-family: Inter, sans-serif; cursor: pointer; } .ds-btn-outline:hover { background: rgba(32,29,23,.045); }"
+    },
+    {
+      "name": "Fact Panel Row",
+      "kind": "custom",
+      "refersTo": "nav-item-active",
+      "description": "Rangée étiquette/valeur d'un panneau de faits (fiche utilisateur, administrateur) — remplace un tableau HTML complet pour une liste de champs.",
+      "html": "<div class=\"ds-fact-row\"><span class=\"ds-fact-label\">E-mail</span><span class=\"ds-fact-value\">exemple@applika.mg</span></div>",
+      "css": ".ds-fact-row { display: flex; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(32,29,23,.12); font-family: Inter, sans-serif; font-size: 13px; } .ds-fact-label { min-width: 160px; flex: none; color: #6c6358; } .ds-fact-value { min-width: 0; overflow-wrap: anywhere; color: #201d17; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Entrée de menu latéral, état actif et par défaut.",
+      "html": "<a class=\"ds-nav-item ds-nav-item--active\">Tableau de bord</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 10px; padding: 6px 12px; margin-inline: 8px; border-radius: 7px; color: #6c6358; font-size: 13px; font-weight: 500; text-decoration: none; } .ds-nav-item:hover { background: rgba(32,29,23,.045); color: #201d17; } .ds-nav-item--active { background: rgba(31,92,75,.10); color: #1f5c4b; font-weight: 650; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le panneau d'instrument de précision",
+    "overview": "Le backoffice sert une seule audience : l'équipe App'lika, tous les jours, en tâche. Il ne vend rien et ne raconte rien ; il affiche l'état réel du produit et laisse agir vite. Le parti pris vient d'un relevé de bord — compteurs alignés, filets fins, une seule couleur de marque — plutôt que du kit d'administration générique que l'outil portait avant cette refonte.",
+    "keyCharacteristics": [
+      "Palette restreinte : neutres chauds + un seul accent, jamais de couleur décorative.",
+      "Vocabulaire d'état fixe (succès/attention/erreur/neutre) dans la même famille de teintes que l'accent.",
+      "Chiffres toujours tabulaires ; une seule famille de caractères pour tout.",
+      "Les listes de faits sont des rangées étiquette/valeur, jamais des tableaux HTML complets."
+    ],
+    "rules": [
+      { "name": "L'accent unique", "body": "Une seule couleur porte le sens d'action/sélection sur toute la surface. Aucune carte, métrique ou icône ne reçoit sa propre teinte décorative.", "section": "colors" },
+      { "name": "Les quatre états", "body": "Succès, attention, erreur et neutre sont les quatre seules variantes de couleur d'état. Elles restent dans la même famille chaude que le reste de la palette — jamais le bleu « info » par défaut de MUI.", "section": "colors" },
+      { "name": "Le chiffre tabulaire", "body": "Tout nombre affiché s'aligne sur une chasse fixe ; jamais de chiffres proportionnels dans une colonne de données.", "section": "typography" },
+      { "name": "Le filet plutôt que l'ombre", "body": "Une région se délimite par un trait de 1px, jamais par une ombre, sauf pour un élément qui flotte réellement au-dessus du reste.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do garder une seule couleur d'accent sur toute la surface ; les quatre teintes d'état restent dans la même famille chaude.",
+      "Do utiliser des chiffres tabulaires pour toute donnée numérique.",
+      "Do délimiter les régions par un filet de 1px, jamais par une ombre.",
+      "Do regrouper les faits d'une fiche en rangées étiquette/valeur dans un panneau titré, pas en tableau HTML complet."
+    ],
+    "donts": [
+      "Don't répéter le gabarit « carte icône + libellé + grand chiffre » pour une série de métriques.",
+      "Don't laisser severity=\"info\" d'un composant MUI retomber sur le bleu par défaut.",
+      "Don't empiler les panneaux de métriques en cartes individuelles sur petit écran.",
+      "Don't introduire un rayon de coin différent de 8px pour un nouveau composant sans raison documentée."
+    ]
+  }
+}

@@ -24,3 +24,7 @@ dist-ssr
 config.js
 .vercel
 frontend/config.js
+.impeccable/review/
+.impeccable/critique/
+admin/node_modules
+admin/dist

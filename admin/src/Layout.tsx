@@ -4,7 +4,7 @@ import {
 } from 'react-admin';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Avatar, Box, Chip, Dialog, IconButton, InputAdornment, List, ListItemButton, ListItemIcon, ListItemText, TextField, Tooltip, Typography,
+  Avatar, Box, Dialog, IconButton, InputAdornment, List, ListItemButton, ListItemIcon, ListItemText, TextField, Tooltip, Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
@@ -13,8 +13,21 @@ import { NAV } from './nav';
 import { ICONS } from './icons';
 import { permits } from './api';
 
-const SIDEBAR_WIDTH = 264;
-const SIDEBAR_CLOSED_WIDTH = 64;
+const SIDEBAR_WIDTH = 256;
+const SIDEBAR_CLOSED_WIDTH = 60;
+
+// ── Marque, en tête du menu latéral : un repère de marque minimal, pas de bandeau décoratif.
+function Brand({ open }: { open: boolean }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: open ? 2 : 0, pt: 2, pb: 1.5, justifyContent: open ? 'flex-start' : 'center' }}>
+      <Box sx={{ width: 26, height: 26, borderRadius: '7px', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 13, flex: 'none' }}>A</Box>
+      {open ? <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', lineHeight: 1.15 }}>App'lika</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>Backoffice</Typography>
+      </Box> : null}
+    </Box>
+  );
+}
 
 // ── Palette de commandes (Ctrl/⌘ + K) : accès direct à n'importe quel écran.
 function CommandPalette({ open, onClose, perms }: { open: boolean; onClose: () => void; perms: string[] }) {
@@ -29,25 +42,28 @@ function CommandPalette({ open, onClose, perms }: { open: boolean; onClose: () =
   useEffect(() => { if (open) setQ(''); }, [open]);
   const go = (to: string) => { onClose(); navigate(to); };
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { position: 'fixed', top: '12vh', m: 0, borderRadius: 3 } }}>
-      <TextField autoFocus fullWidth placeholder="Aller à… (utilisateurs, conseils, formules)" value={q} onChange={(e) => setQ(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown') { e.preventDefault(); setIdx((i) => Math.min(i + 1, shown.length - 1)); }
-          if (e.key === 'ArrowUp') { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }
-          if (e.key === 'Enter' && shown[idx]) go(shown[idx].to);
-        }}
-        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>, sx: { '& fieldset': { border: 0 }, fontSize: 17, py: .5 } }} />
-      <List dense sx={{ borderTop: 1, borderColor: 'divider', maxHeight: 400, overflow: 'auto' }}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { position: 'fixed', top: '12vh', m: 0, borderRadius: '14px', overflow: 'hidden' } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <SearchIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1.25 }} />
+        <TextField autoFocus fullWidth variant="standard" placeholder="Aller à… (utilisateurs, conseils, formules)" value={q} onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setIdx((i) => Math.min(i + 1, shown.length - 1)); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }
+            if (e.key === 'Enter' && shown[idx]) go(shown[idx].to);
+          }}
+          InputProps={{ disableUnderline: true, sx: { fontSize: '0.9375rem', py: 1.5 } }} />
+      </Box>
+      <List dense disablePadding sx={{ maxHeight: 400, overflow: 'auto', py: .5 }}>
         {shown.map((i, n) => {
           const Icon = ICONS[i.icon] || DashboardIcon;
           return (
-            <ListItemButton key={i.to} selected={n === idx} onClick={() => go(i.to)} onMouseEnter={() => setIdx(n)}>
-              <ListItemIcon sx={{ minWidth: 38 }}><Icon fontSize="small" /></ListItemIcon>
-              <ListItemText primary={i.label} />
-              <Chip size="small" variant="outlined" label={i.group} />
+            <ListItemButton key={i.to} selected={n === idx} onClick={() => go(i.to)} onMouseEnter={() => setIdx(n)} sx={{ mx: .75, borderRadius: '6px', py: .625 }}>
+              <ListItemIcon sx={{ minWidth: 34 }}><Icon fontSize="small" /></ListItemIcon>
+              <ListItemText primary={i.label} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+              <Typography variant="caption" color="text.secondary">{i.group}</Typography>
             </ListItemButton>);
         })}
-        {!shown.length ? <Typography sx={{ p: 2 }} color="text.secondary">Aucun résultat.</Typography> : null}
+        {!shown.length ? <Typography sx={{ p: 2 }} color="text.secondary" variant="body2">Aucun résultat.</Typography> : null}
       </List>
     </Dialog>
   );
@@ -57,12 +73,12 @@ const MyUserMenu = () => {
   const { data } = useGetIdentity();
   const initials = String((data as any)?.fullName || '?').split(/\s+/).map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
   return (
-    <UserMenu icon={<Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 13 }}>{initials}</Avatar>}>
-      <Box sx={{ px: 2, py: 1 }}>
+    <UserMenu icon={<Avatar sx={{ width: 30, height: 30, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 12.5, fontWeight: 700 }}>{initials}</Avatar>}>
+      <Box sx={{ px: 2, py: 1.25 }}>
         <Typography variant="subtitle2">{(data as any)?.fullName}</Typography>
         <Typography variant="caption" color="text.secondary">{(data as any)?.email}</Typography>
       </Box>
-      <MenuItemLink to="/profile" primaryText="Mon profil et mot de passe" leftIcon={<PersonIcon />} />
+      <MenuItemLink to="/profile" primaryText="Mon profil et mot de passe" leftIcon={<PersonIcon fontSize="small" />} />
       <Logout />
     </UserMenu>
   );
@@ -71,14 +87,16 @@ const MyUserMenu = () => {
 const OPEN_PALETTE = 'applika:open-palette';
 const MyAppBar = () => (
   <AppBar userMenu={<MyUserMenu />} toolbar={<>
-    <Tooltip title="Aller à… (Ctrl+K)"><IconButton onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE))} aria-label="Rechercher un écran"><SearchIcon /></IconButton></Tooltip>
+    <Tooltip title="Aller à… (Ctrl+K)">
+      <IconButton onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE))} aria-label="Rechercher un écran" size="small" sx={{ mr: .5 }}><SearchIcon fontSize="small" /></IconButton>
+    </Tooltip>
     <ToggleThemeButton />
   </>}>
     <TitlePortal />
   </AppBar>
 );
 
-// ── Menu latéral : groupes titrés, entrées filtrées par permission, groupes vides masqués.
+// ── Menu latéral : marque, groupes titrés, entrées filtrées par permission, groupes vides masqués.
 const MyMenu = () => {
   const { permissions } = usePermissions();
   const loc = useLocation();
@@ -86,27 +104,29 @@ const MyMenu = () => {
   const active = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
   return (
     <Menu>
-      <MenuItemLink to="/" primaryText="Tableau de bord" leftIcon={<DashboardIcon />} selected={loc.pathname === '/'} />
+      <Brand open={open} />
+      <MenuItemLink to="/" primaryText="Tableau de bord" leftIcon={<DashboardIcon fontSize="small" />} selected={loc.pathname === '/'} />
       {NAV.map((g) => {
         const items = g.items.filter((i) => permits(permissions, i.perm));
         if (!items.length) return null;
         return (
-          <Box key={g.title} sx={{ mt: 1.5 }}>
-            {open ? <Typography variant="overline" sx={{ px: 2, opacity: .6, letterSpacing: '.08em' }}>{g.title}</Typography> : <Box sx={{ borderTop: 1, borderColor: 'divider', mx: 1, my: 1 }} />}
-            {items.map((i) => { const Icon = ICONS[i.icon] || DashboardIcon; return <MenuItemLink key={i.to} to={i.to} primaryText={i.label} leftIcon={<Icon />} selected={active(i.to)} />; })}
+          <Box key={g.title} sx={{ mt: 1.25 }}>
+            {open
+              ? <Typography variant="overline" color="text.secondary" sx={{ display: 'block', px: 2, pt: 1, pb: .25 }}>{g.title}</Typography>
+              : <Box sx={{ borderTop: 1, borderColor: 'divider', mx: 1.5, my: 1 }} />}
+            {items.map((i) => { const Icon = ICONS[i.icon] || DashboardIcon; return <MenuItemLink key={i.to} to={i.to} primaryText={i.label} leftIcon={<Icon fontSize="small" />} selected={active(i.to)} />; })}
           </Box>);
       })}
     </Menu>
   );
 };
 
-
-// Barre de défilement du menu, dessinée par React : certains navigateurs/combinaisons n'affichent pas la barre
-// native sur cet élément imbriqué (position: fixed sous plusieurs Paper/Drawer de MUI) malgré un défilement
-// pleinement fonctionnel au clavier/molette. Celle-ci est un élément normal, donc toujours peinte, et cliquable.
+// Barre de défilement du menu, dessinée par l'application : la barre native ne se peint pas de façon fiable sur
+// cet élément imbriqué (position fixed sous plusieurs Paper/Drawer de MUI) malgré un défilement pleinement
+// fonctionnel au clavier et à la molette. Celle-ci est un élément normal, donc toujours peinte, et cliquable.
 function SidebarScrollTrack() {
   const [open] = useSidebarState();
-  const [metrics, setMetrics] = useState<{ top: number; height: number; ratio: number; thumbH: number; thumbTop: number } | null>(null);
+  const [metrics, setMetrics] = useState<{ top: number; height: number; thumbH: number; thumbTop: number } | null>(null);
   const elRef = React.useRef<HTMLElement | null>(null);
   const dragRef = React.useRef<{ startY: number; startTop: number } | null>(null);
 
@@ -119,7 +139,7 @@ function SidebarScrollTrack() {
       const thumbH = Math.max(32, (el.clientHeight / el.scrollHeight) * rect.height);
       const maxScroll = el.scrollHeight - el.clientHeight;
       const thumbTop = maxScroll > 0 ? (el.scrollTop / maxScroll) * (rect.height - thumbH) : 0;
-      setMetrics({ top: rect.top, height: rect.height, ratio: rect.height / el.scrollHeight, thumbH, thumbTop });
+      setMetrics({ top: rect.top, height: rect.height, thumbH, thumbTop });
     };
     const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
     let attached: HTMLElement | null = null;
@@ -161,15 +181,14 @@ function SidebarScrollTrack() {
   };
 
   if (!metrics) return null;
-  const left = (open ? SIDEBAR_WIDTH : SIDEBAR_CLOSED_WIDTH) - 9;
+  const left = (open ? SIDEBAR_WIDTH : SIDEBAR_CLOSED_WIDTH) - 8;
   return (
-    <Box aria-hidden sx={{ position: 'fixed', left, top: metrics.top, width: 7, height: metrics.height, zIndex: (t) => t.zIndex.drawer + 1, pointerEvents: 'none' }}>
-      <Box sx={{ position: 'absolute', inset: 0, borderRadius: 4, bgcolor: 'action.hover' }} />
+    <Box aria-hidden sx={{ position: 'fixed', left, top: metrics.top, width: 6, height: metrics.height, zIndex: (t) => t.zIndex.drawer + 1, pointerEvents: 'none' }}>
       <Box onMouseDown={onThumbDown}
-        sx={{ position: 'absolute', left: 0, width: 7, top: metrics.thumbTop, height: metrics.thumbH, borderRadius: 4,
-          bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.3)'),
+        sx={{ position: 'absolute', left: 0, width: 6, top: metrics.thumbTop, height: metrics.thumbH, borderRadius: 3,
+          bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.18)'),
           pointerEvents: 'auto', cursor: 'grab',
-          '&:hover': { bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.5)') } }} />
+          '&:hover': { bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.32)') } }} />
     </Box>
   );
 }
