@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
-  List, Datagrid, TextField, NumberField, BooleanField, DateField, FunctionField, Edit, Create, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, ArrayInput,
-  SimpleFormIterator, DateInput, DateTimeInput, SearchInput, Show, SimpleShowLayout, required, useListContext, useNotify, useRefresh, useUpdateMany, useRecordContext,
+  List, Datagrid, TextField, NumberField, BooleanField, DateField, FunctionField, Edit, Create, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput,
+  DateInput, DateTimeInput, SearchInput, Show, SimpleShowLayout, required, useListContext, useNotify, useRefresh, useUpdateMany, useRecordContext,
   Toolbar, SaveButton, ExportButton, DeleteWithConfirmButton, TopToolbar, CreateButton, useUnselectAll, useResourceContext,
 } from 'react-admin';
-import { useWatch, useFormContext } from 'react-hook-form';
+import { useWatch, useFormContext, useController } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { RichTextInput, RichTextInputToolbar, LevelSelect, FormatButtons, ListButtons, LinkButtons, QuoteButtons, ClearButtons } from 'ra-input-rich-text';
-import { Alert, Box, Button, Card, CardContent, Chip, Tab, Tabs, Typography } from '@mui/material';
+import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { permits, api } from './api';
-import { StatusChip, LABELS, sanitizeRich, textOf } from './ui';
+import { StatusChip, Pill, LABELS, sanitizeRich, textOf } from './ui';
 import { Choice, Field, Res, label } from './resources';
+import { ICONS } from './icons';
 import { ImportDialog, IMPORTABLE } from './ImportDialog';
 import { toCsv, download } from './csv';
 
@@ -25,7 +26,7 @@ const useCountryChoices = (withAll: boolean) => {
 
 const toChoices = (choices: Choice[] = []): { id: any; name: string }[] => choices.map((c) => (typeof c === 'string' ? { id: c, name: LABELS[c] || c } : c));
 const STATUS_ACTIONS: Record<string, string> = { publie: 'Publier', brouillon: 'Repasser en brouillon', archive: 'Archiver', valide: 'Valider', a_valider: 'Marquer à valider', actif: 'Activer', commercialise: 'Commercialisé', retire: 'Retirer' };
-const statusField = (res: Res) => res.fields.find((f) => f.name === 'status' && f.type === 'select');
+const statusField = (res: Res) => res.fields.find((fl) => fl.name === 'status' && fl.type === 'select');
 const allowAll = (res: Res) => res.defaults?.country === 'ALL';
 
 // ── Bandeau « modifications non publiées » : le contenu n'atteint l'app qu'après publication d'une version.
@@ -94,49 +95,150 @@ const jsonFormat = (v: any) => (v === undefined || v === null ? '' : typeof v ==
 const jsonParse = (v: string) => { try { return v === '' ? null : JSON.parse(v); } catch { return v; } };
 const jsonValidate = (v: any) => (typeof v === 'string' && v !== '' ? 'JSON invalide' : undefined);
 
+// Liste de jetons supprimables + saisie d'ajout — remplace le « + » nu du kit par défaut pour un champ liste.
+function TagsInput({ source, lbl, help }: { source: string; lbl: string; help?: string }) {
+  const { field } = useController({ name: source, defaultValue: [] });
+  const [draft, setDraft] = useState('');
+  const value: string[] = Array.isArray(field.value) ? field.value : [];
+  const add = () => { const v = draft.trim(); if (v && !value.includes(v)) field.onChange([...value, v]); setDraft(''); };
+  const remove = (i: number) => field.onChange(value.filter((_, idx) => idx !== i));
+  return (
+    <Box>
+      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: .75 }}>{lbl}</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, p: 1, border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', minHeight: 44 }}>
+        {value.map((v, i) => (
+          <Box key={i} component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: .625, bgcolor: 'primary.main', color: 'primary.contrastText', opacity: .92, fontSize: '0.78rem', fontWeight: 600, borderRadius: '6px', py: .375, pl: 1.25, pr: .5 }}>
+            {v}
+            <Box component="button" type="button" aria-label={`Retirer ${v}`} onClick={() => remove(i)}
+              sx={{ width: 16, height: 16, borderRadius: '50%', border: 'none', bgcolor: 'rgba(255,255,255,.25)', color: 'inherit', fontSize: 11, lineHeight: 1, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</Box>
+          </Box>
+        ))}
+        <Box component="input" value={draft} onChange={(e: any) => setDraft(e.target.value)}
+          onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); add(); } if (e.key === 'Backspace' && !draft && value.length) remove(value.length - 1); }}
+          onBlur={add} placeholder="Ajouter…"
+          sx={{ border: 'none', outline: 'none', background: 'transparent', flex: '1 1 120px', minWidth: 100, fontSize: '0.8125rem', fontFamily: 'inherit', color: 'text.primary' }} />
+      </Box>
+      {help ? <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: .5 }}>{help}</Typography> : null}
+    </Box>
+  );
+}
+
 function FieldInput({ fl, isEdit, res, countries }: { fl: Field; isEdit: boolean; res: Res; countries: { id: string; name: string }[] }) {
-  const p: any = { source: fl.name, label: label(fl), validate: fl.required ? required() : undefined, fullWidth: true, helperText: fl.help };
+  // react-admin réserve toujours la ligne d'aide sous un champ, même vide, sauf `helperText={false}` explicite :
+  // sans ça, chaque champ sans note gagne ~20px de vide qui donne l'impression d'un formulaire trop aéré.
+  const p: any = { source: fl.name, label: label(fl), validate: fl.required ? required() : undefined, fullWidth: true, helperText: fl.help || false, size: 'small' };
   if (fl.readOnly) p.disabled = true;
   if (isEdit && res.createPk && fl.name === res.fields[0].name) p.disabled = true;
   switch (fl.type) {
-    case 'html': return <RichTextInput source={fl.name} label={label(fl)} fullWidth
+    case 'html': return <RichTextInput source={fl.name} label={false} fullWidth
       sx={{ '& .RaRichTextInput-editorContent': { border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' },
-        '& .ProseMirror': { minHeight: 360, maxHeight: '60vh', overflowY: 'auto', p: 2, outline: 'none', fontSize: 16, lineHeight: 1.6, '& p': { my: 1 }, '& h2,& h3,& h4': { mt: 2, mb: 1 }, '& blockquote': { borderLeft: 3, borderColor: 'primary.main', pl: 2, ml: 0, color: 'text.secondary' } },
+        '& .ProseMirror': { minHeight: 320, maxHeight: '55vh', overflowY: 'auto', p: 2, outline: 'none', fontSize: 16, lineHeight: 1.6, '& p': { my: 1 }, '& h2,& h3,& h4': { mt: 2, mb: 1 }, '& blockquote': { borderLeft: 3, borderColor: 'primary.main', pl: 2, ml: 0, color: 'text.secondary' } },
         '& .ProseMirror p.is-editor-empty:first-of-type::before': { color: 'text.disabled', content: 'attr(data-placeholder)', float: 'left', height: 0, pointerEvents: 'none' } }}
       toolbar={<RichTextInputToolbar><LevelSelect /><FormatButtons /><ListButtons /><LinkButtons /><QuoteButtons /><ClearButtons /></RichTextInputToolbar>} />;
     case 'longtext': return <TextInput {...p} multiline minRows={3} />;
     case 'int': case 'num': return <NumberInput {...p} step={fl.type === 'int' ? 1 : 'any'} />;
-    case 'bool': return <BooleanInput {...p} validate={undefined} />;
+    case 'bool': return <BooleanInput source={fl.name} label={label(fl)} />;
     case 'date': return <DateInput {...p} />;
     case 'ts': return <DateTimeInput {...p} />;
     case 'json': return <TextInput {...p} multiline minRows={4} format={jsonFormat} parse={fl.lenient ? (v: string) => { const j = jsonParse(v); return j === null && v.trim() !== '' ? v : j; } : jsonParse} validate={fl.lenient ? undefined : jsonValidate} sx={{ fontFamily: 'monospace' }} />;
-    case 'texts': return <ArrayInput source={fl.name} label={label(fl)}><SimpleFormIterator inline><TextInput source="" label={false} /></SimpleFormIterator></ArrayInput>;
+    case 'texts': return <TagsInput source={fl.name} lbl={label(fl)} help={fl.help} />;
     case 'country': return <SelectInput {...p} choices={countries} emptyText={allowAll(res) ? undefined : '—'} />;
     case 'select': return <SelectInput {...p} choices={toChoices(fl.choices)} emptyText="—" />;
     default: return <TextInput {...p} />;
   }
 }
 
-// ── Aperçu fidèle à l'app pendant la rédaction.
-function LivePreview({ kind }: { kind: 'tip' | 'page' | 'event' }) {
+// ── Groupe les champs par section : un champ qui déclare `section` ouvre un nouveau groupe titré ;
+// les champs suivants sans section déclarée rejoignent ce groupe, jusqu'au prochain. Sans aucune
+// section déclarée dans la ressource, tout reste dans un seul groupe sans titre (petits formulaires).
+function groupFields(fields: Field[]): { title?: string; fields: Field[] }[] {
+  const groups: { title?: string; fields: Field[] }[] = [];
+  let current: { title?: string; fields: Field[] } | null = null;
+  for (const fl of fields) {
+    if (fl.section) { current = { title: fl.section, fields: [fl] }; groups.push(current); }
+    else if (current) current.fields.push(fl);
+    else { current = { title: undefined, fields: [fl] }; groups.push(current); }
+  }
+  return groups;
+}
+const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html']);
+
+function FieldGroup({ title, fields, isEdit, res, countries }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { id: string; name: string }[] }) {
+  return (
+    <Box>
+      {title ? <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1.25 }}>{title}</Typography> : null}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' }, gap: 2 }}>
+        {fields.map((fl) => (
+          <Box key={fl.name} sx={WIDE_TYPES.has(fl.type || '') ? { gridColumn: '1 / -1' } : undefined}>
+            <FieldInput fl={fl} isEdit={isEdit} res={res} countries={countries} />
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+// ── Aperçu, toujours à droite : fidèle au rendu réel pour les contenus (conseil/page/événement),
+// générique pour tout le reste (icône, titre, statut, quelques faits) — jamais de panneau vide.
+const CAT: Record<string, string> = { sante: 'Santé', alimentation: 'Alimentation', education: 'Éducation', hygiene: 'Hygiène', comportement: 'Comportement' };
+const LABELS_MONTH = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+function ContentPreview({ kind }: { kind: 'tip' | 'page' | 'event' }) {
   const v = useWatch() as any;
   const month = LABELS_MONTH[Number(v.month) - 1];
   return (
-    <Card variant="outlined" sx={{ bgcolor: 'action.hover' }}><CardContent>
-      <Typography variant="overline" color="text.secondary">Aperçu dans l'application</Typography>
-      <Card sx={{ mt: 1, maxWidth: 420 }}><CardContent>
-        {kind === 'tip' && v.category ? <Chip size="small" label={CAT[v.category] || v.category} sx={{ mb: 1 }} /> : null}
-        {kind === 'event' ? <Typography variant="caption" color="primary" fontWeight={700}>{v.day || '?'} {month || ''}{v.recurring ? ' · chaque année' : ''}</Typography> : null}
-        <Typography variant="subtitle1" fontWeight={700}>{v.title || 'Titre'}</Typography>
-        {kind === 'event' ? <Typography variant="body2">{v.description}</Typography>
-          : <Box className="cms-preview" sx={{ '& p': { mt: 0, mb: 1 }, '& ul,& ol': { pl: 3, mt: 0 }, fontSize: 14 }} dangerouslySetInnerHTML={{ __html: sanitizeRich(v.body || '') }} />}
-        {kind === 'tip' ? <Typography variant="caption" color="text.secondary">{v.author || 'App\'lika'}{v.vet_reviewed ? ' · relu par un vétérinaire' : ''}</Typography> : null}
-      </CardContent></Card>
-    </CardContent></Card>
+    <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2, bgcolor: 'action.hover' }}>
+      {kind === 'tip' && v.category ? <Pill label={CAT[v.category] || v.category} /> : null}
+      {kind === 'event' ? <Typography variant="caption" color="primary" fontWeight={700} sx={{ display: 'block', mb: .5 }}>{v.day || '?'} {month || ''}{v.recurring ? ' · chaque année' : ''}</Typography> : null}
+      <Typography variant="subtitle1" fontWeight={700} sx={{ mt: kind === 'tip' && v.category ? 1 : 0 }}>{v.title || 'Titre'}</Typography>
+      {kind === 'event' ? <Typography variant="body2" sx={{ mt: .5 }}>{v.description}</Typography>
+        : <Box className="cms-preview" sx={{ mt: .5, '& p': { mt: 0, mb: 1 }, '& ul,& ol': { pl: 3, mt: 0 }, fontSize: 14 }} dangerouslySetInnerHTML={{ __html: sanitizeRich(v.body || '') }} />}
+      {kind === 'tip' ? <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>{v.author || 'App\'lika'}{v.vet_reviewed ? ' · relu par un vétérinaire' : ''}</Typography> : null}
+    </Box>
   );
 }
-const CAT: Record<string, string> = { sante: 'Santé', alimentation: 'Alimentation', education: 'Éducation', hygiene: 'Hygiène', comportement: 'Comportement' };
-const LABELS_MONTH = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+function GenericPreview({ res }: { res: Res }) {
+  const v = useWatch() as any;
+  const st = statusField(res);
+  const titleField = res.fields.find((fl) => fl.list && fl.type !== 'select' && fl.type !== 'bool' && fl !== st) || res.fields[0];
+  const subtitleField = res.fields.find((fl) => fl.list && fl !== titleField && fl !== st && ['text', 'country'].includes(fl.type || 'text'));
+  const Icon = ICONS[res.name];
+  const boolFlags = res.fields.filter((fl) => fl.type === 'bool' && fl.list && v[fl.name]);
+  const factFields = res.fields.filter((fl) =>
+    !WIDE_TYPES.has(fl.type || '') && fl !== titleField && fl !== st && fl !== subtitleField && fl.type !== 'bool' &&
+    v[fl.name] != null && v[fl.name] !== '').slice(0, 6);
+  const title = (titleField && v[titleField.name]) || `Nouvelle fiche`;
+  return (
+    <Box>
+      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.5 }}>
+        <Box sx={{ width: 34, height: 34, borderRadius: '8px', bgcolor: (t) => (t.palette.mode === 'light' ? 'rgba(31,92,75,.10)' : 'rgba(107,205,172,.14)'), display: 'grid', placeItems: 'center', flex: 'none' }}>
+          {Icon ? <Icon sx={{ fontSize: 17, color: 'primary.main' }} /> : null}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography fontWeight={650} fontSize="0.9375rem" noWrap title={String(title)}>{title}</Typography>
+          {subtitleField ? <Typography variant="caption" color="text.secondary" noWrap>{v[subtitleField.name]}</Typography> : null}
+        </Box>
+      </Stack>
+      {st || boolFlags.length ? (
+        <Stack direction="row" spacing={.75} flexWrap="wrap" useFlexGap sx={{ mb: factFields.length ? 1.5 : 0 }}>
+          {st ? <StatusChip value={v[st.name]} /> : null}
+          {boolFlags.map((fl) => <Pill key={fl.name} label={label(fl)} />)}
+        </Stack>
+      ) : null}
+      {factFields.length ? (
+        <Box sx={{ display: 'grid', gap: .75 }}>
+          {factFields.map((fl) => (
+            <Box key={fl.name} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, fontSize: '0.8125rem' }}>
+              <Typography variant="body2" color="text.secondary">{label(fl)}</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{String(v[fl.name])}</Typography>
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
 
 const slugify = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 function SlugSync() {
@@ -178,8 +280,8 @@ export function makeResource(res: Res, perms: string[]) {
   const canImport = canWrite && IMPORTABLE.includes(res.name);
   // Export : mêmes colonnes que le modèle d'import (aller-retour possible via Excel).
   const exporter = (records: any[]) => {
-    const cols = res.fields.filter((f) => !f.readOnly);
-    const cell = (r: any, f: Field) => (Array.isArray(r[f.name]) ? r[f.name].join('|') : f.type === 'json' && r[f.name] != null ? JSON.stringify(r[f.name]) : r[f.name]);
+    const cols = res.fields.filter((fl) => !fl.readOnly);
+    const cell = (r: any, fl: Field) => (Array.isArray(r[fl.name]) ? r[fl.name].join('|') : fl.type === 'json' && r[fl.name] != null ? JSON.stringify(r[fl.name]) : r[fl.name]);
     download(`${res.name}.csv`, toCsv([cols.map((c) => c.name), ...records.map((r) => cols.map((c) => cell(r, c)))]));
   };
   const RList = () => {
@@ -213,32 +315,24 @@ export function makeResource(res: Res, perms: string[]) {
 
   const Form = ({ isEdit }: { isEdit: boolean }) => {
     const countries = useCountryChoices(allowAll(res));
-    const side = res.fields.filter((x) => x.side); const main = res.fields.filter((x) => !x.side);
-    const two = side.length > 0;
-    const inputs = (fs: Field[]) => fs.map((fl) => {
-      const wide = ['json', 'longtext', 'texts', 'html'].includes(fl.type || '');
-      return <Box key={fl.name} sx={wide && !two ? { gridColumn: '1 / -1' } : undefined}><FieldInput fl={fl} isEdit={isEdit} res={res} countries={countries} /></Box>;
-    });
+    const groups = groupFields(res.fields);
     return (
-      <SimpleForm sx={{ maxWidth: two ? 1240 : 980 }} defaultValues={isEdit ? undefined : res.defaults} toolbar={<FormToolbar res={res} canDelete={!!res.deletable} />} warnWhenUnsavedChanges>
+      <SimpleForm sx={{ maxWidth: 1040 }} defaultValues={isEdit ? undefined : res.defaults} toolbar={<FormToolbar res={res} canDelete={!!res.deletable} />} warnWhenUnsavedChanges>
         {res.name === 'pages' && !isEdit ? <SlugSync /> : null}
-        {two ? (
-          <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 340px' }, width: '100%', alignItems: 'start' }}>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              {inputs(main)}
-              {res.preview ? <LivePreview kind={res.preview} /> : null}
+        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 300px' }, width: '100%', alignItems: 'start' }}>
+          <Box sx={{ display: 'grid', gap: 3 }}>
+            {res.reason ? <TextInput source="reason" label="Motif (journalisé)" validate={required()} fullWidth size="small" /> : null}
+            {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} />)}
+          </Box>
+          <Box sx={{ position: { lg: 'sticky' }, top: 72, border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', overflow: 'hidden' }}>
+            <Box sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="overline" color="text.secondary">Aperçu</Typography>
             </Box>
-            <Card variant="outlined" sx={{ position: { lg: 'sticky' }, top: 72 }}><CardContent sx={{ display: 'grid', gap: 1 }}>
-              <Typography variant="overline" color="text.secondary">Paramètres</Typography>
-              {inputs(side)}
-            </CardContent></Card>
+            <Box sx={{ p: 2 }}>
+              {res.preview ? <ContentPreview kind={res.preview} /> : <GenericPreview res={res} />}
+            </Box>
           </Box>
-        ) : (
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, width: '100%', alignItems: 'start' }}>
-            {res.reason ? <Box sx={{ gridColumn: '1 / -1' }}><TextInput source="reason" label="Motif (journalisé)" validate={required()} fullWidth /></Box> : null}
-            {inputs(res.fields)}
-          </Box>
-        )}
+        </Box>
       </SimpleForm>
     );
   };

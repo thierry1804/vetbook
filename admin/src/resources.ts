@@ -1,7 +1,7 @@
 // Description des ressources du backoffice (champs, droits, groupes). Les écrans sont générés dans content.tsx.
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select | country
 export type Choice = string | { id: string | number; name: string };
-export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean };
+export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string };
 export type Res = {
   name: string; label: string; perm: string; write?: string; fields: Field[]; readOnly?: boolean; deletable?: boolean;
   pk?: string; search?: boolean; group: string; createPk?: boolean; reason?: boolean; section?: string; defaults?: Record<string, any>; excerpt?: string; filters?: string[]; preview?: 'tip' | 'page' | 'event';
@@ -18,37 +18,40 @@ const f = (name: string, type = 'text', extra: Partial<Field> = {}): Field => ({
 export const RES: Res[] = [
   { name: 'tips', label: 'Conseils', group: 'Contenus', section: 'tips', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, excerpt: 'body', preview: 'tip',
     defaults: { status: 'brouillon', author: 'App\'lika', vet_reviewed: false, featured: false, country: 'ALL' }, filters: ['category', 'country'], fields: [
-    f('title', 'text', { required: true, list: true }), f('body', 'html', { label: 'Contenu' }),
-    f('status', 'select', { choices: STATUS_CONTENT, list: true, side: true }), f('category', 'select', { choices: TIP_CATEGORIES, list: true, side: true, required: true }),
-    f('country', 'country', { list: true, side: true, help: 'Pays où le conseil est affiché.' }), f('species', 'select', { choices: SPECIES, side: true, help: 'Vide = toutes les espèces.' }),
-    f('author', 'text', { side: true }), f('vet_reviewed', 'bool', { list: true, side: true, short: 'Relu' }), f('featured', 'bool', { side: true }), f('published_at', 'ts', { side: true, readOnly: true })] },
+    f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('body', 'html', { label: 'Contenu' }),
+    f('status', 'select', { choices: STATUS_CONTENT, list: true, section: 'Classement' }), f('category', 'select', { choices: TIP_CATEGORIES, list: true, required: true }),
+    f('country', 'country', { list: true, help: 'Pays où le conseil est affiché.' }), f('species', 'select', { choices: SPECIES, help: 'Vide = toutes les espèces.' }),
+    f('author', 'text', { section: 'Attribution' }), f('vet_reviewed', 'bool', { list: true, short: 'Relu' }), f('featured', 'bool'), f('published_at', 'ts', { readOnly: true })] },
   { name: 'events', label: 'Événements', group: 'Contenus', section: 'events', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'event',
     defaults: { status: 'brouillon', recurring: true, country: 'ALL' }, filters: ['country'], fields: [
-    f('title', 'text', { required: true, list: true }), f('description', 'longtext'),
-    f('month', 'select', { choices: MONTHS, list: true, required: true, side: true }), f('day', 'int', { list: true, required: true, side: true }),
-    f('status', 'select', { choices: STATUS_CONTENT, list: true, side: true }), f('country', 'country', { list: true, side: true }),
-    f('recurring', 'bool', { list: true, side: true, help: 'Se répète chaque année à la même date.' }), f('event_date', 'date', { side: true, help: 'Date précise (facultatif, événement ponctuel).' }),
-    f('location', 'text', { side: true }), f('link', 'text', { side: true })] },
+    f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('description', 'longtext'),
+    f('month', 'select', { choices: MONTHS, list: true, required: true, section: 'Date' }), f('day', 'int', { list: true, required: true }), f('event_date', 'date', { help: 'Date précise (facultatif, événement ponctuel).' }),
+    f('recurring', 'bool', { list: true, help: 'Se répète chaque année à la même date.' }),
+    f('status', 'select', { choices: STATUS_CONTENT, list: true, section: 'Classement' }), f('country', 'country', { list: true }),
+    f('location', 'text', { section: 'Lieu et lien' }), f('link', 'text')] },
   { name: 'pages', label: 'Pages (aide, CGU…)', group: 'Contenus', section: 'pages', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'page', excerpt: 'body',
     defaults: { status: 'brouillon', kind: 'help', version: '1', force_reaccept: false }, filters: ['kind'], fields: [
-    f('title', 'text', { required: true, list: true }), f('body', 'html', { label: 'Contenu' }),
-    f('status', 'select', { choices: STATUS_CONTENT, list: true, side: true }),
-    f('kind', 'select', { choices: [{ id: 'help', name: 'Centre d\'aide' }, { id: 'legal', name: 'Mentions légales / CGU' }, { id: 'text', name: 'Texte libre' }], list: true, side: true, required: true }),
-    f('slug', 'text', { required: true, list: true, side: true, help: 'Identifiant dans l\'URL, sans espace (généré depuis le titre).' }),
-    f('version', 'text', { list: true, side: true }), f('force_reaccept', 'bool', { side: true, help: 'Demande une nouvelle acceptation aux utilisateurs (CGU).' }), f('published_at', 'ts', { side: true, readOnly: true })] },
+    f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('body', 'html', { label: 'Contenu' }),
+    f('status', 'select', { choices: STATUS_CONTENT, list: true, section: 'Classement' }),
+    f('kind', 'select', { choices: [{ id: 'help', name: 'Centre d\'aide' }, { id: 'legal', name: 'Mentions légales / CGU' }, { id: 'text', name: 'Texte libre' }], list: true, required: true }),
+    f('slug', 'text', { required: true, list: true, help: 'Identifiant dans l\'URL, sans espace (généré depuis le titre).' }),
+    f('version', 'text', { list: true, section: 'Version' }), f('force_reaccept', 'bool', { help: 'Demande une nouvelle acceptation aux utilisateurs (CGU).' }), f('published_at', 'ts', { readOnly: true })] },
   { name: 'clinics', label: 'Cliniques', group: 'Annuaire', section: 'clinics', perm: 'directory.read', write: 'directory.write', deletable: true, search: true,
     defaults: { status: 'a_valider', on_call: false, emergency: false, country: 'MG' }, filters: ['country'], fields: [
-    f('name', 'text', { required: true, list: true }), f('city', 'text', { list: true }), f('country', 'country', { list: true }), f('phone', 'text', { list: true }),
-    f('on_call', 'bool', { list: true }), f('emergency', 'bool', { list: true }), f('status', 'select', { choices: STATUS_DIRECTORY, list: true }),
-    f('address'), f('email'), f('hours', 'text', { help: 'Ex. : Lun–Sam 8h–18h ou 24h/24.' }), f('lat', 'num', { help: 'Latitude (ex. -18.8792).' }), f('lng', 'num', { help: 'Longitude (ex. 47.5079).' }),
-    f('species', 'texts', { label: 'Espèces prises en charge' }), f('source', 'text', { help: 'D\'où vient l\'information (visite, site web…).' })] },
+    f('name', 'text', { required: true, list: true, section: 'Identité' }), f('city', 'text', { list: true }), f('country', 'country', { list: true }), f('status', 'select', { choices: STATUS_DIRECTORY, list: true }),
+    f('phone', 'text', { list: true, section: 'Coordonnées' }), f('email'), f('address'),
+    f('hours', 'text', { help: 'Ex. : Lun–Sam 8h–18h ou 24h/24.', section: 'Disponibilité' }), f('on_call', 'bool', { list: true }), f('emergency', 'bool', { list: true }),
+    f('lat', 'num', { label: 'Latitude', help: 'Ex. -18.8792.', section: 'Localisation' }), f('lng', 'num', { label: 'Longitude', help: 'Ex. 47.5079.' }),
+    f('species', 'texts', { label: 'Espèces', section: 'Espèces prises en charge' }),
+    f('source', 'text', { help: 'D\'où vient l\'information (visite, site web…).', section: 'Autres' })] },
   { name: 'emergency_numbers', label: 'Numéros d\'urgence', group: 'Annuaire', section: 'emergencyNumbers', perm: 'directory.read', write: 'directory.write', deletable: true, search: true,
     defaults: { status: 'actif', sort_order: 10, hours: '24h/24', country: 'MG' }, filters: ['country'], fields: [
-    f('country', 'country', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('phone', 'text', { required: true, list: true }), f('hours', 'text', { list: true }),
-    f('sort_order', 'int', { list: true, help: 'Plus petit = affiché en premier.' }), f('status', 'select', { choices: ACTIVE, list: true })] },
+    f('country', 'country', { required: true, list: true, section: 'Identité' }), f('label', 'text', { required: true, list: true }), f('status', 'select', { choices: ACTIVE, list: true }),
+    f('phone', 'text', { required: true, list: true, section: 'Coordonnées' }), f('hours', 'text', { list: true }), f('sort_order', 'int', { list: true, help: 'Plus petit = affiché en premier.' })] },
   { name: 'breeds', section: 'breedDb', label: 'Races', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
-    f('name', 'text', { required: true, list: true }), f('species_code', 'text', { required: true, list: true }), f('fci_number', 'text', { list: true }), f('weight_min', 'num'), f('weight_max', 'num'),
-    f('height_min', 'num'), f('height_max', 'num'), f('cc_slug'), f('aliases', 'texts'), f('status', 'select', { choices: ACTIVE, list: true })] },
+    f('name', 'text', { required: true, list: true, section: 'Identité' }), f('species_code', 'text', { required: true, list: true }), f('status', 'select', { choices: ACTIVE, list: true }),
+    f('fci_number', 'text', { list: true, section: 'Classification' }), f('cc_slug'), f('aliases', 'texts'),
+    f('weight_min', 'num', { section: 'Mesures' }), f('weight_max', 'num'), f('height_min', 'num'), f('height_max', 'num')] },
   { name: 'species', section: 'breedDb', label: 'Espèces', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', createPk: true, fields: [
     f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('sort_order', 'int', { list: true }), f('status', 'select', { choices: ACTIVE, list: true })] },
   { name: 'vaccines', section: 'vaccineDb', label: 'Vaccins', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
@@ -109,6 +112,6 @@ export const LABELS: Record<string, string> = {
   max_uses: 'Utilisations max', user_id: 'Utilisateur', plan_code: 'Formule', started_at: 'Début', ends_at: 'Fin', auto_renew: 'Renouvellement auto', feature_code: 'Fonctionnalité',
   enabled: 'Activé', quota: 'Quota', reason: 'Motif', expires_at: 'Expire le', id: 'N°', amount_mga: 'Montant (MGA)', method: 'Moyen', reference: 'Référence', paid_at: 'Payé le',
   number: 'Numéro', issued_at: 'Émise le', value: 'Valeur (JSON)', note: 'Note', job: 'Tâche', finished_at: 'Fin', sent: 'Envoyés', failed: 'Échecs', details: 'Détails', channel: 'Canal',
-  template: 'Modèle', recipient: 'Destinataire', error: 'Erreur', created_at: 'Créé le',
+  template: 'Modèle', recipient: 'Destinataire', error: 'Erreur', created_at: 'Créé le', lat: 'Latitude', lng: 'Longitude',
 };
 export const label = (fl: Field) => fl.label || LABELS[fl.name] || fl.name;
