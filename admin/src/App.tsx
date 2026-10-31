@@ -12,6 +12,7 @@ import { UserList, UserShow } from './Users';
 import { AuditList } from './Audit';
 import { ReleaseList } from './Releases';
 import { PlanMatrix } from './PlanMatrix';
+import { AiSettings } from './AiSettings';
 import { Profile } from './Profile';
 import { AdminList, AdminShow, AdminCreate } from './Admins';
 import { AppLayout } from './Layout';
@@ -51,6 +52,7 @@ function ResourceRoutes() {
           <Route path="admins/:id" element={<AdminShow />} />
         </> : null}
         <Route path="plan-matrix" element={<PlanMatrix />} />
+        {permits(permissions, 'system.write') ? <Route path="ai-settings" element={<AiSettings />} /> : null}
         <Route path="profile" element={<Profile />} />
         {RES.filter((r) => permits(permissions, r.perm)).map((r) => {
           const { List, Show, Edit, Create } = makeResource(r, permissions);

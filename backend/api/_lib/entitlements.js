@@ -83,3 +83,26 @@ export async function guardQuota(res, userId, code, current, settingKey, fallbac
   }
   return true;
 }
+
+// Garde dédiée pour l'assistant IA : appel à un service tiers payé par l'application (même sur un
+// modèle gratuit, le débit est limité), donc toujours appliquée — contrairement aux autres
+// fonctionnalités, elle ignore `subscriptions_enforced` (pas encore activé globalement sur cette
+// instance) pour ne jamais l'ouvrir par inadvertance aux formules gratuites.
+export async function guardAiAssistant(res, userId) {
+  return withClient(async (client) => {
+    const sub = (await client.query(
+      `select plan_code from subscriptions where user_id = $1 and status in ('essai','actif') and (ends_at is null or ends_at > now())
+        order by started_at desc limit 1`, [userId])).rows[0];
+    const planCode = sub ? sub.plan_code : 'gratuit';
+    const pf = (await client.query('select enabled from plan_features where plan_code = $1 and feature_code = $2', [planCode, 'ai_assistant'])).rows[0];
+    const override = (await client.query(
+      `select enabled from entitlement_overrides where user_id = $1 and feature_code = 'ai_assistant' and (expires_at is null or expires_at > now())
+        order by created_at desc limit 1`, [userId])).rows[0];
+    const ok = override ? override.enabled === true : !!(pf && pf.enabled);
+    if (!ok) {
+      res.status(402).json({ error: "L'assistant IA n'est pas inclus dans votre formule.", feature: 'ai_assistant', plan: planCode });
+      return false;
+    }
+    return true;
+  });
+}

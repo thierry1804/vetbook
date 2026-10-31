@@ -42,6 +42,7 @@ import dogEventsReminder from './api/user/dog-events-reminder.js';
 import filesUpload from './api/files/upload.js';
 import filesGet from './api/files/get.js';
 import filesDelete from './api/files/delete.js';
+import aiChat from './api/ai/chat.js';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -126,6 +127,9 @@ app.all('/api/user/dog-events-reminder', dogEventsReminder);
 app.post('/api/files', filesUpload);
 app.get('/api/files/:id', filesGet);
 app.delete('/api/files/:id', filesDelete);
+// Assistant IA : limite applicative dédiée (en plus du débit global côté serveur OpenRouter, voir _lib/ai.js).
+const aiChatLimiter = rateLimit({ windowMs: 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de messages. Réessaie dans une minute.' } });
+app.post('/api/ai/chat', aiChatLimiter, trackAccess('ai.chat'), aiChat);
 
 async function boot() {
   if (!process.env.JWT_SECRET) {

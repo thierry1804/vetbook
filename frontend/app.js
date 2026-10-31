@@ -1480,6 +1480,9 @@
     } else if (route.view === 'help') {
       showHelp();
       return;
+    } else if (route.view === 'assistant') {
+      showAssistant();
+      return;
     }
     showHome();
   }
@@ -2499,7 +2502,7 @@
 
   // Serene Pet Care shell — shares the existing routes and persisted records.
   var careLinks = [
-    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital']]],
+    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital'], ['assistant', 'Assistant IA', 'sparkle']]],
     ['Carnet de santé', [['historique', 'Frise du carnet', 'clipboard'], ['profil', 'Fiche & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
     ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
@@ -3237,7 +3240,7 @@
   }
 
   function hideAppViews() {
-    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire'].forEach(function (id) {
+    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire', 'view-assistant'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -8734,7 +8737,7 @@
     acym_lookup: 'Recherche ACYM (LOMAD)', breed_standard: 'Standard de race', calendar_agenda: 'Agenda et rappels', push_reminders: 'Rappels push',
     email_reminders: 'Rappels par e-mail', sms_reminders: 'Rappels par SMS', monthly_summary: 'Résumé mensuel', vet_directory: 'Annuaire et urgences',
     community_events: 'Événements', community_tips: 'Astuces et conseils', vet_share: 'Lien de partage vétérinaire', qr_identity: 'Carte d\'identité et QR code',
-    export_pdf_ics: 'Export PDF et .ics', cloud_sync: 'Synchronisation cloud', practice_portal: 'Portail vétérinaire'
+    export_pdf_ics: 'Export PDF et .ics', cloud_sync: 'Synchronisation cloud', practice_portal: 'Portail vétérinaire', ai_assistant: 'Assistant IA'
   };
   var QUOTA_LABELS = {
     animals: 'le nombre d\'animaux', photos_count: 'le nombre de photos', photos_storage_mb: 'l\'espace photo',
@@ -8962,7 +8965,7 @@
     medications: 'medications', consultations: 'consultations', hygiene: 'hygiene_care', suivi: 'journal_notes', journal: 'journal_notes',
     poids: 'weight_tracking', nutrition: 'nutrition_plan', activites: 'activities', checkup: 'health_checkup', chaleurs: 'heat_cycles',
     reproduction: 'reproduction', alertes: 'calendar_agenda', calendrier: 'calendar_agenda', calendar: 'calendar_agenda',
-    annuaire: 'vet_directory', directory: 'vet_directory', events: 'community_events', tips: 'community_tips'
+    annuaire: 'vet_directory', directory: 'vet_directory', events: 'community_events', tips: 'community_tips', assistant: 'ai_assistant'
   };
   var FAB_FEATURES = { weight: 'weight_tracking', vaccin: 'health_records', deworming: 'health_records', consult: 'consultations', hygiene: 'hygiene_care', note: 'journal_notes', meal: 'nutrition_plan', activity: 'activities' };
   var ACTION_FEATURES = { editPedigree: 'pedigree_edit', 'export-ics': 'export_pdf_ics', 'download-qr': 'qr_identity' };
@@ -9523,6 +9526,7 @@
       else if (route === 'help') { showHelp(); markCareRoute(route); }
       else if (route === 'account') { showUserProfile(); markCareRoute(route); }
       else if (route === 'events' || route === 'tips') { showCommunity(route); markCareRoute(route); }
+      else if (route === 'assistant') { showAssistant(); markCareRoute(route); }
       else if (!state.animals.length || route === 'addAnimal') openModal('addAnimal');
       else if (route.indexOf('add') === 0) { showDetail({tab: route === 'addWeight' ? 'poids' : route === 'addMeal' ? 'nutrition' : 'vaccins', nav:'pets'}); openModal(route); }
       else showDetail({tab:route, nav:'pets'});
@@ -9647,6 +9651,29 @@
     var btnHelpBack = document.getElementById('btn-help-back');
     if (btnHelpBack) btnHelpBack.addEventListener('click', function () { showUserProfile(); });
 
+    var btnAssistantBack = document.getElementById('btn-assistant-back');
+    if (btnAssistantBack) btnAssistantBack.addEventListener('click', function () { showHome(); });
+
+    var aiChatForm = document.getElementById('ai-chat-form');
+    var aiChatInput = document.getElementById('ai-chat-input');
+    if (aiChatForm && aiChatInput) {
+      aiChatForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var text = aiChatInput.value.trim();
+        if (!text) return;
+        aiChatInput.value = '';
+        aiChatInput.style.height = 'auto';
+        sendAiChatMessage(text);
+      });
+      aiChatInput.addEventListener('input', function () {
+        aiChatInput.style.height = 'auto';
+        aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + 'px';
+      });
+      aiChatInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiChatForm.requestSubmit(); }
+      });
+    }
+
     var btnHelpOnboarding = document.getElementById('btn-help-onboarding');
     if (btnHelpOnboarding) btnHelpOnboarding.addEventListener('click', function () { showOnboarding(); });
 
@@ -9728,6 +9755,68 @@
     document.getElementById('animal-select').hidden = true;
     document.getElementById('fab-container').hidden = true;
     saveRoute({ view: 'help' });
+  }
+
+  // Assistant IA : conseil sur la santé et le bien-être animal (réservé aux formules payantes).
+  // Conversation gardée en mémoire pour la session en cours seulement (pas de persistance locale).
+  var aiChatHistory = [];
+  function renderAiChat() {
+    var box = document.getElementById('ai-chat-messages');
+    if (!box) return;
+    if (!aiChatHistory.length) {
+      box.innerHTML = '<p class="ai-chat__empty">Pose une question sur l’alimentation, le comportement, l’entretien ou le bien-être de ton compagnon.</p>';
+      return;
+    }
+    box.innerHTML = aiChatHistory.map(function (m) {
+      var cls = m.role === 'user' ? 'ai-chat__msg--user' : m.role === 'error' ? 'ai-chat__msg--error' : m.role === 'pending' ? 'ai-chat__msg--pending' : 'ai-chat__msg--ai';
+      return '<div class="ai-chat__msg ' + cls + '">' + escapeHtml(m.content) + '</div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function showAssistant() {
+    if (!hasFeature('ai_assistant')) { showFeatureLocked('ai_assistant'); return; }
+    setBottomNavActive('assistant');
+    markCareRoute('assistant');
+    hideAppViews();
+    var view = document.getElementById('view-assistant');
+    if (view) {
+      view.hidden = false;
+      view.classList.remove('view-enter');
+      void view.offsetWidth;
+      view.classList.add('view-enter');
+    }
+    document.getElementById('animal-select').hidden = true;
+    document.getElementById('fab-container').hidden = true;
+    var pet = getCurrent();
+    var nameEl = document.getElementById('ai-chat-pet-name');
+    if (nameEl) nameEl.textContent = pet && pet.animal && pet.animal.name ? pet.animal.name : 'ton compagnon';
+    renderAiChat();
+    saveRoute({ view: 'assistant' });
+  }
+
+  function sendAiChatMessage(text) {
+    aiChatHistory.push({ role: 'user', content: text });
+    aiChatHistory.push({ role: 'pending', content: 'L’assistant réfléchit…' });
+    renderAiChat();
+    var sendBtn = document.getElementById('ai-chat-send');
+    if (sendBtn) sendBtn.disabled = true;
+    var pet = getCurrent();
+    var history = aiChatHistory.filter(function (m) { return m.role === 'user' || m.role === 'assistant'; }).slice(0, -1);
+    window.cloudSync.api('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: text, animalId: pet ? pet.id : undefined, history: history }),
+    }).then(function (res) {
+      aiChatHistory.pop();
+      aiChatHistory.push({ role: 'assistant', content: res.reply });
+      renderAiChat();
+    }).catch(function (err) {
+      aiChatHistory.pop();
+      aiChatHistory.push({ role: 'error', content: (err && err.message) || 'Assistant indisponible pour le moment.' });
+      renderAiChat();
+    }).finally(function () {
+      if (sendBtn) sendBtn.disabled = false;
+    });
   }
 
   window.app = {

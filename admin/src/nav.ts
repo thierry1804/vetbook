@@ -17,6 +17,9 @@ export const NAV: NavGroup[] = [
     { label: 'Matrice des droits', to: '/plan-matrix', icon: 'matrix', perm: 'billing.read' },
     ...RES.filter((r) => r.group === 'Abonnements').map((r) => ({ label: r.label, to: '/' + r.name, icon: r.name, perm: r.perm })),
   ] },
-  { title: 'Système', items: RES.filter((r) => r.group === 'Système').map((r) => ({ label: r.label, to: '/' + r.name, icon: r.name, perm: r.perm })) },
+  { title: 'Système', items: [
+    ...RES.filter((r) => r.group === 'Système').map((r) => ({ label: r.label, to: '/' + r.name, icon: r.name, perm: r.perm })),
+    { label: 'Assistant IA', to: '/ai-settings', icon: 'ai', perm: 'system.write' },
+  ] },
   { title: 'Administration', items: [{ label: 'Administrateurs', to: '/admins', icon: 'admins', perm: 'admins.manage' }] },
 ];
