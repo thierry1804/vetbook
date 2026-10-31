@@ -4,7 +4,7 @@ import { SearchOutlined, UserOutlined, LogoutOutlined, BulbOutlined, MenuFoldOut
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { NAV } from './nav';
 import { ICONS } from './icons';
-import { permits } from './api';
+import { api, permits } from './api';
 import { useAuth } from './auth';
 import { useThemeMode } from './themeMode';
 
@@ -29,22 +29,52 @@ function Brand({ open }: { open: boolean }) {
 }
 
 // ── Palette de commandes (Ctrl/⌘ + K) : accès direct à n'importe quel écran.
+// Résultats directs (enregistrements, pas juste des écrans) pour les ressources où on cherche
+// le plus souvent une fiche précise plutôt qu'une liste — email d'utilisateur, nom de clinique, titre de conseil.
+const RECORD_SEARCHES: { resource: string; base: string; perm: string; group: string; icon: string; label: (r: any) => string }[] = [
+  { resource: 'users', base: '/users', perm: 'users.read', group: 'Utilisateurs', icon: 'users', label: (r) => `${r.name || r.email} — ${r.email}` },
+  { resource: 'clinics', base: '/r/clinics', perm: 'directory.read', group: 'Cliniques', icon: 'clinics', label: (r) => [r.name, r.city].filter(Boolean).join(' — ') },
+  { resource: 'tips', base: '/r/tips', perm: 'contents.read', group: 'Conseils', icon: 'tips', label: (r) => r.title },
+];
+
 function CommandPalette({ open, onClose, perms }: { open: boolean; onClose: () => void; perms: string[] }) {
   const navigate = useNavigate();
   const [q, setQ] = useState(''); const [idx, setIdx] = useState(0);
+  const [records, setRecords] = useState<{ label: string; to: string; icon: string; group: string }[]>([]);
   const items = useMemo(() => [{ label: 'Tableau de bord', to: '/', icon: 'dashboard', group: 'Général' },
     ...NAV.flatMap((g) => g.items.filter((i) => permits(perms, i.perm)).map((i) => ({ ...i, group: g.title }))),
-    { label: 'Mon profil et mot de passe', to: '/profile', icon: 'admins', group: 'Compte' }], [perms]);
+    { label: 'Mon profil et mot de passe', to: '/profile', icon: 'admins', group: 'Compte' },
+    ...([
+      { label: 'Nouveau conseil', to: '/tips/create', icon: 'tips', perm: 'contents.write' },
+      { label: 'Nouvelle clinique', to: '/clinics/create', icon: 'clinics', perm: 'directory.write' },
+      { label: 'Nouvel administrateur', to: '/admins/create', icon: 'admins', perm: 'admins.manage' },
+    ].filter((a) => permits(perms, a.perm)).map((a) => ({ ...a, group: 'Actions rapides' }))),
+  ], [perms]);
   const normQ = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const shown = items.filter((i) => normQ(i.label + ' ' + i.group).includes(normQ(q))).slice(0, 12);
-  useEffect(() => { setIdx(0); }, [q]);
-  useEffect(() => { if (open) setQ(''); }, [open]);
+  const navMatches = items.filter((i) => normQ(i.label + ' ' + i.group).includes(normQ(q))).slice(0, 8);
+  const shown = [...records, ...navMatches].slice(0, 12);
+  useEffect(() => { setIdx(0); }, [q, records]);
+  useEffect(() => { if (open) { setQ(''); setRecords([]); } }, [open]);
+  // Recherche d'enregistrements : débattue (300 ms), à partir de 2 caractères, pour ne pas appeler l'API à chaque frappe.
+  useEffect(() => {
+    const query = q.trim();
+    if (query.length < 2) { setRecords([]); return; }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      Promise.all(RECORD_SEARCHES.filter((s) => permits(perms, s.perm)).map((s) =>
+        api<any[]>(`${s.base}?range=${encodeURIComponent(JSON.stringify([0, 3]))}&sort=${encodeURIComponent(JSON.stringify(['id', 'DESC']))}&filter=${encodeURIComponent(JSON.stringify({ q: query }))}`)
+          .then((r) => r.json.map((row: any) => ({ label: s.label(row), to: `${s.resource === 'users' ? '/users' : '/' + s.resource}/${row.id}`, icon: s.icon, group: s.group })))
+          .catch(() => []),
+      )).then((groups) => { if (!cancelled) setRecords(groups.flat()); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [q, perms]);
   const go = (to: string) => { onClose(); navigate(to); };
   return (
     <Modal open={open} onCancel={onClose} footer={null} closable={false} width={520} styles={{ body: { padding: 0 } }} style={{ top: '12vh' }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px', borderBottom: '1px solid var(--ant-color-border)' }}>
         <SearchOutlined style={{ color: 'var(--ant-color-text-secondary)', marginRight: 10 }} />
-        <Input autoFocus variant="borderless" placeholder="Aller à… (utilisateurs, conseils, formules)" value={q} onChange={(e) => setQ(e.target.value)}
+        <Input autoFocus variant="borderless" placeholder="Aller à… ou rechercher un utilisateur, une clinique, un conseil" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') { e.preventDefault(); setIdx((i) => Math.min(i + 1, shown.length - 1)); }
             if (e.key === 'ArrowUp') { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }

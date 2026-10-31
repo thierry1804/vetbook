@@ -67,7 +67,7 @@ export const RES: Res[] = [
   { name: 'registries', section: 'registries', label: 'Registres (LOF, LOMAD…)', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', createPk: true, search: true, fields: [
     f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('country', 'text', { list: true }), f('number_regex', 'text'), f('lookup_url', 'text'),
     f('delays', 'json'), f('status', 'select', { choices: ACTIVE, list: true })] },
-  { name: 'plans', label: 'Formules', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, fields: [
+  { name: 'plans', label: 'Formules', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, filters: ['archived'], fields: [
     f('code', 'text', { required: true, list: true }), f('name', 'text', { required: true, list: true }), f('audience', 'select', { choices: ['owner', 'practice'], list: true }),
     f('price_mga', 'int', { label: 'Prix (MGA)', list: true }), f('period', 'select', { choices: ['mensuel', 'annuel', 'unique'], list: true }), f('trial_days', 'int', { list: true }),
     f('country', 'text'), f('visible', 'bool', { list: true }), f('archived', 'bool', { list: true }), f('sort_order', 'int', { list: true })] },

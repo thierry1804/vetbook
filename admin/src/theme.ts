@@ -35,6 +35,12 @@ export function themeConfig(mode: 'light' | 'dark'): ThemeConfig {
       colorBorderSecondary: t.divider,
       colorText: t.text,
       colorTextSecondary: t.textSecondary,
+      // antd dérive les légendes (Typography "secondary"), les états vides de Table et le texte désactivé
+      // de colorTextTertiary/Quaternary/Disabled — sans cette surcharge ils retombent sur ses gris par défaut
+      // (45%/25% noir), illisibles sur nos fonds chauds (contraste mesuré ~3,3:1 et ~1,8:1, sous WCAG AA).
+      colorTextTertiary: t.textSecondary,
+      colorTextQuaternary: t.textSecondary,
+      colorTextDisabled: t.textSecondary,
       colorSuccess: t.success,
       colorWarning: t.warning,
       colorError: t.error,

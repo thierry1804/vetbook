@@ -62,13 +62,12 @@ function AdminActions() {
       </Toolbar>
       <Table rowKey="id" loading={isFetching} dataSource={data?.data}
         pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
-        expandable={{ expandedRowRender: (r: any) => <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--ant-color-fill-tertiary)', padding: 8 }}>{JSON.stringify({ motif: r.reason, avant: r.before, apres: r.after, ip: r.ip }, null, 2)}</pre> }}
+        expandable={{ expandedRowRender: (r: any) => <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--ant-color-fill-tertiary)', padding: 8 }}>{JSON.stringify({ id: r.target_id, motif: r.reason, avant: r.before, apres: r.after, ip: r.ip }, null, 2)}</pre> }}
         columns={[
           { title: 'Date', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
           { title: 'Administrateur', dataIndex: 'admin_email' },
           { title: 'Action', dataIndex: 'action' },
           { title: 'Cible', dataIndex: 'target_type' },
-          { title: 'Id', dataIndex: 'target_id' },
           { title: 'Motif', dataIndex: 'reason' },
         ]} />
     </>

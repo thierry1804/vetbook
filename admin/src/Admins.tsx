@@ -8,6 +8,38 @@ import { CredentialsDialog, PageHeader, Pill, RowList, StatusChip } from './ui';
 
 const { Text, Title } = Typography;
 type Role = { code: string; label: string; permissions: string[] };
+
+// Traduction des codes de droit (module.action) en français, groupés par module — un humain choisit ici
+// qui a accès à quoi, ça ne doit jamais s'afficher en codes bruts (voir ROLES dans api/_lib/admin-auth.js).
+const PERM_MODULES: Record<string, string> = {
+  dashboard: 'Tableau de bord', users: 'Utilisateurs', pets: 'Animaux', referentiels: 'Référentiels', notifications: 'Notifications',
+  sharing: 'Partage', storage: 'Stockage', system: 'Système', audit: 'Audit', rgpd: 'RGPD', billing: 'Facturation',
+  contents: 'Contenus', directory: 'Annuaire',
+};
+const PERM_LABELS: Record<string, string> = {
+  'dashboard.read': 'Consulter',
+  'users.read': 'Consulter les fiches', 'users.support': 'Actions de support', 'users.suspend': 'Suspendre un compte', 'users.aggregate': 'Statistiques agrégées',
+  'pets.read': 'Consulter les fiches', 'pets.read_reason': 'Consulter avec motif journalisé', 'pets.read_anon': 'Consulter anonymisé', 'pets.aggregate': 'Statistiques agrégées',
+  'referentiels.read': 'Consulter', 'referentiels.write': 'Modifier', 'referentiels.publish': 'Publier une version',
+  'notifications.read': 'Consulter', 'notifications.templates': 'Modifier les modèles', 'notifications.resend': 'Renvoyer', 'notifications.campaigns': 'Créer des campagnes', 'notifications.stats': 'Statistiques',
+  'sharing.read': 'Consulter les liens', 'sharing.revoke': 'Révoquer un lien', 'sharing.aggregate': 'Statistiques agrégées',
+  'storage.*': 'Tous les droits', 'storage.moderate': 'Modérer les fichiers',
+  'system.*': 'Tous les réglages',
+  'audit.read': 'Consulter le journal',
+  'rgpd.execute': 'Exécuter une demande', 'rgpd.instruct': 'Instruire une demande',
+  'billing.read': 'Consulter', 'billing.integrations': 'Gérer les intégrations', 'billing.payment': 'Gérer les paiements', 'billing.extend': 'Prolonger un abonnement',
+  'billing.plans_write': 'Modifier les formules', 'billing.refund': 'Rembourser', 'billing.export': 'Exporter', 'billing.aggregate': 'Statistiques agrégées',
+  'contents.read': 'Consulter', 'contents.write': 'Modifier', 'contents.publish': 'Publier', 'contents.review': 'Relire (validation vétérinaire)',
+  'directory.*': 'Tous les droits', 'directory.read': 'Consulter', 'directory.write': 'Modifier', 'directory.validate': 'Valider une fiche',
+};
+function groupPermissions(perms: string[]) {
+  const groups: Record<string, string[]> = {};
+  for (const p of perms) {
+    const mod = p.split('.')[0];
+    (groups[mod] ||= []).push(p);
+  }
+  return Object.keys(groups).sort().map((mod) => ({ module: PERM_MODULES[mod] || mod, perms: groups[mod] }));
+}
 const useRoles = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   useEffect(() => { api<Role[]>('/roles').then((r) => setRoles(r.json)).catch(() => undefined); }, []);
@@ -59,8 +91,17 @@ export const AdminCreate = () => {
         <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Adresse e-mail</Text><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
         <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Rôle</Text><Select style={{ width: '100%' }} value={role} onChange={setRole} options={roles.map((r) => ({ value: r.code, label: r.label }))} /></div>
         <div>
-          <Text type="secondary" style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>Droits du rôle</Text>
-          <Space wrap size={[6, 6]}>{perms.slice(0, 40).map((p) => <Pill key={p} label={p === '*' ? 'Tous les droits' : p} />)}</Space>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 10, fontSize: 12 }}>Droits du rôle</Text>
+          {perms.includes('*') ? <Pill label="Tous les droits, tous modules" /> : (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {groupPermissions(perms).map((g) => (
+                <div key={g.module}>
+                  <span style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>{g.module}</span>
+                  <div style={{ marginTop: 6 }}><Space wrap size={[6, 6]}>{g.perms.map((p) => <Pill key={p} label={PERM_LABELS[p] || p} />)}</Space></div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Space><Button type="primary" htmlType="submit" loading={busy}>Créer le compte</Button><Button onClick={() => navigate('/admins')}>Annuler</Button></Space>
       </form>

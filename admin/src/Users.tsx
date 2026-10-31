@@ -13,9 +13,25 @@ const initialsOf = (s: string) => String(s || '?').split(/[\s@.]+/).filter(Boole
 
 export const UserList = () => {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
+  const canSuspend = permits(permissions, 'users.suspend');
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<Record<string, any>>({});
   const { data, isFetching } = useResourceList('users', { page, perPage: 25, sort: { field: 'created_at', order: 'DESC' }, filter });
+  const [selected, setSelected] = useState<React.Key[]>([]);
+  const [bulk, setBulk] = useState<null | 'suspend' | 'reactivate'>(null);
+  const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const runBulk = async () => {
+    if (!bulk) return;
+    setBusy(true);
+    try {
+      for (const id of selected) await api(`/users/${id}/${bulk}`, { method: 'POST', body: { reason } });
+      message.success(bulk === 'suspend' ? `${selected.length} compte(s) suspendu(s)` : `${selected.length} compte(s) réactivé(s)`);
+      setSelected([]); setBulk(null); setReason('');
+      qc.invalidateQueries({ queryKey: ['list', 'users'] });
+    } catch (e: any) { message.error(e.message); } finally { setBusy(false); }
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -25,8 +41,16 @@ export const UserList = () => {
         <Select placeholder="Statut" allowClear style={{ width: 160 }} options={[{ value: 'actif', label: 'Actif' }, { value: 'suspendu', label: 'Suspendu' }]} value={filter.status} onChange={(v) => { setFilter({ ...filter, status: v }); setPage(1); }} />
         <Select placeholder="E-mail" allowClear style={{ width: 160 }} options={[{ value: 'true', label: 'Vérifié' }, { value: 'false', label: 'Non vérifié' }]} value={filter.verified} onChange={(v) => { setFilter({ ...filter, verified: v }); setPage(1); }} />
         <Select placeholder="Méthode" allowClear style={{ width: 160 }} options={[{ value: 'google', label: 'Google' }, { value: 'email', label: 'E-mail' }]} value={filter.method} onChange={(v) => { setFilter({ ...filter, method: v }); setPage(1); }} />
+        {canSuspend && selected.length ? (
+          <Space>
+            <Text type="secondary" style={{ fontSize: 13 }}>{selected.length} sélectionné(s) :</Text>
+            <Button size="small" danger onClick={() => setBulk('suspend')}>Suspendre</Button>
+            <Button size="small" onClick={() => setBulk('reactivate')}>Réactiver</Button>
+          </Space>
+        ) : null}
       </Space>
       <Table rowKey="id" loading={isFetching} dataSource={data?.data} pagination={{ current: page, pageSize: 25, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        rowSelection={canSuspend ? { selectedRowKeys: selected, onChange: setSelected } : undefined}
         onRow={(r: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/users/${r.id}`) })}
         columns={[
           { title: 'Utilisateur', key: 'u', render: (r: any) => (
@@ -40,6 +64,10 @@ export const UserList = () => {
           { title: 'Dernière activité', dataIndex: 'last_seen_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
           { title: 'Inscription', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
         ]} />
+      <Modal open={!!bulk} onCancel={() => setBulk(null)} title={bulk === 'suspend' ? `Suspendre ${selected.length} compte(s)` : `Réactiver ${selected.length} compte(s)`}
+        footer={<><Button onClick={() => setBulk(null)}>Annuler</Button><Button type="primary" danger={bulk === 'suspend'} loading={busy} disabled={reason.trim().length < 5} onClick={runBulk}>Confirmer</Button></>}>
+        <Input.TextArea placeholder="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} autoFocus />
+      </Modal>
     </div>
   );
 };

@@ -241,16 +241,20 @@ function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEd
   const st = statusField(res);
   const choices = toOptions(st?.choices).map((c) => String(c.value));
   const publish = choices.includes('publie') ? 'publie' : choices.includes('valide') ? 'valide' : null;
+  // Supprimer est irréversible : séparé spatialement des actions de sauvegarde (pas seulement par la couleur)
+  // pour qu'un clic rapide ne puisse pas l'atteindre par erreur en visant Enregistrer.
   return (
-    <Space style={{ marginTop: 8 }}>
-      <Button type="primary" loading={saving} onClick={() => onSave()}>Enregistrer</Button>
-      {publish ? <Button loading={saving} onClick={() => onSave(publish)}>{publish === 'publie' ? 'Enregistrer et publier' : 'Enregistrer et valider'}</Button> : null}
+    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Space>
+        <Button type="primary" loading={saving} onClick={() => onSave()}>Enregistrer</Button>
+        {publish ? <Button loading={saving} onClick={() => onSave(publish)}>{publish === 'publie' ? 'Enregistrer et publier' : 'Enregistrer et valider'}</Button> : null}
+      </Space>
       {isEdit && res.deletable && onDelete ? (
         <Popconfirm title="Supprimer définitivement ?" description="Cette action est irréversible. Pour retirer un contenu sans le perdre, passe-le en « archivé »." okText="Supprimer" okButtonProps={{ danger: true }} onConfirm={onDelete}>
-          <Button danger>Supprimer</Button>
+          <Button danger type="text" size="small">Supprimer</Button>
         </Popconfirm>
       ) : null}
-    </Space>
+    </div>
   );
 }
 
@@ -282,9 +286,16 @@ export function makeResource(res: Res, perms: string[]) {
     const [selected, setSelected] = useState<React.Key[]>([]);
     const updateMany = useUpdateMany(res.name);
 
-    const columns = useMemo(() => [
-      ...res.fields.filter((x) => x.list).map((fl) => listColumn(fl, res, countries)),
-    ], [countries]);
+    // Une colonne entièrement vide sur la page affichée n'apporte rien (ex. Vaccins : Laboratoire/Valences/
+    // Intervalle jamais renseignés) — elle disparaît tant que personne ne remplit ce champ ; dès qu'une ligne
+    // le renseigne, elle revient. La première colonne (identité) reste toujours visible.
+    const columns = useMemo(() => {
+      const listFields = res.fields.filter((x) => x.list);
+      const rows = data?.data || [];
+      const visible = listFields.filter((fl, i) => i === 0 || !rows.length
+        || rows.some((r: any) => { const v = r[fl.name]; return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0); }));
+      return visible.map((fl) => listColumn(fl, res, countries));
+    }, [countries, data]);
 
     const runBulk = (status: string) => updateMany.mutate({ ids: selected as (string | number)[], data: { status } }, {
       onSuccess: () => { message.success(`${selected.length} élément(s) mis à jour`); setSelected([]); },
@@ -308,8 +319,9 @@ export function makeResource(res: Res, perms: string[]) {
           {res.search ? <Input.Search placeholder="Rechercher" allowClear style={{ width: 280 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); setPage(1); }} /> : null}
           {(res.filters || []).map((name) => {
             const fl = res.fields.find((x) => x.name === name)!;
+            const options = fl.type === 'country' ? countries : fl.type === 'bool' ? [{ value: 'true', label: 'Oui' }, { value: 'false', label: 'Non' }] : toOptions(fl.choices);
             return <Select key={name} placeholder={label(fl)} allowClear style={{ width: 180 }}
-              options={fl.type === 'country' ? countries : toOptions(fl.choices)}
+              options={options}
               value={filter[name]} onChange={(v) => { setFilter({ ...filter, [name]: v }); setPage(1); }} />;
           })}
           {canWrite && st && selected.length ? (
