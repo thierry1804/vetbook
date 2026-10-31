@@ -71,6 +71,7 @@ function listColumn(fl: Field, res: Res, countries: { value: string; label: stri
     case 'texts': column.render = (v: any) => (v || []).join(', ') || '—'; break;
     case 'country': column.render = (v: any) => (v === 'ALL' ? 'Tous' : v || '—'); break;
     case 'species': column.render = (v: any) => species.find((s) => s.value === v)?.label || v || '—'; break;
+    case 'discount': column.render = (v: any, r: any) => (v != null ? `${v} %` : r.amount_off_mga != null ? `${Number(r.amount_off_mga).toLocaleString('fr-FR')} MGA` : '—'); break;
     case 'select':
       column.render = (v: any) => (fl.name === 'status' ? <StatusChip value={v} /> : (toOptions(fl.choices).find((c) => String(c.value) === String(v))?.label ?? v ?? '—'));
       break;
@@ -192,6 +193,23 @@ function ListMetaField({ value, onChange }: { value?: any; onChange?: (v: any) =
   );
 }
 
+// Pourcentage et montant fixe sont les deux façons de réduire un prix — jamais les deux à la fois. Un
+// sélecteur de mode plutôt que deux champs remplissables en parallèle, qui permettait l'incohérence.
+function DiscountField({ value, onChange }: { value?: number | null; onChange?: (v: number | null) => void }) {
+  const form = Form.useFormInstance();
+  const amountOff: number | null = Form.useWatch('amount_off_mga', form);
+  const kind = amountOff != null && value == null ? 'amount' : 'percent';
+  return (
+    <Space>
+      <Select value={kind} style={{ width: 170 }} onChange={(k) => { if (k === 'percent') form.setFieldValue('amount_off_mga', null); else onChange?.(null); }}
+        options={[{ value: 'percent', label: 'Pourcentage' }, { value: 'amount', label: 'Montant fixe' }]} />
+      {kind === 'percent'
+        ? <InputNumber value={value ?? undefined} min={1} max={100} addonAfter="%" onChange={(v) => onChange?.(v ?? null)} />
+        : <InputNumber value={amountOff ?? undefined} min={1} addonAfter="MGA" onChange={(v) => form.setFieldValue('amount_off_mga', v ?? null)} />}
+    </Space>
+  );
+}
+
 function FieldInput({ fl, isEdit, res, countries, species, ...field }: { fl: Field; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[] } & Record<string, any>) {
   const disabled = fl.readOnly || (isEdit && !!res.createPk && fl.name === res.fields[0].name);
   switch (fl.type) {
@@ -208,6 +226,7 @@ function FieldInput({ fl, isEdit, res, countries, species, ...field }: { fl: Fie
     case 'regex': return <RegexField {...field} />;
     case 'checkupLevels': return <CheckupLevelsField {...field} />;
     case 'listMeta': return <ListMetaField {...field} />;
+    case 'discount': return <DiscountField {...field} />;
     case 'texts': return <TagsInput {...field} />;
     case 'country': return <Select {...field} options={countries} showSearch optionFilterProp="label" allowClear={!allowAll(res)} disabled={disabled} />;
     case 'species': return <Select {...field} options={species} showSearch optionFilterProp="label" allowClear disabled={disabled} />;
@@ -229,7 +248,7 @@ function groupFields(fields: Field[]): { title?: string; fields: Field[] }[] {
   }
   return groups;
 }
-const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html', 'kvnum', 'regex', 'checkupLevels', 'listMeta']);
+const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html', 'kvnum', 'regex', 'checkupLevels', 'listMeta', 'discount']);
 
 function FieldGroup({ title, fields, isEdit, res, countries, species }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[] }) {
   return (
@@ -493,7 +512,7 @@ export function makeResource(res: Res, perms: string[]) {
     if (!record) return null;
     return (
       <div style={{ padding: 24, maxWidth: 760 }}>
-        <PageHeader title={res.label} />
+        <PageHeader title={res.label} back={{ label: res.label, to: `/${res.name}` }} />
         <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: '0 16px' }}>
           {res.fields.map((fl, i) => (
             <div key={fl.name} style={{ display: 'flex', gap: 16, padding: '10px 0', borderBottom: i < res.fields.length - 1 ? '1px solid var(--ant-color-border)' : 'none' }}>
@@ -550,7 +569,7 @@ export function makeResource(res: Res, perms: string[]) {
 
     return (
       <div style={{ padding: 24 }}>
-        <PageHeader title={`${res.label} — ${isEdit ? 'modifier' : 'nouveau'}`}
+        <PageHeader title={`${res.label} — ${isEdit ? 'modifier' : 'nouveau'}`} back={{ label: res.label, to: `/${res.name}` }}
           actions={isEdit && record ? (
             <Button size="small" onClick={() => { const copy: any = { ...record }; delete copy.id; delete copy.published_at; if (copy.status) copy.status = res.defaults?.status || 'brouillon'; if (copy.title) copy.title = `${copy.title} (copie)`; if (copy.slug) copy.slug = `${copy.slug}-copie`; navigate(`/${res.name}/create`, { state: { record: copy } }); }}>Dupliquer</Button>
           ) : undefined} />

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import QRCode from 'qrcode';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/fr';
 import { Alert, Button, Modal, Tooltip, Typography } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CopyOutlined } from '@ant-design/icons';
 import { tone } from './theme';
 import { useThemeMode } from './themeMode';
 import { RES } from './resources';
@@ -60,6 +61,7 @@ export const LABELS: Record<string, string> = {
   actif: 'Actif', publie: 'Publié', valide: 'Validé', commercialise: 'Commercialisé', published: 'Publiée', brouillon: 'Brouillon', a_valider: 'À valider', essai: 'Essai',
   draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
   envoye: 'Envoyé', echec: 'Échec', console: 'Simulé (SMTP non configuré)',
+  owner: 'Propriétaire', practice: 'Cabinet',
 };
 
 export function StatusChip({ value }: { value?: string }) {
@@ -118,13 +120,22 @@ export function CredentialsDialog({ creds, email, title, onClose }: { creds: { p
   );
 }
 
-export const PageHeader = ({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-    <div style={{ flex: 1, minWidth: 240 }}>
-      <Title level={4} style={{ margin: 0 }}>{title}</Title>
-      {subtitle ? <Text type="secondary" style={{ display: 'block', marginTop: 2, fontSize: 13 }}>{subtitle}</Text> : null}
+// `back` : fil d'Ariane minimal sur les écrans de fiche/formulaire — nulle part ailleurs un moyen de
+// revenir à la liste sans le bouton retour du navigateur.
+export const PageHeader = ({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: React.ReactNode; back?: { label: string; to: string } }) => (
+  <div style={{ marginBottom: 20 }}>
+    {back ? (
+      <RouterLink to={back.to} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ant-color-text-secondary)', marginBottom: 6 }}>
+        <ArrowLeftOutlined style={{ fontSize: 11 }} /> {back.label}
+      </RouterLink>
+    ) : null}
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <Title level={4} style={{ margin: 0 }}>{title}</Title>
+        {subtitle ? <Text type="secondary" style={{ display: 'block', marginTop: 2, fontSize: 13 }}>{subtitle}</Text> : null}
+      </div>
+      {actions}
     </div>
-    {actions}
   </div>
 );
 

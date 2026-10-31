@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Avatar, Button, Input, Modal, Select, Space, Table, Typography, message } from 'antd';
+import { CheckOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useResourceList, useResourceOne } from './data';
@@ -65,6 +66,7 @@ export const AdminList = () => {
             </div>) },
           { title: 'Rôle', key: 'role', render: (r: any) => <Pill label={roleLabel(roles, r.role_code)} /> },
           { title: 'Statut', key: 'status', render: (r: any) => (r.locked_until && new Date(r.locked_until) > new Date() ? <StatusChip value="suspendu" /> : <StatusChip value={r.status} />) },
+          { title: '2FA', dataIndex: 'totp_enabled', render: (v: boolean) => (v ? <CheckOutlined style={{ color: 'var(--ant-color-success)', fontSize: 15 }} /> : <Text type="danger" style={{ fontSize: 12.5 }}>Non activée</Text>) },
           { title: 'Dernière connexion', dataIndex: 'last_login_at', render: (v: string) => (v ? <RelativeDate value={v} /> : 'Jamais') },
           { title: 'Créé le', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
         ]} />
@@ -85,7 +87,8 @@ export const AdminCreate = () => {
   const perms = roles.find((r) => r.code === role)?.permissions || [];
   return (
     <div style={{ padding: 24, maxWidth: 720 }}>
-      <PageHeader title="Nouvel administrateur" subtitle="Un mot de passe provisoire et un code TOTP sont générés : à transmettre à la personne." />
+      <PageHeader title="Nouvel administrateur" back={{ label: 'Administrateurs', to: '/admins' }}
+        subtitle="Un mot de passe provisoire et un code TOTP sont générés : à transmettre à la personne." />
       <form onSubmit={submit} style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, display: 'grid', gap: 16 }}>
         <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Nom complet</Text><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
         <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Adresse e-mail</Text><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
@@ -134,6 +137,9 @@ export const AdminShow = () => {
         <Pill label={roleLabel(roles, a.role_code)} />
         <StatusChip value={a.status} />
         {locked ? <StatusChip value="suspendu" /> : null}
+        {a.totp_enabled
+          ? <Space size={4}><CheckOutlined style={{ color: 'var(--ant-color-success)', fontSize: 13 }} /><Text type="secondary" style={{ fontSize: 12.5 }}>2FA activée</Text></Space>
+          : <Text type="danger" style={{ fontSize: 12.5 }}>2FA non activée</Text>}
       </div>
       <Space wrap>
         <Button type="primary" size="small" onClick={() => setDlg('edit')}>Modifier rôle / statut</Button>

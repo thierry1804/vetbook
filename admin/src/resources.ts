@@ -73,12 +73,12 @@ export const RES: Res[] = [
   { name: 'plans', label: 'Formules', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, filters: ['archived'], fields: [
     f('code', 'text', { required: true, list: true }), f('name', 'text', { required: true, list: true }), f('audience', 'select', { choices: ['owner', 'practice'], list: true }),
     f('price_mga', 'int', { label: 'Prix (MGA)', list: true }), f('period', 'select', { choices: ['mensuel', 'annuel', 'unique'], list: true }), f('trial_days', 'int', { list: true }),
-    f('country', 'text'), f('visible', 'bool', { list: true }), f('archived', 'bool', { list: true }), f('sort_order', 'int', { list: true })] },
+    f('country', 'country', { help: 'Vide = tous les pays ouverts.' }), f('visible', 'bool', { list: true }), f('archived', 'bool', { list: true }), f('sort_order', 'int', { list: true })] },
   { name: 'features', label: 'Fonctionnalités', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, fields: [
     f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('kind', 'select', { choices: ['boolean', 'quota'], list: true })] },
   { name: 'coupons', label: 'Coupons', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', deletable: true, createPk: true, search: true, fields: [
-    f('code', 'text', { required: true, list: true }), f('percent_off', 'int', { list: true }), f('amount_off_mga', 'int', { list: true }), f('valid_until', 'date', { list: true }),
-    f('max_uses', 'int', { list: true }), f('active', 'bool', { list: true })] },
+    f('code', 'text', { required: true, list: true }), f('percent_off', 'discount', { label: 'Réduction', list: true }), f('amount_off_mga', 'int', { hidden: true }),
+    f('valid_until', 'date', { list: true }), f('max_uses', 'int', { list: true }), f('active', 'bool', { list: true })] },
   { name: 'subscriptions', label: 'Abonnements', group: 'Abonnements', perm: 'billing.read', write: 'billing.payment', search: true, fields: [
     f('user_id', 'text', { list: true }), f('plan_code', 'text', { list: true }), f('status', 'select', { choices: ['essai', 'actif', 'en_retard', 'suspendu', 'resilie'], list: true }),
     f('started_at', 'ts', { list: true }), f('ends_at', 'ts', { list: true }), f('auto_renew', 'bool', { list: true })] },

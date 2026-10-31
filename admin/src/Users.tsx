@@ -94,6 +94,7 @@ function ReasonDialog({ open, title, onClose, onSubmit, children }: { open: bool
 
 export const UserShow = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: u, refetch } = useResourceOne('users', id);
   const { permissions } = useAuth();
   const qc = useQueryClient();
@@ -110,6 +111,7 @@ export const UserShow = () => {
 
   return (
     <div style={{ padding: 24, display: 'grid', gap: 16, maxWidth: 1180 }}>
+      <Button onClick={() => navigate('/users')} size="small" style={{ justifySelf: 'start' }}>← Utilisateurs</Button>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <Avatar size={44} style={{ fontWeight: 700, background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)' }}>{initialsOf(u.name || u.email)}</Avatar>
         <div style={{ flex: 1, minWidth: 180 }}>
