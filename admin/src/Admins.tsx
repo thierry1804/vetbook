@@ -90,8 +90,8 @@ export const AdminCreate = () => {
       <PageHeader title="Nouvel administrateur" back={{ label: 'Administrateurs', to: '/admins' }}
         subtitle="Un mot de passe provisoire et un code TOTP sont générés : à transmettre à la personne." />
       <form onSubmit={submit} style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, display: 'grid', gap: 16 }}>
-        <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Nom complet</Text><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
-        <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Adresse e-mail</Text><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+        <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}><Text type="danger">* </Text>Nom complet</Text><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
+        <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}><Text type="danger">* </Text>Adresse e-mail</Text><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
         <div><Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Rôle</Text><Select style={{ width: '100%' }} value={role} onChange={setRole} options={roles.map((r) => ({ value: r.code, label: r.label }))} /></div>
         <div>
           <Text type="secondary" style={{ display: 'block', marginBottom: 10, fontSize: 12 }}>Droits du rôle</Text>

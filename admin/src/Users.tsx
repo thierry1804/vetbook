@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Avatar, Button, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Avatar, Button, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, permits } from './api';
 import { useAuth } from './auth';
 import { useResourceList, useResourceOne } from './data';
-import { FactPanel, PageHeader, RowList, StatusChip, adminActionLabel, RelativeDate } from './ui';
+import { FactPanel, LABELS, PageHeader, RowList, StatusChip, adminActionLabel, RelativeDate } from './ui';
 
 const { Text, Title } = Typography;
 const mb = (b: number) => `${(b / 1e6).toFixed(1)} Mo`;
@@ -101,6 +101,8 @@ export const UserShow = () => {
   const [dlg, setDlg] = useState<null | 'suspend' | 'reactivate' | 'logout-everywhere' | 'mark-verified' | 'subscription' | 'payment'>(null);
   const [plan, setPlan] = useState('premium'); const [subStatus, setSubStatus] = useState('actif'); const [endsAt, setEndsAt] = useState('');
   const [amount, setAmount] = useState(''); const [method, setMethod] = useState('mvola'); const [ref, setRef] = useState('');
+  const [plans, setPlans] = useState<any[]>([]);
+  useEffect(() => { api('/r/plans?range=[0,99]&sort=["sort_order","ASC"]').then((r) => setPlans(r.json)).catch(() => undefined); }, []);
   if (!u || !Array.isArray(u.pets)) return null;
   const done = (msg: string) => { message.success(msg); refetch(); qc.invalidateQueries({ queryKey: ['list', 'users'] }); };
   const act = (name: string, ok: string) => async (reason: string) => {
@@ -180,17 +182,24 @@ export const UserShow = () => {
         onSubmit={async (reason) => {
           try { await api(`/users/${u.id}/subscription`, { method: 'POST', body: { reason, plan_code: plan, status: subStatus, ends_at: endsAt || null } }); done('Formule attribuée'); } catch (e: any) { message.error(e.message); throw e; }
         }}>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Code de la formule (gratuit, premium, eleveur, cabinet…)</Text><Input value={plan} onChange={(e) => setPlan(e.target.value)} /></div>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Statut</Text><Select style={{ width: '100%' }} value={subStatus} onChange={setSubStatus} options={['essai', 'actif', 'en_retard', 'suspendu'].map((s) => ({ value: s, label: s }))} /></div>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Fin de validité</Text><Input type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary"><Text type="danger">* </Text>Formule</Text>
+          <Select style={{ width: '100%' }} value={plan} onChange={setPlan} showSearch optionFilterProp="label"
+            options={plans.map((p) => ({ value: p.code, label: `${p.name} — ${Number(p.price_mga).toLocaleString('fr-FR')} MGA / ${p.period}` }))} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary"><Text type="danger">* </Text>Statut</Text>
+          <Select style={{ width: '100%' }} value={subStatus} onChange={setSubStatus} options={['essai', 'actif', 'en_retard', 'suspendu'].map((s) => ({ value: s, label: LABELS[s] || s }))} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Fin de validité (optionnel)</Text><Input type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
+        <Alert type="info" showIcon message={<>{plans.find((p) => p.code === plan)?.name || plan} · {LABELS[subStatus] || subStatus}{endsAt ? ` · jusqu'au ${endsAt}` : ''}</>} />
       </ReasonDialog>
       <ReasonDialog open={dlg === 'payment'} title="Enregistrer un paiement (reçu généré)" onClose={() => setDlg(null)}
         onSubmit={async (reason) => {
           try { const r = await api(`/subscriptions/${S.id}/payments`, { method: 'POST', body: { reason, amount_mga: Number(amount), method, reference: ref || null } }); done(`Paiement enregistré — facture ${r.json.invoice.number}`); } catch (e: any) { message.error(e.message); throw e; }
         }}>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Montant (MGA)</Text><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Moyen</Text><Select style={{ width: '100%' }} value={method} onChange={setMethod} options={['mvola', 'orange_money', 'airtel_money', 'carte', 'especes'].map((s) => ({ value: s, label: s }))} /></div>
-        <div><Text style={{ fontSize: 12 }} type="secondary">Référence de transaction</Text><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary"><Text type="danger">* </Text>Montant (MGA)</Text><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary"><Text type="danger">* </Text>Moyen</Text>
+          <Select style={{ width: '100%' }} value={method} onChange={setMethod}
+            options={[['mvola', 'MVola'], ['orange_money', 'Orange Money'], ['airtel_money', 'Airtel Money'], ['carte', 'Carte'], ['especes', 'Espèces']].map(([v, l]) => ({ value: v, label: l }))} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Référence de transaction (optionnel)</Text><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
+        {amount ? <Alert type="info" showIcon message={`${Number(amount).toLocaleString('fr-FR')} MGA via ${({ mvola: 'MVola', orange_money: 'Orange Money', airtel_money: 'Airtel Money', carte: 'Carte', especes: 'Espèces' } as Record<string, string>)[method]}${ref ? ` · réf. ${ref}` : ''}`} /> : null}
       </ReasonDialog>
     </div>
   );

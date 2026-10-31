@@ -257,7 +257,10 @@ function FieldGroup({ title, fields, isEdit, res, countries, species }: { title?
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 20px' }} className="field-grid">
         {fields.filter((fl) => !fl.hidden).map((fl) => (
           <Form.Item key={fl.name} name={fl.name} label={label(fl)} valuePropName={fl.type === 'bool' ? 'checked' : 'value'}
-            rules={fl.required ? [{ required: true, message: `${label(fl)} est requis` }] : undefined}
+            rules={[
+              ...(fl.required ? [{ required: true, message: `${label(fl)} est requis` }] : []),
+              ...(fl.urlCheck ? [{ type: 'url' as const, message: 'URL invalide (doit commencer par http:// ou https://)' }] : []),
+            ]}
             extra={fl.help} style={WIDE_TYPES.has(fl.type || '') ? { gridColumn: '1 / -1' } : undefined}>
             <FieldInput fl={fl} isEdit={isEdit} res={res} countries={countries} species={species} />
           </Form.Item>

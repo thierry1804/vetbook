@@ -1,7 +1,7 @@
 // Description des ressources du backoffice (champs, droits, groupes). Les écrans sont générés dans content.tsx.
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select | country
 export type Choice = string | { id: string | number; name: string };
-export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string; hidden?: boolean };
+export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string; hidden?: boolean; urlCheck?: boolean };
 export type Res = {
   name: string; label: string; perm: string; write?: string; fields: Field[]; readOnly?: boolean; deletable?: boolean;
   pk?: string; search?: boolean; group: string; createPk?: boolean; reason?: boolean; section?: string; defaults?: Record<string, any>; excerpt?: string; filters?: string[]; preview?: 'tip' | 'page' | 'event';
@@ -25,10 +25,14 @@ export const RES: Res[] = [
   { name: 'events', label: 'Événements', group: 'Contenus', section: 'events', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'event',
     defaults: { status: 'brouillon', recurring: true, country: 'ALL' }, filters: ['country'], fields: [
     f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('description', 'longtext'),
-    f('month', 'select', { choices: MONTHS, list: true, required: true, section: 'Date' }), f('day', 'int', { list: true, required: true }), f('event_date', 'date', { help: 'Date précise (facultatif, événement ponctuel).' }),
-    f('recurring', 'bool', { list: true, help: 'Se répète chaque année à la même date.' }),
+    // event_date (date précise, événement ponctuel) existe en base mais n'est lu nulle part côté app — le
+    // calendrier n'affiche que mois+jour, chaque année. Le montrer dans le formulaire ferait croire qu'il a
+    // un effet ; masqué tant que ce n'est pas réellement pris en charge.
+    f('month', 'select', { choices: MONTHS, list: true, required: true, section: 'Date', help: "Affiché chaque année à cette date (l'app ne gère pas encore les événements ponctuels à date unique)." }),
+    f('day', 'int', { list: true, required: true }), f('event_date', 'date', { hidden: true }),
+    f('recurring', 'bool', { hidden: true }),
     f('status', 'select', { choices: STATUS_CONTENT, list: true, section: 'Classement' }), f('country', 'country', { list: true }),
-    f('location', 'text', { section: 'Lieu et lien' }), f('link', 'text')] },
+    f('location', 'text', { section: 'Lieu et lien' }), f('link', 'text', { urlCheck: true, help: 'URL complète (https://…).' })] },
   { name: 'pages', label: 'Pages (aide, CGU…)', group: 'Contenus', section: 'pages', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'page', excerpt: 'body',
     defaults: { status: 'brouillon', kind: 'help', version: '1', force_reaccept: false }, filters: ['kind'], fields: [
     f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('body', 'html', { label: 'Contenu' }),
@@ -68,7 +72,7 @@ export const RES: Res[] = [
     f('advice', 'json', { hidden: true })] },
   { name: 'registries', section: 'registries', label: 'Registres (LOF, LOMAD…)', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', createPk: true, search: true, fields: [
     f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('country', 'text', { list: true }),
-    f('number_regex', 'regex', { label: 'Format du numéro', help: 'Expression régulière.' }), f('lookup_url', 'text'),
+    f('number_regex', 'regex', { label: 'Format du numéro', help: 'Expression régulière.' }), f('lookup_url', 'text', { urlCheck: true }),
     f('delays', 'kvnum', { label: 'Délais (jours)', help: 'ex. birthDeclarationDays' }), f('status', 'select', { choices: ACTIVE, list: true })] },
   { name: 'plans', label: 'Formules', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, filters: ['archived'], fields: [
     f('code', 'text', { required: true, list: true }), f('name', 'text', { required: true, list: true }), f('audience', 'select', { choices: ['owner', 'practice'], list: true }),

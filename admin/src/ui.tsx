@@ -61,7 +61,7 @@ export const LABELS: Record<string, string> = {
   actif: 'Actif', publie: 'Publié', valide: 'Validé', commercialise: 'Commercialisé', published: 'Publiée', brouillon: 'Brouillon', a_valider: 'À valider', essai: 'Essai',
   draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
   envoye: 'Envoyé', echec: 'Échec', console: 'Simulé (SMTP non configuré)',
-  owner: 'Propriétaire', practice: 'Cabinet',
+  owner: 'Propriétaire', practice: 'Cabinet', boolean: 'Oui/Non', quota: 'Quota',
 };
 
 export function StatusChip({ value }: { value?: string }) {
