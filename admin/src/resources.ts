@@ -98,11 +98,11 @@ export const RES: Res[] = [
   // clé/valeur JSON brute ici.
   { name: 'flags', label: 'Indicateurs de fonctionnalité', group: 'Système', perm: 'system.read', write: 'system.write', deletable: true, createPk: true, search: true, fields: [
     f('key', 'text', { required: true, list: true }), f('enabled', 'bool', { list: true }), f('note', 'text', { list: true })] },
-  { name: 'jobs', label: 'Tâches planifiées', group: 'Système', perm: 'notifications.read', readOnly: true, fields: [
-    f('id', 'int', { list: true }), f('job', 'text', { list: true }), f('status', 'text', { list: true }), f('started_at', 'ts', { list: true }), f('finished_at', 'ts', { list: true }),
-    f('sent', 'int', { list: true }), f('failed', 'int', { list: true }), f('details', 'json')] },
-  { name: 'messages', label: 'Journal des envois', group: 'Système', perm: 'notifications.read', readOnly: true, search: true, fields: [
-    f('id', 'int', { list: true }), f('channel', 'text', { list: true }), f('template', 'text', { list: true }), f('recipient', 'text', { list: true }),
+  { name: 'jobs', label: 'Exécutions des rappels', group: 'Système', perm: 'notifications.read', readOnly: true, fields: [
+    f('id', 'int', { list: true }), f('job', 'text', { list: true }), f('status', 'select', { choices: ['running', 'ok', 'partial', 'echec'], list: true }), f('started_at', 'ts', { list: true }), f('finished_at', 'ts', { list: true }),
+    f('sent', 'int', { label: 'Traitements', list: true }), f('failed', 'int', { list: true }), f('details', 'json')] },
+  { name: 'messages', label: 'Journal des envois', group: 'Système', perm: 'notifications.read', readOnly: true, search: true, filters: ['channel'], fields: [
+    f('id', 'int', { list: true }), f('channel', 'select', { choices: [{ id: 'email', name: 'E-mail' }, { id: 'push', name: 'Push' }], list: true }), f('job_run_id', 'int', { label: 'Exécution', list: true }), f('template', 'text', { list: true }), f('recipient', 'text', { list: true }),
     f('status', 'select', { choices: ['envoye', 'echec', 'console'], list: true }),
     f('error', 'text', { list: true }), f('created_at', 'ts', { list: true })] },
 ];

@@ -17,11 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', me: null });
 
   const refresh = useCallback(async () => {
-    try { const r = await api<Me>('/auth/me'); setState({ status: 'in', me: r.json }); }
-    catch { setState({ status: 'out', me: null }); }
+    const r = await api<Me>('/auth/me');
+    setState({ status: 'in', me: r.json });
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh().catch(() => setState({ status: 'out', me: null })); }, [refresh]);
 
   const login = useCallback(async (email: string, password: string, totp: string) => {
     await api('/auth/login', { method: 'POST', body: { email, password, totp } });

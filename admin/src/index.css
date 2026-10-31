@@ -26,3 +26,29 @@ table, .ant-table { font-variant-numeric: tabular-nums; }
   .metric-strip-mobile { display: none !important; }
   .metric-strip-desktop { display: flex !important; }
 }
+
+.admin-content > *, .admin-content .ant-form { width: 100%; min-width: 0; }
+.admin-content .ant-table-wrapper { min-width: 0; }
+.admin-content .ant-table-cell { overflow-wrap: anywhere; }
+.resource-form-grid > *, .field-grid > * { min-width: 0; }
+@media (max-width: 767px) {
+  .admin-content .ant-input-search { max-width: 100%; }
+  .admin-content > div { padding-inline: 16px !important; }
+}
+
+.admin-panel { padding: 20px; border: 1px solid var(--ant-color-border); border-radius: 6px; background: var(--ant-color-bg-container); min-width: 0; }
+.work-queue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.work-queue-item { display: grid; grid-template-columns: 44px minmax(0, 1fr) 16px; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--ant-color-border); border-radius: 6px; color: var(--ant-color-text); }
+.work-queue-item:hover { border-color: var(--ant-color-primary); background: var(--ant-color-primary-bg); }
+.record-json { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-height: 360px; overflow: auto; }
+.settings-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+.settings-nav { position: sticky; top: 20px; }
+.record-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+.record-main, .record-aside { min-width: 0; display: grid; gap: 16px; }
+.changed-field .ant-form-item-label > label::after { content: 'Modifié'; margin-left: 8px; font-size: 11px; color: var(--ant-color-warning-text); display: inline; }
+@media (max-width: 1023px) { .settings-layout, .record-layout { grid-template-columns: minmax(0, 1fr); } .settings-nav { position: static; } }
+.admin-content .ant-space-item { min-width: 0; max-width: 100%; }
+.admin-content .ant-space-item > .ant-select { max-width: 100%; }
+.release-indicator { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 767px) { .release-indicator { max-width: 110px; font-size: 11px; } }
+.admin-content .ant-space { max-width: 100%; }

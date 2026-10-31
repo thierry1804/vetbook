@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "apply-schema": "node scripts/apply-schema.mjs",
-    "send-reminders": "node scripts/send-reminders.mjs"
+    "send-reminders": "node scripts/send-reminders.mjs",
+    "test:admin-workflow": "node tests/admin-workflow.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

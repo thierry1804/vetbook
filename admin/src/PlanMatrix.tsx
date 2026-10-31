@@ -1,3 +1,5 @@
+import { QueryFeedback } from './QueryFeedback';
+import { useUnsavedChanges } from './interaction';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Input, InputNumber, Modal, Select, Typography, message } from 'antd';
 import { api, permits } from './api';
@@ -63,14 +65,16 @@ export const PlanMatrix = () => {
   const [grid, setGrid] = useState<Record<string, Cell>>({});
   const [dirtyPlans, setDirtyPlans] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const guard = useUnsavedChanges(dirtyPlans.size > 0);
 
-  const load = () => api('/plan-matrix').then((r) => {
+  const load = () => { setLoadError(null); return api('/plan-matrix').then((r) => {
     setData(r.json);
     const g: Record<string, Cell> = {};
     for (const c of r.json.cells) g[cellKey(c.plan_code, c.feature_code)] = { enabled: !!c.enabled, quota: c.quota };
     setGrid(g);
     setDirtyPlans(new Set());
-  }).catch((e) => message.error(e.message));
+  }).catch(setLoadError); };
   useEffect(() => { load(); }, []);
 
   const set = (plan: string, feature: string, patch: Partial<Cell>) => {
@@ -91,11 +95,12 @@ export const PlanMatrix = () => {
     finally { setSaving(false); }
   };
 
-  if (!data) return null;
+  if (!data || loadError) return <QueryFeedback loading={!data && !loadError} error={loadError} retry={load} />;
   const plans = data.plans;
   const colWidth = 108;
   return (
     <div style={{ padding: 24 }}>
+      {guard.dialog}
       <PageHeader title="Matrice des droits" subtitle="Ce que chaque formule inclut, et ses quotas — colonnes = formules, lignes = fonctionnalités."
         actions={canWrite ? <Button type="primary" disabled={!dirtyPlans.size} loading={saving} onClick={save}>Enregistrer</Button> : null} />
       <Alert type="info" showIcon style={{ marginBottom: 20 }}
@@ -105,7 +110,7 @@ export const PlanMatrix = () => {
           <div style={{ display: 'flex', position: 'sticky', top: 0, background: 'var(--ant-color-fill-tertiary)', borderBottom: '1px solid var(--ant-color-border)', zIndex: 1 }}>
             <div style={{ width: 280, flex: 'none', padding: '10px 16px', fontSize: 11, fontWeight: 650, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>Fonctionnalité</div>
             {plans.map((p) => (
-              <div key={p.code} style={{ width: colWidth, flex: 'none', padding: '10px 6px', textAlign: 'center' }}>
+              <div key={p.code} style={{ width: colWidth, flex: '1 0 108px', padding: '10px 6px', textAlign: 'center' }}>
                 <Text style={{ fontSize: 12, fontWeight: 650 }}>{p.name}{p.archived ? ' (archivée)' : ''}</Text>
                 <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>{Number(p.price_mga).toLocaleString('fr-FR')} MGA</Text>
               </div>
@@ -126,10 +131,10 @@ export const PlanMatrix = () => {
                 {plans.map((p) => {
                   const c = grid[cellKey(p.code, f.code)] || { enabled: false, quota: null };
                   return (
-                    <div key={p.code} style={{ width: colWidth, flex: 'none', padding: '8px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <Checkbox checked={c.enabled} disabled={!canWrite} onChange={(e) => set(p.code, f.code, { enabled: e.target.checked })} />
+                    <div key={p.code} style={{ width: colWidth, flex: '1 0 108px', padding: '8px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <Checkbox checked={c.enabled} disabled={!canWrite || saving} onChange={(e) => set(p.code, f.code, { enabled: e.target.checked })} />
                       {f.kind === 'quota' && c.enabled
-                        ? <InputNumber size="small" disabled={!canWrite} value={c.quota ?? undefined} placeholder="∞" onChange={(v) => set(p.code, f.code, { quota: v ?? null })} style={{ width: 72 }} />
+                        ? <InputNumber size="small" disabled={!canWrite || saving} value={c.quota ?? undefined} placeholder="∞" onChange={(v) => set(p.code, f.code, { quota: v ?? null })} style={{ width: 72 }} />
                         : null}
                     </div>
                   );

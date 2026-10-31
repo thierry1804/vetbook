@@ -1,6 +1,9 @@
+import { ManagedTable } from './ManagedTable';
+import { QueryFeedback } from './QueryFeedback';
+import { useListReturn, useUnsavedChanges } from './interaction';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Avatar, Button, Input, Modal, Select, Space, Table, Typography, message } from 'antd';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Alert, Avatar, Button, Input, Modal, Select, Space, Typography, message } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
@@ -52,11 +55,12 @@ const initials = (s: string) => s.split(/[\s@.]+/).filter(Boolean).map((w) => w[
 export const AdminList = () => {
   const navigate = useNavigate();
   const roles = useRoles();
-  const { data, isFetching } = useResourceList('admins', { page: 1, perPage: 500, sort: { field: 'created_at', order: 'ASC' } });
+  const { data, isFetching, error, refetch } = useResourceList('admins', { page: 1, perPage: 500, sort: { field: 'created_at', order: 'ASC' } });
   return (
     <div style={{ padding: 24 }}>
       <PageHeader title="Administrateurs" actions={<Button type="primary" onClick={() => navigate('/admins/create')}>Nouvel administrateur</Button>} />
-      <Table rowKey="id" loading={isFetching} dataSource={data?.data} pagination={false}
+      <QueryFeedback error={error} retry={refetch} />
+      {!error && <ManagedTable tableKey="admins" scroll={{ x: 'max-content' }} rowKey="id" loading={isFetching} dataSource={data?.data} pagination={false}
         onRow={(r: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/admins/${r.id}`) })}
         columns={[
           { title: 'Administrateur', key: 'a', render: (r: any) => (
@@ -69,7 +73,7 @@ export const AdminList = () => {
           { title: '2FA', dataIndex: 'totp_enabled', render: (v: boolean) => (v ? <CheckOutlined style={{ color: 'var(--ant-color-success)', fontSize: 15 }} /> : <Text type="danger" style={{ fontSize: 12.5 }}>Non activée</Text>) },
           { title: 'Dernière connexion', dataIndex: 'last_login_at', render: (v: string) => (v ? <RelativeDate value={v} /> : 'Jamais') },
           { title: 'Créé le', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
-        ]} />
+        ]} />}
     </div>
   );
 };
@@ -79,6 +83,7 @@ export const AdminCreate = () => {
   const [email, setEmail] = useState(''); const [name, setName] = useState(''); const [role, setRole] = useState('support');
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<any>(null);
+  const guard = useUnsavedChanges(!created && (!!email || !!name || role !== 'support'));
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
     try { const r = await api('/admins', { method: 'POST', body: { email, name, role_code: role } }); setCreated(r.json); }
@@ -86,7 +91,8 @@ export const AdminCreate = () => {
   };
   const perms = roles.find((r) => r.code === role)?.permissions || [];
   return (
-    <div style={{ padding: 24, maxWidth: 720 }}>
+    <div style={{ padding: 24 }}>
+      {guard.dialog}
       <PageHeader title="Nouvel administrateur" back={{ label: 'Administrateurs', to: '/admins' }}
         subtitle="Un mot de passe provisoire et un code TOTP sont générés : à transmettre à la personne." />
       <form onSubmit={submit} style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, display: 'grid', gap: 16 }}>
@@ -116,17 +122,17 @@ export const AdminCreate = () => {
 export const AdminShow = () => {
   const { id } = useParams(); const navigate = useNavigate();
   const roles = useRoles(); const qc = useQueryClient();
-  const { data: a, refetch } = useResourceOne('admins', id);
+  const { data: a, refetch, isLoading, error } = useResourceOne('admins', id);
   const [dlg, setDlg] = useState<null | 'edit' | 'reset' | 'revoke'>(null);
   const [reason, setReason] = useState(''); const [role, setRole] = useState(''); const [status, setStatus] = useState(''); const [name, setName] = useState('');
   const [creds, setCreds] = useState<any>(null);
   useEffect(() => { if (a) { setRole(a.role_code); setStatus(a.status); setName(a.name); } }, [a]);
-  if (!a || !Array.isArray(a.sessions)) return null;
+  if (!a || error) return <QueryFeedback loading={isLoading} error={error} retry={refetch} />;
   const close = () => { setDlg(null); setReason(''); };
   const run = async (fn: () => Promise<any>, ok: string) => { try { const r = await fn(); message.success(ok); close(); refetch(); qc.invalidateQueries({ queryKey: ['list', 'admins'] }); return r; } catch (e: any) { message.error(e.message); } };
   const locked = a.locked_until && new Date(a.locked_until) > new Date();
   return (
-    <div style={{ padding: 24, display: 'grid', gap: 16, maxWidth: 1180 }}>
+    <div style={{ padding: 24, display: 'grid', gap: 16 }}>
       <Button onClick={() => navigate('/admins')} size="small" style={{ justifySelf: 'start' }}>← Administrateurs</Button>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <Avatar size={44} style={{ fontWeight: 700, background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)' }}>{initials(a.name || a.email)}</Avatar>

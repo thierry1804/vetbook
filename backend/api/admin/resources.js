@@ -34,8 +34,8 @@ export const RESOURCES = {
   overrides: R('entitlement_overrides', 'id', { read: 'billing.read', write: 'billing.extend' }, { user_id: 'text', feature_code: 'text', enabled: 'bool', quota: 'num', reason: 'text', expires_at: 'ts' }, { order: 'id', deletable: true, reasonRequired: true, joinUser: 'user_id' }),
   settings: R('app_settings', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', value: 'jsonish' }, { search: ['key'], order: 'key' }),
   flags: R('feature_flags', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', enabled: 'bool', note: 'text' }, { search: ['key'], order: 'key', deletable: true }),
-  jobs: R('job_runs', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { order: 'id', readOnly: true }),
-  messages: R('message_log', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { search: ['recipient', 'template'], order: 'id', readOnly: true }),
+  jobs: R('job_runs', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { order: 'id', readOnly: true, filterable: ['status', 'job', 'finished_at', 'sent', 'failed'], recentColumn: 'started_at' }),
+  messages: R('message_log', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { search: ['recipient', 'template', 'error'], order: 'id', readOnly: true, filterable: ['status', 'channel', 'template', 'recipient', 'error', 'job_run_id'], recentColumn: 'created_at' }),
 };
 
 export function coerce(type, v) {
@@ -64,7 +64,7 @@ function parseList(req, def) {
 }
 
 export function listSql(def, { sort, filter }) {
-  const allowed = new Set([def.pk, def.order, ...Object.keys(def.cols), 'created_at', 'paid_at', 'issued_at', 'started_at'].filter(Boolean));
+  const allowed = new Set([def.pk, def.order, ...Object.keys(def.cols), ...(def.filterable || []), 'created_at', 'paid_at', 'issued_at', 'started_at'].filter(Boolean));
   const params = []; const where = [];
   // Colonnes qualifiées par la table : sans ça, un identifiant partagé avec la table jointe (ex. `status`,
   // présent à la fois sur `users` et sur `subscriptions`) devient ambigu dès qu'un joinUser est actif.
@@ -75,6 +75,14 @@ export function listSql(def, { sort, filter }) {
   for (const [k, v] of Object.entries(filter)) {
     if (k === 'q' || !allowed.has(k) || v === '' || v == null) continue;
     params.push(v); where.push(`${def.table}.${k}::text = $${params.length}::text`);
+  }
+  if (def.recentColumn && filter.recent_days != null) {
+    const days = Number(filter.recent_days);
+    if (Number.isInteger(days) && days >= 1 && days <= 365) { params.push(days); where.push(`${def.table}.${def.recentColumn} >= now() - ($${params.length} * interval '1 day')`); }
+  }
+  if (def.table === 'subscriptions' && filter.expiring_days != null) {
+    const days = Number(filter.expiring_days);
+    if (Number.isInteger(days) && days >= 1 && days <= 365) { params.push(days); where.push(`subscriptions.status in ('actif','essai') and subscriptions.ends_at >= now() and subscriptions.ends_at <= now() + ($${params.length} * interval '1 day')`); }
   }
   const col = allowed.has(sort[0]) ? sort[0] : def.pk;
   const dir = String(sort[1]).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';

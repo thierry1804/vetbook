@@ -1,7 +1,7 @@
 // Logique des rappels quotidiens (vaccins, vermifuges, hygiène, médicaments,
 // anniversaires, résumé mensuel, événements canins) + envoi Web Push.
 // Runtime-agnostic : appelée à la fois par scripts/send-reminders.mjs (cron
-// système sur le VPS) et, si besoin un jour, par un handler HTTP.
+// système sur le VPS) et par le lancement manuel du backoffice.
 //
 // Duplique volontairement les mêmes fenêtres de déclenchement que
 // checkBrowserNotifications() côté client (app.js) : c'est le repli
@@ -9,7 +9,7 @@
 // Les deux doivent être maintenues en synchro à la main.
 import webpush from 'web-push';
 import { withClient } from './db.js';
-import { sendMail } from './mailer.js';
+import { sendMail, logPushAttempt } from './mailer.js';
 import { appUrl } from './mailer.js';
 import { computeEntitlements } from './entitlements.js';
 
@@ -203,7 +203,7 @@ const DOG_EVENTS = [
 // app.js) — évite de dupliquer la logique d'agrégation dans ce runtime.
 // Idempotent via last_monthly_summary_sent : peu importe quel jour le cron
 // tourne, chaque pet n'est notifié qu'une fois par mois.
-async function sendMonthlySummaryPings(client, userPrefs) {
+async function sendMonthlySummaryPings(client, userPrefs, delivery) {
   const { rows: pets } = await client.query(
     `select p.id as pet_id, p.user_id, p.name,
             np.last_monthly_summary_sent::text as last_sent
@@ -222,7 +222,7 @@ async function sendMonthlySummaryPings(client, userPrefs) {
     const currentMonth = currentMonthKey.slice(0, 7);
     if (lastSentMonth === currentMonth) continue;
 
-    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`, userPrefs, 'monthly_summary');
+    await sendToUser(client, pet.user_id, "App'lika — Résumé mensuel", `Le résumé du mois de ${pet.name} est prêt.`, userPrefs, 'monthly_summary', delivery);
     await client.query('update notification_prefs set last_monthly_summary_sent = $1 where pet_id = $2', [currentMonthKey, pet.pet_id]);
     sent++;
   }
@@ -232,7 +232,7 @@ async function sendMonthlySummaryPings(client, userPrefs) {
 // Événements canins : rappel groupé, une fois par mois (1er du mois),
 // contenu global (pas de filtre par animal) — voir toggleDogEventsReminder()
 // côté client et users.dog_events_reminder côté schéma.
-async function sendDogEventsReminders(client, userPrefs) {
+async function sendDogEventsReminders(client, userPrefs, delivery) {
   const today = new Date();
   if (today.getDate() !== 1) return 0;
 
@@ -242,13 +242,13 @@ async function sendDogEventsReminders(client, userPrefs) {
   const { rows: users } = await client.query('select id from users where dog_events_reminder = true');
   const body = monthEvents.map((e) => e.title).join(', ');
   for (const u of users) {
-    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body, userPrefs, 'community_events');
+    await sendToUser(client, u.id, "App'lika — Événements canins du mois", body, userPrefs, 'community_events', delivery);
   }
   return users.length;
 }
 
 // Envoie sur les canaux choisis par l'utilisateur : push (sauf heures calmes) et/ou e-mail.
-async function sendToUser(client, userId, title, body, userPrefs, feature = null) {
+async function sendToUser(client, userId, title, body, userPrefs, feature = null, delivery) {
   const prefs = (userPrefs && userPrefs.get(userId)) || notifPrefs(null);
   // Droits de la formule (uniquement quand ils sont appliqués) : canal e-mail, canal push et, le cas échéant, la rubrique (résumé mensuel).
   const ent = await computeEntitlements(client, userId);
@@ -257,24 +257,32 @@ async function sendToUser(client, userId, title, body, userPrefs, feature = null
   if (prefs.email && allowed('email_reminders')) {
     const { rows } = await client.query('select email from users where id = $1', [userId]);
     if (rows[0]) {
-      await sendMail({
+      const result = await sendMail({
+        jobRunId: delivery?.runId,
         to: rows[0].email,
         subject: title,
         text: `${body}\n\nOuvrir App\u2019lika : ${appUrl()}/\n\nVous recevez ce message car les rappels par e-mail sont activés dans votre profil.`,
       });
+      if (delivery) delivery.email[result.console ? 'simulated' : result.delivered ? 'sent' : 'failed']++;
     }
   }
   if (!prefs.push || !allowed('push_reminders') || inQuietHours(prefs.quietHours)) return;
+  if (delivery && !delivery.pushConfigured) return;
   const { rows: subs } = await client.query('select * from push_subscriptions where user_id = $1', [userId]);
 
   await Promise.all(subs.map(async (sub) => {
     const pushSubscription = { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } };
     try {
       await webpush.sendNotification(pushSubscription, JSON.stringify({ title, body, url: './' }));
+      if (delivery) delivery.push.sent++;
+      await logPushAttempt({ userId, title, jobRunId: delivery?.runId, status: 'envoye' });
     } catch (err) {
       // 404/410 = abonnement expiré (désinstallation, changement de navigateur...) : on nettoie.
       const statusCode = err && typeof err === 'object' && 'statusCode' in err ? err.statusCode : null;
+      if (delivery) delivery.push.failed++;
+      await logPushAttempt({ userId, title, jobRunId: delivery?.runId, status: 'echec', error: String(err?.message || err) });
       if (statusCode === 404 || statusCode === 410) {
+        if (delivery) delivery.push.expired++;
         await client.query('delete from push_subscriptions where endpoint = $1', [sub.endpoint]);
       } else {
         console.error('Échec envoi push', sub.endpoint, err);
@@ -286,8 +294,9 @@ async function sendToUser(client, userId, title, body, userPrefs, feature = null
 // Point d'entrée unique : configure VAPID puis exécute tous les rappels dans
 // une seule connexion DB. Retourne un résumé chiffré (pas de détails par
 // utilisateur, pour rester léger dans les logs cron).
-export async function runReminders() {
-  webpush.setVapidDetails(
+export async function runReminders({ runId = null } = {}) {
+  const delivery = { runId, pushConfigured: !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), email: { sent: 0, failed: 0, simulated: 0 }, push: { sent: 0, failed: 0, expired: 0 } };
+  if (delivery.pushConfigured) webpush.setVapidDetails(
     process.env.VAPID_SUBJECT || 'mailto:contact@example.com',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
@@ -309,16 +318,16 @@ export async function runReminders() {
     let usersNotified = 0;
     for (const [userId, list] of byUser) {
       if (list.length === 1) {
-        await sendToUser(client, userId, list[0].title, list[0].body, userPrefs);
+        await sendToUser(client, userId, list[0].title, list[0].body, userPrefs, null, delivery);
       } else {
-        await sendToUser(client, userId, `App'lika — ${list.length} rappels`, list.map((r) => r.body).join(' · '), userPrefs);
+        await sendToUser(client, userId, `App'lika — ${list.length} rappels`, list.map((r) => r.body).join(' · '), userPrefs, null, delivery);
       }
       usersNotified++;
     }
 
-    const monthlySummariesSent = await sendMonthlySummaryPings(client, userPrefs);
-    const dogEventsUsersNotified = await sendDogEventsReminders(client, userPrefs);
+    const monthlySummariesSent = await sendMonthlySummaryPings(client, userPrefs, delivery);
+    const dogEventsUsersNotified = await sendDogEventsReminders(client, userPrefs, delivery);
 
-    return { usersNotified, reminderCount: reminders.length, monthlySummariesSent, dogEventsUsersNotified };
-  });
+    return { usersNotified, reminderCount: reminders.length, monthlySummariesSent, dogEventsUsersNotified, delivery };
+  }).catch((error) => { error.delivery = delivery; throw error; });
 }

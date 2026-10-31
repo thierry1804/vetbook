@@ -1,3 +1,5 @@
+import { QueryFeedback } from './QueryFeedback';
+import { useUnsavedChanges } from './interaction';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Input, Modal, Space, Switch, Typography, message } from 'antd';
 import { api } from './api';
@@ -18,10 +20,13 @@ export const AiSettings = () => {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const dirty = !!st && (enabled !== st.enabled || model !== st.model || systemPrompt !== st.systemPrompt || !!apiKey);
+  const guard = useUnsavedChanges(dirty);
 
-  const load = () => api('/ai-settings').then((r) => {
+  const load = () => { setLoadError(null); return api('/ai-settings').then((r) => {
     setSt(r.json); setEnabled(r.json.enabled); setModel(r.json.model); setSystemPrompt(r.json.systemPrompt);
-  }).catch((e) => message.error(e.message));
+  }).catch(setLoadError); };
   useEffect(() => { load(); }, []);
 
   const test = async () => {
@@ -42,10 +47,11 @@ export const AiSettings = () => {
     finally { setSaving(false); }
   };
 
-  if (!st) return null;
+  if (!st || loadError) return <QueryFeedback loading={!st && !loadError} error={loadError} retry={load} />;
 
   return (
-    <div style={{ padding: 24, maxWidth: 760 }}>
+    <div style={{ padding: 24 }}>
+      {guard.dialog}
       <PageHeader title="Assistant IA" />
       <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
         Compagnon de conseil sur la santé et le bien-être animal, intégré à l'app — réservé aux formules payantes (Matrice des droits, fonctionnalité « Assistant IA »).
@@ -84,7 +90,7 @@ export const AiSettings = () => {
 
         <Space>
           <Button onClick={test} loading={testing}>Tester</Button>
-          <Button type="primary" onClick={() => setSaveOpen(true)}>Enregistrer</Button>
+          <Button type="primary" disabled={!dirty} onClick={() => setSaveOpen(true)}>Enregistrer</Button>
         </Space>
 
         {testResult ? <Alert type={testResult.ok ? 'success' : 'error'} showIcon message={testResult.ok ? 'Réponse reçue' : 'Échec du test'} description={testResult.text} /> : null}

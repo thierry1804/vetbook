@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Alert, Button, Input, Typography, message } from 'antd';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 
 const { Text, Title } = Typography;
 
 export const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, status } = useAuth();
   const [username, setUsername] = useState(''); const [password, setPassword] = useState(''); const [totp, setTotp] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const submit = async (e: React.FormEvent) => {
@@ -14,6 +15,7 @@ export const LoginPage = () => {
     catch (err: any) { setError(err?.message || 'Connexion impossible'); message.error(err?.message || 'Connexion impossible'); }
     finally { setBusy(false); }
   };
+  if (status === 'in') return <Navigate to="/" replace />;
   return (
     <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'var(--ant-color-bg-layout)' }} className="login-grid">
       <div className="login-hero" style={{

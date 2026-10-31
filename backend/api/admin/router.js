@@ -15,6 +15,7 @@ import { mountMeta } from './meta.js';
 import { mountImport } from './import.js';
 import { mountAi } from './ai.js';
 import { mountSettingsTyped } from './settings-typed.js';
+import { mountOperations } from './operations.js';
 import { mountJobs } from './jobs.js';
 import { buildReleaseContent } from '../_lib/ref-release.js';
 
@@ -276,11 +277,16 @@ export function buildAdminRouter() {
   router.post('/releases/:version/publish', requireAdmin('referentiels.publish'), async (req, res, next) => {
     try {
       const out = await withTransaction(async (c) => {
+        await c.query('select pg_advisory_xact_lock(17236, 1)');
         const r = (await c.query('select version, status, created_by from ref_releases where version = $1 for update', [req.params.version])).rows[0];
         if (!r) return { code: 404, error: 'Version introuvable.' };
         if (r.status !== 'draft') return { code: 409, error: 'Seul un brouillon peut être publié.' };
         if ((await getSetting(c, 'four_eyes_publish', true)) === true && r.created_by === req.admin.id) {
           return { code: 403, error: 'Principe des quatre yeux : la publication doit être faite par un autre administrateur que l\'auteur du brouillon.' };
+        }
+        if (req.body?.baseVersion !== undefined) {
+          const current = Number((await c.query("select version from ref_releases where status = 'published' order by version desc limit 1")).rows[0]?.version || 0);
+          if (Number(req.body.baseVersion) !== current) return { code: 409, error: 'La version publiée a changé. Recharge la comparaison avant de publier.' };
         }
         await c.query("update ref_releases set status = 'archived' where status = 'published'");
         const pub = (await c.query(
@@ -386,7 +392,8 @@ export function buildAdminRouter() {
   mountAi(router);
   mountSettingsTyped(router);
   mountJobs(router);
+  mountOperations(router);
   router.use(buildResourceRouter());
-  router.use((err, _req, res, _next) => { console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
+  router.use((err, _req, res, _next) => { void _next; console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
   return router;
 }

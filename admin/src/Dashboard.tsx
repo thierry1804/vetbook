@@ -1,3 +1,4 @@
+import { WorkQueue } from './WorkQueue';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Skeleton, Space, Typography } from 'antd';
@@ -13,7 +14,8 @@ const TODAY = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'nu
 export const Dashboard = () => {
   const [d, setD] = useState<any>(null); const [err, setErr] = useState('');
   const { me, permissions } = useAuth(); const nav = useNavigate();
-  useEffect(() => { api('/dashboard').then((r) => setD(r.json)).catch((e) => setErr(e.message)); }, []);
+  const load = () => { setErr(''); api('/dashboard').then((r) => setD(r.json)).catch((e) => setErr(e.message)); };
+  useEffect(() => { load(); }, []);
   const first = String(me?.name || '').split(' ')[0];
   // « Créer » (une action) et « aller à » (une navigation) n'ont pas le même poids : un bouton plein
   // pour les premières, un simple lien pour les secondes — avant, les cinq étaient des boutons identiques.
@@ -23,9 +25,9 @@ export const Dashboard = () => {
     .filter((a) => permits(permissions, a[0]));
 
   return (
-    <div style={{ padding: 24, maxWidth: 1280 }}>
+    <div style={{ padding: 24 }}>
       <PageHeader title={first ? `Bonjour ${first}` : 'Tableau de bord'} subtitle={`App'lika · ${TODAY}`}
-        actions={<Space wrap>{creates.map((a) => <Button key={a[2]} onClick={() => nav(a[2])}>{a[1]}</Button>)}</Space>} />
+        actions={<Space wrap><Button onClick={load}>Actualiser</Button>{creates.map((a) => <Button key={a[2]} onClick={() => nav(a[2])}>{a[1]}</Button>)}</Space>} />
       {gotos.length ? (
         <Space wrap style={{ marginBottom: 16, marginTop: -8 }}>
           {gotos.map((a, i) => (
@@ -36,7 +38,8 @@ export const Dashboard = () => {
           ))}
         </Space>
       ) : null}
-      {err ? <Alert type="warning" message={err} showIcon /> : null}
+      {err ? <Alert type="error" message={err} showIcon action={<Button onClick={load}>Réessayer</Button>} /> : null}
+      <div style={{ marginBottom: 16 }}><WorkQueue /></div>
       {!d && !err ? (
         <div style={{ display: 'grid', gap: 16 }}>
           <Skeleton.Button active block style={{ height: 92, width: '100%' }} />
@@ -64,10 +67,11 @@ export const Dashboard = () => {
               <>
                 <StatusChip value={d.last_reminder_job.status === 'ok' ? 'actif' : d.last_reminder_job.status} />
                 <Text type="secondary" style={{ fontSize: 13 }}>
-                  {d.last_reminder_job.sent} envoyé(s) · {d.last_reminder_job.failed} échec(s) · {new Date(d.last_reminder_job.started_at).toLocaleString('fr-FR')}
+                  {d.last_reminder_job.sent} traitement(s) comptabilisé(s) · {d.last_reminder_job.failed} échec(s) · {new Date(d.last_reminder_job.started_at).toLocaleString('fr-FR')}
                 </Text>
+                {permits(permissions, 'notifications.read') ? <Button onClick={() => nav('/jobs')}>Voir les exécutions</Button> : null}
               </>
-            ) : <Alert type="warning" showIcon style={{ flex: 1 }} message="Aucune exécution enregistrée — les rappels de rendez-vous/vaccins n'ont jamais été envoyés." />}
+            ) : <Alert type="warning" showIcon style={{ flex: 1 }} message="Aucune exécution enregistrée dans cet historique." />}
           </div>
 
           <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1.4fr 1fr' }} className="dashboard-bars">

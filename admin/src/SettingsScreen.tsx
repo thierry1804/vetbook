@@ -1,3 +1,6 @@
+import { SettingsNavigation, useSettingsSection } from './SettingsNavigation';
+import { QueryFeedback } from './QueryFeedback';
+import { useUnsavedChanges } from './interaction';
 import React, { useEffect, useState } from 'react';
 import { Button, Input, InputNumber, Modal, Select, Space, Switch, Typography, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -8,8 +11,9 @@ import { Enforcement } from './PlanMatrix';
 const { Text } = Typography;
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
+  const section = useSettingsSection(title);
   return (
-    <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, marginBottom: 16 }}>
+    <div id={`settings-${section.id}`} hidden={!section.visible} style={{ display: section.visible ? undefined : 'none', scrollMarginTop: 20, border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, marginBottom: 16 }}>
       <Text strong style={{ fontSize: 14, display: 'block', marginBottom: help ? 2 : 16 }}>{title}</Text>
       {help ? <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>{help}</Text> : null}
       <Space direction="vertical" size={16} style={{ width: '100%' }}>{children}</Space>
@@ -35,8 +39,13 @@ export const SettingsScreen = () => {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [original, setOriginal] = useState<any>(null);
+  const changedKeys = st && original ? Object.keys(st).filter((key) => JSON.stringify(st[key]) !== JSON.stringify(original[key])) : [];
+  const dirty = changedKeys.length > 0;
+  const guard = useUnsavedChanges(dirty);
 
-  const load = () => api('/app-settings').then((r) => setSt(r.json)).catch((e) => message.error(e.message));
+  const load = () => { setLoadError(null); return api('/app-settings').then((r) => { setSt(r.json); setOriginal(r.json); }).catch(setLoadError); };
   useEffect(() => { load(); }, []);
   const set = (patch: any) => setSt((s: any) => ({ ...s, ...patch }));
 
@@ -44,18 +53,21 @@ export const SettingsScreen = () => {
     setSaving(true);
     try {
       await api('/app-settings', { method: 'PUT', body: { ...st, reason } });
-      message.success('Réglages enregistrés'); setSaveOpen(false); setReason(''); load();
+      setOriginal(st); message.success('Réglages enregistrés'); setSaveOpen(false); setReason(''); load();
     } catch (e: any) { message.error(e.message); }
     finally { setSaving(false); }
   };
 
-  if (!st) return null;
+  if (!st || loadError) return <QueryFeedback loading={!st && !loadError} error={loadError} retry={load} />;
   const countryOptions = st.open_countries.map((c: any) => ({ value: c.code, label: `${c.label} (${c.code})` }));
 
   return (
-    <div style={{ padding: 24, maxWidth: 820 }}>
-      <PageHeader title="Réglages" subtitle="Configuration globale de l'application." actions={<Button type="primary" onClick={() => setSaveOpen(true)}>Enregistrer</Button>} />
+    <div style={{ padding: 24 }}>
+      {guard.dialog}
+      <PageHeader title="Réglages" subtitle="Configuration globale de l'application." actions={<Button type="primary" disabled={!dirty} onClick={() => setSaveOpen(true)}>Enregistrer</Button>} />
 
+      {dirty ? <Text type="warning" style={{ display: 'block', marginBottom: 16 }}>{changedKeys.length} réglage(s) modifié(s), non enregistré(s).</Text> : null}
+      <SettingsNavigation changedKeys={changedKeys}>
       <Section title="Maintenance">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Switch checked={st.maintenance.enabled} onChange={(v) => set({ maintenance: { ...st.maintenance, enabled: v } })} />
@@ -70,7 +82,7 @@ export const SettingsScreen = () => {
         ) : null}
       </Section>
 
-      <Section title="Formules" help="Ce qui est appliqué à tous les comptes, et comment les fonctionnalités hors formule apparaissent dans l'app.">
+      <Section title="Formules" help="Ce qui est appliqué à tous les comptes, et comment les fonctionnalités hors formule apparaissent dans l'app. Cette section possède sa propre confirmation.">
         <Enforcement canWrite />
       </Section>
 
@@ -78,7 +90,7 @@ export const SettingsScreen = () => {
         <Field label="Pays ouverts">
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             {st.open_countries.map((c: any, i: number) => (
-              <Space key={i}>
+              <Space key={i} wrap>
                 <Input value={c.code} maxLength={2} style={{ width: 70, textTransform: 'uppercase' }} placeholder="MG"
                   onChange={(e) => set({ open_countries: st.open_countries.map((x: any, j: number) => (j === i ? { ...x, code: e.target.value.toUpperCase() } : x)) })} />
                 <Input value={c.label} style={{ width: 220 }} placeholder="Madagascar"
@@ -127,8 +139,11 @@ export const SettingsScreen = () => {
         </Field>
       </Section>
 
+      </SettingsNavigation>
       <Modal open={saveOpen} onCancel={() => setSaveOpen(false)} title="Enregistrer les réglages"
         footer={<><Button onClick={() => setSaveOpen(false)}>Annuler</Button><Button type="primary" loading={saving} disabled={reason.trim().length < 5} onClick={save}>Confirmer</Button></>}>
+        <Text strong>Modifications à enregistrer</Text>
+        <ul>{changedKeys.map((key) => <li key={key}>{({ maintenance: 'Maintenance', open_countries: 'Pays ouverts', default_country: 'Pays par défaut', contact: 'Coordonnées et instructions de souscription', max_household_members: 'Nombre de membres du foyer', max_share_days: 'Durée des liens vétérinaires', max_upload_mb: 'Taille maximale des photos', storage_quota_mb: 'Quota de stockage', four_eyes_publish: 'Validation à quatre yeux', min_client_version: 'Version minimale' } as Record<string, string>)[key] || key}</li>)}</ul>
         <Input.TextArea placeholder="Motif (5 caractères min., journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} />
       </Modal>
     </div>

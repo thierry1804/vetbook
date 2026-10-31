@@ -1,3 +1,4 @@
+import { useListReturn } from './interaction';
 import React, { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -25,7 +26,7 @@ export function RelativeDate({ value, empty = '—' }: { value?: string | null; 
 // soit la trace de secours "MÉTHODE /chemin" posée quand aucun audit détaillé n'a été produit. Partagé entre
 // le Journal d'audit et les historiques d'actions affichés sur les fiches utilisateur/administrateur.
 const ADMIN_VERB_LABELS: Record<string, string> = {
-  create: 'Création', update: 'Modification', delete: 'Suppression', login: 'Connexion', login_failed: 'Connexion échouée',
+  run: 'Lancement', publish: 'Publication', create: 'Création', update: 'Modification', delete: 'Suppression', login: 'Connexion', login_failed: 'Connexion échouée',
   logout: 'Déconnexion', password_change: 'Changement de mot de passe', enforcement: 'Application des formules',
   features_update: 'Modification des droits', create_draft: 'Brouillon créé', assign: 'Attribution', 'mark-verified': 'Marqué vérifié',
 };
@@ -59,7 +60,7 @@ const STATE: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
 };
 export const LABELS: Record<string, string> = {
   actif: 'Actif', publie: 'Publié', valide: 'Validé', commercialise: 'Commercialisé', published: 'Publiée', brouillon: 'Brouillon', a_valider: 'À valider', essai: 'Essai',
-  draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
+  running: 'En cours', ok: 'Terminée', success: 'Réussie', failed: 'Échec', partial: 'Partielle', draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
   envoye: 'Envoyé', echec: 'Échec', console: 'Simulé (SMTP non configuré)',
   owner: 'Propriétaire', practice: 'Cabinet', boolean: 'Oui/Non', quota: 'Quota',
 };
@@ -122,10 +123,12 @@ export function CredentialsDialog({ creds, email, title, onClose }: { creds: { p
 
 // `back` : fil d'Ariane minimal sur les écrans de fiche/formulaire — nulle part ailleurs un moyen de
 // revenir à la liste sans le bouton retour du navigateur.
-export const PageHeader = ({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: React.ReactNode; back?: { label: string; to: string } }) => (
+export const PageHeader = ({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: React.ReactNode; back?: { label: string; to: string } }) => {
+  const returnTo = useListReturn(back?.to || '');
+  return (
   <div style={{ marginBottom: 20 }}>
     {back ? (
-      <RouterLink to={back.to} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ant-color-text-secondary)', marginBottom: 6 }}>
+      <RouterLink to={returnTo} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ant-color-text-secondary)', marginBottom: 6 }}>
         <ArrowLeftOutlined style={{ fontSize: 11 }} /> {back.label}
       </RouterLink>
     ) : null}
@@ -138,6 +141,7 @@ export const PageHeader = ({ title, subtitle, actions, back }: { title: string; 
     </div>
   </div>
 );
+};
 
 // Panneau de chiffres dense (tableau de bord) : une rangée de nombres séparés par des filets, comme un relevé —
 // plutôt que des cartes icône + libellé + nombre, toutes de la même taille, qui n'ajoutent rien à la lecture.

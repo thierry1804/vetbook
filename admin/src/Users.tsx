@@ -1,6 +1,9 @@
+import { ManagedTable } from './ManagedTable';
+import { QueryFeedback } from './QueryFeedback';
+import { useListState, useListReturn } from './interaction';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Avatar, Button, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Alert, Avatar, Button, Input, Modal, Select, Space, Tag, Typography, message } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, permits } from './api';
 import { useAuth } from './auth';
@@ -21,9 +24,9 @@ export const UserList = () => {
   const navigate = useNavigate();
   const { permissions } = useAuth();
   const canSuspend = permits(permissions, 'users.suspend');
-  const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<Record<string, any>>({});
-  const { data, isFetching } = useResourceList('users', { page, perPage: 25, sort: { field: 'created_at', order: 'DESC' }, filter });
+  const { page, pageSize, filter, setFilter, paginate } = useListState({ field: 'created_at', order: 'DESC' });
+  useListReturn('/users');
+  const { data, isFetching, error, refetch } = useResourceList('users', { page, perPage: pageSize, sort: { field: 'created_at', order: 'DESC' }, filter });
   const [selected, setSelected] = useState<React.Key[]>([]);
   const [bulk, setBulk] = useState<null | 'suspend' | 'reactivate'>(null);
   const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false);
@@ -43,10 +46,10 @@ export const UserList = () => {
     <div style={{ padding: 24 }}>
       <PageHeader title="Utilisateurs" />
       <Space wrap style={{ marginBottom: 12 }}>
-        <Input.Search placeholder="E-mail, nom, téléphone, n° de puce ou de pedigree" allowClear style={{ width: 380 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); setPage(1); }} />
-        <Select placeholder="Statut" allowClear style={{ width: 160 }} options={[{ value: 'actif', label: 'Actif' }, { value: 'suspendu', label: 'Suspendu' }]} value={filter.status} onChange={(v) => { setFilter({ ...filter, status: v }); setPage(1); }} />
-        <Select placeholder="E-mail" allowClear style={{ width: 160 }} options={[{ value: 'true', label: 'Vérifié' }, { value: 'false', label: 'Non vérifié' }]} value={filter.verified} onChange={(v) => { setFilter({ ...filter, verified: v }); setPage(1); }} />
-        <Select placeholder="Méthode" allowClear style={{ width: 160 }} options={[{ value: 'google', label: 'Google' }, { value: 'email', label: 'E-mail' }]} value={filter.method} onChange={(v) => { setFilter({ ...filter, method: v }); setPage(1); }} />
+        <Input.Search key={String(filter.q || '')} defaultValue={filter.q} placeholder="E-mail, nom, téléphone, n° de puce ou de pedigree" allowClear style={{ width: 380 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); }} />
+        <Select placeholder="Statut" allowClear style={{ width: 160 }} options={[{ value: 'actif', label: 'Actif' }, { value: 'suspendu', label: 'Suspendu' }]} value={filter.status} onChange={(v) => { setFilter({ ...filter, status: v }); }} />
+        <Select placeholder="E-mail" allowClear style={{ width: 160 }} options={[{ value: 'true', label: 'Vérifié' }, { value: 'false', label: 'Non vérifié' }]} value={filter.verified} onChange={(v) => { setFilter({ ...filter, verified: v }); }} />
+        <Select placeholder="Méthode" allowClear style={{ width: 160 }} options={[{ value: 'google', label: 'Google' }, { value: 'email', label: 'E-mail' }]} value={filter.method} onChange={(v) => { setFilter({ ...filter, method: v }); }} />
         {canSuspend && selected.length ? (
           <Space>
             <Text type="secondary" style={{ fontSize: 13 }}>{selected.length} sélectionné(s) :</Text>
@@ -55,21 +58,22 @@ export const UserList = () => {
           </Space>
         ) : null}
       </Space>
-      <Table rowKey="id" loading={isFetching} dataSource={data?.data} pagination={{ current: page, pageSize: 25, total: data?.total, showSizeChanger: false, onChange: setPage }}
+      <QueryFeedback error={error} retry={refetch} />
+      {!error && <ManagedTable tableKey="users" scroll={{ x: 'max-content' }} rowKey="id" loading={isFetching} dataSource={data?.data} pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: paginate }}
         rowSelection={canSuspend ? { selectedRowKeys: selected, onChange: setSelected } : undefined}
         onRow={(r: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/users/${r.id}`) })}
         columns={[
           { title: 'Utilisateur', key: 'u', render: (r: any) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Avatar size={30} style={{ background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)', fontSize: 12.5, fontWeight: 700 }}>{initialsOf(r.name || r.email)}</Avatar>
-              <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{r.name || '—'}</div><Text type="secondary" style={{ fontSize: 12 }}>{r.email}</Text></div>
+              <div><div style={{ fontWeight: 600, fontSize: 13.5 }}><Link to={`/users/${r.id}`} onClick={(e) => e.stopPropagation()}>{r.name || r.email || 'Utilisateur'}</Link></div><Text type="secondary" style={{ fontSize: 12 }}>{r.email}</Text></div>
             </div>) },
           { title: 'Statut', key: 'status', render: (r: any) => <StatusChip value={r.status} /> },
           { title: 'Google', dataIndex: 'google', render: (v: boolean) => (v ? <Tag color="success">Oui</Tag> : '—') },
           { title: 'Animaux', dataIndex: 'animals' },
           { title: 'Dernière activité', dataIndex: 'last_seen_at', render: (v: string) => <RelativeDate value={v} /> },
           { title: 'Inscription', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
-        ]} />
+        ]} />}
       <Modal open={!!bulk} onCancel={() => setBulk(null)} title={bulk === 'suspend' ? `Suspendre ${selected.length} compte(s)` : `Réactiver ${selected.length} compte(s)`}
         footer={<><Button onClick={() => setBulk(null)}>Annuler</Button><Button type="primary" danger={bulk === 'suspend'} loading={busy} disabled={reason.trim().length < 5} onClick={runBulk}>Confirmer</Button></>}>
         <Input.TextArea placeholder="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} autoFocus />
@@ -95,7 +99,8 @@ function ReasonDialog({ open, title, onClose, onSubmit, children }: { open: bool
 export const UserShow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: u, refetch } = useResourceOne('users', id);
+  const returnTo = useListReturn('/users');
+  const { data: u, refetch, isLoading, error } = useResourceOne('users', id);
   const { permissions } = useAuth();
   const qc = useQueryClient();
   const [dlg, setDlg] = useState<null | 'suspend' | 'reactivate' | 'logout-everywhere' | 'mark-verified' | 'subscription' | 'payment'>(null);
@@ -103,7 +108,7 @@ export const UserShow = () => {
   const [amount, setAmount] = useState(''); const [method, setMethod] = useState('mvola'); const [ref, setRef] = useState('');
   const [plans, setPlans] = useState<any[]>([]);
   useEffect(() => { api('/r/plans?range=[0,99]&sort=["sort_order","ASC"]').then((r) => setPlans(r.json)).catch(() => undefined); }, []);
-  if (!u || !Array.isArray(u.pets)) return null;
+  if (!u || error) return <QueryFeedback loading={isLoading} error={error} retry={refetch} />;
   const done = (msg: string) => { message.success(msg); refetch(); qc.invalidateQueries({ queryKey: ['list', 'users'] }); };
   const act = (name: string, ok: string) => async (reason: string) => {
     try { await api(`/users/${u.id}/${name}`, { method: 'POST', body: { reason } }); done(ok); } catch (e: any) { message.error(e.message); throw e; }
@@ -112,8 +117,8 @@ export const UserShow = () => {
   const S = u.subscription;
 
   return (
-    <div style={{ padding: 24, display: 'grid', gap: 16, maxWidth: 1180 }}>
-      <Button onClick={() => navigate('/users')} size="small" style={{ justifySelf: 'start' }}>← Utilisateurs</Button>
+    <div style={{ padding: 24, display: 'grid', gap: 16 }}>
+      <Button onClick={() => navigate(returnTo)} size="small" style={{ justifySelf: 'start' }}>← Utilisateurs</Button>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <Avatar size={44} style={{ fontWeight: 700, background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)' }}>{initialsOf(u.name || u.email)}</Avatar>
         <div style={{ flex: 1, minWidth: 180 }}>

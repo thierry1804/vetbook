@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from './interaction';
 import React, { useState } from 'react';
 import { Alert, Button, Input, Progress, Typography, message } from 'antd';
 import { api } from './api';
@@ -16,6 +17,7 @@ export const Profile = () => {
   const { me } = useAuth();
   const [cur, setCur] = useState(''); const [nw, setNw] = useState(''); const [again, setAgain] = useState('');
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
+  const guard = useUnsavedChanges(!!(cur || nw || again));
   const s = strength(nw);
   const problem = nw && nw.length < 12 ? '12 caractères minimum' : again && again !== nw ? 'Les deux mots de passe diffèrent' : '';
   const submit = async (e: React.FormEvent) => {
@@ -25,7 +27,8 @@ export const Profile = () => {
     finally { setBusy(false); }
   };
   return (
-    <div style={{ padding: 24, maxWidth: 680 }}>
+    <div style={{ padding: 24 }}>
+      {guard.dialog}
       <PageHeader title="Mon profil" subtitle="Ton compte d'administration" />
       <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, marginBottom: 16, display: 'grid', gap: 4 }}>
         <Title level={5} style={{ margin: 0 }}>{me?.name}</Title>

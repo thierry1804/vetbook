@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-import { Button, Input, Space, Table, Tabs, Tag } from 'antd';
+import { ManagedTable } from './ManagedTable';
+import { useSearchParams } from 'react-router-dom';
+import { useListState } from './interaction';
+import { QueryFeedback } from './QueryFeedback';
+import React from 'react';
+import { Button, Input, Space, Tabs, Tag } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useResourceList } from './data';
 import { PageHeader, adminActionLabel, RelativeDate } from './ui';
@@ -43,7 +47,7 @@ function actionLabel(kind: string, action: string): string {
 
 function Toolbar({ children, onRefresh, loading }: { children: React.ReactNode; onRefresh: () => void; loading: boolean }) {
   return (
-    <Space style={{ marginBottom: 12 }}>
+    <Space wrap style={{ marginBottom: 12 }}>
       {children}
       <Button icon={<ReloadOutlined />} onClick={onRefresh} loading={loading}>Recharger</Button>
     </Space>
@@ -51,17 +55,16 @@ function Toolbar({ children, onRefresh, loading }: { children: React.ReactNode; 
 }
 
 function AdminActions() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [filter, setFilter] = useState<Record<string, any>>({});
-  const { data, isFetching, refetch } = useResourceList('audit', { page, perPage: pageSize, sort: { field: 'id', order: 'DESC' }, filter });
+  const { page, pageSize, filter, setFilter, paginate } = useListState({ field: 'id', order: 'DESC' }, 'admin-');
+  const { data, isFetching, refetch, error } = useResourceList('audit', { page, perPage: pageSize, sort: { field: 'id', order: 'DESC' }, filter });
   return (
     <>
       <Toolbar onRefresh={() => refetch()} loading={isFetching}>
-        <Input.Search placeholder="Action, admin, cible" allowClear style={{ width: 320 }} onSearch={(q) => { setFilter({ q: q || undefined }); setPage(1); }} />
+        <Input.Search key={String(filter.q || '')} defaultValue={filter.q} placeholder="Action, admin, cible" allowClear style={{ width: 320 }} onSearch={(q) => { setFilter({ q: q || undefined }); }} />
       </Toolbar>
-      <Table rowKey="id" loading={isFetching} dataSource={data?.data}
-        pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
+      <QueryFeedback error={error} retry={refetch} />
+      {!error && <ManagedTable tableKey="audit-actions" scroll={{ x: 'max-content' }} rowKey="id" loading={isFetching} dataSource={data?.data}
+        pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: paginate }}
         expandable={{ expandedRowRender: (r: any) => <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--ant-color-fill-tertiary)', padding: 8 }}>{JSON.stringify({ id: r.target_id, motif: r.reason, avant: r.before, apres: r.after, ip: r.ip }, null, 2)}</pre> }}
         columns={[
           { title: 'Date', dataIndex: 'created_at', render: (v: string) => <RelativeDate value={v} /> },
@@ -72,7 +75,7 @@ function AdminActions() {
           },
           { title: 'Cible', dataIndex: 'target_type' },
           { title: 'Motif', dataIndex: 'reason', render: (v: string) => v || <span style={{ color: 'var(--ant-color-text-tertiary)' }}>—</span> },
-        ]} />
+        ]} />}
     </>
   );
 }
@@ -80,17 +83,16 @@ function AdminActions() {
 // Navigation front (connectée ou non) + appels API publics marquants (connexion, inscription,
 // lien de partage…) — table distincte de admin_audit_log (access_log, volume plus élevé).
 function PublicAccess() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [filter, setFilter] = useState<Record<string, any>>({});
-  const { data, isFetching, refetch } = useResourceList('access-log', { page, perPage: pageSize, sort: { field: 'id', order: 'DESC' }, filter });
+  const { page, pageSize, filter, setFilter, paginate } = useListState({ field: 'id', order: 'DESC' }, 'public-');
+  const { data, isFetching, refetch, error } = useResourceList('access-log', { page, perPage: pageSize, sort: { field: 'id', order: 'DESC' }, filter });
   return (
     <>
       <Toolbar onRefresh={() => refetch()} loading={isFetching}>
-        <Input.Search placeholder="Action, IP" allowClear style={{ width: 320 }} onSearch={(q) => { setFilter({ q: q || undefined }); setPage(1); }} />
+        <Input.Search key={String(filter.q || '')} defaultValue={filter.q} placeholder="Action, IP" allowClear style={{ width: 320 }} onSearch={(q) => { setFilter({ q: q || undefined }); }} />
       </Toolbar>
-      <Table rowKey="id" loading={isFetching} dataSource={data?.data}
-        pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
+      <QueryFeedback error={error} retry={refetch} />
+      {!error && <ManagedTable tableKey="audit-access" scroll={{ x: 'max-content' }} rowKey="id" loading={isFetching} dataSource={data?.data}
+        pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: paginate }}
         columns={[
           { title: 'Date', dataIndex: 'created_at', render: (v: string) => <RelativeDate value={v} /> },
           { title: 'Type', dataIndex: 'kind', render: (v: string) => <Tag color={v === 'page' ? 'blue' : 'purple'}>{v === 'page' ? 'Page' : 'API'}</Tag> },
@@ -118,17 +120,20 @@ function PublicAccess() {
               return <span><FlagIcon code={geo.country} />{place}</span>;
             },
           },
-        ]} />
+        ]} />}
     </>
   );
 }
 
-export const AuditList = () => (
+export const AuditList = () => {
+  const [params, setParams] = useSearchParams();
+  return (
   <div style={{ padding: 24 }}>
     <PageHeader title="Journal d'audit" />
-    <Tabs defaultActiveKey="admin" items={[
+    <Tabs activeKey={params.get('tab') === 'public' ? 'public' : 'admin'} onChange={(tab) => setParams((previous) => { const next = new URLSearchParams(previous); next.set('tab', tab); return next; }, { replace: true })} items={[
       { key: 'admin', label: 'Actions admin', children: <AdminActions /> },
       { key: 'public', label: 'Accès publics', children: <PublicAccess /> },
     ]} />
   </div>
 );
+};

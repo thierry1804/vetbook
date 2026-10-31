@@ -1,8 +1,14 @@
+import { JobDetails } from './JobDetails';
+import { RecordHistory } from './RecordHistory';
+import { ManagedTable } from './ManagedTable';
+import { useQueryClient } from '@tanstack/react-query';
+import { QueryFeedback } from './QueryFeedback';
+import { useListState, useListReturn, useUnsavedChanges } from './interaction';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import dayjs, { Dayjs } from 'dayjs';
 import {
-  Alert, Button, Empty, Form, Input, InputNumber, Select, Switch, DatePicker, Table, Tabs, Typography, message, Modal, Popconfirm, Space, Tag,
+  Alert, Button, Empty, Form, Input, InputNumber, Select, Switch, DatePicker, Tabs, Typography, message, Modal, Popconfirm, Space, Tag,
 } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, CheckOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import { permits, api } from './api';
@@ -47,6 +53,8 @@ const excerpt = (html: string, n = 110) => { const t = textOf(html); return t.le
 function listColumn(fl: Field, res: Res, countries: { value: string; label: string }[], species: { value: string; label: string }[]) {
   const isTitleWithExcerpt = fl.name === res.fields.find((x) => x.list)?.name && res.excerpt;
   const column: any = { title: fl.short || label(fl), dataIndex: fl.name, key: fl.name, sorter: true };
+  if (fl.name === 'job_run_id') { column.render = (value: any) => value ? <Link onClick={(event) => event.stopPropagation()} to={`/jobs/${value}/show`}>#{value}</Link> : '—'; return column; }
+  if (fl.name === 'status') { column.render = (value: string) => <StatusChip value={value} />; return column; }
   if (isTitleWithExcerpt) {
     column.render = (_: any, r: any) => (
       <div style={{ maxWidth: 520 }}>
@@ -250,13 +258,13 @@ function groupFields(fields: Field[]): { title?: string; fields: Field[] }[] {
 }
 const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html', 'kvnum', 'regex', 'checkupLevels', 'listMeta', 'discount']);
 
-function FieldGroup({ title, fields, isEdit, res, countries, species }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[] }) {
+function FieldGroup({ title, fields, isEdit, res, countries, species, changed = [] }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[]; changed?: string[] }) {
   return (
     <div>
       {title ? <div style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)', margin: '0 0 12px' }}>{title}</div> : null}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 20px' }} className="field-grid">
         {fields.filter((fl) => !fl.hidden).map((fl) => (
-          <Form.Item key={fl.name} name={fl.name} label={label(fl)} valuePropName={fl.type === 'bool' ? 'checked' : 'value'}
+          <Form.Item className={changed.includes(fl.name) ? 'changed-field' : undefined} key={fl.name} name={fl.name} label={label(fl)} valuePropName={fl.type === 'bool' ? 'checked' : 'value'}
             rules={[
               ...(fl.required ? [{ required: true, message: `${label(fl)} est requis` }] : []),
               ...(fl.urlCheck ? [{ type: 'url' as const, message: 'URL invalide (doit commencer par http:// ou https://)' }] : []),
@@ -358,7 +366,7 @@ function fromFormValues(values: any, res: Res, statusOverride?: string) {
   return out;
 }
 
-function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEdit: boolean; saving: boolean; onSave: (status?: string) => void; onDelete?: () => void }) {
+function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEdit: boolean; saving: boolean; onSave: (status?: string, stay?: boolean) => void; onDelete?: () => void }) {
   const st = statusField(res);
   const choices = toOptions(st?.choices).map((c) => String(c.value));
   const publish = choices.includes('publie') ? 'publie' : choices.includes('valide') ? 'valide' : null;
@@ -368,11 +376,12 @@ function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEd
   // champ tant qu'on n'avait pas tout fait défiler.
   return (
     <div style={{
-      marginTop: 24, padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      marginTop: 24, padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
       position: 'sticky', bottom: 0, background: 'var(--ant-color-bg-layout)', borderTop: '1px solid var(--ant-color-border)', zIndex: 1,
     }}>
-      <Space>
+      <Space wrap>
         <Button type="primary" loading={saving} onClick={() => onSave()}>Enregistrer</Button>
+        <Button loading={saving} onClick={() => onSave(undefined, true)}>Enregistrer et continuer</Button>
         {publish ? <Button loading={saving} onClick={() => onSave(publish)}>{publish === 'publie' ? 'Enregistrer et publier' : 'Enregistrer et valider'}</Button> : null}
       </Space>
       {isEdit && res.deletable && onDelete ? (
@@ -384,16 +393,14 @@ function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEd
   );
 }
 
-// Déclenchement manuel du job de rappels — normalement un cron système (scripts/send-reminders.mjs), pas
-// accessible depuis le backoffice. Envoie de vraies notifications aux vrais utilisateurs : confirmation
-// avec motif, comme toute action aux conséquences réelles.
+// Le lancement manuel complète le cron système. La confirmation avec motif précède tout envoi.
 function JobsRunButton({ onDone }: { onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const run = async () => {
     setBusy(true);
-    try { const r = await api('/jobs/run', { method: 'POST', body: { reason } }); message.success(`Exécuté — ${r.json.result?.usersNotified ?? 0} compte(s) notifié(s)`); setOpen(false); setReason(''); onDone(); }
+    try { const response = await api('/jobs/run', { method: 'POST', body: { reason } }); if (response.json.trackingError) message.warning('Exécution terminée, mais le suivi n’a pas pu être finalisé. Ne relance pas sans vérifier les envois.'); else message.success('Exécution terminée. Consulte le détail dans l’historique.'); setOpen(false); setReason(''); onDone(); }
     catch (e: any) { message.error(e.message); }
     finally { setBusy(false); }
   };
@@ -403,12 +410,27 @@ function JobsRunButton({ onDone }: { onDone: () => void }) {
       <Modal open={open} onCancel={() => setOpen(false)} title="Lancer les rappels maintenant"
         footer={<><Button onClick={() => setOpen(false)}>Annuler</Button><Button type="primary" danger loading={busy} disabled={reason.trim().length < 5} onClick={run}>Confirmer</Button></>}>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Alert type="warning" showIcon message="Envoie de vraies notifications (push/e-mail/SMS) à tous les comptes concernés, immédiatement." />
+          <Alert type="warning" showIcon message="Envoie de vraies notifications (push/e-mail) à tous les comptes concernés, immédiatement." />
           <Input.TextArea placeholder="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} />
         </Space>
       </Modal>
     </>
   );
+}
+
+function ReadOnlyValue({ field, value }: { field: Field; value: any }) {
+  if (value === undefined || value === null || value === '') return <>—</>;
+  if (field.name === 'status') return <StatusChip value={value} />;
+  switch (field.type) {
+    case 'json': return <pre style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(value, null, 2)}</pre>;
+    case 'ts': return <>{new Date(value).toLocaleString('fr-FR')}</>;
+    case 'date': return <>{new Date(value).toLocaleDateString('fr-FR')}</>;
+    case 'select': return <>{toOptions(field.choices).find((choice) => String(choice.value) === String(value))?.label || String(value)}</>;
+    case 'texts': return <>{value.join(', ') || '—'}</>;
+    case 'bool': return <>{value ? 'Oui' : 'Non'}</>;
+    case 'int': case 'num': return <>{Number(value).toLocaleString('fr-FR')}</>;
+    default: return <>{String(value)}</>;
+  }
 }
 
 export function makeResource(res: Res, perms: string[]) {
@@ -417,7 +439,7 @@ export function makeResource(res: Res, perms: string[]) {
   const stChoices = toOptions(st?.choices);
   const canImport = canWrite && IMPORTABLE.includes(res.name);
   const orderField = res.fields.find((x) => x.name === 'sort_order');
-  const defaultSort = { field: orderField ? 'sort_order' : res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: (orderField ? 'ASC' : res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC') as 'ASC' | 'DESC' };
+  const defaultSort = { field: orderField ? 'sort_order' : res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: (['jobs', 'messages'].includes(res.name) ? 'DESC' : orderField ? 'ASC' : res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC') as 'ASC' | 'DESC' };
 
   const DEDICATED = new Set(['users', 'audit', 'releases', 'admins']);
   const exportCsv = async (filter: any, sort: typeof defaultSort) => {
@@ -434,26 +456,30 @@ export function makeResource(res: Res, perms: string[]) {
     const [importing, setImporting] = useState(false);
     const countries = useCountryChoices(allowAll(res));
     const species = useSpeciesChoices();
-    const [page, setPage] = useState(1);
-    const [sort, setSort] = useState(defaultSort);
-    const [filter, setFilter] = useState<Record<string, any>>({});
-    const { data, isFetching } = useResourceList(res.name, { page, perPage: 25, sort, filter });
+    const { page, pageSize, sort, filter, setSort, setFilter, paginate } = useListState(defaultSort);
+    useListReturn(`/${res.name}`);
+    const queryClient = useQueryClient();
+    const { data, isFetching, error, refetch } = useResourceList(res.name, { page, perPage: pageSize, sort, filter });
     const [selected, setSelected] = useState<React.Key[]>([]);
     const updateMany = useUpdateMany(res.name);
     const reorder = useUpdate(res.name);
     const reordering = reorder.isPending;
 
-    // Une colonne entièrement vide sur la page affichée n'apporte rien (ex. Vaccins : Laboratoire/Valences/
-    // Intervalle jamais renseignés) — elle disparaît tant que personne ne remplit ce champ ; dès qu'une ligne
-    // le renseigne, elle revient. La première colonne (identité) reste toujours visible.
+    // Column choices are explicit and stable across pages, including empty fields.
     const columns = useMemo(() => {
       // Avec l'ordre manuel, la colonne numérique brute "Ordre" est remplacée par les flèches ci-dessous.
       const listFields = res.fields.filter((x) => x.list && x.name !== 'sort_order');
-      const rows = data?.data || [];
-      const visible = listFields.filter((fl, i) => i === 0 || !rows.length
-        || rows.some((r: any) => { const v = r[fl.name]; return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0); }));
-      return visible.map((fl) => listColumn(fl, res, countries, species));
-    }, [countries, species, data]);
+      const visible = listFields;
+      return visible.map((fl, index) => {
+        const column = listColumn(fl, res, countries, species);
+        column.sortOrder = sort.field === fl.name ? (sort.order === 'ASC' ? 'ascend' : 'descend') : null;
+        if (index === 0) {
+          const render = column.render;
+          column.render = (value: any, row: any) => <Link onClick={(event) => event.stopPropagation()} to={`/${res.name}/${row.id}${canWrite ? '' : '/show'}`}>{render ? render(value, row) : value}</Link>;
+        }
+        return column;
+      });
+    }, [countries, species, data, sort.field, sort.order]);
     // Signal discret qu'une ligne s'ouvre au clic (en plus du survol antd par défaut) — sans lui, rien ne
     // distingue une ligne cliquable d'un simple tableau de données.
     const chevronColumn = { title: '', key: '__chevron', width: 32, render: () => <RightOutlined style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 12 }} /> };
@@ -491,7 +517,7 @@ export function makeResource(res: Res, perms: string[]) {
         {hasConsoleMode ? <Alert type="warning" showIcon style={{ marginBottom: 16 }}
           message="Aucun serveur SMTP configuré : les e-mails en « Simulé » ne sont pas envoyés, seulement consignés dans les logs." /> : null}
         {isJobs ? <Alert type="info" showIcon style={{ marginBottom: 16 }}
-          message="Historique des exécutions du job de rappels. Pas de planification automatique configurée sur cet hôte — uniquement en lançant manuellement ci-dessous, ou via la crontab système (voir scripts/send-reminders.mjs)." /> : null}
+          message="Historique des exécutions du job de rappels. Les compteurs correspondent aux traitements du job et ne garantissent pas la réception des notifications. Le lancement peut être manuel ou planifié via la crontab système. La configuration de l’hôte est à vérifier séparément." /> : null}
         <PageHeader title={isJobs ? 'Exécutions' : res.label} actions={
           <Space wrap>
             {isJobs && permits(perms, 'notifications.resend') ? <JobsRunButton onDone={() => queryClient.invalidateQueries({ queryKey: ['list', 'jobs'] })} /> : null}
@@ -500,17 +526,17 @@ export function makeResource(res: Res, perms: string[]) {
             {canWrite ? <Button type="primary" onClick={() => navigate(`/${res.name}/create`)}>Nouveau</Button> : null}
           </Space>} />
         {st ? (
-          <Tabs activeKey={filter.status ?? ''} onChange={(k) => { setFilter({ ...filter, status: k || undefined }); setPage(1); }}
+          <Tabs activeKey={filter.status ?? ''} onChange={(k) => { setFilter({ ...filter, status: k || undefined }); }}
             items={[{ key: '', label: 'Tous' }, ...stChoices.map((c) => ({ key: String(c.value), label: STATUS_PLURAL[String(c.value)] || c.label }))]} />
         ) : null}
         <Space wrap style={{ marginBottom: 12 }}>
-          {res.search ? <Input.Search placeholder="Rechercher" allowClear style={{ width: 280 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); setPage(1); }} /> : null}
+          {res.search ? <Input.Search key={String(filter.q || '')} defaultValue={filter.q} placeholder="Rechercher" allowClear style={{ width: 280 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); }} /> : null}
           {(res.filters || []).map((name) => {
             const fl = res.fields.find((x) => x.name === name)!;
             const options = fl.type === 'country' ? countries : fl.type === 'species' ? species : fl.type === 'bool' ? [{ value: 'true', label: 'Oui' }, { value: 'false', label: 'Non' }] : toOptions(fl.choices);
             return <Select key={name} placeholder={label(fl)} allowClear style={{ width: 180 }}
               options={options}
-              value={filter[name]} onChange={(v) => { setFilter({ ...filter, [name]: v }); setPage(1); }} />;
+              value={filter[name]} onChange={(v) => { setFilter({ ...filter, [name]: v }); }} />;
           })}
           {canWrite && st && selected.length ? (
             <Space wrap>
@@ -519,15 +545,21 @@ export function makeResource(res: Res, perms: string[]) {
             </Space>
           ) : null}
         </Space>
-        <Table rowKey="id" dataSource={data?.data} columns={canReorder ? [...columns, reorderColumn, chevronColumn] : canWrite ? [...columns, chevronColumn] : columns} loading={isFetching}
-          pagination={{ current: page, pageSize: 25, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        {Object.entries(filter).some(([, value]) => value !== undefined && value !== '') ? <Space wrap style={{ marginBottom: 12 }}>
+          {Object.entries(filter).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => <Tag key={key} closable onClose={() => { const next = { ...filter }; delete next[key]; setFilter(next); }}>
+            {key === 'recent_days' ? `Derniers ${value} jours` : key === 'expiring_days' ? `Échéance sous ${value} jours` : key === 'job_run_id' ? `Exécution #${value}` : `${key === 'q' ? 'Recherche' : label(res.fields.find((field) => field.name === key) || { name: key })} : ${LABELS[String(value)] || value}`}
+          </Tag>)}<Button size="small" onClick={() => setFilter({})}>Effacer les filtres</Button>
+        </Space> : null}
+        <QueryFeedback error={error} retry={refetch} />
+        {!error && <ManagedTable tableKey={res.name} scroll={{ x: 'max-content' }} rowKey="id" dataSource={data?.data} columns={canReorder ? [...columns, reorderColumn, chevronColumn] : canWrite ? [...columns, chevronColumn] : columns} loading={isFetching}
+          pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: paginate }}
           rowSelection={canWrite && st ? { selectedRowKeys: selected, onChange: setSelected } : undefined}
-          onChange={(_p, _f, sorter: any) => { if (sorter?.field && sorter?.order) setSort({ field: sorter.field, order: sorter.order === 'ascend' ? 'ASC' : 'DESC' }); }}
+          onChange={(_p, _f, sorter: any, extra) => { if (extra.action === 'sort') setSort(sorter?.field && sorter?.order ? { field: sorter.field, order: sorter.order === 'ascend' ? 'ASC' : 'DESC' } : defaultSort); }}
           onRow={(record: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/${res.name}/${record.id}${canWrite ? '' : '/show'}`) })}
           locale={{
             emptyText: Object.values(filter).some((v) => v !== undefined && v !== '') ? (
               <Empty description="Aucun résultat pour cette recherche." image={Empty.PRESENTED_IMAGE_SIMPLE}>
-                <Button size="small" onClick={() => { setFilter({}); setPage(1); }}>Effacer les filtres</Button>
+                <Button size="small" onClick={() => { setFilter({}); }}>Effacer les filtres</Button>
               </Empty>
             ) : (
               <Empty description={`Aucune donnée pour l'instant.`} image={Empty.PRESENTED_IMAGE_SIMPLE}>
@@ -535,6 +567,7 @@ export function makeResource(res: Res, perms: string[]) {
               </Empty>
             ),
           }} />
+        }
         {canImport ? <ImportDialog res={res} open={importing} onClose={() => setImporting(false)} /> : null}
       </div>
     );
@@ -542,18 +575,26 @@ export function makeResource(res: Res, perms: string[]) {
 
   const RShow = () => {
     const { id } = useParams();
-    const { data: record } = useResourceOne(res.name, id);
-    if (!record) return null;
+    const { data: record, isLoading, error, refetch, isFetching } = useResourceOne(res.name, id);
+    if (!record || error) return <QueryFeedback loading={isLoading} error={error} retry={refetch} />;
+    const title = record.title || record.name || record.label || record.key || record.code || `${res.label} #${record.id}`;
     return (
-      <div style={{ padding: 24, maxWidth: 760 }}>
-        <PageHeader title={res.label} back={{ label: res.label, to: `/${res.name}` }} />
-        <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: '0 16px' }}>
-          {res.fields.map((fl, i) => (
-            <div key={fl.name} style={{ display: 'flex', gap: 16, padding: '10px 0', borderBottom: i < res.fields.length - 1 ? '1px solid var(--ant-color-border)' : 'none' }}>
-              <Text type="secondary" style={{ fontSize: 13, minWidth: 180, flex: 'none' }}>{label(fl)}</Text>
-              <Text style={{ fontSize: 13, overflowWrap: 'anywhere' }}>{fl.type === 'select' && fl.name === 'status' ? <StatusChip value={record[fl.name]} /> : fl.type === 'json' ? JSON.stringify(record[fl.name]) : fl.type === 'texts' ? (record[fl.name] || []).join(', ') : fl.type === 'bool' ? (record[fl.name] ? 'Oui' : 'Non') : String(record[fl.name] ?? '—')}</Text>
-            </div>
-          ))}
+      <div style={{ padding: 24 }}>
+        <PageHeader title={String(title)} subtitle={res.label} back={{ label: res.label, to: `/${res.name}` }} actions={<Button loading={isFetching} onClick={() => refetch()}>Actualiser la fiche</Button>} />
+        <div className="record-layout">
+          <div className="record-main">
+            {res.name === 'jobs' ? <JobDetails record={record} /> : null}
+            {groupFields(res.fields.filter((field) => !field.hidden)).map((group, index) => <section className="admin-panel" key={index}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>{group.title || 'Informations'}</Typography.Title>
+              {group.fields.map((field) => <div key={field.name} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(0, 3fr)', gap: 16, padding: '10px 0', borderBottom: '1px solid var(--ant-color-border)' }}>
+                <Text type="secondary">{label(field)}</Text><div style={{ minWidth: 0, overflowWrap: 'anywhere' }}><ReadOnlyValue field={field} value={record[field.name]} /></div>
+              </div>)}
+            </section>)}
+          </div>
+          <aside className="record-aside">
+            <section className="admin-panel"><Typography.Title level={5} style={{ marginTop: 0 }}>Résumé</Typography.Title><GenericPreview res={res} v={record} species={[]} /></section>
+            <RecordHistory resource={res.name} id={id!} />
+          </aside>
         </div>
       </div>
     );
@@ -567,39 +608,56 @@ export function makeResource(res: Res, perms: string[]) {
     const countries = useCountryChoices(allowAll(res));
     const species = useSpeciesChoices();
     const [form] = Form.useForm();
-    const { data: record, isLoading } = useResourceOne(res.name, isEdit ? id : undefined);
+    const { data: record, isLoading, error, refetch } = useResourceOne(res.name, isEdit ? id : undefined);
     const create = useCreate(res.name);
     const update = useUpdate(res.name);
     const del = useDeleteOne(res.name);
     const groups = useMemo(() => groupFields(res.fields), []);
     const v = Form.useWatch([], form) || {};
+    const original = React.useRef<Record<string, any>>({});
+    const [changed, setChanged] = useState<string[]>([]);
+    const [saveError, setSaveError] = useState('');
+    const [validationErrors, setValidationErrors] = useState<any[]>([]);
+    const dirty = changed.length > 0;
 
-    useEffect(() => { if (isEdit && record) form.setFieldsValue(toFormValues(record, res)); }, [record]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => { if (!isEdit) form.setFieldsValue(toFormValues(duplicateRecord || res.defaults || {}, res)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (isEdit && record && !dirty) { original.current = toFormValues(record, res); form.setFieldsValue(original.current); } }, [record]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (!isEdit) { original.current = toFormValues(duplicateRecord || res.defaults || {}, res); form.setFieldsValue(original.current); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const slugTouched = React.useRef(false);
     const onValuesChange = (changed: any) => {
       if ('slug' in changed) slugTouched.current = true;
       if (res.name === 'pages' && !isEdit && 'title' in changed && !slugTouched.current) form.setFieldValue('slug', slugify(String(changed.title || '')));
+      const values = form.getFieldsValue(true);
+      setChanged(res.fields.filter((field) => JSON.stringify(values[field.name] ?? null) !== JSON.stringify(original.current[field.name] ?? null)).map((field) => field.name));
+      setSaveError('');
     };
 
+    const guard = useUnsavedChanges(dirty);
+    const returnTo = useListReturn(`/${res.name}`);
     const saving = create.isPending || update.isPending;
-    const submit = async (statusOverride?: string) => {
+    const submit = async (statusOverride?: string, stay = false) => {
+      setSaveError(''); setValidationErrors([]);
       try {
         const values = await form.validateFields();
         const data = fromFormValues(values, res, statusOverride);
-        if (isEdit) await update.mutateAsync({ id: id!, data });
-        else await create.mutateAsync(data);
+        const saved = isEdit ? await update.mutateAsync({ id: id!, data }) : await create.mutateAsync(data);
         message.success('Enregistré');
-        navigate(`/${res.name}`);
-      } catch (e: any) { if (e?.errorFields) return; message.error(e.message || 'Échec'); }
+        original.current = toFormValues({ ...values, ...saved }, res);
+        form.setFieldsValue(original.current); setChanged([]);
+        if (stay && isEdit) return;
+        guard.allowNavigation();
+        navigate(stay ? `/${res.name}/${saved.id}` : returnTo, { replace: stay });
+      } catch (e: any) {
+        if (e?.errorFields) { setValidationErrors(e.errorFields); if (e.errorFields[0]) form.scrollToField(e.errorFields[0].name, { focus: true, block: 'center' }); return; }
+        setSaveError(e.message || 'Échec de l’enregistrement.');
+      }
     };
     const onDelete = async () => {
-      try { await del.mutateAsync({ id: id! }); message.success('Supprimé'); navigate(`/${res.name}`); }
+      try { await del.mutateAsync({ id: id! }); message.success('Supprimé'); guard.allowNavigation(); navigate(returnTo); }
       catch (e: any) { message.error(e.message); }
     };
 
-    if (isEdit && isLoading) return null;
+    if (isEdit && (isLoading || error)) return <QueryFeedback loading={isLoading} error={error} retry={refetch} />;
 
     return (
       <div style={{ padding: 24 }}>
@@ -607,13 +665,18 @@ export function makeResource(res: Res, perms: string[]) {
           actions={isEdit && record ? (
             <Button size="small" onClick={() => { const copy: any = { ...record }; delete copy.id; delete copy.published_at; if (copy.status) copy.status = res.defaults?.status || 'brouillon'; if (copy.title) copy.title = `${copy.title} (copie)`; if (copy.slug) copy.slug = `${copy.slug}-copie`; navigate(`/${res.name}/create`, { state: { record: copy } }); }}>Dupliquer</Button>
           ) : undefined} />
-        <Form form={form} layout="vertical" onValuesChange={onValuesChange} style={{ maxWidth: 1040 }}>
-          <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(0,1fr) 300px', alignItems: 'start' }} className="resource-form-grid">
+        {guard.dialog}
+        {changed.length ? <Alert type="warning" showIcon style={{ marginBottom: 16 }} message={`${changed.length} champ(s) modifié(s), non enregistré(s)`} description={changed.map((name) => label(res.fields.find((field) => field.name === name)!)).join(', ')} /> : null}
+        {saveError ? <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Enregistrement impossible" description={saveError} /> : null}
+        {validationErrors.length ? <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Corrige les champs signalés" description={<ul>{validationErrors.map((error) => <li key={error.name.join('.')}><Button type="link" onClick={() => form.scrollToField(error.name, { focus: true, block: 'center' })}>{error.errors.join(', ')}</Button></li>)}</ul>} /> : null}
+        <Form form={form} disabled={saving} layout="vertical" onValuesChange={onValuesChange} style={{ width: '100%' }}>
+          <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', alignItems: 'start' }} className="resource-form-grid">
             <div style={{ display: 'grid', gap: 24 }}>
               {res.reason ? <Form.Item name="reason" label="Motif (journalisé)" rules={[{ required: true, message: 'Motif requis' }]}><Input.TextArea autoSize={{ minRows: 2 }} /></Form.Item> : null}
-              {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} species={species} />)}
+              {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} species={species} changed={changed} />)}
             </div>
-            <div style={{ position: 'sticky', top: 76, border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', overflow: 'hidden' }}>
+            <aside className="record-aside">
+            <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', overflow: 'hidden' }}>
               <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--ant-color-border)' }}>
                 <span style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>Aperçu</span>
               </div>
@@ -621,6 +684,8 @@ export function makeResource(res: Res, perms: string[]) {
                 {res.preview ? <ContentPreview kind={res.preview} v={v} /> : <GenericPreview res={res} v={v} species={species} />}
               </div>
             </div>
+            {isEdit && id ? <RecordHistory resource={res.name} id={id} /> : null}
+            </aside>
           </div>
           <FormToolbar res={res} isEdit={isEdit} saving={saving} onSave={submit} onDelete={isEdit ? onDelete : undefined} />
         </Form>

@@ -376,3 +376,7 @@ create table if not exists access_log (
 );
 create index if not exists access_log_created_idx on access_log (created_at desc);
 create index if not exists access_log_kind_idx on access_log (kind);
+
+-- Link notification attempts to an execution; historical messages remain unlinked.
+alter table message_log add column if not exists job_run_id bigint references job_runs(id) on delete set null;
+create index if not exists message_log_job_run_idx on message_log (job_run_id);

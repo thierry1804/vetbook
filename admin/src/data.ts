@@ -43,7 +43,7 @@ export function useCreate(resource: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: any) => withId((await api(base(resource), { method: 'POST', body: data })).json),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['list', resource] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
   });
 }
 
@@ -55,6 +55,8 @@ export function useUpdate(resource: string) {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['list', resource] });
       qc.invalidateQueries({ queryKey: ['one', resource, vars.id] });
+      qc.invalidateQueries({ queryKey: ['record-history', resource, vars.id] });
+      qc.invalidateQueries({ queryKey: ['work-queue'] });
     },
   });
 }
@@ -66,7 +68,7 @@ export function useUpdateMany(resource: string) {
       for (const id of ids) await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'PUT', body: data });
       return ids;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['list', resource] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
   });
 }
 
@@ -78,6 +80,6 @@ export function useDeleteOne(resource: string) {
       await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'DELETE', body: { reason: reason || 'Suppression depuis le backoffice' } });
       return id;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['list', resource] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
   });
 }

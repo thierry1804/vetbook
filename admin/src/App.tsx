@@ -2,7 +2,7 @@ import React from 'react';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin } from 'antd';
 import frFR from 'antd/locale/fr_FR';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, notifyUnauthorized, useAuth } from './auth';
 import { ThemeModeProvider, useThemeMode } from './themeMode';
 import { themeConfig } from './theme';
@@ -103,14 +103,14 @@ function Themed({ children }: { children: React.ReactNode }) {
   );
 }
 
+const router = createBrowserRouter([{ path: '*', element: <ResourceRoutes /> }]);
+
 export const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeModeProvider>
       <Themed>
         <AuthProvider>
-          <BrowserRouter>
-            <ResourceRoutes />
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </AuthProvider>
       </Themed>
     </ThemeModeProvider>

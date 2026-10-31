@@ -29,7 +29,7 @@ function ReleasePill() {
   const n = Object.values(st.changed || {}).filter(Boolean).length;
   return (
     <Tooltip title={st.draft_version ? `Brouillon v${st.draft_version} — ${n} section(s) modifiée(s), pas encore publiées` : `${n} section(s) modifiée(s), pas encore publiées`}>
-      <Button size="small" onClick={() => navigate('/releases')}
+      <Button className="release-indicator" size="small" onClick={() => navigate('/releases')}
         style={{ background: 'var(--ant-color-warning-bg)', borderColor: 'var(--ant-color-warning-border)', color: 'var(--ant-color-warning-text)', fontWeight: 600 }}>
         {st.draft_version ? `Brouillon v${st.draft_version}` : `${n} modification(s)`} · Publier
       </Button>
@@ -134,7 +134,7 @@ export const AppLayout = () => {
   const { mode, toggle } = useThemeMode();
   const navigate = useNavigate();
   const loc = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1024);
   const [palette, setPalette] = useState(false);
 
   useEffect(() => {
@@ -172,12 +172,12 @@ export const AppLayout = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider width={SIDEBAR_WIDTH} collapsedWidth={SIDEBAR_COLLAPSED} collapsed={collapsed} trigger={null}
+      <Sider breakpoint="lg" onBreakpoint={(broken) => setCollapsed(broken)} width={SIDEBAR_WIDTH} collapsedWidth={SIDEBAR_COLLAPSED} collapsed={collapsed} trigger={null}
         style={{ borderRight: '1px solid var(--ant-color-border)', overflow: 'auto', height: '100vh', position: 'sticky', top: 0 }}>
         <Brand open={!collapsed} />
         <Menu mode="inline" selectedKeys={[selectedKey]} defaultOpenKeys={defaultOpenKeys} items={menuItems as any} onClick={({ key }) => navigate(key)} style={{ borderRight: 0 }} />
       </Sider>
-      <Layout>
+      <Layout style={{ minWidth: 0 }}>
         <Header style={{ background: 'var(--ant-color-bg-container)', borderBottom: '1px solid var(--ant-color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56 }}>
           <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((c) => !c)}
             aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'} />
@@ -199,7 +199,7 @@ export const AppLayout = () => {
             </Dropdown>
           </div>
         </Header>
-        <Content style={{ minHeight: 0 }}>
+        <Content className="admin-content" style={{ minHeight: 0, minWidth: 0, width: '100%' }}>
           <Outlet />
         </Content>
       </Layout>

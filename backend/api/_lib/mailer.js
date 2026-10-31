@@ -26,29 +26,38 @@ export function appUrl() {
 }
 
 // Journal des envois pour le backoffice (message_log). Best-effort : ne bloque jamais l'envoi.
-async function logMessage(status, { to, subject, template }, error) {
+async function logMessage(status, { to, subject, template, jobRunId }, error) {
   try {
     await withClient((c) => c.query(
-      'insert into message_log (channel, template, recipient, user_id, status, error) values ($1,$2,$3,(select id from users where lower(email) = lower($3)),$4,$5)',
-      ['email', template || subject || null, to, status, error || null]));
+      'insert into message_log (channel, template, recipient, user_id, status, error, job_run_id) values ($1,$2,$3,(select id from users where lower(email) = lower($3)),$4,$5,$6)',
+      ['email', template || subject || null, to, status, error || null, jobRunId || null]));
   } catch { /* table absente ou base indisponible */ }
 }
 
-export async function sendMail({ to, subject, text, html, template }) {
+export async function sendMail({ to, subject, text, html, template, jobRunId }) {
   const from = process.env.MAIL_FROM || 'App’lika <no-reply@applika.local>';
   const t = getTransport();
   if (!t) {
     console.log(`[mail:console] à ${to} · ${subject}\n${text}\n`);
-    await logMessage('console', { to, subject, template });
+    await logMessage('console', { to, subject, template, jobRunId });
     return { delivered: false, console: true };
   }
   try {
     await t.sendMail({ from, to, subject, text, html });
-    await logMessage('envoye', { to, subject, template });
+    await logMessage('envoye', { to, subject, template, jobRunId });
     return { delivered: true };
   } catch (err) {
     console.error('mailer', err && err.message);
-    await logMessage('echec', { to, subject, template }, err && err.message);
+    await logMessage('echec', { to, subject, template, jobRunId }, err && err.message);
     return { delivered: false, error: true };
   }
+}
+
+// No endpoint or cryptographic subscription keys are stored in the notification journal.
+export async function logPushAttempt({ userId, title, jobRunId, status, error }) {
+  try {
+    await withClient((c) => c.query(
+      "insert into message_log (channel, template, recipient, user_id, status, error, job_run_id) values ('push', $1, $2, $3, $4, $5, $6)",
+      [title, `Compte ${userId}`, userId, status, error || null, jobRunId || null]));
+  } catch { /* tracking must not prevent notification delivery */ }
 }
