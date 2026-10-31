@@ -182,6 +182,25 @@ export function buildAdminRouter() {
     } catch (err) { next(err); }
   });
 
+  // Journal d'accès public (navigation front + appels API publics marquants) — même permission que l'audit.
+  router.get('/access-log', requireAdmin('audit.read'), async (req, res, next) => {
+    try {
+      const { offset, limit, filter } = listParams(req, ['id', 'DESC']);
+      const params = []; const where = [];
+      for (const k of ['kind', 'action']) {
+        if (filter[k]) { params.push(String(filter[k])); where.push(`${k} = $${params.length}`); }
+      }
+      if (filter.q) { params.push(`%${String(filter.q).slice(0, 80)}%`); where.push(`(action ilike $${params.length} or path ilike $${params.length} or ip ilike $${params.length})`); }
+      const w = where.length ? 'where ' + where.join(' and ') : '';
+      const out = await withClient(async (c) => ({
+        total: Number((await c.query(`select count(*) from access_log ${w}`, params)).rows[0].count),
+        rows: (await c.query(`select *, id::text as id from access_log ${w} order by access_log.id desc limit ${limit} offset ${offset}`, params)).rows,
+      }));
+      res.set('Content-Range', `access-log ${offset}-${offset + out.rows.length - 1}/${out.total}`).set('Access-Control-Expose-Headers', 'Content-Range');
+      res.json(out.rows);
+    } catch (err) { next(err); }
+  });
+
   // ───────── Tableau de bord (indicateurs calculables aujourd'hui) ─────────
   router.get('/dashboard', requireAdmin('dashboard.read'), async (_req, res, next) => {
     try {

@@ -1,9 +1,11 @@
 import React from 'react';
-import { Admin, Resource, CustomRoutes } from 'react-admin';
-import { Route } from 'react-router-dom';
-import { authProvider } from './authProvider';
-import { dataProvider } from './dataProvider';
-import { i18nProvider } from './i18n';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ConfigProvider, Spin } from 'antd';
+import frFR from 'antd/locale/fr_FR';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider, notifyUnauthorized, useAuth } from './auth';
+import { ThemeModeProvider, useThemeMode } from './themeMode';
+import { themeConfig } from './theme';
 import { LoginPage } from './Login';
 import { Dashboard } from './Dashboard';
 import { UserList, UserShow } from './Users';
@@ -13,24 +15,79 @@ import { PlanMatrix } from './PlanMatrix';
 import { Profile } from './Profile';
 import { AdminList, AdminShow, AdminCreate } from './Admins';
 import { AppLayout } from './Layout';
-import { lightTheme, darkTheme } from './theme';
 import { RES } from './resources';
 import { makeResource } from './content';
 import { permits } from './api';
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false, staleTime: 15_000 } },
+  queryCache: new QueryCache({ onError: notifyUnauthorized }),
+  mutationCache: new MutationCache({ onError: notifyUnauthorized }),
+});
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { status } = useAuth();
+  if (status === 'loading') return <div style={{ display: 'grid', placeItems: 'center', height: '100vh' }}><Spin size="large" /></div>;
+  if (status === 'out') return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function ResourceRoutes() {
+  const { permissions } = useAuth();
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+        <Route index element={<Dashboard />} />
+        {permits(permissions, 'users.read') ? <>
+          <Route path="users" element={<UserList />} />
+          <Route path="users/:id" element={<UserShow />} />
+        </> : null}
+        {permits(permissions, 'referentiels.read') ? <Route path="releases" element={<ReleaseList />} /> : null}
+        {permits(permissions, 'audit.read') ? <Route path="audit" element={<AuditList />} /> : null}
+        {permits(permissions, 'admins.manage') ? <>
+          <Route path="admins" element={<AdminList />} />
+          <Route path="admins/create" element={<AdminCreate />} />
+          <Route path="admins/:id" element={<AdminShow />} />
+        </> : null}
+        <Route path="plan-matrix" element={<PlanMatrix />} />
+        <Route path="profile" element={<Profile />} />
+        {RES.filter((r) => permits(permissions, r.perm)).map((r) => {
+          const { List, Show, Edit, Create } = makeResource(r, permissions);
+          return (
+            <React.Fragment key={r.name}>
+              <Route path={r.name} element={<List />} />
+              {Create ? <Route path={`${r.name}/create`} element={<Create />} /> : null}
+              {Edit ? <Route path={`${r.name}/:id`} element={<Edit />} /> : null}
+              {Show ? <Route path={`${r.name}/:id/show`} element={<Show />} /> : null}
+            </React.Fragment>
+          );
+        })}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+function Themed({ children }: { children: React.ReactNode }) {
+  const { mode } = useThemeMode();
+  return (
+    <ConfigProvider theme={{ ...themeConfig(mode), cssVar: true, hashed: false }} locale={frFR}>
+      {children}
+    </ConfigProvider>
+  );
+}
+
 export const App = () => (
-  <Admin authProvider={authProvider} dataProvider={dataProvider} i18nProvider={i18nProvider} loginPage={LoginPage} dashboard={Dashboard} layout={AppLayout}
-    theme={lightTheme} darkTheme={darkTheme} defaultTheme="light" title="App'lika — Backoffice" requireAuth disableTelemetry>
-    {(perms: string[]) => [
-      permits(perms, 'users.read') ? <Resource key="users" name="users" options={{ label: 'Utilisateurs' }} list={UserList} show={UserShow} /> : null,
-      permits(perms, 'referentiels.read') ? <Resource key="releases" name="releases" options={{ label: 'Versions publiées' }} list={ReleaseList} /> : null,
-      permits(perms, 'audit.read') ? <Resource key="audit" name="audit" options={{ label: 'Journal d\'audit' }} list={AuditList} /> : null,
-      permits(perms, 'admins.manage') ? <Resource key="admins" name="admins" options={{ label: 'Administrateurs' }} list={AdminList} show={AdminShow} create={AdminCreate} /> : null,
-      ...RES.filter((r) => permits(perms, r.perm)).map((r) => <Resource key={r.name} name={r.name} options={{ label: r.label }} {...makeResource(r, perms)} />),
-      <CustomRoutes key="routes">
-        <Route path="/plan-matrix" element={<PlanMatrix />} />
-        <Route path="/profile" element={<Profile />} />
-      </CustomRoutes>,
-    ]}
-  </Admin>
+  <QueryClientProvider client={queryClient}>
+    <ThemeModeProvider>
+      <Themed>
+        <AuthProvider>
+          <BrowserRouter>
+            <ResourceRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </Themed>
+    </ThemeModeProvider>
+  </QueryClientProvider>
 );

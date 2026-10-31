@@ -1,133 +1,137 @@
 import React, { useState } from 'react';
-import {
-  List, Datagrid, DateField, BooleanField, NumberField, SearchInput, SelectInput, useGetOne, useNotify, useRefresh, usePermissions, FunctionField,
-} from 'react-admin';
-import { useParams } from 'react-router-dom';
-import {
-  Avatar, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField as MuiText, Typography,
-} from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Avatar, Button, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, permits } from './api';
-import { FactPanel, RowList, StatusChip } from './ui';
+import { useAuth } from './auth';
+import { useResourceList, useResourceOne } from './data';
+import { FactPanel, PageHeader, RowList, StatusChip } from './ui';
 
+const { Text, Title } = Typography;
 const mb = (b: number) => `${(b / 1e6).toFixed(1)} Mo`;
 const initialsOf = (s: string) => String(s || '?').split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
-const filters = [
-  <SearchInput key="q" source="q" alwaysOn placeholder="E-mail, nom, téléphone, n° de puce ou de pedigree" sx={{ minWidth: 380 }} />,
-  <SelectInput key="status" source="status" label="Statut" choices={[{ id: 'actif', name: 'Actif' }, { id: 'suspendu', name: 'Suspendu' }]} />,
-  <SelectInput key="verified" source="verified" label="E-mail" choices={[{ id: 'true', name: 'Vérifié' }, { id: 'false', name: 'Non vérifié' }]} />,
-  <SelectInput key="method" source="method" label="Méthode" choices={[{ id: 'google', name: 'Google' }, { id: 'email', name: 'E-mail' }]} />,
-];
+export const UserList = () => {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<Record<string, any>>({});
+  const { data, isFetching } = useResourceList('users', { page, perPage: 25, sort: { field: 'created_at', order: 'DESC' }, filter });
 
-export const UserList = () => (
-  <List filters={filters} perPage={25} sort={{ field: 'created_at', order: 'DESC' }} exporter={false} title="Utilisateurs">
-    <Datagrid rowClick="show" bulkActionButtons={false}>
-      <FunctionField label="Utilisateur" render={(r: any) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ width: 30, height: 30, fontSize: 12.5, fontWeight: 700, bgcolor: 'action.selected', color: 'text.primary' }}>{initialsOf(r.name || r.email)}</Avatar>
-          <Box><Typography variant="body2" fontWeight={600}>{r.name || '—'}</Typography><Typography variant="caption" color="text.secondary">{r.email}</Typography></Box>
-        </Box>)} />
-      <FunctionField label="Statut" render={(r: any) => <StatusChip value={r.status} />} />
-      <BooleanField source="google" label="Google" />
-      <NumberField source="animals" label="Animaux" />
-      <DateField locales="fr-FR" source="last_seen_at" label="Dernière activité" showTime />
-      <DateField locales="fr-FR" source="created_at" label="Inscription" />
-    </Datagrid>
-  </List>
-);
+  return (
+    <div style={{ padding: 24 }}>
+      <PageHeader title="Utilisateurs" />
+      <Space wrap style={{ marginBottom: 12 }}>
+        <Input.Search placeholder="E-mail, nom, téléphone, n° de puce ou de pedigree" allowClear style={{ width: 380 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); setPage(1); }} />
+        <Select placeholder="Statut" allowClear style={{ width: 160 }} options={[{ value: 'actif', label: 'Actif' }, { value: 'suspendu', label: 'Suspendu' }]} value={filter.status} onChange={(v) => { setFilter({ ...filter, status: v }); setPage(1); }} />
+        <Select placeholder="E-mail" allowClear style={{ width: 160 }} options={[{ value: 'true', label: 'Vérifié' }, { value: 'false', label: 'Non vérifié' }]} value={filter.verified} onChange={(v) => { setFilter({ ...filter, verified: v }); setPage(1); }} />
+        <Select placeholder="Méthode" allowClear style={{ width: 160 }} options={[{ value: 'google', label: 'Google' }, { value: 'email', label: 'E-mail' }]} value={filter.method} onChange={(v) => { setFilter({ ...filter, method: v }); setPage(1); }} />
+      </Space>
+      <Table rowKey="id" loading={isFetching} dataSource={data?.data} pagination={{ current: page, pageSize: 25, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        onRow={(r: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/users/${r.id}`) })}
+        columns={[
+          { title: 'Utilisateur', key: 'u', render: (r: any) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Avatar size={30} style={{ background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)', fontSize: 12.5, fontWeight: 700 }}>{initialsOf(r.name || r.email)}</Avatar>
+              <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{r.name || '—'}</div><Text type="secondary" style={{ fontSize: 12 }}>{r.email}</Text></div>
+            </div>) },
+          { title: 'Statut', key: 'status', render: (r: any) => <StatusChip value={r.status} /> },
+          { title: 'Google', dataIndex: 'google', render: (v: boolean) => (v ? <Tag color="success">Oui</Tag> : '—') },
+          { title: 'Animaux', dataIndex: 'animals' },
+          { title: 'Dernière activité', dataIndex: 'last_seen_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
+          { title: 'Inscription', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
+        ]} />
+    </div>
+  );
+};
 
 // Boîte de dialogue « action + motif » : le motif est obligatoire et journalisé côté serveur.
 function ReasonDialog({ open, title, onClose, onSubmit, children }: { open: boolean; title: string; onClose: () => void; onSubmit: (reason: string) => Promise<void>; children?: React.ReactNode }) {
   const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false);
   const go = async () => { setBusy(true); try { await onSubmit(reason.trim()); setReason(''); onClose(); } finally { setBusy(false); } };
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent sx={{ display: 'grid', gap: 2, pt: '8px !important' }}>
+    <Modal open={open} onCancel={onClose} title={title} footer={<><Button onClick={onClose}>Annuler</Button><Button type="primary" loading={busy} disabled={reason.trim().length < 5} onClick={go}>Confirmer</Button></>}>
+      <div style={{ display: 'grid', gap: 12 }}>
         {children}
-        <MuiText label="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={2} autoFocus />
-      </DialogContent>
-      <DialogActions><Button onClick={onClose}>Annuler</Button><Button variant="contained" disabled={busy || reason.trim().length < 5} onClick={go}>Confirmer</Button></DialogActions>
-    </Dialog>
+        <Input.TextArea placeholder="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} autoFocus />
+      </div>
+    </Modal>
   );
 }
 
-
 export const UserShow = () => {
   const { id } = useParams();
-  const { data: u, refetch } = useGetOne('users', { id });
-  const { permissions } = usePermissions();
-  const notify = useNotify(); const refresh = useRefresh();
+  const { data: u, refetch } = useResourceOne('users', id);
+  const { permissions } = useAuth();
+  const qc = useQueryClient();
   const [dlg, setDlg] = useState<null | 'suspend' | 'reactivate' | 'logout-everywhere' | 'mark-verified' | 'subscription' | 'payment'>(null);
   const [plan, setPlan] = useState('premium'); const [subStatus, setSubStatus] = useState('actif'); const [endsAt, setEndsAt] = useState('');
   const [amount, setAmount] = useState(''); const [method, setMethod] = useState('mvola'); const [ref, setRef] = useState('');
-  // Le cache de la liste préremplit `u` avec une ligne partielle : on attend la fiche complète.
   if (!u || !Array.isArray(u.pets)) return null;
-  const done = (msg: string) => { notify(msg); refetch(); refresh(); };
+  const done = (msg: string) => { message.success(msg); refetch(); qc.invalidateQueries({ queryKey: ['list', 'users'] }); };
   const act = (name: string, ok: string) => async (reason: string) => {
-    try { await api(`/users/${u.id}/${name}`, { method: 'POST', body: { reason } }); done(ok); } catch (e: any) { notify(e.message, { type: 'error' }); throw e; }
+    try { await api(`/users/${u.id}/${name}`, { method: 'POST', body: { reason } }); done(ok); } catch (e: any) { message.error(e.message); throw e; }
   };
   const canSuspend = permits(permissions, 'users.suspend'); const canSupport = permits(permissions, 'users.support'); const canBill = permits(permissions, 'billing.payment');
   const S = u.subscription;
 
   return (
-    <Box sx={{ p: 2.5, display: 'grid', gap: 2, maxWidth: 1180 }}>
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-        <Avatar sx={{ width: 44, height: 44, fontWeight: 700, bgcolor: 'action.selected', color: 'text.primary' }}>{initialsOf(u.name || u.email)}</Avatar>
-        <Box sx={{ flex: 1, minWidth: 180 }}>
-          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>{u.name || u.email}</Typography>
-          <Stack direction="row" spacing={.75} alignItems="center" sx={{ mt: .25 }}>
+    <div style={{ padding: 24, display: 'grid', gap: 16, maxWidth: 1180 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Avatar size={44} style={{ fontWeight: 700, background: 'var(--ant-color-fill-secondary)', color: 'var(--ant-color-text)' }}>{initialsOf(u.name || u.email)}</Avatar>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <Title level={5} style={{ margin: 0, lineHeight: 1.2 }}>{u.name || u.email}</Title>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
             <StatusChip value={u.status} />
             {u.email_verified_at ? null : <StatusChip value="a_valider" />}
-            {u.google ? <Typography variant="caption" color="text.secondary">Google</Typography> : null}
-          </Stack>
-        </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          {canSuspend && (u.status === 'suspendu' ? <Button size="small" variant="outlined" onClick={() => setDlg('reactivate')}>Réactiver</Button> : <Button size="small" variant="outlined" color="error" onClick={() => setDlg('suspend')}>Suspendre</Button>)}
-          {canSupport ? <Button size="small" variant="outlined" onClick={() => setDlg('logout-everywhere')}>Déconnecter partout</Button> : null}
-          {canSupport && !u.email_verified_at ? <Button size="small" variant="outlined" onClick={() => setDlg('mark-verified')}>Marquer vérifié</Button> : null}
-          {canBill ? <Button size="small" variant="outlined" onClick={() => setDlg('subscription')}>Attribuer une formule</Button> : null}
-          {canBill && S ? <Button size="small" variant="outlined" onClick={() => setDlg('payment')}>Enregistrer un paiement</Button> : null}
-        </Stack>
-      </Stack>
+            {u.google ? <Text type="secondary" style={{ fontSize: 12 }}>Google</Text> : null}
+          </div>
+        </div>
+        <Space wrap>
+          {canSuspend && (u.status === 'suspendu' ? <Button size="small" onClick={() => setDlg('reactivate')}>Réactiver</Button> : <Button size="small" danger onClick={() => setDlg('suspend')}>Suspendre</Button>)}
+          {canSupport ? <Button size="small" onClick={() => setDlg('logout-everywhere')}>Déconnecter partout</Button> : null}
+          {canSupport && !u.email_verified_at ? <Button size="small" onClick={() => setDlg('mark-verified')}>Marquer vérifié</Button> : null}
+          {canBill ? <Button size="small" onClick={() => setDlg('subscription')}>Attribuer une formule</Button> : null}
+          {canBill && S ? <Button size="small" onClick={() => setDlg('payment')}>Enregistrer un paiement</Button> : null}
+        </Space>
+      </div>
 
       {u.status === 'suspendu' ? (
-        <Box sx={{ border: 1, borderColor: 'error.main', borderRadius: 2, px: 2, py: 1.25, bgcolor: 'rgba(154,68,51,.06)' }}>
-          <Typography variant="body2">Suspendu {u.suspended_at ? `le ${new Date(u.suspended_at).toLocaleString('fr-FR')}` : ''} — {u.suspension_reason}</Typography>
-        </Box>
+        <div style={{ border: '1px solid var(--ant-color-error)', borderRadius: 6, padding: '10px 16px', background: 'rgba(154,68,51,.06)' }}>
+          <Text style={{ fontSize: 13 }}>Suspendu {u.suspended_at ? `le ${new Date(u.suspended_at).toLocaleString('fr-FR')}` : ''} — {u.suspension_reason}</Text>
+        </div>
       ) : null}
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '7fr 5fr' } }}>
+      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '7fr 5fr' }} className="user-show-grid">
         <FactPanel title="Compte" rows={[
           ['E-mail', u.email], ['Téléphone', u.phone || '—'], ['Langue', u.locale || '—'], ['Inscription', u.created_at && new Date(u.created_at).toLocaleString('fr-FR')],
-          ['CGU acceptées', u.terms_version ? `v${u.terms_version}` : '—'], ['Contact d\'urgence', u.emergency_contact ? JSON.stringify(u.emergency_contact) : '—'],
+          ["CGU acceptées", u.terms_version ? `v${u.terms_version}` : '—'], ["Contact d'urgence", u.emergency_contact ? JSON.stringify(u.emergency_contact) : '—'],
           ['Formule', S ? `${S.plan_code} (${S.status}${S.ends_at ? ' → ' + new Date(S.ends_at).toLocaleDateString('fr-FR') : ''})` : 'aucune'],
           ['Stockage photos', mb(u.storage_bytes)], ['Membres du foyer', String(u.household_members)], ['Liens de partage', String(u.share_links)], ['Appareils notifiés', String(u.push_subscriptions)],
         ]} />
         <RowList title="Animaux" count={u.pets.length} empty="Aucun animal enregistré."
           rows={u.pets.map((p: any) => (
-            <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-              <Typography variant="body2" fontWeight={600} noWrap>{p.name}</Typography>
-              <Typography variant="body2" color="text.secondary" noWrap>{p.species} · {p.race} · {p.sex}</Typography>
-            </Stack>))} />
-      </Box>
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <Text strong style={{ fontSize: 13 }} ellipsis>{p.name}</Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>{p.species} · {p.race} · {p.sex}</Text>
+            </div>))} />
+      </div>
+      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }} className="user-show-grid">
         <RowList title="Sessions actives" count={u.sessions.length} empty="Aucune session ouverte."
           rows={u.sessions.map((s: any) => (
-            <Stack key={s.id} direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" noWrap>{String(s.user_agent || '—').slice(0, 44)}</Typography>
-                <Typography variant="caption" color="text.secondary">{s.ip}</Typography>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 'none' }}>{new Date(s.last_seen_at).toLocaleString('fr-FR')}</Typography>
-            </Stack>))} />
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <Text style={{ fontSize: 13 }} ellipsis>{String(s.user_agent || '—').slice(0, 44)}</Text>
+                <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{s.ip}</Text>
+              </div>
+              <Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(s.last_seen_at).toLocaleString('fr-FR')}</Text>
+            </div>))} />
         <RowList title="Historique des actions admin" count={u.audit.length} empty="Aucune action enregistrée."
           rows={u.audit.map((a: any) => (
-            <Box key={a.id}>
-              <Stack direction="row" justifyContent="space-between" spacing={1}><Typography variant="body2" fontWeight={600} noWrap>{a.action}</Typography><Typography variant="caption" color="text.secondary" sx={{ flex: 'none' }}>{new Date(a.created_at).toLocaleString('fr-FR')}</Typography></Stack>
-              <Typography variant="caption" color="text.secondary">{a.admin_email}{a.reason ? ` — ${a.reason}` : ''}</Typography>
-            </Box>))} />
-      </Box>
+            <div key={a.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><Text strong style={{ fontSize: 13 }} ellipsis>{a.action}</Text><Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(a.created_at).toLocaleString('fr-FR')}</Text></div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{a.admin_email}{a.reason ? ` — ${a.reason}` : ''}</Text>
+            </div>))} />
+      </div>
 
       <ReasonDialog open={dlg === 'suspend'} title="Suspendre le compte" onClose={() => setDlg(null)} onSubmit={act('suspend', 'Compte suspendu')} />
       <ReasonDialog open={dlg === 'reactivate'} title="Réactiver le compte" onClose={() => setDlg(null)} onSubmit={act('reactivate', 'Compte réactivé')} />
@@ -135,20 +139,20 @@ export const UserShow = () => {
       <ReasonDialog open={dlg === 'mark-verified'} title="Marquer l'e-mail comme vérifié" onClose={() => setDlg(null)} onSubmit={act('mark-verified', 'E-mail marqué vérifié')} />
       <ReasonDialog open={dlg === 'subscription'} title="Attribuer une formule" onClose={() => setDlg(null)}
         onSubmit={async (reason) => {
-          try { await api(`/users/${u.id}/subscription`, { method: 'POST', body: { reason, plan_code: plan, status: subStatus, ends_at: endsAt || null } }); done('Formule attribuée'); } catch (e: any) { notify(e.message, { type: 'error' }); throw e; }
+          try { await api(`/users/${u.id}/subscription`, { method: 'POST', body: { reason, plan_code: plan, status: subStatus, ends_at: endsAt || null } }); done('Formule attribuée'); } catch (e: any) { message.error(e.message); throw e; }
         }}>
-        <MuiText label="Code de la formule" value={plan} onChange={(e) => setPlan(e.target.value)} helperText="gratuit, premium, eleveur, cabinet…" />
-        <MuiText select label="Statut" value={subStatus} onChange={(e) => setSubStatus(e.target.value)}>{['essai', 'actif', 'en_retard', 'suspendu'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}</MuiText>
-        <MuiText label="Fin de validité" type="date" InputLabelProps={{ shrink: true }} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+        <div><Text style={{ fontSize: 12 }} type="secondary">Code de la formule (gratuit, premium, eleveur, cabinet…)</Text><Input value={plan} onChange={(e) => setPlan(e.target.value)} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Statut</Text><Select style={{ width: '100%' }} value={subStatus} onChange={setSubStatus} options={['essai', 'actif', 'en_retard', 'suspendu'].map((s) => ({ value: s, label: s }))} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Fin de validité</Text><Input type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
       </ReasonDialog>
       <ReasonDialog open={dlg === 'payment'} title="Enregistrer un paiement (reçu généré)" onClose={() => setDlg(null)}
         onSubmit={async (reason) => {
-          try { const r = await api(`/subscriptions/${S.id}/payments`, { method: 'POST', body: { reason, amount_mga: Number(amount), method, reference: ref || null } }); done(`Paiement enregistré — facture ${r.json.invoice.number}`); } catch (e: any) { notify(e.message, { type: 'error' }); throw e; }
+          try { const r = await api(`/subscriptions/${S.id}/payments`, { method: 'POST', body: { reason, amount_mga: Number(amount), method, reference: ref || null } }); done(`Paiement enregistré — facture ${r.json.invoice.number}`); } catch (e: any) { message.error(e.message); throw e; }
         }}>
-        <MuiText label="Montant (MGA)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <MuiText select label="Moyen" value={method} onChange={(e) => setMethod(e.target.value)}>{['mvola', 'orange_money', 'airtel_money', 'carte', 'especes'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}</MuiText>
-        <MuiText label="Référence de transaction" value={ref} onChange={(e) => setRef(e.target.value)} />
+        <div><Text style={{ fontSize: 12 }} type="secondary">Montant (MGA)</Text><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Moyen</Text><Select style={{ width: '100%' }} value={method} onChange={setMethod} options={['mvola', 'orange_money', 'airtel_money', 'carte', 'especes'].map((s) => ({ value: s, label: s }))} /></div>
+        <div><Text style={{ fontSize: 12 }} type="secondary">Référence de transaction</Text><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
       </ReasonDialog>
-    </Box>
+    </div>
   );
 };

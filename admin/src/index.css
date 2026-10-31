@@ -1,0 +1,28 @@
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--ant-color-bg-layout); }
+* { box-sizing: border-box; }
+table, .ant-table { font-variant-numeric: tabular-nums; }
+
+.rte-content .ProseMirror { outline: none; }
+.rte-content .ProseMirror p { margin: 0 0 8px; }
+.rte-content .ProseMirror h2, .rte-content .ProseMirror h3, .rte-content .ProseMirror h4 { margin: 16px 0 8px; }
+.rte-content .ProseMirror blockquote { border-left: 3px solid var(--ant-color-primary); margin: 0; padding-left: 16px; color: var(--ant-color-text-secondary); }
+.rte-content .ProseMirror p.is-editor-empty:first-child::before { color: var(--ant-color-text-quaternary); content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
+.cms-preview p { margin: 0 0 8px; }
+.cms-preview ul, .cms-preview ol { padding-left: 24px; margin: 0; }
+
+@media (max-width: 1023px) {
+  .resource-form-grid { grid-template-columns: 1fr !important; }
+  .field-grid { grid-template-columns: 1fr !important; }
+  .login-grid { grid-template-columns: 1fr !important; }
+  .login-hero { display: none !important; }
+  .login-mobile-brand { display: flex !important; }
+  .dashboard-bars { grid-template-columns: 1fr !important; }
+  .user-show-grid { grid-template-columns: 1fr !important; }
+  .metric-strip-mobile { display: block !important; }
+  .metric-strip-desktop { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .metric-strip-mobile { display: none !important; }
+  .metric-strip-desktop { display: flex !important; }
+}

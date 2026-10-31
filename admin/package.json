@@ -9,17 +9,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^6.5.0",
-    "@mui/material": "^6.5.0",
+    "@ant-design/icons": "^5.6.1",
+    "@tanstack/react-query": "^5.62.7",
+    "@tiptap/extension-link": "^2.11.5",
+    "@tiptap/extension-placeholder": "^2.11.5",
+    "@tiptap/extension-underline": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "antd": "^5.22.5",
+    "dayjs": "^1.11.13",
     "qrcode": "^1.5.4",
-    "ra-i18n-polyglot": "^5.15.4",
-    "ra-input-rich-text": "^5.15.4",
-    "ra-language-french": "^5.15.4",
     "react": "^18.3.1",
-    "react-admin": "^5.15.4",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6",

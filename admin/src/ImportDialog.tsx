@@ -1,14 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { useNotify, useRefresh } from 'react-admin';
-import {
-  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Step, StepLabel, Stepper, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
-} from '@mui/material';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import DownloadIcon from '@mui/icons-material/Download';
+import { Alert, Button, Modal, Steps, Table, Tag, Typography, Input, message } from 'antd';
+import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { api } from './api';
 import { Field, Res, label } from './resources';
 import { download, parseCsv, toCsv } from './csv';
 import { StatusChip } from './ui';
+
+const { Text } = Typography;
 
 export const IMPORTABLE = ['tips', 'events', 'pages', 'clinics', 'emergency_numbers', 'breeds', 'vaccines'];
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -33,7 +31,6 @@ const example = (f: Field): string => {
 const STATUS_TEXT: Record<string, string> = { ok: 'À importer', doublon: 'Déjà présent', erreur: 'Erreur' };
 
 export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; onClose: () => void }) {
-  const notify = useNotify(); const refresh = useRefresh();
   const cols = useMemo(() => columnsOf(res), [res]);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [report, setReport] = useState<any>(null);
@@ -48,28 +45,26 @@ export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; 
 
   const check = async (parsed: Record<string, string>[]) => {
     setBusy(true); setError('');
-    try {
-      const r = await api('/import/' + res.name, { method: 'POST', body: { rows: parsed } });
-      setRows(parsed); setReport(r.json);
-    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+    try { const r = await api('/import/' + res.name, { method: 'POST', body: { rows: parsed } }); setRows(parsed); setReport(r.json); }
+    catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
 
   const load = async (content: string, isJson = false) => {
     setError('');
     try {
       let parsed: Record<string, string>[];
-      if (isJson || /^\s*[\[{]/.test(content)) {
+      if (isJson || /^\s*[[{]/.test(content)) {
         const j = JSON.parse(content); const arr = Array.isArray(j) ? j : j.rows;
         if (!Array.isArray(arr)) throw new Error('Le JSON doit être une liste de lignes.');
         parsed = arr;
       } else {
         const table = parseCsv(content);
-        if (table.length < 2) throw new Error('Le fichier doit contenir une ligne d\'en-têtes et au moins une ligne de données.');
+        if (table.length < 2) throw new Error("Le fichier doit contenir une ligne d'en-têtes et au moins une ligne de données.");
         const byNorm = new Map<string, string>(); cols.forEach((c) => { byNorm.set(norm(c.name), c.name); byNorm.set(norm(label(c)), c.name); });
         const map = table[0].map((h) => byNorm.get(norm(h)));
         const unknown = table[0].filter((_, i) => !map[i] && table[0][i].trim());
         if (!map.some(Boolean)) throw new Error('Aucune colonne reconnue. Utilise le modèle CSV.');
-        if (unknown.length) notify(`Colonnes ignorées : ${unknown.join(', ')}`, { type: 'warning' });
+        if (unknown.length) message.warning(`Colonnes ignorées : ${unknown.join(', ')}`);
         parsed = table.slice(1).map((r) => { const o: Record<string, string> = {}; map.forEach((name, i) => { if (name && r[i] !== undefined) o[name] = r[i]; }); return o; });
       }
       if (!parsed.length) throw new Error('Aucune ligne trouvée.');
@@ -82,69 +77,64 @@ export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; 
 
   const commit = async () => {
     setBusy(true); setError('');
-    try { const r = await api('/import/' + res.name, { method: 'POST', body: { rows, commit: true } }); setDone(r.json); refresh(); notify(`${r.json.ok} élément(s) importé(s)`, { type: 'success' }); }
+    try { const r = await api('/import/' + res.name, { method: 'POST', body: { rows, commit: true } }); setDone(r.json); message.success(`${r.json.ok} élément(s) importé(s)`); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
 
   const shown = cols.filter((c) => c.list).slice(0, 3);
   return (
-    <Dialog open={open} onClose={close} fullWidth maxWidth="md">
-      <DialogTitle>Importer — {res.label}</DialogTitle>
-      <DialogContent sx={{ display: 'grid', gap: 2 }}>
-        <Stepper activeStep={step} alternativeLabel><Step><StepLabel>Fichier</StepLabel></Step><Step><StepLabel>Contrôle</StepLabel></Step><Step><StepLabel>Terminé</StepLabel></Step></Stepper>
-        {error ? <Alert severity="error">{error}</Alert> : null}
+    <Modal open={open} onCancel={close} width={760} title={`Importer — ${res.label}`}
+      footer={<>
+        {step === 1 ? <Button onClick={reset} disabled={busy}>Changer de fichier</Button> : null}
+        <Button onClick={close}>{step === 2 ? 'Fermer' : 'Annuler'}</Button>
+        {step === 1 ? <Button type="primary" loading={busy} disabled={!report?.ok} onClick={commit}>Importer {report?.ok || 0} ligne(s)</Button> : null}
+      </>}>
+      <div style={{ display: 'grid', gap: 16 }}>
+        <Steps size="small" current={step} items={[{ title: 'Fichier' }, { title: 'Contrôle' }, { title: 'Terminé' }]} />
+        {error ? <Alert type="error" message={error} showIcon /> : null}
 
         {step === 0 ? (
           <>
-            <Alert severity="info">Format CSV (Excel : « Enregistrer sous → CSV ») ou JSON, 1 000 lignes maximum. Rien n'est publié par un import : les lignes arrivent en {res.name === 'clinics' ? '« à valider »' : 'brouillon'} ; les doublons sont ignorés.</Alert>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Button variant="contained" startIcon={<UploadFileIcon />} onClick={() => fileRef.current?.click()} disabled={busy}>Choisir un fichier</Button>
-              <Button startIcon={<DownloadIcon />} onClick={template}>Télécharger le modèle CSV</Button>
+            <Alert type="info" showIcon message={`Format CSV (Excel : « Enregistrer sous → CSV ») ou JSON, 1 000 lignes maximum. Rien n'est publié par un import : les lignes arrivent en ${res.name === 'clinics' ? '« à valider »' : 'brouillon'} ; les doublons sont ignorés.`} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Button type="primary" icon={<UploadOutlined />} onClick={() => fileRef.current?.click()} disabled={busy}>Choisir un fichier</Button>
+              <Button icon={<DownloadOutlined />} onClick={template}>Télécharger le modèle CSV</Button>
               <input ref={fileRef} type="file" accept=".csv,.txt,.json,text/csv,application/json" hidden onChange={(e) => onFile(e.target.files?.[0])} />
-            </Box>
-            <Typography variant="body2" color="text.secondary">
+            </div>
+            <Text type="secondary" style={{ fontSize: 13 }}>
               Colonnes : {cols.map((c) => c.name + (c.required ? '*' : '')).join(', ')}. Cases à cocher : oui/non. Listes : valeurs séparées par « | ». Pour le texte riche, un retour à la ligne crée un paragraphe (le HTML simple est accepté).
-            </Typography>
-            <TextField multiline minRows={5} label="…ou colle ici le contenu du CSV" value={text} onChange={(e) => setText(e.target.value)} inputProps={{ style: { fontFamily: 'ui-monospace, monospace', fontSize: 12 } }} />
-            <Box><Button variant="outlined" disabled={!text.trim() || busy} onClick={() => load(text)}>Contrôler le texte collé</Button></Box>
+            </Text>
+            <Input.TextArea autoSize={{ minRows: 5 }} placeholder="…ou colle ici le contenu du CSV" value={text} onChange={(e) => setText(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }} />
+            <div><Button disabled={!text.trim() || busy} onClick={() => load(text)}>Contrôler le texte collé</Button></div>
           </>
         ) : null}
 
         {step === 1 && report ? (
           <>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip color="success" label={`${report.ok} à importer`} />
-              <Chip color="warning" variant="outlined" label={`${report.duplicates} doublon(s) ignoré(s)`} />
-              <Chip color={report.errors ? 'error' : 'default'} variant="outlined" label={`${report.errors} erreur(s)`} />
-            </Box>
-            {report.errors ? <Alert severity="warning">Les lignes en erreur ne seront pas importées ; corrige le fichier et recommence si besoin.</Alert> : null}
-            <Box sx={{ maxHeight: 360, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 2 }}>
-              <Table size="small" stickyHeader>
-                <TableHead><TableRow><TableCell>#</TableCell>{shown.map((c) => <TableCell key={c.name}>{label(c)}</TableCell>)}<TableCell>Résultat</TableCell></TableRow></TableHead>
-                <TableBody>{report.report.slice(0, 300).map((r: any, i: number) => (
-                  <TableRow key={i} sx={r.status === 'erreur' ? { bgcolor: (t) => (t.palette.mode === 'light' ? 'rgba(154,68,51,.07)' : 'rgba(212,143,126,.08)') } : undefined}>
-                    <TableCell>{r.row}</TableCell>
-                    {shown.map((c) => <TableCell key={c.name} sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(rows[i]?.[c.name] ?? '').slice(0, 80)}</TableCell>)}
-                    <TableCell>{r.status === 'erreur' ? <Typography variant="caption" color="error">{r.error}</Typography> : <Chip size="small" variant="outlined" color={r.status === 'ok' ? 'success' : 'warning'} label={STATUS_TEXT[r.status]} />}</TableCell>
-                  </TableRow>))}</TableBody>
-              </Table>
-            </Box>
-            {report.report.length > 300 ? <Typography variant="caption" color="text.secondary">Aperçu des 300 premières lignes sur {report.total}.</Typography> : null}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Tag color="success">{report.ok} à importer</Tag>
+              <Tag color="warning">{report.duplicates} doublon(s) ignoré(s)</Tag>
+              <Tag color={report.errors ? 'error' : 'default'}>{report.errors} erreur(s)</Tag>
+            </div>
+            {report.errors ? <Alert type="warning" showIcon message="Les lignes en erreur ne seront pas importées ; corrige le fichier et recommence si besoin." /> : null}
+            <Table size="small" pagination={false} scroll={{ y: 360 }} rowKey={(_r, i) => String(i)}
+              dataSource={report.report.slice(0, 300)}
+              columns={[
+                { title: '#', dataIndex: 'row', width: 48 },
+                ...shown.map((c) => ({ title: label(c), key: c.name, render: (_: any, _r: any, i: number) => <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>{String(rows[i]?.[c.name] ?? '').slice(0, 80)}</span> })),
+                { title: 'Résultat', key: 'status', render: (r: any) => (r.status === 'erreur' ? <Text type="danger" style={{ fontSize: 12 }}>{r.error}</Text> : <Tag color={r.status === 'ok' ? 'success' : 'warning'}>{STATUS_TEXT[r.status]}</Tag>) },
+              ]} />
+            {report.report.length > 300 ? <Text type="secondary" style={{ fontSize: 12 }}>Aperçu des 300 premières lignes sur {report.total}.</Text> : null}
           </>
         ) : null}
 
         {step === 2 && done ? (
-          <Alert severity="success">
-            {done.ok} élément(s) importé(s), {done.duplicates} doublon(s) ignoré(s), {done.errors} erreur(s). {res.section ? 'Pense à créer une version pour les rendre visibles dans l\'application.' : ''}
+          <Alert type="success" showIcon message={<>
+            {done.ok} élément(s) importé(s), {done.duplicates} doublon(s) ignoré(s), {done.errors} erreur(s). {res.section ? "Pense à créer une version pour les rendre visibles dans l'application." : ''}
             {done.ok ? <> <StatusChip value={res.name === 'clinics' ? 'a_valider' : 'brouillon'} /></> : null}
-          </Alert>
+          </>} />
         ) : null}
-      </DialogContent>
-      <DialogActions>
-        {step === 1 ? <Button onClick={reset} disabled={busy}>Changer de fichier</Button> : null}
-        <Button onClick={close}>{step === 2 ? 'Fermer' : 'Annuler'}</Button>
-        {step === 1 ? <Button variant="contained" disabled={busy || !report?.ok} onClick={commit}>Importer {report?.ok || 0} ligne(s)</Button> : null}
-      </DialogActions>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }

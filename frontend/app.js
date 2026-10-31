@@ -1411,7 +1411,25 @@
 
   // Retient la dernière page affichée pour la restaurer après un rechargement
   // (F5 / réouverture PWA) au lieu de revenir systématiquement à l'accueil.
+  var lastTrackedRouteKey = null;
+  // Un beacon par changement d'écran réel (connecté ou non) — jamais bloquant, jamais répété
+  // pour la même vue consécutive (saveRoute est appelé plusieurs fois pour le même écran).
+  function trackView(route) {
+    var key = JSON.stringify(route);
+    if (key === lastTrackedRouteKey) return;
+    lastTrackedRouteKey = key;
+    try {
+      if (window.cloudSync && window.cloudSync.api) {
+        window.cloudSync.api('/api/track', {
+          method: 'POST', keepalive: true,
+          body: JSON.stringify({ view: (route && route.view) || 'inconnu', path: location.pathname + location.hash }),
+        }).catch(function () {});
+      }
+    } catch (e) { /* tracking best-effort */ }
+  }
+
   function saveRoute(route) {
+    trackView(route);
     try { localStorage.setItem(ROUTE_KEY, JSON.stringify(route)); } catch (e) {}
   }
 

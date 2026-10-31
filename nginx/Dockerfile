@@ -1,5 +1,5 @@
 # Build du front puis reverse-proxy Nginx (seul point d'entrée public).
-FROM node:22-alpine AS frontend-build
+FROM node:24-alpine AS frontend-build
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci || npm install
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN if [ ! -f config.js ]; then cp config.example.js config.js; fi
 RUN npm run build
 
-FROM node:22-alpine AS admin-build
+FROM node:24-alpine AS admin-build
 WORKDIR /app
 COPY admin/package.json admin/package-lock.json* ./
 RUN npm ci || npm install

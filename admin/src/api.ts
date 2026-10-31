@@ -1,9 +1,16 @@
-import { HttpError } from 'react-admin';
-
 export const API = '/api/admin';
 
-// Appel de l'API du backoffice (cookie admin_session, jamais de jeton en JS). Les erreurs sont des HttpError :
-// react-admin déconnecte automatiquement sur 401 (voir authProvider.checkError).
+export class ApiError extends Error {
+  status: number;
+  body: any;
+  constructor(message: string, status: number, body: any) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
+// Appel de l'API du backoffice (cookie admin_session, jamais de jeton en JS).
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<{ json: T; headers: Headers }> {
   const res = await fetch(API + path, {
     method: opts.method || 'GET',
@@ -13,7 +20,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
   });
   let json: any = null;
   try { json = await res.json(); } catch { /* corps vide */ }
-  if (!res.ok) throw new HttpError((json && json.error) || `Erreur ${res.status}`, res.status, json);
+  if (!res.ok) throw new ApiError((json && json.error) || `Erreur ${res.status}`, res.status, json);
   return { json, headers: res.headers };
 }
 

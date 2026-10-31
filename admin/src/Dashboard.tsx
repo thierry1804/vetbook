@@ -1,32 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { usePermissions, useGetIdentity } from 'react-admin';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Skeleton, Stack, Typography } from '@mui/material';
+import { Alert, Button, Skeleton, Space, Typography } from 'antd';
 import { api, permits } from './api';
+import { useAuth } from './auth';
 import { BarList, MetricStrip, PageHeader, StatusChip } from './ui';
 
+const { Text } = Typography;
 const pct = (x: number) => `${Math.round((x || 0) * 100)} %`;
 const mb = (b: number) => (b > 1e9 ? `${(b / 1e9).toFixed(2)} Go` : `${(b / 1e6).toFixed(1)} Mo`);
 const TODAY = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 export const Dashboard = () => {
   const [d, setD] = useState<any>(null); const [err, setErr] = useState('');
-  const { permissions } = usePermissions(); const { data: me } = useGetIdentity() as any; const nav = useNavigate();
+  const { me, permissions } = useAuth(); const nav = useNavigate();
   useEffect(() => { api('/dashboard').then((r) => setD(r.json)).catch((e) => setErr(e.message)); }, []);
-  const first = String(me?.fullName || '').split(' ')[0];
+  const first = String(me?.name || '').split(' ')[0];
   const actions = [
     ['users.read', 'Chercher un utilisateur', '/users'], ['contents.write', 'Écrire un conseil', '/tips/create'], ['referentiels.write', 'Préparer une version', '/releases'],
     ['billing.read', 'Formules et droits', '/plan-matrix'], ['directory.write', 'Ajouter une clinique', '/clinics/create'],
   ].filter((a) => permits(permissions, a[0]));
 
   return (
-    <Box sx={{ p: 2.5, maxWidth: 1280 }}>
+    <div style={{ padding: 24, maxWidth: 1280 }}>
       <PageHeader title={first ? `Bonjour ${first}` : 'Tableau de bord'} subtitle={`App'lika · ${TODAY}`}
-        actions={<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>{actions.map((a) => <Button key={a[2]} variant="outlined" size="small" onClick={() => nav(a[2])}>{a[1]}</Button>)}</Stack>} />
-      {err ? <Alert severity="warning">{err}</Alert> : null}
-      {!d && !err ? <Stack spacing={2}><Skeleton variant="rounded" height={92} /><Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}><Skeleton variant="rounded" height={220} /><Skeleton variant="rounded" height={220} /></Box></Stack> : null}
+        actions={<Space wrap>{actions.map((a) => <Button key={a[2]} onClick={() => nav(a[2])}>{a[1]}</Button>)}</Space>} />
+      {err ? <Alert type="warning" message={err} showIcon /> : null}
+      {!d && !err ? (
+        <div style={{ display: 'grid', gap: 16 }}>
+          <Skeleton.Button active block style={{ height: 92, width: '100%' }} />
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }}>
+            <Skeleton.Button active block style={{ height: 220, width: '100%' }} />
+            <Skeleton.Button active block style={{ height: 220, width: '100%' }} />
+          </div>
+        </div>
+      ) : null}
       {d ? (
-        <Stack spacing={2}>
+        <div style={{ display: 'grid', gap: 16 }}>
           <MetricStrip items={[
             { label: 'Comptes', value: d.users, hint: `+${d.signups7} / 7 j · +${d.signups30} / 30 j` },
             { label: 'Actifs 7 j / 30 j', value: `${d.active7} / ${d.active30}` },
@@ -36,23 +45,23 @@ export const Dashboard = () => {
             { label: 'Stockage photos', value: mb(d.storage_bytes) },
           ]} />
 
-          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', p: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="subtitle2" sx={{ minWidth: 160 }}>Dernier envoi de rappels</Typography>
+          <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <Text strong style={{ minWidth: 160, fontSize: 13 }}>Dernier envoi de rappels</Text>
             {d.last_reminder_job ? (
               <>
                 <StatusChip value={d.last_reminder_job.status === 'ok' ? 'actif' : d.last_reminder_job.status} />
-                <Typography variant="body2" color="text.secondary">
+                <Text type="secondary" style={{ fontSize: 13 }}>
                   {d.last_reminder_job.sent} envoyé(s) · {d.last_reminder_job.failed} échec(s) · {new Date(d.last_reminder_job.started_at).toLocaleString('fr-FR')}
-                </Typography>
+                </Text>
               </>
-            ) : <Typography variant="body2" color="text.secondary">Aucune exécution enregistrée.</Typography>}
-          </Box>
+            ) : <Text type="secondary" style={{ fontSize: 13 }}>Aucune exécution enregistrée.</Text>}
+          </div>
 
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }} className="dashboard-bars">
             <BarList title="Animaux par espèce" rows={d.pets_by_species.map((r: any) => ({ label: r.species, n: r.n }))} />
             <BarList title="Races les plus suivies" rows={d.top_breeds.map((r: any) => ({ label: r.race, n: r.n }))} />
-          </Box>
-        </Stack>) : null}
-    </Box>
+          </div>
+        </div>) : null}
+    </div>
   );
 };

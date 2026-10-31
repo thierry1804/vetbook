@@ -358,3 +358,21 @@ create table if not exists feature_flags (
   enabled boolean not null default false,
   note text
 );
+
+-- Journal d'accès public : navigation front (connecté ou non) + appels API publics marquants
+-- (connexion, inscription, lien de partage…). Distinct de admin_audit_log (actions du backoffice,
+-- ajout seul) : volume plus élevé, pas de protection d'immuabilité, visible dans le même écran
+-- "Journal d'audit" via un onglet dédié.
+create table if not exists access_log (
+  id bigserial primary key,
+  kind text not null, -- 'page' (navigation front) | 'api' (appel public marquant)
+  action text not null,
+  path text,
+  user_id uuid references users(id) on delete set null,
+  ip text,
+  user_agent text,
+  meta jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists access_log_created_idx on access_log (created_at desc);
+create index if not exists access_log_kind_idx on access_log (kind);

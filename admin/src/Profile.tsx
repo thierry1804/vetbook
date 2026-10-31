@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useGetIdentity, useNotify } from 'react-admin';
-import { Alert, Box, Button, LinearProgress, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, Input, Progress, Typography, message } from 'antd';
 import { api } from './api';
+import { useAuth } from './auth';
 import { PageHeader, Pill } from './ui';
+
+const { Title, Text } = Typography;
 
 const strength = (p: string) => {
   let s = 0;
@@ -11,36 +13,46 @@ const strength = (p: string) => {
 };
 
 export const Profile = () => {
-  const { data } = useGetIdentity() as any;
-  const notify = useNotify();
+  const { me } = useAuth();
   const [cur, setCur] = useState(''); const [nw, setNw] = useState(''); const [again, setAgain] = useState('');
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
   const s = strength(nw);
   const problem = nw && nw.length < 12 ? '12 caractères minimum' : again && again !== nw ? 'Les deux mots de passe diffèrent' : '';
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setDone(false);
-    try { await api('/auth/change-password', { method: 'POST', body: { current: cur, next: nw } }); setCur(''); setNw(''); setAgain(''); setDone(true); notify('Mot de passe modifié', { type: 'success' }); }
-    catch (err: any) { notify(err.message, { type: 'error' }); }
+    try { await api('/auth/change-password', { method: 'POST', body: { current: cur, next: nw } }); setCur(''); setNw(''); setAgain(''); setDone(true); message.success('Mot de passe modifié'); }
+    catch (err: any) { message.error(err.message); }
     finally { setBusy(false); }
   };
   return (
-    <Box sx={{ p: 2.5, maxWidth: 680 }}>
+    <div style={{ padding: 24, maxWidth: 680 }}>
       <PageHeader title="Mon profil" subtitle="Ton compte d'administration" />
-      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', p: 2.5, mb: 2, display: 'grid', gap: .5 }}>
-        <Typography variant="h6">{data?.fullName}</Typography>
-        <Typography color="text.secondary">{data?.email}</Typography>
-        <Box sx={{ mt: .5 }}><Pill label={String(data?.role || '').replace(/_/g, ' ').replace(/^./, (c: string) => c.toUpperCase())} /></Box>
-      </Box>
-      <Box component="form" onSubmit={submit} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', p: 2.5, display: 'grid', gap: 2 }}>
-        <Typography variant="h6">Changer le mot de passe</Typography>
-        <Typography variant="body2" color="text.secondary">Les autres sessions ouvertes avec ce compte seront fermées. Le code à 6 chiffres reste inchangé.</Typography>
-        {done ? <Alert severity="success" variant="outlined">Mot de passe modifié. Les autres sessions ont été déconnectées.</Alert> : null}
-        <TextField label="Mot de passe actuel" type="password" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" required />
-        <TextField label="Nouveau mot de passe" type="password" value={nw} onChange={(e) => setNw(e.target.value)} autoComplete="new-password" required error={!!problem && nw.length < 12} helperText={nw && nw.length < 12 ? problem : 'Astuce : une phrase de passe longue est plus sûre.'} />
-        {nw ? <LinearProgress variant="determinate" value={s * 20} color={s >= 4 ? 'success' : s >= 3 ? 'warning' : 'error'} sx={{ height: 6, borderRadius: 3 }} /> : null}
-        <TextField label="Confirmer le nouveau mot de passe" type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" required error={!!again && again !== nw} helperText={again && again !== nw ? problem : ' '} />
-        <Box><Button type="submit" variant="contained" disabled={busy || !cur || nw.length < 12 || nw !== again}>Enregistrer</Button></Box>
-      </Box>
-    </Box>
+      <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, marginBottom: 16, display: 'grid', gap: 4 }}>
+        <Title level={5} style={{ margin: 0 }}>{me?.name}</Title>
+        <Text type="secondary">{me?.email}</Text>
+        <div style={{ marginTop: 4 }}><Pill label={String(me?.role || '').replace(/_/g, ' ').replace(/^./, (c: string) => c.toUpperCase())} /></div>
+      </div>
+      <form onSubmit={submit} style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 20, display: 'grid', gap: 16 }}>
+        <Title level={5} style={{ margin: 0 }}>Changer le mot de passe</Title>
+        <Text type="secondary" style={{ fontSize: 13 }}>Les autres sessions ouvertes avec ce compte seront fermées. Le code à 6 chiffres reste inchangé.</Text>
+        {done ? <Alert type="success" showIcon message="Mot de passe modifié. Les autres sessions ont été déconnectées." /> : null}
+        <div>
+          <Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Mot de passe actuel</Text>
+          <Input.Password value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" required />
+        </div>
+        <div>
+          <Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Nouveau mot de passe</Text>
+          <Input.Password value={nw} onChange={(e) => setNw(e.target.value)} autoComplete="new-password" required status={problem && nw.length < 12 ? 'error' : undefined} />
+          <Text type={nw && nw.length < 12 ? 'danger' : 'secondary'} style={{ fontSize: 12, display: 'block', marginTop: 4 }}>{nw && nw.length < 12 ? problem : 'Astuce : une phrase de passe longue est plus sûre.'}</Text>
+        </div>
+        {nw ? <Progress percent={s * 20} showInfo={false} strokeColor={s >= 4 ? 'var(--ant-color-success)' : s >= 3 ? 'var(--ant-color-warning)' : 'var(--ant-color-error)'} size="small" /> : null}
+        <div>
+          <Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Confirmer le nouveau mot de passe</Text>
+          <Input.Password value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" required status={again && again !== nw ? 'error' : undefined} />
+          {again && again !== nw ? <Text type="danger" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>{problem}</Text> : null}
+        </div>
+        <div><Button type="primary" htmlType="submit" loading={busy} disabled={!cur || nw.length < 12 || nw !== again}>Enregistrer</Button></div>
+      </form>
+    </div>
   );
 };

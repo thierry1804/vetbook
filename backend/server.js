@@ -36,6 +36,8 @@ import publicConfig from './api/public-config.js';
 import meEntitlements from './api/me/entitlements.js';
 import { buildAdminRouter } from './api/admin/router.js';
 import { seedAdminDefaults } from './api/_lib/admin-seed.js';
+import { trackAccess } from './api/_lib/access-log.js';
+import track from './api/track.js';
 import dogEventsReminder from './api/user/dog-events-reminder.js';
 import filesUpload from './api/files/upload.js';
 import filesGet from './api/files/get.js';
@@ -77,14 +79,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.all('/api/auth/register', authLimiter, register);
-app.all('/api/auth/login', authLimiter, login);
+app.all('/api/auth/register', authLimiter, trackAccess('auth.register'), register);
+app.all('/api/auth/login', authLimiter, trackAccess('auth.login'), login);
 app.all('/api/auth/logout', logout);
 app.all('/api/auth/me', me);
-app.all('/api/auth/google', authLimiter, googleAuth);
-app.all('/api/auth/forgot-password', authLimiter, forgotPassword);
-app.all('/api/auth/reset-password', authLimiter, resetPassword);
-app.all('/api/auth/verify-email', authLimiter, verifyEmail);
+app.all('/api/auth/google', authLimiter, trackAccess('auth.google'), googleAuth);
+app.all('/api/auth/forgot-password', authLimiter, trackAccess('auth.forgot_password'), forgotPassword);
+app.all('/api/auth/reset-password', authLimiter, trackAccess('auth.reset_password'), resetPassword);
+app.all('/api/auth/verify-email', authLimiter, trackAccess('auth.verify_email'), verifyEmail);
 app.all('/api/auth/resend-verification', sensitiveLimiter, resendVerification);
 app.all('/api/user/profile', userProfile);
 app.all('/api/user/avatar', userAvatar);
@@ -97,7 +99,7 @@ app.all('/api/user/consent', userConsent);
 app.all('/api/user/storage', userStorage);
 app.all('/api/share/links', shareLinks);
 app.all('/api/share/links/:id', shareLinks);
-app.all('/api/share/public/:token', publicLimiter, sharePublic);
+app.all('/api/share/public/:token', publicLimiter, trackAccess('share.view'), sharePublic);
 app.all('/api/share/public/:token/photo/:id', publicLimiter, sharePublicPhoto);
 const withSub = (sub) => (req, res) => { req.params.sub = sub; return household(req, res); };
 app.all('/api/household', household);
@@ -108,7 +110,10 @@ app.all('/api/household/:ownerId/pets', withSub('pets'));
 app.all('/api/household/:ownerId/photo/:id', withSub('photo'));
 // Recherche LOMAD (proxy vers l'annuaire public ACYM) : limitée, pour ne pas peser sur leur serveur.
 const lookupLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de recherches. Réessayez dans une minute.' } });
-app.all('/api/lookup/acym', lookupLimiter, lookupAcym);
+app.all('/api/lookup/acym', lookupLimiter, trackAccess('lookup.acym'), lookupAcym);
+// Navigation front (connectée ou non) : un beacon léger par changement de vue, jamais bloquant.
+const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de requêtes.' } });
+app.post('/api/track', trackLimiter, track);
 // Backoffice (auth admin séparée, RBAC, audit) et endpoints consommés par le front propriétaire.
 app.use('/api/admin', buildAdminRouter());
 app.get('/api/ref', refHandler);
