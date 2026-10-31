@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Input, InputNumber, Modal, Select, Space, Typography, message } from 'antd';
+import { Alert, Button, Checkbox, Input, InputNumber, Modal, Select, Typography, message } from 'antd';
 import { api, permits } from './api';
 import { useAuth } from './auth';
 import { PageHeader, StatusChip } from './ui';
@@ -8,7 +8,7 @@ const { Text } = Typography;
 
 // Matrice « formule × fonctionnalité » : case = droit accordé, nombre = quota (vide = illimité). Tout est paramétrable.
 // Interrupteur global : tant qu'il est éteint, tout le monde a accès à tout ; allumé, chaque compte sans abonnement est en « gratuit ».
-function Enforcement({ canWrite }: { canWrite: boolean }) {
+export function Enforcement({ canWrite }: { canWrite: boolean }) {
   const [st, setSt] = useState<any>(null); const [open, setOpen] = useState(false); const [reason, setReason] = useState(''); const [ui, setUi] = useState('lock');
   const load = () => api('/enforcement').then((r) => setSt(r.json)).catch(() => undefined);
   useEffect(() => { load(); }, []);
@@ -49,49 +49,95 @@ function Enforcement({ canWrite }: { canWrite: boolean }) {
   );
 }
 
+type Cell = { enabled: boolean; quota: number | null };
+type MatrixData = { plans: any[]; features: any[]; cells: { plan_code: string; feature_code: string; enabled: boolean; quota: number | null }[] };
+
+const cellKey = (plan: string, feature: string) => `${plan}:${feature}`;
+
+// Grille complète formules (colonnes) × fonctionnalités (lignes) : avant, un sélecteur ne montrait qu'une
+// formule à la fois, impossible de comparer "Premium a-t-il ceci que Gratuit n'a pas ?" d'un coup d'œil.
 export const PlanMatrix = () => {
   const { permissions } = useAuth();
   const canWrite = permits(permissions, 'billing.plans_write');
-  const [plans, setPlans] = useState<any[]>([]); const [code, setCode] = useState('');
-  const [rows, setRows] = useState<any[]>([]); const [dirty, setDirty] = useState(false);
-  useEffect(() => { api('/r/plans?range=[0,99]&sort=["sort_order","ASC"]').then((r) => { setPlans(r.json); if (r.json[0]) setCode(r.json[0].code); }).catch((e) => message.error(e.message)); }, []);
-  useEffect(() => { if (code) api(`/plans/${code}/features`).then((r) => { setRows(r.json); setDirty(false); }).catch((e) => message.error(e.message)); }, [code]);
-  const set = (i: number, patch: any) => { setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r))); setDirty(true); };
-  const save = async () => {
-    try { await api(`/plans/${code}/features`, { method: 'PUT', body: { features: rows.map((r) => ({ feature_code: r.feature_code, enabled: !!r.enabled, quota: r.quota })) } }); message.success('Matrice enregistrée'); setDirty(false); }
-    catch (e: any) { message.error(e.message); }
+  const [data, setData] = useState<MatrixData | null>(null);
+  const [grid, setGrid] = useState<Record<string, Cell>>({});
+  const [dirtyPlans, setDirtyPlans] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  const load = () => api('/plan-matrix').then((r) => {
+    setData(r.json);
+    const g: Record<string, Cell> = {};
+    for (const c of r.json.cells) g[cellKey(c.plan_code, c.feature_code)] = { enabled: !!c.enabled, quota: c.quota };
+    setGrid(g);
+    setDirtyPlans(new Set());
+  }).catch((e) => message.error(e.message));
+  useEffect(() => { load(); }, []);
+
+  const set = (plan: string, feature: string, patch: Partial<Cell>) => {
+    setGrid((g) => ({ ...g, [cellKey(plan, feature)]: { enabled: false, quota: null, ...g[cellKey(plan, feature)], ...patch } }));
+    setDirtyPlans((d) => new Set(d).add(plan));
   };
-  const plan = plans.find((p) => p.code === code);
+  const save = async () => {
+    if (!data) return;
+    setSaving(true);
+    try {
+      for (const planCode of dirtyPlans) {
+        const features = data.features.map((f) => { const c = grid[cellKey(planCode, f.code)] || { enabled: false, quota: null }; return { feature_code: f.code, enabled: c.enabled, quota: c.quota }; });
+        await api(`/plans/${planCode}/features`, { method: 'PUT', body: { features } });
+      }
+      message.success('Matrice enregistrée');
+      setDirtyPlans(new Set());
+    } catch (e: any) { message.error(e.message); }
+    finally { setSaving(false); }
+  };
+
+  if (!data) return null;
+  const plans = data.plans;
+  const colWidth = 108;
   return (
-    <div style={{ padding: 24, maxWidth: 1040 }}>
-      <PageHeader title="Matrice des droits" subtitle="Ce que chaque formule inclut, et ses quotas." />
-      <Enforcement canWrite={canWrite} />
-      <Space wrap style={{ marginBottom: 16 }}>
-        <Select style={{ minWidth: 260 }} value={code || undefined} onChange={setCode}
-          options={plans.map((p) => ({ value: p.code, label: `${p.name} — ${Number(p.price_mga).toLocaleString('fr-FR')} MGA / ${p.period}` }))} />
-        {canWrite ? <Button type="primary" disabled={!dirty} onClick={save}>Enregistrer</Button> : null}
-        {plan ? <Text type="secondary" style={{ fontSize: 12 }}>Prix, période et essai : ressource « Formules ». Application serveur : réglage <code>subscriptions_enforced</code>.</Text> : null}
-      </Space>
-      <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', overflow: 'hidden' }}>
-        {rows.map((r, i) => (
-          <React.Fragment key={r.feature_code}>
-            {i === 0 || rows[i - 1].category !== r.category ? (
-              <div style={{ padding: '7px 16px', background: 'var(--ant-color-fill-tertiary)', borderBottom: '1px solid var(--ant-color-border)', borderTop: i === 0 ? 'none' : '1px solid var(--ant-color-border)' }}>
-                <span style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>{r.category || 'Autres'}</span>
+    <div style={{ padding: 24 }}>
+      <PageHeader title="Matrice des droits" subtitle="Ce que chaque formule inclut, et ses quotas — colonnes = formules, lignes = fonctionnalités."
+        actions={canWrite ? <Button type="primary" disabled={!dirtyPlans.size} loading={saving} onClick={save}>Enregistrer</Button> : null} />
+      <Alert type="info" showIcon style={{ marginBottom: 20 }}
+        message="L'interrupteur qui applique (ou non) les formules à tous les comptes est désormais dans Réglages, avec le reste de la configuration globale." />
+      <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', overflowX: 'auto' }}>
+        <div style={{ minWidth: 280 + plans.length * colWidth }}>
+          <div style={{ display: 'flex', position: 'sticky', top: 0, background: 'var(--ant-color-fill-tertiary)', borderBottom: '1px solid var(--ant-color-border)', zIndex: 1 }}>
+            <div style={{ width: 280, flex: 'none', padding: '10px 16px', fontSize: 11, fontWeight: 650, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>Fonctionnalité</div>
+            {plans.map((p) => (
+              <div key={p.code} style={{ width: colWidth, flex: 'none', padding: '10px 6px', textAlign: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: 650 }}>{p.name}{p.archived ? ' (archivée)' : ''}</Text>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>{Number(p.price_mga).toLocaleString('fr-FR')} MGA</Text>
               </div>
-            ) : null}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 16px', borderBottom: i < rows.length - 1 ? '1px solid var(--ant-color-border)' : 'none' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 13 }}>{r.label}</Text>
-                <Text type="secondary" style={{ fontSize: 12, fontFamily: 'ui-monospace, monospace', display: 'block' }}>{r.feature_code}</Text>
+            ))}
+          </div>
+          {data.features.map((f, i) => (
+            <React.Fragment key={f.code}>
+              {i === 0 || data.features[i - 1].category !== f.category ? (
+                <div style={{ padding: '6px 16px', background: 'var(--ant-color-fill-tertiary)', borderBottom: '1px solid var(--ant-color-border)', borderTop: i === 0 ? 'none' : '1px solid var(--ant-color-border)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>{f.category || 'Autres'}</span>
+                </div>
+              ) : null}
+              <div style={{ display: 'flex', alignItems: 'center', borderBottom: i < data.features.length - 1 ? '1px solid var(--ant-color-border)' : 'none' }}>
+                <div style={{ width: 280, flex: 'none', padding: '8px 16px', minWidth: 0 }}>
+                  <Text style={{ fontSize: 13 }}>{f.label}</Text>
+                  <Text type="secondary" style={{ fontSize: 11, fontFamily: 'ui-monospace, monospace', display: 'block' }}>{f.code}</Text>
+                </div>
+                {plans.map((p) => {
+                  const c = grid[cellKey(p.code, f.code)] || { enabled: false, quota: null };
+                  return (
+                    <div key={p.code} style={{ width: colWidth, flex: 'none', padding: '8px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <Checkbox checked={c.enabled} disabled={!canWrite} onChange={(e) => set(p.code, f.code, { enabled: e.target.checked })} />
+                      {f.kind === 'quota' && c.enabled
+                        ? <InputNumber size="small" disabled={!canWrite} value={c.quota ?? undefined} placeholder="∞" onChange={(v) => set(p.code, f.code, { quota: v ?? null })} style={{ width: 72 }} />
+                        : null}
+                    </div>
+                  );
+                })}
               </div>
-              <Checkbox checked={!!r.enabled} disabled={!canWrite} onChange={(e) => set(i, { enabled: e.target.checked })} />
-              {r.kind === 'quota'
-                ? <InputNumber disabled={!canWrite || !r.enabled} value={r.quota ?? undefined} placeholder="Illimité" onChange={(v) => set(i, { quota: v ?? null })} style={{ width: 120 }} />
-                : <div style={{ width: 120 }} />}
-            </div>
-          </React.Fragment>
-        ))}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );

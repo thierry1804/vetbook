@@ -1,23 +1,65 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/fr';
 import { Alert, Button, Modal, Tooltip, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import { tone } from './theme';
 import { useThemeMode } from './themeMode';
+import { RES } from './resources';
+
+dayjs.extend(relativeTime);
+dayjs.locale('fr');
+
+// Date relative (« il y a 3 jours ») avec la date et l'heure complètes en infobulle — plus lisible qu'une
+// date avec les secondes qui se coupe sur deux lignes dans un tableau dense (ex. journal d'audit).
+export function RelativeDate({ value, empty = '—' }: { value?: string | null; empty?: string }) {
+  if (!value) return <>{empty}</>;
+  const d = dayjs(value);
+  return <Tooltip title={d.format('DD/MM/YYYY HH:mm:ss')}>{d.fromNow()}</Tooltip>;
+}
+
+// Libellés humains pour les actions du journal d'audit admin — soit "ressource.verbe" (ex. tips.update),
+// soit la trace de secours "MÉTHODE /chemin" posée quand aucun audit détaillé n'a été produit. Partagé entre
+// le Journal d'audit et les historiques d'actions affichés sur les fiches utilisateur/administrateur.
+const ADMIN_VERB_LABELS: Record<string, string> = {
+  create: 'Création', update: 'Modification', delete: 'Suppression', login: 'Connexion', login_failed: 'Connexion échouée',
+  logout: 'Déconnexion', password_change: 'Changement de mot de passe', enforcement: 'Application des formules',
+  features_update: 'Modification des droits', create_draft: 'Brouillon créé', assign: 'Attribution', 'mark-verified': 'Marqué vérifié',
+};
+const ADMIN_RESOURCE_LABELS: Record<string, string> = {
+  auth: 'Authentification', admin: 'Administrateur', billing: 'Facturation', plan: 'Formule', release: 'Version',
+  settings: 'Réglages', subscription: 'Abonnement', user: 'Utilisateur',
+  ...Object.fromEntries(RES.map((r) => [r.name, r.label])),
+};
+export function adminActionLabel(action: string) {
+  const failed = /fail|échec|echec/i.test(action);
+  const method = action.match(/^(GET|POST|PUT|DELETE)\s+(.+)$/);
+  if (method) {
+    const verb = { POST: 'Création', PUT: 'Modification', DELETE: 'Suppression', GET: 'Consultation' }[method[1]] || method[1];
+    const seg = method[2].split('/').filter(Boolean).pop() || method[2];
+    return { label: `${verb} — ${ADMIN_RESOURCE_LABELS[seg] || seg}`, failed };
+  }
+  const [res, ...rest] = action.split('.');
+  const verb = rest.join('.');
+  return { label: `${ADMIN_RESOURCE_LABELS[res] || res} — ${ADMIN_VERB_LABELS[verb] || verb}`, failed };
+}
 
 const { Text, Title } = Typography;
 
 // Vocabulaire d'état fixe (succès / attention / erreur / neutre), dans la palette de la marque — jamais la
 // couleur générique d'un composant par défaut. Un badge texte, la même forme partout, jamais de bordure.
 const STATE: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-  actif: 'success', publie: 'success', valide: 'success', commercialise: 'success', published: 'success', ok: 'success', success: 'success',
-  brouillon: 'warning', a_valider: 'warning', essai: 'warning', draft: 'warning', partial: 'warning',
+  actif: 'success', publie: 'success', valide: 'success', commercialise: 'success', published: 'success', ok: 'success', success: 'success', envoye: 'success',
+  brouillon: 'warning', a_valider: 'warning', essai: 'warning', draft: 'warning', partial: 'warning', console: 'warning',
   suspendu: 'error', en_retard: 'error', failed: 'error', error: 'error', echec: 'error',
   archive: 'neutral', archived: 'neutral', retire: 'neutral', resilie: 'neutral', desactive: 'neutral',
 };
 export const LABELS: Record<string, string> = {
   actif: 'Actif', publie: 'Publié', valide: 'Validé', commercialise: 'Commercialisé', published: 'Publiée', brouillon: 'Brouillon', a_valider: 'À valider', essai: 'Essai',
   draft: 'Brouillon', suspendu: 'Suspendu', en_retard: 'En retard', archive: 'Archivé', archived: 'Archivée', retire: 'Retiré', resilie: 'Résilié', desactive: 'Désactivé',
+  envoye: 'Envoyé', echec: 'Échec', console: 'Simulé (SMTP non configuré)',
 };
 
 export function StatusChip({ value }: { value?: string }) {
@@ -137,6 +179,38 @@ export function BarList({ title, rows, action }: { title: string; rows: { label:
           ))}
         </div>
       ) : <Text type="secondary" style={{ fontSize: 13 }}>Pas encore de données.</Text>}
+    </div>
+  );
+}
+
+// Mini histogramme (évolution sur N jours) : chaque barre = un jour, infobulle native au survol. Remplace
+// un classement à égalité (toutes les valeurs à 1) qui ne dit rien — une tendance dans le temps, même plate,
+// reste lisible.
+export function TrendChart({ title, data, hint }: { title: string; data: { day: string; n: number }[]; hint?: string }) {
+  const max = Math.max(1, ...data.map((d) => d.n));
+  const total = data.reduce((s, d) => s + d.n, 0);
+  const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return (
+    <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', padding: 16, height: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+        <Text strong style={{ fontSize: 13 }}>{title}</Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>{total} au total{hint ? ` · ${hint}` : ''}</Text>
+      </div>
+      {total ? (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 110 }}>
+          {data.map((d) => (
+            <div key={d.day} title={`${fmt(d.day)} : ${d.n}`} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ width: '100%', height: `${Math.max(3, (d.n / max) * 100)}%`, background: d.n ? 'var(--ant-color-primary)' : 'var(--ant-color-fill-tertiary)', borderRadius: 2 }} />
+            </div>
+          ))}
+        </div>
+      ) : <Text type="secondary" style={{ fontSize: 13 }}>Pas encore de données.</Text>}
+      {total ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          <Text type="secondary" style={{ fontSize: 11 }}>{fmt(data[0].day)}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>{fmt(data[data.length - 1].day)}</Text>
+        </div>
+      ) : null}
     </div>
   );
 }

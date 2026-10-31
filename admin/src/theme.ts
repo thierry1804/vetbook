@@ -55,7 +55,9 @@ export function themeConfig(mode: 'light' | 'dark'): ThemeConfig {
     components: {
       Layout: { bodyBg: t.bg, headerBg: t.paper, siderBg: t.paperAlt },
       Menu: { itemBg: 'transparent', itemColor: t.textSecondary, itemHoverBg: t.hover, itemHoverColor: t.text, itemSelectedBg: t.accentSoft, itemSelectedColor: t.accent, itemBorderRadius: 7, subMenuItemBg: 'transparent' },
-      Table: { headerBg: 'transparent', headerColor: t.textSecondary, borderColor: t.divider, rowHoverBg: t.hover },
+      // Densité de ligne fixée au niveau du jeton (pas par écran) : une hauteur de cellule minimale commune,
+      // que la ligne porte une ligne de texte (Vaccins) ou deux (Utilisateurs, avec e-mail en dessous).
+      Table: { headerBg: 'transparent', headerColor: t.textSecondary, borderColor: t.divider, rowHoverBg: t.hover, cellPaddingBlock: 14 },
       Card: { paddingLG: 16 },
       Button: { borderRadius: RADIUS, fontWeight: 600 },
       Tag: { defaultBg: t.neutralSoft },

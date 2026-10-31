@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input, Space, Table, Tabs, Tag } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useResourceList } from './data';
-import { PageHeader } from './ui';
+import { PageHeader, adminActionLabel, RelativeDate } from './ui';
 
 // Vraies icônes SVG (flag-icons) plutôt que l'emoji Unicode : Windows n'affiche pas les drapeaux
 // emoji (choix délibéré de Microsoft, juste le code à deux lettres en clair) — le SVG rend pareil partout.
@@ -64,11 +64,14 @@ function AdminActions() {
         pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
         expandable={{ expandedRowRender: (r: any) => <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', background: 'var(--ant-color-fill-tertiary)', padding: 8 }}>{JSON.stringify({ id: r.target_id, motif: r.reason, avant: r.before, apres: r.after, ip: r.ip }, null, 2)}</pre> }}
         columns={[
-          { title: 'Date', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
+          { title: 'Date', dataIndex: 'created_at', render: (v: string) => <RelativeDate value={v} /> },
           { title: 'Administrateur', dataIndex: 'admin_email' },
-          { title: 'Action', dataIndex: 'action' },
+          {
+            title: 'Action', dataIndex: 'action',
+            render: (v: string) => { const { label: l, failed } = adminActionLabel(v || ''); return failed ? <Tag color="error">{l}</Tag> : l; },
+          },
           { title: 'Cible', dataIndex: 'target_type' },
-          { title: 'Motif', dataIndex: 'reason' },
+          { title: 'Motif', dataIndex: 'reason', render: (v: string) => v || <span style={{ color: 'var(--ant-color-text-tertiary)' }}>—</span> },
         ]} />
     </>
   );
@@ -89,7 +92,7 @@ function PublicAccess() {
       <Table rowKey="id" loading={isFetching} dataSource={data?.data}
         pagination={{ current: page, pageSize, total: data?.total, showSizeChanger: true, pageSizeOptions: [25, 50, 100], onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
         columns={[
-          { title: 'Date', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
+          { title: 'Date', dataIndex: 'created_at', render: (v: string) => <RelativeDate value={v} /> },
           { title: 'Type', dataIndex: 'kind', render: (v: string) => <Tag color={v === 'page' ? 'blue' : 'purple'}>{v === 'page' ? 'Page' : 'API'}</Tag> },
           {
             title: 'Action', dataIndex: 'action',

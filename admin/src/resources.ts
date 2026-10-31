@@ -1,7 +1,7 @@
 // Description des ressources du backoffice (champs, droits, groupes). Les écrans sont générés dans content.tsx.
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select | country
 export type Choice = string | { id: string | number; name: string };
-export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string };
+export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string; hidden?: boolean };
 export type Res = {
   name: string; label: string; perm: string; write?: string; fields: Field[]; readOnly?: boolean; deletable?: boolean;
   pk?: string; search?: boolean; group: string; createPk?: boolean; reason?: boolean; section?: string; defaults?: Record<string, any>; excerpt?: string; filters?: string[]; preview?: 'tip' | 'page' | 'event';
@@ -49,24 +49,27 @@ export const RES: Res[] = [
     f('country', 'country', { required: true, list: true, section: 'Identité' }), f('label', 'text', { required: true, list: true }), f('status', 'select', { choices: ACTIVE, list: true }),
     f('phone', 'text', { required: true, list: true, section: 'Coordonnées' }), f('hours', 'text', { list: true }), f('sort_order', 'int', { list: true, help: 'Plus petit = affiché en premier.' })] },
   { name: 'breeds', section: 'breedDb', label: 'Races', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
-    f('name', 'text', { required: true, list: true, section: 'Identité' }), f('species_code', 'text', { required: true, list: true }), f('status', 'select', { choices: ACTIVE, list: true }),
+    f('name', 'text', { required: true, list: true, section: 'Identité' }), f('species_code', 'species', { required: true, list: true }), f('status', 'select', { choices: ACTIVE, list: true }),
     f('fci_number', 'text', { list: true, section: 'Classification' }), f('cc_slug'), f('aliases', 'texts'),
     f('weight_min', 'num', { section: 'Mesures' }), f('weight_max', 'num'), f('height_min', 'num'), f('height_max', 'num')] },
   { name: 'species', section: 'breedDb', label: 'Espèces', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', createPk: true, fields: [
     f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('sort_order', 'int', { list: true }), f('status', 'select', { choices: ACTIVE, list: true })] },
   { name: 'vaccines', section: 'vaccineDb', label: 'Vaccins', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
-    f('name', 'text', { required: true, list: true }), f('species_code', 'text', { required: true, list: true }), f('laboratory', 'text', { list: true }), f('valences', 'text', { list: true }),
+    f('name', 'text', { required: true, list: true }), f('species_code', 'species', { required: true, list: true }), f('laboratory', 'text', { list: true }), f('valences', 'text', { list: true }),
     f('default_interval_days', 'int', { list: true }), f('status', 'select', { choices: ['commercialise', 'retire'], list: true })] },
   { name: 'antiparasitics', section: 'vaccineDb', label: 'Antiparasitaires', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
-    f('name', 'text', { required: true, list: true }), f('species_code', 'text', { list: true }), f('kind', 'text', { list: true }), f('default_interval_days', 'int', { list: true }), f('status', 'select', { choices: ACTIVE, list: true })] },
-  { name: 'lists', section: 'lists', label: 'Listes (symptômes, repas…)', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, fields: [
-    f('list_type', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('sort_order', 'int', { list: true }), f('active', 'bool', { list: true }), f('meta', 'json')] },
+    f('name', 'text', { required: true, list: true }), f('species_code', 'species', { list: true }), f('kind', 'text', { list: true }), f('default_interval_days', 'int', { list: true }), f('status', 'select', { choices: ACTIVE, list: true })] },
+  { name: 'lists', section: 'lists', label: 'Listes (symptômes, repas…)', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, filters: ['list_type'], fields: [
+    f('list_type', 'select', { choices: [{ id: 'symptom', name: 'Symptôme' }, { id: 'hygiene', name: 'Hygiène' }, { id: 'activity', name: 'Activité' }, { id: 'meal', name: 'Repas' }], required: true, list: true }),
+    f('label', 'text', { required: true, list: true }), f('sort_order', 'int', { list: true }), f('active', 'bool', { list: true }), f('meta', 'listMeta', { label: 'Métadonnées' })] },
   { name: 'checkup', section: 'checkupQuestions', label: 'Check-up', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', deletable: true, search: true, createPk: true, fields: [
     f('key', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('icon', 'text', { list: true }), f('sort_order', 'int', { list: true }),
-    f('active', 'bool', { list: true }), f('levels', 'json'), f('advice', 'json')] },
+    f('active', 'bool', { list: true }), f('levels', 'checkupLevels', { label: 'Niveaux', help: 'Un niveau par ligne, avec un conseil optionnel. 1er niveau = réponse 1, etc.' }),
+    f('advice', 'json', { hidden: true })] },
   { name: 'registries', section: 'registries', label: 'Registres (LOF, LOMAD…)', group: 'Référentiels', perm: 'referentiels.read', write: 'referentiels.write', createPk: true, search: true, fields: [
-    f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('country', 'text', { list: true }), f('number_regex', 'text'), f('lookup_url', 'text'),
-    f('delays', 'json'), f('status', 'select', { choices: ACTIVE, list: true })] },
+    f('code', 'text', { required: true, list: true }), f('label', 'text', { required: true, list: true }), f('country', 'text', { list: true }),
+    f('number_regex', 'regex', { label: 'Format du numéro', help: 'Expression régulière.' }), f('lookup_url', 'text'),
+    f('delays', 'kvnum', { label: 'Délais (jours)', help: 'ex. birthDeclarationDays' }), f('status', 'select', { choices: ACTIVE, list: true })] },
   { name: 'plans', label: 'Formules', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', createPk: true, search: true, filters: ['archived'], fields: [
     f('code', 'text', { required: true, list: true }), f('name', 'text', { required: true, list: true }), f('audience', 'select', { choices: ['owner', 'practice'], list: true }),
     f('price_mga', 'int', { label: 'Prix (MGA)', list: true }), f('period', 'select', { choices: ['mensuel', 'annuel', 'unique'], list: true }), f('trial_days', 'int', { list: true }),
@@ -87,15 +90,16 @@ export const RES: Res[] = [
     f('status', 'text', { list: true }), f('paid_at', 'ts', { list: true })] },
   { name: 'invoices', label: 'Factures', group: 'Abonnements', perm: 'billing.read', readOnly: true, search: true, fields: [
     f('number', 'text', { list: true }), f('user_id', 'text', { list: true }), f('amount_mga', 'int', { list: true }), f('issued_at', 'ts', { list: true })] },
-  { name: 'settings', label: 'Réglages', group: 'Système', perm: 'system.read', write: 'system.write', createPk: true, search: true, fields: [
-    f('key', 'text', { required: true, list: true }), f('value', 'json', { list: true, lenient: true, help: 'Texte simple accepté (ex. hide) ; sinon JSON : true, 12, ["MG"], {"a": 1}.' })] },
-  { name: 'flags', label: 'Feature flags', group: 'Système', perm: 'system.read', write: 'system.write', deletable: true, createPk: true, search: true, fields: [
+  // Réglages : écran typé dédié (SettingsScreen.tsx, /app-settings) — plus de ressource générique
+  // clé/valeur JSON brute ici.
+  { name: 'flags', label: 'Indicateurs de fonctionnalité', group: 'Système', perm: 'system.read', write: 'system.write', deletable: true, createPk: true, search: true, fields: [
     f('key', 'text', { required: true, list: true }), f('enabled', 'bool', { list: true }), f('note', 'text', { list: true })] },
   { name: 'jobs', label: 'Tâches planifiées', group: 'Système', perm: 'notifications.read', readOnly: true, fields: [
     f('id', 'int', { list: true }), f('job', 'text', { list: true }), f('status', 'text', { list: true }), f('started_at', 'ts', { list: true }), f('finished_at', 'ts', { list: true }),
     f('sent', 'int', { list: true }), f('failed', 'int', { list: true }), f('details', 'json')] },
   { name: 'messages', label: 'Journal des envois', group: 'Système', perm: 'notifications.read', readOnly: true, search: true, fields: [
-    f('id', 'int', { list: true }), f('channel', 'text', { list: true }), f('template', 'text', { list: true }), f('recipient', 'text', { list: true }), f('status', 'text', { list: true }),
+    f('id', 'int', { list: true }), f('channel', 'text', { list: true }), f('template', 'text', { list: true }), f('recipient', 'text', { list: true }),
+    f('status', 'select', { choices: ['envoye', 'echec', 'console'], list: true }),
     f('error', 'text', { list: true }), f('created_at', 'ts', { list: true })] },
 ];
 

@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import dayjs, { Dayjs } from 'dayjs';
 import {
-  Alert, Button, Form, Input, InputNumber, Select, Switch, DatePicker, Table, Tabs, Typography, message, Modal, Popconfirm, Space, Tag,
+  Alert, Button, Empty, Form, Input, InputNumber, Select, Switch, DatePicker, Table, Tabs, Typography, message, Modal, Popconfirm, Space, Tag,
 } from 'antd';
+import { ArrowDownOutlined, ArrowUpOutlined, CheckOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import { permits, api } from './api';
-import { StatusChip, Pill, LABELS, sanitizeRich, textOf, PageHeader } from './ui';
+import { StatusChip, Pill, LABELS, sanitizeRich, textOf, PageHeader, RelativeDate } from './ui';
 import { Choice, Field, Res, label } from './resources';
 import { ICONS } from './icons';
 import { RichTextEditor } from './RichText';
@@ -15,12 +16,19 @@ import { useResourceList, useResourceOne, useCreate, useUpdate, useDeleteOne, us
 
 const { Text } = Typography;
 
-// ── Données d'aide : pays ouverts (réglage `open_countries`), mis en cache pour la session.
-let metaCache: Promise<{ countries: { code: string; label: string }[] }> | null = null;
-const loadMeta = () => (metaCache ||= api('/meta').then((r) => r.json).catch(() => { metaCache = null; return { countries: [] }; }));
+// ── Données d'aide : pays ouverts (réglage `open_countries`) et référentiel espèces, mis en cache pour la session.
+let metaCache: Promise<{ countries: { code: string; label: string }[]; species: { code: string; label: string }[] }> | null = null;
+const loadMeta = () => (metaCache ||= api('/meta').then((r) => r.json).catch(() => { metaCache = null; return { countries: [], species: [] }; }));
 const useCountryChoices = (withAll: boolean) => {
   const [c, setC] = useState<{ value: string; label: string }[]>([]);
   useEffect(() => { loadMeta().then((m) => setC([...(withAll ? [{ value: 'ALL', label: 'Tous les pays' }] : []), ...m.countries.map((x) => ({ value: x.code, label: x.label }))])); }, [withAll]);
+  return c;
+};
+// Remplace le champ libre « Code espèce » (Races/Vaccins/Antiparasitaires) : une faute de frappe cassait
+// le lien avec le référentiel Espèces sans avertissement. Liste chargée depuis ce même référentiel.
+const useSpeciesChoices = () => {
+  const [c, setC] = useState<{ value: string; label: string }[]>([]);
+  useEffect(() => { loadMeta().then((m) => setC(m.species.map((x) => ({ value: x.code, label: x.label })))); }, []);
   return c;
 };
 
@@ -31,21 +39,12 @@ const statusField = (res: Res) => res.fields.find((fl) => fl.name === 'status' &
 const allowAll = (res: Res) => res.defaults?.country === 'ALL';
 const excerpt = (html: string, n = 110) => { const t = textOf(html); return t.length > n ? t.slice(0, n) + '…' : t; };
 
-// ── Bandeau « modifications non publiées » : le contenu n'atteint l'app qu'après publication d'une version.
-function PendingBanner({ section }: { section?: string }) {
-  const nav = useNavigate();
-  const [st, setSt] = useState<any>(null);
-  useEffect(() => { if (section) api('/release-status').then((r) => setSt(r.json)).catch(() => undefined); }, [section]);
-  if (!section || !st || !st.changed?.[section]) return null;
-  return (
-    <Alert type="info" showIcon style={{ marginBottom: 16 }}
-      message={<>Des modifications ne sont pas encore visibles dans l'application. {st.draft_version ? `Un brouillon (v${st.draft_version}) attend d'être publié.` : "Crée une version puis fais-la publier (principe des quatre yeux)."}</>}
-      action={<Button size="small" onClick={() => nav('/releases')}>{st.draft_version ? `Voir le brouillon v${st.draft_version}` : 'Préparer une version'}</Button>} />
-  );
-}
+// L'indicateur « modifications non publiées » est maintenant une pastille fixe dans la barre du haut
+// (ReleasePill, Layout.tsx) — visible sur tous les écrans à la fois, plus de bandeau par page qui
+// décalait le titre et n'apparaissait que sur certaines ressources.
 
 // ── Cellule de liste : rendu par type de champ.
-function listColumn(fl: Field, res: Res, countries: { value: string; label: string }[]) {
+function listColumn(fl: Field, res: Res, countries: { value: string; label: string }[], species: { value: string; label: string }[]) {
   const isTitleWithExcerpt = fl.name === res.fields.find((x) => x.list)?.name && res.excerpt;
   const column: any = { title: fl.short || label(fl), dataIndex: fl.name, key: fl.name, sorter: true };
   if (isTitleWithExcerpt) {
@@ -56,14 +55,22 @@ function listColumn(fl: Field, res: Res, countries: { value: string; label: stri
       </div>);
     return column;
   }
+  // Résolu côté serveur (join sur users, voir joinUser dans l'API) : nom/e-mail plutôt que l'UUID brut.
+  if (fl.name === 'user_id') {
+    column.render = (v: string, r: any) => r.user_name || r.user_email || v || '—';
+    return column;
+  }
   switch (fl.type) {
-    case 'bool': column.render = (v: any) => (v ? <Tag color="success">Oui</Tag> : <Text type="secondary">—</Text>); break;
+    // Coche pleine plutôt qu'une pastille (lue comme « désactivé » par contraste trop faible avec le vert
+    // de marque) — un simple vrai/faux n'a pas besoin d'un badge, juste d'un signe reconnaissable.
+    case 'bool': column.render = (v: any) => (v ? <CheckOutlined style={{ color: 'var(--ant-color-success)', fontSize: 15 }} /> : <Text type="secondary">—</Text>); break;
     case 'int': case 'num': column.render = (v: any) => (v == null ? '—' : Number(v).toLocaleString('fr-FR')); break;
     case 'date': column.render = (v: any) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—'); break;
-    case 'ts': column.render = (v: any) => (v ? new Date(v).toLocaleString('fr-FR') : '—'); break;
+    case 'ts': column.render = (v: any) => <RelativeDate value={v} />; break;
     case 'json': column.render = (v: any) => (v == null ? '—' : JSON.stringify(v).slice(0, 60)); break;
     case 'texts': column.render = (v: any) => (v || []).join(', ') || '—'; break;
     case 'country': column.render = (v: any) => (v === 'ALL' ? 'Tous' : v || '—'); break;
+    case 'species': column.render = (v: any) => species.find((s) => s.value === v)?.label || v || '—'; break;
     case 'select':
       column.render = (v: any) => (fl.name === 'status' ? <StatusChip value={v} /> : (toOptions(fl.choices).find((c) => String(c.value) === String(v))?.label ?? v ?? '—'));
       break;
@@ -101,19 +108,109 @@ function TagsInput({ value, onChange }: { value?: string[]; onChange?: (v: strin
 // Form.Item clone son unique enfant pour lui injecter value/onChange/id : on relaie donc tout ce qui
 // arrive ici (...field) vers le vrai contrôle, sinon le champ est visuellement présent mais déconnecté
 // du formulaire (ni saisie, ni valeurs par défaut, ni soumission).
-function FieldInput({ fl, isEdit, res, countries, ...field }: { fl: Field; isEdit: boolean; res: Res; countries: { value: string; label: string }[] } & Record<string, any>) {
+// Paires clé → nombre (ex. délais de registre en jours) : remplace un textarea JSON où une virgule oubliée
+// casse l'écran. Les clés sont libres (chaque registre a les siennes), donc pas de champs figés par nom.
+function KvNumInput({ value, onChange, keyPlaceholder }: { value?: Record<string, number>; onChange?: (v: Record<string, number>) => void; keyPlaceholder?: string }) {
+  const rows = Object.entries(value || {});
+  const set = (next: [string, number][]) => onChange?.(Object.fromEntries(next.filter(([k]) => k.trim())));
+  return (
+    <Space direction="vertical" size={6} style={{ width: '100%' }}>
+      {rows.map(([k, n], i) => (
+        <Space key={i}>
+          <Input value={k} placeholder={keyPlaceholder || 'clé'} style={{ width: 220 }}
+            onChange={(e) => { const next = [...rows]; next[i] = [e.target.value, n]; set(next); }} />
+          <InputNumber value={n} style={{ width: 120 }} onChange={(v) => { const next = [...rows]; next[i] = [k, v ?? 0]; set(next); }} />
+          <Button type="text" danger size="small" onClick={() => set(rows.filter((_, j) => j !== i))}>Retirer</Button>
+        </Space>
+      ))}
+      <Button size="small" onClick={() => set([...rows, ['', 0]])}>Ajouter</Button>
+    </Space>
+  );
+}
+
+// Motif + testeur en direct : on tape un numéro et on voit tout de suite s'il correspond, plutôt que de
+// deviner si l'expression régulière est correcte en la relisant.
+function RegexField({ value, onChange }: { value?: string; onChange?: (v: string) => void }) {
+  const [sample, setSample] = useState('');
+  let ok: boolean | null = null;
+  if (value && sample) { try { ok = new RegExp(value).test(sample); } catch { ok = false; } }
+  return (
+    <Space direction="vertical" size={6} style={{ width: '100%' }}>
+      <Input value={value} onChange={(e) => onChange?.(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }} placeholder="^\d{6,15}$" />
+      <Space>
+        <Input value={sample} onChange={(e) => setSample(e.target.value)} placeholder="Tester avec un numéro" style={{ width: 220 }} />
+        {sample ? (ok ? <Text type="success" style={{ fontSize: 12.5 }}>✓ Correspond</Text> : <Text type="danger" style={{ fontSize: 12.5 }}>✗ Ne correspond pas</Text>) : null}
+      </Space>
+    </Space>
+  );
+}
+
+// Niveaux + conseil par niveau, dans un seul éditeur — remplace deux zones JSON brutes (un niveau =
+// une position dans « levels », l'app y accède par index ; « advice » est géré en parallèle via le
+// formulaire directement, sans Form.Item visible pour lui, pour ne pas dupliquer l'édition).
+function CheckupLevelsField({ value, onChange }: { value?: string[]; onChange?: (v: string[]) => void }) {
+  const form = Form.useFormInstance();
+  const advice: Record<string, string> = Form.useWatch('advice', form) || {};
+  const levels: string[] = Array.isArray(value) ? value : [];
+  const setRow = (i: number, newLabel: string, adviceText: string) => {
+    const oldLabel = levels[i];
+    onChange?.(levels.map((l, j) => (j === i ? newLabel : l)));
+    const nextAdvice = { ...advice }; delete nextAdvice[oldLabel];
+    if (adviceText.trim()) nextAdvice[newLabel] = adviceText;
+    form.setFieldValue('advice', nextAdvice);
+  };
+  const removeRow = (i: number) => {
+    const nextAdvice = { ...advice }; delete nextAdvice[levels[i]];
+    onChange?.(levels.filter((_, j) => j !== i));
+    form.setFieldValue('advice', nextAdvice);
+  };
+  return (
+    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+      {levels.map((l, i) => (
+        <Space key={i} align="start">
+          <Input value={l} placeholder="Niveau" style={{ width: 170 }} onChange={(e) => setRow(i, e.target.value, advice[l] || '')} />
+          <Input value={advice[l] || ''} placeholder="Conseil (optionnel)" style={{ width: 380 }} onChange={(e) => setRow(i, l, e.target.value)} />
+          <Button type="text" danger size="small" onClick={() => removeRow(i)}>Retirer</Button>
+        </Space>
+      ))}
+      <Button size="small" onClick={() => onChange?.([...levels, ''])}>Ajouter un niveau</Button>
+    </Space>
+  );
+}
+
+// Seules les listes de type « Activité » portent une métadonnée (MET, pour le calcul calorique) — pour
+// les autres, rien à éditer. Lit le type de liste en train d'être choisi dans le même formulaire.
+function ListMetaField({ value, onChange }: { value?: any; onChange?: (v: any) => void }) {
+  const form = Form.useFormInstance();
+  const listType = Form.useWatch('list_type', form);
+  if (listType !== 'activity') return <Text type="secondary" style={{ fontSize: 12.5 }}>Pas de métadonnée pour ce type de liste.</Text>;
+  return (
+    <Space>
+      <Text style={{ fontSize: 13 }}>MET (équivalent métabolique)</Text>
+      <InputNumber value={value?.met} step="any" min={0} onChange={(v) => onChange?.(v == null ? {} : { met: v })} />
+    </Space>
+  );
+}
+
+function FieldInput({ fl, isEdit, res, countries, species, ...field }: { fl: Field; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[] } & Record<string, any>) {
   const disabled = fl.readOnly || (isEdit && !!res.createPk && fl.name === res.fields[0].name);
   switch (fl.type) {
     case 'html': return <RichTextEditor {...field} />;
     case 'longtext': return <Input.TextArea {...field} autoSize={{ minRows: 3 }} disabled={disabled} />;
-    case 'int': return <InputNumber {...field} style={{ width: '100%' }} step={1} disabled={disabled} />;
+    case 'int': return <InputNumber {...field} style={{ width: '100%' }} step={1} disabled={disabled}
+      formatter={(v) => (v == null ? '' : String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' '))} parser={(v) => (v ? v.replace(/[^\d-]/g, '') : '') as any} />;
     case 'num': return <InputNumber {...field} style={{ width: '100%' }} step="any" disabled={disabled} />;
     case 'bool': return <Switch {...field} disabled={disabled} />;
     case 'date': return <DatePicker {...field} style={{ width: '100%' }} format="YYYY-MM-DD" disabled={disabled} />;
     case 'ts': return <DatePicker {...field} style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm" disabled={disabled} />;
     case 'json': return <Input.TextArea {...field} autoSize={{ minRows: 4 }} disabled={disabled} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }} />;
+    case 'kvnum': return <KvNumInput {...field} keyPlaceholder={fl.help} />;
+    case 'regex': return <RegexField {...field} />;
+    case 'checkupLevels': return <CheckupLevelsField {...field} />;
+    case 'listMeta': return <ListMetaField {...field} />;
     case 'texts': return <TagsInput {...field} />;
     case 'country': return <Select {...field} options={countries} showSearch optionFilterProp="label" allowClear={!allowAll(res)} disabled={disabled} />;
+    case 'species': return <Select {...field} options={species} showSearch optionFilterProp="label" allowClear disabled={disabled} />;
     case 'select': return <Select {...field} options={toOptions(fl.choices)} showSearch optionFilterProp="label" allowClear disabled={disabled} />;
     default: return <Input {...field} disabled={disabled} />;
   }
@@ -132,18 +229,18 @@ function groupFields(fields: Field[]): { title?: string; fields: Field[] }[] {
   }
   return groups;
 }
-const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html']);
+const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html', 'kvnum', 'regex', 'checkupLevels', 'listMeta']);
 
-function FieldGroup({ title, fields, isEdit, res, countries }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[] }) {
+function FieldGroup({ title, fields, isEdit, res, countries, species }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[] }) {
   return (
     <div>
       {title ? <div style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)', margin: '0 0 12px' }}>{title}</div> : null}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 20px' }} className="field-grid">
-        {fields.map((fl) => (
+        {fields.filter((fl) => !fl.hidden).map((fl) => (
           <Form.Item key={fl.name} name={fl.name} label={label(fl)} valuePropName={fl.type === 'bool' ? 'checked' : 'value'}
             rules={fl.required ? [{ required: true, message: `${label(fl)} est requis` }] : undefined}
             extra={fl.help} style={WIDE_TYPES.has(fl.type || '') ? { gridColumn: '1 / -1' } : undefined}>
-            <FieldInput fl={fl} isEdit={isEdit} res={res} countries={countries} />
+            <FieldInput fl={fl} isEdit={isEdit} res={res} countries={countries} species={species} />
           </Form.Item>
         ))}
       </div>
@@ -170,7 +267,7 @@ function ContentPreview({ kind, v }: { kind: 'tip' | 'page' | 'event'; v: any })
   );
 }
 
-function GenericPreview({ res, v }: { res: Res; v: any }) {
+function GenericPreview({ res, v, species }: { res: Res; v: any; species: { value: string; label: string }[] }) {
   v = v || {};
   const st = statusField(res);
   const titleField = res.fields.find((fl) => fl.list && fl.type !== 'select' && fl.type !== 'bool' && fl !== st) || res.fields[0];
@@ -203,7 +300,9 @@ function GenericPreview({ res, v }: { res: Res; v: any }) {
           {factFields.map((fl) => (
             <div key={fl.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
               <Text type="secondary" style={{ fontSize: 13 }}>{label(fl)}</Text>
-              <Text style={{ fontSize: 13, textAlign: 'right', overflowWrap: 'anywhere' }}>{String(v[fl.name])}</Text>
+              <Text style={{ fontSize: 13, textAlign: 'right', overflowWrap: 'anywhere' }}>
+                {fl.type === 'species' ? (species.find((s) => s.value === v[fl.name])?.label || String(v[fl.name])) : String(v[fl.name])}
+              </Text>
             </div>
           ))}
         </div>
@@ -243,8 +342,13 @@ function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEd
   const publish = choices.includes('publie') ? 'publie' : choices.includes('valide') ? 'valide' : null;
   // Supprimer est irréversible : séparé spatialement des actions de sauvegarde (pas seulement par la couleur)
   // pour qu'un clic rapide ne puisse pas l'atteindre par erreur en visant Enregistrer.
+  // Collée en bas de l'écran (pas du formulaire) : sur un long formulaire, Enregistrer restait hors
+  // champ tant qu'on n'avait pas tout fait défiler.
   return (
-    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{
+      marginTop: 24, padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      position: 'sticky', bottom: 0, background: 'var(--ant-color-bg-layout)', borderTop: '1px solid var(--ant-color-border)', zIndex: 1,
+    }}>
       <Space>
         <Button type="primary" loading={saving} onClick={() => onSave()}>Enregistrer</Button>
         {publish ? <Button loading={saving} onClick={() => onSave(publish)}>{publish === 'publie' ? 'Enregistrer et publier' : 'Enregistrer et valider'}</Button> : null}
@@ -263,7 +367,8 @@ export function makeResource(res: Res, perms: string[]) {
   const st = statusField(res);
   const stChoices = toOptions(st?.choices);
   const canImport = canWrite && IMPORTABLE.includes(res.name);
-  const defaultSort = { field: res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: (res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC') as 'ASC' | 'DESC' };
+  const orderField = res.fields.find((x) => x.name === 'sort_order');
+  const defaultSort = { field: orderField ? 'sort_order' : res.name === 'events' ? 'month' : res.excerpt ? 'id' : (res.fields.find((x) => x.list)?.name || 'id'), order: (orderField ? 'ASC' : res.excerpt && res.name !== 'events' ? 'DESC' : 'ASC') as 'ASC' | 'DESC' };
 
   const DEDICATED = new Set(['users', 'audit', 'releases', 'admins']);
   const exportCsv = async (filter: any, sort: typeof defaultSort) => {
@@ -279,32 +384,62 @@ export function makeResource(res: Res, perms: string[]) {
     const navigate = useNavigate();
     const [importing, setImporting] = useState(false);
     const countries = useCountryChoices(allowAll(res));
+    const species = useSpeciesChoices();
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState(defaultSort);
     const [filter, setFilter] = useState<Record<string, any>>({});
     const { data, isFetching } = useResourceList(res.name, { page, perPage: 25, sort, filter });
     const [selected, setSelected] = useState<React.Key[]>([]);
     const updateMany = useUpdateMany(res.name);
+    const reorder = useUpdate(res.name);
+    const reordering = reorder.isPending;
 
     // Une colonne entièrement vide sur la page affichée n'apporte rien (ex. Vaccins : Laboratoire/Valences/
     // Intervalle jamais renseignés) — elle disparaît tant que personne ne remplit ce champ ; dès qu'une ligne
     // le renseigne, elle revient. La première colonne (identité) reste toujours visible.
     const columns = useMemo(() => {
-      const listFields = res.fields.filter((x) => x.list);
+      // Avec l'ordre manuel, la colonne numérique brute "Ordre" est remplacée par les flèches ci-dessous.
+      const listFields = res.fields.filter((x) => x.list && x.name !== 'sort_order');
       const rows = data?.data || [];
       const visible = listFields.filter((fl, i) => i === 0 || !rows.length
         || rows.some((r: any) => { const v = r[fl.name]; return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0); }));
-      return visible.map((fl) => listColumn(fl, res, countries));
-    }, [countries, data]);
+      return visible.map((fl) => listColumn(fl, res, countries, species));
+    }, [countries, species, data]);
+    // Signal discret qu'une ligne s'ouvre au clic (en plus du survol antd par défaut) — sans lui, rien ne
+    // distingue une ligne cliquable d'un simple tableau de données.
+    const chevronColumn = { title: '', key: '__chevron', width: 32, render: () => <RightOutlined style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 12 }} /> };
+    // Remplace le champ "Ordre" en formulaire : flèches monter/descendre, échangent sort_order avec la ligne
+    // voisine de la page affichée et sauvegardent tout de suite (pas de glisser-déposer, plus simple et aussi fiable).
+    const canReorder = canWrite && !!orderField && sort.field === 'sort_order';
+    const rows = data?.data || [];
+    const swap = (i: number, j: number) => {
+      const a = rows[i]; const b = rows[j];
+      if (!a || !b) return;
+      reorder.mutate({ id: a.id, data: { sort_order: b.sort_order } });
+      reorder.mutate({ id: b.id, data: { sort_order: a.sort_order } });
+    };
+    const reorderColumn = {
+      title: 'Ordre', key: '__reorder', width: 76,
+      render: (_: any, record: any, i: number) => (
+        <Space size={2} onClick={(e) => e.stopPropagation()}>
+          <Button type="text" size="small" disabled={reordering || i === 0} icon={<ArrowUpOutlined />} onClick={() => swap(i, i - 1)} aria-label="Monter" />
+          <Button type="text" size="small" disabled={reordering || i === rows.length - 1} icon={<ArrowDownOutlined />} onClick={() => swap(i, i + 1)} aria-label="Descendre" />
+        </Space>
+      ),
+    };
 
     const runBulk = (status: string) => updateMany.mutate({ ids: selected as (string | number)[], data: { status } }, {
       onSuccess: () => { message.success(`${selected.length} élément(s) mis à jour`); setSelected([]); },
       onError: (e: any) => message.error(e.message),
     });
 
+    // Mode « console » : aucun SMTP configuré, les e-mails ne partent jamais réellement (même vers de
+    // vraies adresses) — juste consignés dans les logs serveur. Signal visible, pas juste un statut discret.
+    const hasConsoleMode = res.name === 'messages' && (data?.data || []).some((r: any) => r.status === 'console');
     return (
       <div style={{ padding: 24 }}>
-        <PendingBanner section={res.section} />
+        {hasConsoleMode ? <Alert type="warning" showIcon style={{ marginBottom: 16 }}
+          message="Aucun serveur SMTP configuré : les e-mails en « Simulé » ne sont pas envoyés, seulement consignés dans les logs." /> : null}
         <PageHeader title={res.label} actions={
           <Space wrap>
             <Button onClick={() => exportCsv(filter, sort)}>Exporter CSV</Button>
@@ -319,7 +454,7 @@ export function makeResource(res: Res, perms: string[]) {
           {res.search ? <Input.Search placeholder="Rechercher" allowClear style={{ width: 280 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); setPage(1); }} /> : null}
           {(res.filters || []).map((name) => {
             const fl = res.fields.find((x) => x.name === name)!;
-            const options = fl.type === 'country' ? countries : fl.type === 'bool' ? [{ value: 'true', label: 'Oui' }, { value: 'false', label: 'Non' }] : toOptions(fl.choices);
+            const options = fl.type === 'country' ? countries : fl.type === 'species' ? species : fl.type === 'bool' ? [{ value: 'true', label: 'Oui' }, { value: 'false', label: 'Non' }] : toOptions(fl.choices);
             return <Select key={name} placeholder={label(fl)} allowClear style={{ width: 180 }}
               options={options}
               value={filter[name]} onChange={(v) => { setFilter({ ...filter, [name]: v }); setPage(1); }} />;
@@ -331,11 +466,22 @@ export function makeResource(res: Res, perms: string[]) {
             </Space>
           ) : null}
         </Space>
-        <Table rowKey="id" dataSource={data?.data} columns={columns} loading={isFetching}
+        <Table rowKey="id" dataSource={data?.data} columns={canReorder ? [...columns, reorderColumn, chevronColumn] : canWrite ? [...columns, chevronColumn] : columns} loading={isFetching}
           pagination={{ current: page, pageSize: 25, total: data?.total, showSizeChanger: false, onChange: setPage }}
           rowSelection={canWrite && st ? { selectedRowKeys: selected, onChange: setSelected } : undefined}
           onChange={(_p, _f, sorter: any) => { if (sorter?.field && sorter?.order) setSort({ field: sorter.field, order: sorter.order === 'ascend' ? 'ASC' : 'DESC' }); }}
-          onRow={(record: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/${res.name}/${record.id}${canWrite ? '' : '/show'}`) })} />
+          onRow={(record: any) => ({ style: { cursor: 'pointer' }, onClick: () => navigate(`/${res.name}/${record.id}${canWrite ? '' : '/show'}`) })}
+          locale={{
+            emptyText: Object.values(filter).some((v) => v !== undefined && v !== '') ? (
+              <Empty description="Aucun résultat pour cette recherche." image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                <Button size="small" onClick={() => { setFilter({}); setPage(1); }}>Effacer les filtres</Button>
+              </Empty>
+            ) : (
+              <Empty description={`Aucune donnée pour l'instant.`} image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                {canWrite ? <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => navigate(`/${res.name}/create`)}>Ajouter — {res.label}</Button> : null}
+              </Empty>
+            ),
+          }} />
         {canImport ? <ImportDialog res={res} open={importing} onClose={() => setImporting(false)} /> : null}
       </div>
     );
@@ -366,6 +512,7 @@ export function makeResource(res: Res, perms: string[]) {
     const location = useLocation();
     const duplicateRecord = (location.state as any)?.record;
     const countries = useCountryChoices(allowAll(res));
+    const species = useSpeciesChoices();
     const [form] = Form.useForm();
     const { data: record, isLoading } = useResourceOne(res.name, isEdit ? id : undefined);
     const create = useCreate(res.name);
@@ -403,7 +550,6 @@ export function makeResource(res: Res, perms: string[]) {
 
     return (
       <div style={{ padding: 24 }}>
-        <PendingBanner section={res.section} />
         <PageHeader title={`${res.label} — ${isEdit ? 'modifier' : 'nouveau'}`}
           actions={isEdit && record ? (
             <Button size="small" onClick={() => { const copy: any = { ...record }; delete copy.id; delete copy.published_at; if (copy.status) copy.status = res.defaults?.status || 'brouillon'; if (copy.title) copy.title = `${copy.title} (copie)`; if (copy.slug) copy.slug = `${copy.slug}-copie`; navigate(`/${res.name}/create`, { state: { record: copy } }); }}>Dupliquer</Button>
@@ -412,14 +558,14 @@ export function makeResource(res: Res, perms: string[]) {
           <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(0,1fr) 300px', alignItems: 'start' }} className="resource-form-grid">
             <div style={{ display: 'grid', gap: 24 }}>
               {res.reason ? <Form.Item name="reason" label="Motif (journalisé)" rules={[{ required: true, message: 'Motif requis' }]}><Input.TextArea autoSize={{ minRows: 2 }} /></Form.Item> : null}
-              {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} />)}
+              {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} species={species} />)}
             </div>
             <div style={{ position: 'sticky', top: 76, border: '1px solid var(--ant-color-border)', borderRadius: 6, background: 'var(--ant-color-bg-container)', overflow: 'hidden' }}>
               <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--ant-color-border)' }}>
                 <span style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)' }}>Aperçu</span>
               </div>
               <div style={{ padding: 16 }}>
-                {res.preview ? <ContentPreview kind={res.preview} v={v} /> : <GenericPreview res={res} v={v} />}
+                {res.preview ? <ContentPreview kind={res.preview} v={v} /> : <GenericPreview res={res} v={v} species={species} />}
               </div>
             </div>
           </div>

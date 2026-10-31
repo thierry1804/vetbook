@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Button, Modal, Input, Tooltip, Typography } from 'antd';
-import { SearchOutlined, UserOutlined, LogoutOutlined, BulbOutlined, MenuFoldOutlined, MenuUnfoldOutlined, DashboardOutlined } from '@ant-design/icons';
+import { SearchOutlined, UserOutlined, LogoutOutlined, BulbOutlined, MenuFoldOutlined, MenuUnfoldOutlined, DashboardOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { NAV } from './nav';
+import { NAV, HUBS } from './nav';
 import { ICONS } from './icons';
 import { api, permits } from './api';
 import { useAuth } from './auth';
@@ -13,6 +13,29 @@ const { Text } = Typography;
 const SIDEBAR_WIDTH = 256;
 const SIDEBAR_COLLAPSED = 60;
 const OPEN_PALETTE = 'applika:open-palette';
+
+// Pastille fixe dans la barre du haut : remplace le bandeau par page (qui n'apparaissait que sur certains
+// écrans et décalait le titre vers le bas). Un seul indicateur, partout, jamais de saut de mise en page.
+function ReleasePill() {
+  const navigate = useNavigate();
+  const [st, setSt] = useState<any>(null);
+  useEffect(() => {
+    const load = () => api('/release-status').then((r) => setSt(r.json)).catch(() => undefined);
+    load();
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+  }, []);
+  if (!st || !st.pending) return null;
+  const n = Object.values(st.changed || {}).filter(Boolean).length;
+  return (
+    <Tooltip title={st.draft_version ? `Brouillon v${st.draft_version} — ${n} section(s) modifiée(s), pas encore publiées` : `${n} section(s) modifiée(s), pas encore publiées`}>
+      <Button size="small" onClick={() => navigate('/releases')}
+        style={{ background: 'var(--ant-color-warning-bg)', borderColor: 'var(--ant-color-warning-border)', color: 'var(--ant-color-warning-text)', fontWeight: 600 }}>
+        {st.draft_version ? `Brouillon v${st.draft_version}` : `${n} modification(s)`} · Publier
+      </Button>
+    </Tooltip>
+  );
+}
 
 function Brand({ open }: { open: boolean }) {
   return (
@@ -43,6 +66,13 @@ function CommandPalette({ open, onClose, perms }: { open: boolean; onClose: () =
   const [records, setRecords] = useState<{ label: string; to: string; icon: string; group: string }[]>([]);
   const items = useMemo(() => [{ label: 'Tableau de bord', to: '/', icon: 'dashboard', group: 'Général' },
     ...NAV.flatMap((g) => g.items.filter((i) => permits(perms, i.perm)).map((i) => ({ ...i, group: g.title }))),
+    // Le menu replie chaque hub (Référentiels/Offres/Facturation) en une seule entrée ; la recherche doit
+    // quand même trouver directement « Races », « Coupons »… sans passer par le hub.
+    ...HUBS.flatMap((h) => {
+      const hubNav = NAV.find((g) => g.title === h.title)?.items[0];
+      if (!hubNav || !permits(perms, hubNav.perm)) return [];
+      return h.tabs.map((t) => ({ label: t.label, to: '/' + t.key, icon: t.key, group: h.title, perm: hubNav.perm }));
+    }),
     { label: 'Mon profil et mot de passe', to: '/profile', icon: 'admins', group: 'Compte' },
     ...([
       { label: 'Nouveau conseil', to: '/tips/create', icon: 'tips', perm: 'contents.write' },
@@ -115,15 +145,28 @@ export const AppLayout = () => {
   }, []);
 
   const active = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
+  // « Système » (réglages, tâches planifiées…) consulté rarement — replié par défaut pour alléger le menu,
+  // mais s'ouvre tout seul si on arrive directement sur une de ses pages (lien direct, retour en arrière).
+  const COLLAPSIBLE = new Set(['Système']);
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Tableau de bord' },
     ...NAV.map((g) => {
       const items = g.items.filter((i) => permits(permissions, i.perm));
       if (!items.length) return null;
-      return { key: g.title, type: 'group' as const, label: g.title, children: items.map((i) => { const Icon = ICONS[i.icon] || DashboardOutlined; return { key: i.to, icon: <Icon />, label: i.label }; }) };
+      const children = items.map((i) => { const Icon = ICONS[i.icon] || DashboardOutlined; return { key: i.to, icon: <Icon />, label: i.label }; });
+      return COLLAPSIBLE.has(g.title)
+        ? { key: g.title, icon: <SettingOutlined />, label: g.title, children }
+        : { key: g.title, type: 'group' as const, label: g.title, children };
     }).filter(Boolean),
   ];
-  const selectedKey = [...NAV.flatMap((g) => g.items.map((i) => i.to)), '/'].filter((to) => active(to)).sort((a, b) => b.length - a.length)[0] || '/';
+  const defaultOpenKeys = NAV.filter((g) => COLLAPSIBLE.has(g.title) && g.items.some((i) => active(i.to))).map((g) => g.title);
+  // Un onglet de hub (ex. /breeds) doit surligner l'entrée de menu du hub (ex. « Référentiels », key /species),
+  // pas rester sans sélection : on retombe sur l'entrée NAV dont un des onglets du hub correspondant matche.
+  const hubEntryFor = (pathname: string) => {
+    const hub = HUBS.find((h) => h.tabs.some((t) => pathname === '/' + t.key || pathname.startsWith('/' + t.key + '/')));
+    return hub ? NAV.find((g) => g.title === hub.title)?.items[0]?.to : undefined;
+  };
+  const selectedKey = hubEntryFor(loc.pathname) || [...NAV.flatMap((g) => g.items.map((i) => i.to)), '/'].filter((to) => active(to)).sort((a, b) => b.length - a.length)[0] || '/';
 
   const initials = String(me?.name || me?.email || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
@@ -132,14 +175,16 @@ export const AppLayout = () => {
       <Sider width={SIDEBAR_WIDTH} collapsedWidth={SIDEBAR_COLLAPSED} collapsed={collapsed} trigger={null}
         style={{ borderRight: '1px solid var(--ant-color-border)', overflow: 'auto', height: '100vh', position: 'sticky', top: 0 }}>
         <Brand open={!collapsed} />
-        <Menu mode="inline" selectedKeys={[selectedKey]} items={menuItems as any} onClick={({ key }) => navigate(key)} style={{ borderRight: 0 }} />
+        <Menu mode="inline" selectedKeys={[selectedKey]} defaultOpenKeys={defaultOpenKeys} items={menuItems as any} onClick={({ key }) => navigate(key)} style={{ borderRight: 0 }} />
       </Sider>
       <Layout>
         <Header style={{ background: 'var(--ant-color-bg-container)', borderBottom: '1px solid var(--ant-color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56 }}>
-          <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((c) => !c)} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Tooltip title="Aller à… (Ctrl+K)"><Button type="text" icon={<SearchOutlined />} onClick={() => setPalette(true)} aria-label="Rechercher un écran" /></Tooltip>
-            <Tooltip title="Thème"><Button type="text" icon={<BulbOutlined />} onClick={toggle} aria-label="Changer de thème" /></Tooltip>
+          <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ReleasePill />
+            <Tooltip title="Aller à… ou rechercher (Ctrl+K)"><Button type="text" icon={<SearchOutlined />} onClick={() => setPalette(true)} aria-label="Ouvrir la recherche" /></Tooltip>
+            <Tooltip title="Thème clair/sombre"><Button type="text" icon={<BulbOutlined />} onClick={toggle} aria-label="Changer de thème (clair/sombre)" /></Tooltip>
             <Dropdown placement="bottomRight" menu={{
               items: [
                 { key: 'who', label: <div style={{ padding: '2px 4px' }}><div style={{ fontWeight: 650, fontSize: 13 }}>{me?.name}</div><Text type="secondary" style={{ fontSize: 12 }}>{me?.email}</Text></div>, disabled: true },
@@ -148,7 +193,9 @@ export const AppLayout = () => {
                 { key: 'logout', icon: <LogoutOutlined />, label: 'Se déconnecter', onClick: () => logout() },
               ],
             }}>
-              <Avatar size={30} style={{ background: 'var(--ant-color-primary)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{initials}</Avatar>
+              <span role="button" tabIndex={0} aria-label={`Menu du compte, ${me?.name || me?.email || ''}`}>
+                <Avatar size={30} style={{ background: 'var(--ant-color-primary)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{initials}</Avatar>
+              </span>
             </Dropdown>
           </div>
         </Header>

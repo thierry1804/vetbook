@@ -28,10 +28,10 @@ export const RESOURCES = {
   plans: R('plans', 'code', plansPerm, { code: 'text', name: 'text', audience: 'text', price_mga: 'int', period: 'text', trial_days: 'int', country: 'text', visible: 'bool', archived: 'bool', sort_order: 'int' }, { search: ['code', 'name'], order: 'sort_order' }),
   features: R('features', 'code', plansPerm, { code: 'text', label: 'text', kind: 'text' }, { search: ['code', 'label'], order: 'code' }),
   coupons: R('coupons', 'code', plansPerm, { code: 'text', percent_off: 'int', amount_off_mga: 'int', valid_until: 'date', max_uses: 'int', active: 'bool' }, { search: ['code'], order: 'code', deletable: true }),
-  subscriptions: R('subscriptions', 'id', { read: 'billing.read', write: 'billing.payment' }, { user_id: 'text', plan_code: 'text', status: 'text', started_at: 'ts', ends_at: 'ts', auto_renew: 'bool' }, { search: ['plan_code', 'status'], order: 'created_at' }),
+  subscriptions: R('subscriptions', 'id', { read: 'billing.read', write: 'billing.payment' }, { user_id: 'text', plan_code: 'text', status: 'text', started_at: 'ts', ends_at: 'ts', auto_renew: 'bool' }, { search: ['plan_code', 'status'], order: 'created_at', joinUser: 'user_id' }),
   payments: R('payments', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['reference', 'method'], order: 'paid_at', readOnly: true }),
   invoices: R('invoices', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['number'], order: 'issued_at', readOnly: true }),
-  overrides: R('entitlement_overrides', 'id', { read: 'billing.read', write: 'billing.extend' }, { user_id: 'text', feature_code: 'text', enabled: 'bool', quota: 'num', reason: 'text', expires_at: 'ts' }, { order: 'id', deletable: true, reasonRequired: true }),
+  overrides: R('entitlement_overrides', 'id', { read: 'billing.read', write: 'billing.extend' }, { user_id: 'text', feature_code: 'text', enabled: 'bool', quota: 'num', reason: 'text', expires_at: 'ts' }, { order: 'id', deletable: true, reasonRequired: true, joinUser: 'user_id' }),
   settings: R('app_settings', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', value: 'jsonish' }, { search: ['key'], order: 'key' }),
   flags: R('feature_flags', 'key', { read: 'system.read', write: 'system.write' }, { key: 'text', enabled: 'bool', note: 'text' }, { search: ['key'], order: 'key', deletable: true }),
   jobs: R('job_runs', 'id', { read: 'notifications.read', write: 'system.write' }, {}, { order: 'id', readOnly: true }),
@@ -66,17 +66,19 @@ function parseList(req, def) {
 export function listSql(def, { sort, filter }) {
   const allowed = new Set([def.pk, def.order, ...Object.keys(def.cols), 'created_at', 'paid_at', 'issued_at', 'started_at'].filter(Boolean));
   const params = []; const where = [];
+  // Colonnes qualifiées par la table : sans ça, un identifiant partagé avec la table jointe (ex. `status`,
+  // présent à la fois sur `users` et sur `subscriptions`) devient ambigu dès qu'un joinUser est actif.
   if (filter.q && def.search) {
     params.push(`%${String(filter.q).slice(0, 80)}%`);
-    where.push('(' + def.search.map((c) => `${c}::text ilike $${params.length}`).join(' or ') + ')');
+    where.push('(' + def.search.map((c) => `${def.table}.${c}::text ilike $${params.length}`).join(' or ') + ')');
   }
   for (const [k, v] of Object.entries(filter)) {
     if (k === 'q' || !allowed.has(k) || v === '' || v == null) continue;
-    params.push(v); where.push(`${k}::text = $${params.length}::text`);
+    params.push(v); where.push(`${def.table}.${k}::text = $${params.length}::text`);
   }
   const col = allowed.has(sort[0]) ? sort[0] : def.pk;
   const dir = String(sort[1]).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  return { where: where.length ? 'where ' + where.join(' and ') : '', params, orderBy: `${col} ${dir}` };
+  return { where: where.length ? 'where ' + where.join(' and ') : '', params, orderBy: `${def.table}.${col} ${dir}` };
 }
 
 export function buildResourceRouter() {
@@ -84,13 +86,20 @@ export function buildResourceRouter() {
   for (const [name, def] of Object.entries(RESOURCES)) {
     const base = `/r/${name}`;
 
+    // joinUser : nom de colonne (ex. 'user_id') référençant users(id) — résolu en nom/e-mail pour l'affichage,
+    // au lieu de l'UUID brut (ex. Abonnements, Droits accordés).
+    const userJoin = def.joinUser ? ` left join users u on u.id::text = ${def.table}.${def.joinUser}::text` : '';
+    const userSelect = def.joinUser ? ', u.email as user_email, u.name as user_name' : '';
+
     router.get(base, requireAdmin(def.perms.read), async (req, res, next) => {
       try {
         const { offset, limit, sort, filter } = parseList(req, def);
         const { where, params, orderBy } = listSql(def, { sort, filter });
         const out = await withClient(async (c) => {
           const total = Number((await c.query(`select count(*) from ${def.table} ${where}`, params)).rows[0].count);
-          const rows = (await c.query(`select *, ${def.pk} as id from ${def.table} ${where} order by ${orderBy} limit ${limit} offset ${offset}`, params)).rows;
+          const rows = (await c.query(
+            `select ${def.table}.*, ${def.table}.${def.pk} as id${userSelect} from ${def.table}${userJoin} ${where} order by ${orderBy} limit ${limit} offset ${offset}`, params
+          )).rows;
           return { total, rows };
         });
         res.set('Content-Range', `${name} ${offset}-${offset + out.rows.length - 1}/${out.total}`).set('Access-Control-Expose-Headers', 'Content-Range');
@@ -100,7 +109,9 @@ export function buildResourceRouter() {
 
     router.get(`${base}/:id`, requireAdmin(def.perms.read), async (req, res, next) => {
       try {
-        const row = (await withClient((c) => c.query(`select *, ${def.pk} as id from ${def.table} where ${def.pk}::text = $1`, [req.params.id]))).rows[0];
+        const row = (await withClient((c) => c.query(
+          `select ${def.table}.*, ${def.table}.${def.pk} as id${userSelect} from ${def.table}${userJoin} where ${def.table}.${def.pk}::text = $1`, [req.params.id]
+        ))).rows[0];
         if (!row) { res.status(404).json({ error: 'Introuvable.' }); return; }
         res.json(row);
       } catch (err) { next(err); }

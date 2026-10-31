@@ -5,10 +5,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, permits } from './api';
 import { useAuth } from './auth';
 import { useResourceList, useResourceOne } from './data';
-import { FactPanel, PageHeader, RowList, StatusChip } from './ui';
+import { FactPanel, PageHeader, RowList, StatusChip, adminActionLabel, RelativeDate } from './ui';
 
 const { Text, Title } = Typography;
 const mb = (b: number) => `${(b / 1e6).toFixed(1)} Mo`;
+const n0 = (n: number) => (n ? String(n) : '—');
+const LOCALE_LABELS: Record<string, string> = { fr: 'Français', en: 'Anglais', mg: 'Malgache' };
+const formatEmergencyContact = (c: any) => {
+  if (!c || typeof c !== 'object' || !c.name) return '—';
+  return [c.name, c.relation, c.phone, c.email].filter(Boolean).join(' · ');
+};
 const initialsOf = (s: string) => String(s || '?').split(/[\s@.]+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
 export const UserList = () => {
@@ -61,7 +67,7 @@ export const UserList = () => {
           { title: 'Statut', key: 'status', render: (r: any) => <StatusChip value={r.status} /> },
           { title: 'Google', dataIndex: 'google', render: (v: boolean) => (v ? <Tag color="success">Oui</Tag> : '—') },
           { title: 'Animaux', dataIndex: 'animals' },
-          { title: 'Dernière activité', dataIndex: 'last_seen_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : '—') },
+          { title: 'Dernière activité', dataIndex: 'last_seen_at', render: (v: string) => <RelativeDate value={v} /> },
           { title: 'Inscription', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
         ]} />
       <Modal open={!!bulk} onCancel={() => setBulk(null)} title={bulk === 'suspend' ? `Suspendre ${selected.length} compte(s)` : `Réactiver ${selected.length} compte(s)`}
@@ -115,11 +121,14 @@ export const UserShow = () => {
           </div>
         </div>
         <Space wrap>
-          {canSuspend && (u.status === 'suspendu' ? <Button size="small" onClick={() => setDlg('reactivate')}>Réactiver</Button> : <Button size="small" danger onClick={() => setDlg('suspend')}>Suspendre</Button>)}
           {canSupport ? <Button size="small" onClick={() => setDlg('logout-everywhere')}>Déconnecter partout</Button> : null}
           {canSupport && !u.email_verified_at ? <Button size="small" onClick={() => setDlg('mark-verified')}>Marquer vérifié</Button> : null}
           {canBill ? <Button size="small" onClick={() => setDlg('subscription')}>Attribuer une formule</Button> : null}
           {canBill && S ? <Button size="small" onClick={() => setDlg('payment')}>Enregistrer un paiement</Button> : null}
+          {/* Action dangereuse : séparée des actions neutres (pas seulement par la couleur). */}
+          {canSuspend ? (u.status === 'suspendu'
+            ? <Button size="small" onClick={() => setDlg('reactivate')}>Réactiver</Button>
+            : <Button size="small" danger type="text" style={{ marginLeft: 12 }} onClick={() => setDlg('suspend')}>Suspendre</Button>) : null}
         </Space>
       </div>
 
@@ -131,10 +140,10 @@ export const UserShow = () => {
 
       <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '7fr 5fr' }} className="user-show-grid">
         <FactPanel title="Compte" rows={[
-          ['E-mail', u.email], ['Téléphone', u.phone || '—'], ['Langue', u.locale || '—'], ['Inscription', u.created_at && new Date(u.created_at).toLocaleString('fr-FR')],
-          ["CGU acceptées", u.terms_version ? `v${u.terms_version}` : '—'], ["Contact d'urgence", u.emergency_contact ? JSON.stringify(u.emergency_contact) : '—'],
+          ['E-mail', u.email], ['Téléphone', u.phone || '—'], ['Langue', LOCALE_LABELS[u.locale] || u.locale || '—'], ['Inscription', u.created_at && new Date(u.created_at).toLocaleString('fr-FR')],
+          ["CGU acceptées", u.terms_version ? `v${u.terms_version}` : '—'], ["Contact d'urgence", formatEmergencyContact(u.emergency_contact)],
           ['Formule', S ? `${S.plan_code} (${S.status}${S.ends_at ? ' → ' + new Date(S.ends_at).toLocaleDateString('fr-FR') : ''})` : 'aucune'],
-          ['Stockage photos', mb(u.storage_bytes)], ['Membres du foyer', String(u.household_members)], ['Liens de partage', String(u.share_links)], ['Appareils notifiés', String(u.push_subscriptions)],
+          ['Stockage photos', mb(u.storage_bytes)], ['Membres du foyer', n0(u.household_members)], ['Liens de partage', n0(u.share_links)], ['Appareils notifiés', n0(u.push_subscriptions)],
         ]} />
         <RowList title="Animaux" count={u.pets.length} empty="Aucun animal enregistré."
           rows={u.pets.map((p: any) => (
@@ -156,7 +165,7 @@ export const UserShow = () => {
         <RowList title="Historique des actions admin" count={u.audit.length} empty="Aucune action enregistrée."
           rows={u.audit.map((a: any) => (
             <div key={a.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><Text strong style={{ fontSize: 13 }} ellipsis>{a.action}</Text><Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(a.created_at).toLocaleString('fr-FR')}</Text></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><Text strong style={{ fontSize: 13 }} ellipsis>{adminActionLabel(a.action).label}</Text><Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(a.created_at).toLocaleString('fr-FR')}</Text></div>
               <Text type="secondary" style={{ fontSize: 12 }}>{a.admin_email}{a.reason ? ` — ${a.reason}` : ''}</Text>
             </div>))} />
       </div>

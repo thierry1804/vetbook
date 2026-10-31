@@ -4,7 +4,7 @@ import { Alert, Avatar, Button, Input, Modal, Select, Space, Table, Typography, 
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useResourceList, useResourceOne } from './data';
-import { CredentialsDialog, PageHeader, Pill, RowList, StatusChip } from './ui';
+import { CredentialsDialog, PageHeader, Pill, RowList, StatusChip, adminActionLabel, RelativeDate } from './ui';
 
 const { Text, Title } = Typography;
 type Role = { code: string; label: string; permissions: string[] };
@@ -65,7 +65,7 @@ export const AdminList = () => {
             </div>) },
           { title: 'Rôle', key: 'role', render: (r: any) => <Pill label={roleLabel(roles, r.role_code)} /> },
           { title: 'Statut', key: 'status', render: (r: any) => (r.locked_until && new Date(r.locked_until) > new Date() ? <StatusChip value="suspendu" /> : <StatusChip value={r.status} />) },
-          { title: 'Dernière connexion', dataIndex: 'last_login_at', render: (v: string) => (v ? new Date(v).toLocaleString('fr-FR') : 'Jamais') },
+          { title: 'Dernière connexion', dataIndex: 'last_login_at', render: (v: string) => (v ? <RelativeDate value={v} /> : 'Jamais') },
           { title: 'Créé le', dataIndex: 'created_at', render: (v: string) => (v ? new Date(v).toLocaleDateString('fr-FR') : '—') },
         ]} />
     </div>
@@ -153,7 +153,7 @@ export const AdminShow = () => {
             </div>))} />
         <RowList title="Dernières actions" count={a.audit.length} empty="Aucune action enregistrée."
           rows={a.audit.map((x: any) => (
-            <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><Text style={{ fontSize: 13 }} ellipsis>{x.action}</Text><Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(x.created_at).toLocaleString('fr-FR')}</Text></div>))} />
+            <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><Text style={{ fontSize: 13 }} ellipsis>{adminActionLabel(x.action).label}</Text><Text type="secondary" style={{ fontSize: 12, flex: 'none' }}>{new Date(x.created_at).toLocaleString('fr-FR')}</Text></div>))} />
       </div>
 
       <Modal open={dlg === 'edit'} onCancel={close} title={`Modifier ${a.name}`} footer={<><Button onClick={close}>Annuler</Button><Button type="primary" disabled={reason.trim().length < 5} onClick={() => run(() => api(`/admins/${a.id}`, { method: 'PUT', body: { name, role_code: role, status, reason } }), 'Compte mis à jour')}>Enregistrer</Button></>}>

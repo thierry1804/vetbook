@@ -14,6 +14,7 @@ import { mountAdminUsers } from './admins.js';
 import { mountMeta } from './meta.js';
 import { mountImport } from './import.js';
 import { mountAi } from './ai.js';
+import { mountSettingsTyped } from './settings-typed.js';
 import { buildReleaseContent } from '../_lib/ref-release.js';
 
 // ADMIN_LOGIN_RATE_MAX : uniquement pour les tests automatisés (défaut 10 tentatives / 15 min / IP).
@@ -224,6 +225,11 @@ export function buildAdminRouter() {
           mrr_mga: await one(`select coalesce(sum(case p.period when 'annuel' then p.price_mga / 12 else p.price_mga end),0)::bigint n
                                 from subscriptions s join plans p on p.code = s.plan_code where s.status = 'actif'`),
           last_reminder_job: (await c.query("select job, status, started_at, finished_at, sent, failed from job_runs order by id desc limit 1")).rows[0] || null,
+          signups_by_day: (await c.query(
+            `select gs::date::text as day, count(u.id)::int as n
+               from generate_series(current_date - interval '29 days', current_date, interval '1 day') gs
+               left join users u on u.created_at::date = gs::date
+               group by 1 order by 1`)).rows,
         };
       });
       res.json(d);
@@ -288,6 +294,19 @@ export function buildAdminRouter() {
   });
 
   // ───────── Abonnements : matrice des droits, souscription manuelle, paiement + reçu ─────────
+  // Vue grille complète (fonctionnalités en lignes, formules en colonnes) — l'écran /plans/:code/features
+  // ci-dessous ne montre qu'une formule à la fois, ce qui empêche de comparer les formules entre elles.
+  router.get('/plan-matrix', requireAdmin('billing.read'), async (req, res, next) => {
+    try {
+      const [plans, features, cells] = await withClient((c) => Promise.all([
+        c.query('select code, name, price_mga, period, archived from plans order by sort_order, code').then((r) => r.rows),
+        c.query('select code, label, kind, category from features order by sort_order, code').then((r) => r.rows),
+        c.query('select plan_code, feature_code, enabled, quota from plan_features').then((r) => r.rows),
+      ]));
+      res.json({ plans, features, cells });
+    } catch (err) { next(err); }
+  });
+
   router.get('/plans/:code/features', requireAdmin('billing.read'), async (req, res, next) => {
     try {
       res.json((await withClient((c) => c.query(
@@ -364,6 +383,7 @@ export function buildAdminRouter() {
   mountMeta(router);
   mountImport(router);
   mountAi(router);
+  mountSettingsTyped(router);
   router.use(buildResourceRouter());
   router.use((err, _req, res, _next) => { console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
   return router;

@@ -11,7 +11,8 @@ const SECTIONS = ['breedDb', 'vaccineDb', 'lists', 'registries', 'checkupQuestio
 export function mountMeta(router) {
   router.get('/meta', requireAdmin(), async (_req, res, next) => {
     try {
-      res.json({ countries: await withClient((c) => getSetting(c, 'open_countries', [])) });
+      const species = (await withClient((c) => c.query('select code, label from ref_species order by sort_order, code'))).rows;
+      res.json({ countries: await withClient((c) => getSetting(c, 'open_countries', [])), species });
     } catch (err) { next(err); }
   });
 
