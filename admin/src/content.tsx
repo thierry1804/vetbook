@@ -384,6 +384,33 @@ function FormToolbar({ res, isEdit, saving, onSave, onDelete }: { res: Res; isEd
   );
 }
 
+// Déclenchement manuel du job de rappels — normalement un cron système (scripts/send-reminders.mjs), pas
+// accessible depuis le backoffice. Envoie de vraies notifications aux vrais utilisateurs : confirmation
+// avec motif, comme toute action aux conséquences réelles.
+function JobsRunButton({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try { const r = await api('/jobs/run', { method: 'POST', body: { reason } }); message.success(`Exécuté — ${r.json.result?.usersNotified ?? 0} compte(s) notifié(s)`); setOpen(false); setReason(''); onDone(); }
+    catch (e: any) { message.error(e.message); }
+    finally { setBusy(false); }
+  };
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Lancer maintenant</Button>
+      <Modal open={open} onCancel={() => setOpen(false)} title="Lancer les rappels maintenant"
+        footer={<><Button onClick={() => setOpen(false)}>Annuler</Button><Button type="primary" danger loading={busy} disabled={reason.trim().length < 5} onClick={run}>Confirmer</Button></>}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Alert type="warning" showIcon message="Envoie de vraies notifications (push/e-mail/SMS) à tous les comptes concernés, immédiatement." />
+          <Input.TextArea placeholder="Motif (min. 5 caractères, journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} />
+        </Space>
+      </Modal>
+    </>
+  );
+}
+
 export function makeResource(res: Res, perms: string[]) {
   const canWrite = !res.readOnly && permits(perms, res.write);
   const st = statusField(res);
@@ -458,12 +485,16 @@ export function makeResource(res: Res, perms: string[]) {
     // Mode « console » : aucun SMTP configuré, les e-mails ne partent jamais réellement (même vers de
     // vraies adresses) — juste consignés dans les logs serveur. Signal visible, pas juste un statut discret.
     const hasConsoleMode = res.name === 'messages' && (data?.data || []).some((r: any) => r.status === 'console');
+    const isJobs = res.name === 'jobs';
     return (
       <div style={{ padding: 24 }}>
         {hasConsoleMode ? <Alert type="warning" showIcon style={{ marginBottom: 16 }}
           message="Aucun serveur SMTP configuré : les e-mails en « Simulé » ne sont pas envoyés, seulement consignés dans les logs." /> : null}
-        <PageHeader title={res.label} actions={
+        {isJobs ? <Alert type="info" showIcon style={{ marginBottom: 16 }}
+          message="Historique des exécutions du job de rappels. Pas de planification automatique configurée sur cet hôte — uniquement en lançant manuellement ci-dessous, ou via la crontab système (voir scripts/send-reminders.mjs)." /> : null}
+        <PageHeader title={isJobs ? 'Exécutions' : res.label} actions={
           <Space wrap>
+            {isJobs && permits(perms, 'notifications.resend') ? <JobsRunButton onDone={() => queryClient.invalidateQueries({ queryKey: ['list', 'jobs'] })} /> : null}
             <Button onClick={() => exportCsv(filter, sort)}>Exporter CSV</Button>
             {canImport ? <Button onClick={() => setImporting(true)}>Importer</Button> : null}
             {canWrite ? <Button type="primary" onClick={() => navigate(`/${res.name}/create`)}>Nouveau</Button> : null}

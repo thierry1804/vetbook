@@ -15,6 +15,7 @@ import { mountMeta } from './meta.js';
 import { mountImport } from './import.js';
 import { mountAi } from './ai.js';
 import { mountSettingsTyped } from './settings-typed.js';
+import { mountJobs } from './jobs.js';
 import { buildReleaseContent } from '../_lib/ref-release.js';
 
 // ADMIN_LOGIN_RATE_MAX : uniquement pour les tests automatisés (défaut 10 tentatives / 15 min / IP).
@@ -384,6 +385,7 @@ export function buildAdminRouter() {
   mountImport(router);
   mountAi(router);
   mountSettingsTyped(router);
+  mountJobs(router);
   router.use(buildResourceRouter());
   router.use((err, _req, res, _next) => { console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
   return router;
