@@ -194,7 +194,9 @@ export function buildAdminRouter() {
       const w = where.length ? 'where ' + where.join(' and ') : '';
       const out = await withClient(async (c) => ({
         total: Number((await c.query(`select count(*) from access_log ${w}`, params)).rows[0].count),
-        rows: (await c.query(`select *, id::text as id from access_log ${w} order by access_log.id desc limit ${limit} offset ${offset}`, params)).rows,
+        rows: (await c.query(
+          `select al.*, al.id::text as id, u.email as user_email, u.name as user_name
+           from access_log al left join users u on u.id = al.user_id ${w} order by al.id desc limit ${limit} offset ${offset}`, params)).rows,
       }));
       res.set('Content-Range', `access-log ${offset}-${offset + out.rows.length - 1}/${out.total}`).set('Access-Control-Expose-Headers', 'Content-Range');
       res.json(out.rows);

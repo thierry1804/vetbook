@@ -1412,17 +1412,25 @@
   // Retient la dernière page affichée pour la restaurer après un rechargement
   // (F5 / réouverture PWA) au lieu de revenir systématiquement à l'accueil.
   var lastTrackedRouteKey = null;
-  // Un beacon par changement d'écran réel (connecté ou non) — jamais bloquant, jamais répété
-  // pour la même vue consécutive (saveRoute est appelé plusieurs fois pour le même écran).
+  var lastTrackedAt = 0;
+  // Un beacon par changement d'écran réel (connecté ou non) — jamais bloquant. On ignore seulement
+  // les répétitions immédiates de la même vue (saveRoute est appelé plusieurs fois à la suite pour
+  // le même écran) : passé quelques secondes, revenir sur la même vue redeclenche un beacon — utile
+  // notamment après une connexion, pour que la vue courante soit enfin associée à l'utilisateur.
   function trackView(route) {
     var key = JSON.stringify(route);
-    if (key === lastTrackedRouteKey) return;
+    var now = Date.now();
+    if (key === lastTrackedRouteKey && now - lastTrackedAt < 4000) return;
     lastTrackedRouteKey = key;
+    lastTrackedAt = now;
     try {
       if (window.cloudSync && window.cloudSync.api) {
         window.cloudSync.api('/api/track', {
           method: 'POST', keepalive: true,
-          body: JSON.stringify({ view: (route && route.view) || 'inconnu', path: location.pathname + location.hash }),
+          body: JSON.stringify({
+            view: (route && route.view) || 'inconnu', path: location.pathname + location.hash,
+            tab: (route && route.tab) || undefined, panel: (route && route.panel) || undefined,
+          }),
         }).catch(function () {});
       }
     } catch (e) { /* tracking best-effort */ }
@@ -9079,6 +9087,9 @@
       window.cloudSync.onAuthChange(function (event, session) {
         if (event === 'SIGNED_IN') { fillOwnerFromCloudSession(session); refreshEntitlements(); }
         if (event === 'SIGNED_OUT') { try { localStorage.removeItem(ENT_KEY); } catch (e) { /* rien */ } var sb = document.getElementById('suspended-banner'); if (sb) sb.remove(); }
+        // Ré-émet un beacon pour la vue courante : la vue elle-même n'a pas changé, mais l'identité si.
+        lastTrackedRouteKey = null;
+        saveRoute(loadRoute() || { view: state.viewMode || 'home' });
       });
       refreshReference();
       refreshPublicConfig();
