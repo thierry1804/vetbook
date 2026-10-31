@@ -7104,8 +7104,12 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
   .app-header .logo { font-size: 17px; }
   .app-header .logo::after { content: 'Votre compagnon santé au quotidien'; font-size: 12px; font-weight: 400; color: var(--text-muted); }
   .app-header .logo-mark, .app-header .logo-wordmark { display: none; }
-  .container { width: auto; max-width: 1280px; margin: 0 0 0 260px; padding: 24px 32px 48px; }
-  #view-user-profile { margin-left: 260px; }
+  /* Pas de plafond fixe : la zone de contenu occupe toute la largeur restante après la barre
+     latérale (260px), quelle que soit la largeur de l'écran — plutôt qu'un max-width figé qui
+     laissait un bandeau vide à droite sur grand écran. Chaque grille interne garde ses propres
+     bornes (ex. cartes qui ne s'étirent pas à l'infini) ; voir ajustements par écran ci-dessous. */
+  .container { width: calc(100% - 260px); max-width: none; margin: 0 0 0 260px; padding: 24px 32px 48px; }
+  #view-user-profile { margin-left: 260px; width: calc(100% - 260px); }
   #view-detail.detail-layout { display: block !important; }
   #view-detail[hidden] { display: none !important; }
   #animal-rail { display: none; }
