@@ -8664,6 +8664,7 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 .acc-plan__price span { font-size: .8rem; font-weight: 500; opacity: .65; }
 .acc-plan__savings { display: flex; align-items: center; gap: 4px; margin: 2px 0 0; font-size: .8rem; font-weight: 600; color: var(--brand-mid); }
 
+.acc-plan__actions { min-width: 0; }
 .acc-plan__cta { width: 100%; margin-top: 16px; }
 .acc-plan__cta:disabled { opacity: 1; background: var(--warm-gray); color: var(--text-muted); border-color: transparent; }
 .acc-plan__cta-note { margin: 6px 0 0; text-align: center; font-size: .78rem; color: var(--text-muted); }
@@ -8728,3 +8729,9 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 #btn-inbox-nav { position: relative; flex-shrink: 0; }
 .inbox-count { position: absolute; top: -3px; right: -4px; border-radius: 999px; min-width: 17px; padding: 1px 3px; background: #b42318; color: white; font: 700 11px/15px sans-serif; }
+
+/* Share section heights across cards in the same row so CTAs stay aligned. */
+@supports (grid-template-rows: subgrid) {
+  .acc-plan { display: grid; grid-template-rows: subgrid; grid-row: span 3; }
+  .acc-plan__head, .acc-plan__actions, .acc-plan__benefits { align-self: start; }
+}

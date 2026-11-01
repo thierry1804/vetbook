@@ -778,7 +778,7 @@
       return '<div class="acc-card acc-plan' + (isFeatured ? ' acc-plan--featured' : '') + (isCurrent ? ' is-current' : '') + '">' +
         '<div class="acc-plan__head"><h3>' + esc(o.name) + (isFeatured ? ' <span class="acc-chip acc-chip--featured">' + icon('sparkle', 12) + 'Recommandée</span>' : '') + (isCurrent ? ' <span class="acc-chip">Ton plan</span>' : '') + '</h3>' +
         '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' + price + '</div>' +
-        cta + benefitsHtml + '</div>';
+        '<div class="acc-plan__actions">' + cta + '</div>' + benefitsHtml + '</div>';
     }).join('') + '</div>';
     return usageGaugeHtml(cfg, ent, counts) + toggle + cards + comparisonTableHtml(cfg.plans, labels) + subscriptionAccountHtml(cfg);
   }
