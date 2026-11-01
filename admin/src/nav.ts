@@ -37,6 +37,7 @@ const hubPerm = (key: string) => RES.find((r) => r.name === key)?.perm || 'billi
 export const NAV: NavGroup[] = [
   { title: 'Activité', items: [
     { label: 'Utilisateurs', to: '/users', icon: 'users', perm: 'users.read' },
+    { label: 'Support', to: '/support-requests', icon: 'users', perm: 'users.support' },
     { label: 'Journal d\'audit', to: '/audit', icon: 'audit', perm: 'audit.read' },
   ] },
   ...['Contenus', 'Annuaire'].map((g) => ({

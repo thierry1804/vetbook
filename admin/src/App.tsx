@@ -11,6 +11,7 @@ import { themeConfig } from './theme';
 import { LoginPage } from './Login';
 import { Dashboard } from './Dashboard';
 import { UserList, UserShow } from './Users';
+import { SupportRequests } from './SupportRequests';
 import { AuditList } from './Audit';
 import { ReleaseList } from './Releases';
 import { Plans } from './Plans';
@@ -55,6 +56,7 @@ function ResourceRoutes() {
           <Route path="users" element={<UserList />} />
           <Route path="users/:id" element={<UserShow />} />
         </> : null}
+        {permits(permissions, 'users.support') ? <Route path="support-requests" element={<SupportRequests />} /> : null}
         {permits(permissions, 'referentiels.read') ? <Route path="releases" element={<ReleaseList />} /> : null}
         {permits(permissions, 'audit.read') ? <Route path="audit" element={<AuditList />} /> : null}
         {permits(permissions, 'admins.manage') ? <>

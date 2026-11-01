@@ -47,6 +47,8 @@ import filesUpload from './api/files/upload.js';
 import filesGet from './api/files/get.js';
 import filesDelete from './api/files/delete.js';
 import aiChat from './api/ai/chat.js';
+import support from './api/support.js';
+import help from './api/help.js';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -83,6 +85,8 @@ const publicLimiter = rateLimit({
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
+app.all('/api/support', rateLimit({ windowMs: 15 * 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false }), support);
+app.all('/api/help', publicLimiter, help);
 
 app.all('/api/auth/register', authLimiter, trackAccess('auth.register'), register);
 app.all('/api/auth/login', authLimiter, trackAccess('auth.login'), login);

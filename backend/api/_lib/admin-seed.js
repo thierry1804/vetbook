@@ -84,6 +84,14 @@ const SETTINGS = {
   max_share_days: 90, max_household_members: 10, max_upload_mb: 12, storage_quota_mb: null,
   maintenance: { enabled: false, message: '' }, min_client_version: null,
 };
+const HELP_PAGES = [
+  ['faq-connexion', 'Comment me connecter ?', 'Dans Compte, ouvre Connexion et utilise ton adresse e-mail ou Google. Une fois connecté, tes carnets peuvent être synchronisés.'],
+  ['faq-sauvegarde', 'Où sont sauvegardées mes données ?', 'Sans compte, tes données restent sur cet appareil. Avec un compte connecté, chaque modification est synchronisée avec le serveur ; tu peux aussi lancer une sauvegarde depuis Compte → Mes données.'],
+  ['faq-rappels', 'Comment ajouter un rappel de soin ?', 'Ouvre la fiche de ton animal, puis Vaccins ou Déparasitage. Ajoute le soin et sa prochaine date : il apparaîtra dans les rappels et l’agenda.'],
+  ['faq-notifications', 'Comment activer les notifications ?', 'Dans Compte → Notifications, active les notifications sur cet appareil et accepte la demande du navigateur. Pour les recevoir quand l’application est fermée, connecte ton compte.'],
+  ['faq-abonnements', 'Comment demander une formule ?', 'Dans Compte → Formule et abonnement, compare les offres puis envoie une demande. Son état apparaît dans Mes demandes. L’envoi n’active pas automatiquement la formule et ne déclenche aucun paiement.'],
+  ['faq-export', 'Comment exporter mes données ?', 'Dans Compte → Mes données, choisis Exporter tout (JSON) ou Calendrier des rappels (.ics). Conserve le fichier dans un endroit sûr.'],
+];
 
 export async function seedAdminDefaults() {
   await withClient(async (c) => {
@@ -162,6 +170,9 @@ export async function seedAdminDefaults() {
     }
     for (const [key, value] of Object.entries(SETTINGS)) {
       await c.query('insert into app_settings (key, value) values ($1,$2) on conflict (key) do nothing', [key, JSON.stringify(value)]);
+    }
+    for (const [slug, title, body] of HELP_PAGES) {
+      await c.query("insert into content_pages (slug,kind,title,body,version,status,published_at) values ($1,'help',$2,$3,'1','publie',now()) on conflict (slug,version) do nothing", [slug, title, body]);
     }
     for (const [code, label, order] of [['Canine', 'Chien', 0], ['Féline', 'Chat', 1], ['Autre', 'Autre', 2]]) {
       await c.query('insert into ref_species (code, label, sort_order) values ($1,$2,$3) on conflict (code) do nothing', [code, label, order]);

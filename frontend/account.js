@@ -674,8 +674,8 @@
     if (tracked && tracked.ends_at && ['actif','expire'].indexOf(tracked.state) >= 0 && !tracked.is_trial) html += '<button class="acc-btn" data-act="subscription-renew" data-plan="' + esc(tracked.plan_code) + '">Demander un renouvellement</button>';
     if (tracked && !tracked.ends_at) html += '<p class="acc-hint">Cet accès est sans échéance : aucun renouvellement n’est nécessaire. Tu peux choisir une autre formule plus haut si besoin.</p>';
     else if (tracked && (tracked.is_trial || tracked.state === 'essai')) html += '<p class="acc-hint">Pour poursuivre après cet essai, choisis une formule plus haut.</p>';
-    html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Les demandes sont examinées manuellement, réponse sous 24 h.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
-    html += '<div class="acc-card"><h3>Mes demandes</h3>' + (data.requests.length ? data.requests.map(function (r) { return '<div class="acc-card"><b>' + esc(r.plan_name) + ' · ' + esc(r.period) + '</b><p>' + esc(r.kind === 'renew' ? 'Renouvellement' : 'Souscription / changement') + ' · ' + esc(labels[r.status]) + '</p>' + (r.desired_start ? '<p>Début souhaité : ' + esc(subscriptionDate(r.desired_start)) + '</p>' : '') + (r.comment ? '<p>' + esc(r.comment) + '</p>' : '') + (r.public_reply ? '<p>Réponse : ' + esc(r.public_reply) + '</p>' : '') + (['nouveau','en_cours'].indexOf(r.status) >= 0 ? '<button class="acc-btn" data-act="subscription-cancel" data-id="' + esc(r.id) + '">Annuler la demande</button>' : '') + '</div>'; }).join('') : '<p>Aucune demande.</p>') + '</div>';
+    html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Chaque demande est examinée manuellement ; suis son état ci-dessous.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
+    html += '<div class="acc-card"><h3>Mes demandes</h3>' + (data.requests.length ? data.requests.map(function (r) { return '<div class="acc-card"><b>' + esc(r.plan_name) + ' · ' + esc(r.period) + '</b><p>' + esc(r.kind === 'renew' ? 'Renouvellement' : 'Souscription / changement') + ' · ' + esc(labels[r.status]) + '</p><p class="acc-hint">Mise à jour : ' + esc(subscriptionDate(r.updated_at || r.created_at)) + '</p>' + (r.desired_start ? '<p>Début souhaité : ' + esc(subscriptionDate(r.desired_start)) + '</p>' : '') + (r.comment ? '<p>' + esc(r.comment) + '</p>' : '') + (r.public_reply ? '<p>Réponse : ' + esc(r.public_reply) + '</p>' : '') + (['nouveau','en_cours'].indexOf(r.status) >= 0 ? '<button class="acc-btn" data-act="subscription-cancel" data-id="' + esc(r.id) + '">Annuler la demande</button>' : '') + '</div>'; }).join('') : '<p>Aucune demande.</p>') + '</div>';
     html += '<div class="acc-card"><h3>Notifications</h3>' + (data.notifications.length ? data.notifications.map(function (n) { return '<div class="acc-card"><b>' + esc(n.title) + '</b><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small>' + (!n.read_at ? '<button class="acc-btn" data-act="subscription-read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div>'; }).join('') : '<p>Aucune notification.</p>') + '</div>';
     return html;
   }
@@ -795,10 +795,9 @@
     var P = plans(), cfg = P && P.config();
     var o = cfg && cfg.plans.filter(function (p) { return p.code === planCode; })[0];
     if (!o) { toast('Offre indisponible pour le moment.', 'error'); return; }
-    var contact = cfg.contact || {};
     var step = 1, period = (o.yearly && planPeriod === 'yearly') ? 'yearly' : (o.monthly ? 'monthly' : 'yearly'), desiredStart = '', comment = '';
     function activePrice() { return period === 'yearly' ? o.yearly : o.monthly; }
-    function stepsDots() { return '<div class="acc-steps" aria-hidden="true">' + [1, 2, 3].map(function (n) { return '<span class="acc-steps__dot' + (n === step ? ' is-on' : n < step ? ' is-done' : '') + '"></span>'; }).join('') + '</div>'; }
+    function stepsDots() { return '<p class="acc-step-label" role="status">Étape ' + step + ' sur 3</p><div class="acc-steps" aria-hidden="true">' + [1, 2, 3].map(function (n) { return '<span class="acc-steps__dot' + (n === step ? ' is-on' : n < step ? ' is-done' : '') + '"></span>'; }).join('') + '</div>'; }
     function stepHtml() {
       if (step === 1) {
         var hasBoth = o.monthly && o.yearly;
@@ -812,23 +811,21 @@
           '<div class="accd__actions"><button type="button" class="acc-btn" data-dlg-close>Annuler</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="next">Continuer</button></div>';
       }
       if (step === 2) {
-        var methods = ['MVola', 'Orange Money', 'Airtel Money'];
-        return '<h2 id="accd-title">Paiement</h2>' + stepsDots() +
-          '<p class="acc-hint">' + esc(contact.subscribe_instructions || 'Le paiement se fait par mobile money. Contacte-nous pour les coordonnées.') + '</p>' +
-          '<ul class="acc-pay-methods">' + methods.map(function (m) { return '<li>' + icon('phone', 16) + '<span>' + m + '</span></li>'; }).join('') + '</ul>' +
+        return '<h2 id="accd-title">Modalités de la demande</h2>' + stepsDots() +
+          '<p class="acc-hint">Ton choix sera transmis à l’équipe pour examen. Les modalités seront précisées dans la réponse.</p>' +
           '<div class="acc-field"><label for="sub2-date">Début souhaité (facultatif)</label><input id="sub2-date" type="date" value="' + esc(desiredStart) + '"></div>' +
-          '<div class="acc-field"><label for="sub2-comment">Référence de paiement ou commentaire (facultatif)</label><textarea id="sub2-comment" maxlength="1000">' + esc(comment) + '</textarea></div>' +
+          '<div class="acc-field"><label for="sub2-comment">Message à l’équipe (facultatif)</label><textarea id="sub2-comment" maxlength="1000">' + esc(comment) + '</textarea></div>' +
           '<div class="accd__actions"><button type="button" class="acc-btn" data-step-act="back">Retour</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="next">Continuer</button></div>';
       }
       return '<h2 id="accd-title">Confirmer la demande</h2>' + stepsDots() +
         '<p>' + esc(o.name) + ' · ' + (period === 'yearly' ? 'Annuel' : 'Mensuel') + ' · <b>' + fmtMga((activePrice() || {}).priceMga || 0) + '</b></p>' +
         (desiredStart ? '<p class="acc-hint">Début souhaité : ' + esc(new Date(desiredStart + 'T12:00:00').toLocaleDateString('fr-FR')) + '</p>' : '') +
-        '<p class="acc-hint">Demande examinée manuellement, réponse sous 24 h.</p>' +
+        '<p class="acc-hint">L’envoi transmet une demande à l’équipe. Il n’active pas la formule et ne déclenche aucun paiement automatique.</p>' +
         '<p id="sub-dlg-status" class="acc-status" role="status" hidden></p>' +
         '<div class="accd__actions"><button type="button" class="acc-btn" data-step-act="back">Retour</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="submit">Envoyer la demande</button></div>';
     }
     var dialog = openDialog(stepHtml());
-    function rerender() { dialog.querySelector('.accd__panel').innerHTML = stepHtml(); }
+    function rerender() { dialog.querySelector('.accd__panel').innerHTML = stepHtml(); var title = dialog.querySelector('#accd-title'); if (title) { title.tabIndex = -1; title.focus({ preventScroll: true }); } }
     dialog.addEventListener('click', function (e) {
       var b = e.target.closest('[data-step-act]'); if (!b) return;
       var act = b.dataset.stepAct;
@@ -838,7 +835,7 @@
       if (act === 'submit') {
         withBusy(b, function () {
           return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: kind, planCode: (activePrice() || {}).planCode || o.code, desiredStart: desiredStart ? new Date(desiredStart + 'T12:00:00').toISOString() : null, comment: comment }) })
-            .then(function () { closeDialog(); toast('Demande envoyée — réponse sous 24 h.', 'success'); loadSubscriptionAccount(); });
+            .then(function () { closeDialog(); toast('Demande transmise. Suis son état dans Mes demandes.', 'success'); loadSubscriptionAccount(); });
         }).catch(function (err) { var st = dialog.querySelector('#sub-dlg-status'); if (st) { st.hidden = false; st.textContent = err.message; } });
       }
     });
@@ -927,8 +924,25 @@
     return '<div class="acc-card"><ul class="acc-list acc-list--links">' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="help">' + '<span class="acc-row__icon">' + icon('help', 20) + '</span><span class="acc-row__text"><b>Centre d’aide</b><small>Questions fréquentes et guides</small></span>' + icon('chevron', 18) + '</button></li>' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="onboarding"><span class="acc-row__icon">' + icon('info', 20) + '</span><span class="acc-row__text"><b>Revoir l’introduction</b><small>Refaire le tour de l’application</small></span>' + icon('chevron', 18) + '</button></li>' +
-      '<li><a class="acc-row" href="https://github.com/thierry1804/vetbook/issues" target="_blank" rel="noopener noreferrer"><span class="acc-row__icon">' + icon('mail', 20) + '</span><span class="acc-row__text"><b>Signaler un problème</b><small>Ouvre un ticket sur GitHub</small></span>' + icon('chevron', 18) + '</a></li>' +
+      '<li><button type="button" class="acc-row acc-row--btn" data-act="support"><span class="acc-row__icon">' + icon('mail', 20) + '</span><span class="acc-row__text"><b>Signaler un problème</b><small>Envoyer une demande au support</small></span>' + icon('chevron', 18) + '</button></li>' +
       '</ul></div><p class="acc-foot">App’lika · conçu avec soin pour la santé animale.<br>Vos compagnons, leurs carnets, vos données.</p>';
+  }
+  function openSupportDialog() {
+    var el = openDialog('<h2 class="accd__title" id="accd-title">Contacter le support</h2><p class="acc-hint">Décris le problème rencontré. Une personne de l’équipe pourra répondre à ton adresse e-mail.</p>' +
+      '<form id="support-form" class="acc-form"><div class="acc-field"><label for="support-email">Adresse e-mail</label><input id="support-email" type="email" required maxlength="200" value="' + esc(acc.user && acc.user.email || '') + '"></div>' +
+      '<div class="acc-field"><label for="support-subject">Sujet</label><input id="support-subject" required minlength="3" maxlength="160"></div>' +
+      '<div class="acc-field"><label for="support-description">Description</label><textarea id="support-description" required minlength="10" maxlength="4000" rows="5"></textarea></div>' +
+      '<p id="support-status" class="acc-status" role="status" aria-live="polite" hidden></p><div class="accd__actions"><button type="button" class="acc-btn" data-dlg-close>Annuler</button><button type="submit" class="acc-btn acc-btn--primary">Envoyer</button></div></form>', { focus: '#support-email' });
+    el.querySelector('#support-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var form = event.currentTarget, button = form.querySelector('[type="submit"]'), status = form.querySelector('#support-status');
+      if (!form.reportValidity()) return;
+      button.disabled = true;
+      fetch('/api/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.querySelector('#support-email').value, subject: form.querySelector('#support-subject').value, description: form.querySelector('#support-description').value }) })
+        .then(function (response) { return response.json().then(function (body) { if (!response.ok) throw new Error(body.error || 'Envoi impossible.'); return body; }); })
+        .then(function (body) { form.innerHTML = '<p role="status">Demande n°' + esc(body.id) + ' enregistrée. L’équipe pourra te répondre par e-mail.</p><button type="button" class="acc-btn acc-btn--primary" data-dlg-close>Fermer</button>'; form.querySelector('button').focus(); })
+        .catch(function (error) { status.hidden = false; status.textContent = error.message; button.disabled = false; });
+    });
   }
 
   // ——— Après rendu : données asynchrones et champs dynamiques ————————
@@ -1153,6 +1167,7 @@
     'export-ics': function () { var c = ctx(); if (c) c.exportIcs(); },
     'import-backup': function () { var c = ctx(); if (c) c.openModal('backup'); },
     help: function () { var c = ctx(); if (c) c.showHelp(); },
+    support: openSupportDialog,
     onboarding: function () { var c = ctx(); if (c) c.showOnboarding(); }
   };
   function scrollTop() { var v = document.getElementById('view-user-profile'); if (v && v.scrollIntoView) v.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); }
@@ -1377,7 +1392,7 @@
   }
 
   window.applikaAccount = { chooseCountry: chooseCountry, refreshPlan: function () { if (acc.panel === 'plan') renderPanel(); },
-    show: show, render: render, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, init: init, updateNavAvatar: updateNavAvatar };
+    show: show, render: render, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, openSupport: openSupportDialog, init: init, updateNavAvatar: updateNavAvatar };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(init, 0); });
   else setTimeout(init, 0);

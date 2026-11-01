@@ -205,6 +205,17 @@ create table if not exists content_pages (
   unique (slug, version)
 );
 
+create table if not exists support_requests (
+  id bigserial primary key,
+  email text not null,
+  subject text not null,
+  description text not null,
+  status text not null default 'nouveau' check (status in ('nouveau', 'en_cours', 'traite')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists support_requests_created_idx on support_requests (created_at desc);
+
 -- ═══ Annuaire vétérinaire public et urgences ═══
 create table if not exists directory_clinics (
   id bigserial primary key,
@@ -506,6 +517,18 @@ end;
 $$ language plpgsql;
 drop trigger if exists inbox_realtime on inbox_notifications;
 create trigger inbox_realtime after insert or update of read_at on inbox_notifications for each row execute function realtime_inbox_change();
+create or replace function support_request_notice() returns trigger as $$
+begin
+  insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,permission)
+    select 'admin',a.id,'support:'||new.id,'Nouvelle demande de support',new.subject,'/support-requests','users.support'
+    from admin_users a where a.status='actif' and exists(
+      select 1 from admin_role_permissions p where p.role_code=a.role_code and p.permission in ('*','users.*','users.support'))
+    on conflict(audience,recipient_id,event_key) do nothing;
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists support_request_notice_trigger on support_requests;
+create trigger support_request_notice_trigger after insert on support_requests for each row execute function support_request_notice();
 create or replace function notify_subscription_admins(key text, heading text, message text, link text, actor uuid default null) returns void as $$
 begin
   insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,permission)

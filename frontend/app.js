@@ -9736,19 +9736,23 @@
     saveRoute({ view: 'favorites' });
   }
 
-  // Pages « aide » publiées depuis le backoffice, affichées au-dessus de la FAQ embarquée.
+  // La FAQ et les guides utilisent la même source éditoriale : les pages publiées du backoffice.
   function renderHelpPages() {
     var box = document.getElementById('help-cms'), list = document.getElementById('help-cms-list');
     if (!box || !list) return;
-    var pages = ((REF_CONTENT && REF_CONTENT.pages) || []).filter(function (p) { return p.kind === 'help'; });
-    box.hidden = !pages.length;
-    list.innerHTML = pages.map(function (p) {
-      return '<details class="help-faq"><summary class="help-faq__summary">' + escapeHtml(p.title) + '</summary><div class="help-faq__body cms-body">' + richContent(p.body) + '</div></details>';
-    }).join('');
+    function display(pages) {
+      list.innerHTML = pages.length ? pages.map(function (p) {
+        return '<details class="help-faq"><summary class="help-faq__summary">' + escapeHtml(p.title) + '</summary><div class="help-faq__body cms-body">' + richContent(p.body) + '</div></details>';
+      }).join('') : '<p class="user-profile__hint">Les guides sont temporairement indisponibles. Le support reste accessible ci-dessous.</p>';
+    }
+    display(((REF_CONTENT && REF_CONTENT.pages) || []).filter(function (p) { return p.kind === 'help'; }));
+    fetch('/api/help').then(function (r) { if (!r.ok) throw new Error('Aide indisponible'); return r.json(); }).then(function (data) { display(data.pages || []); }).catch(function () { /* conserve le contenu déjà publié en cache */ });
   }
 
   function showHelp() {
     renderHelpPages();
+    var supportButton = document.getElementById('btn-help-support');
+    if (supportButton) supportButton.onclick = function () { if (window.applikaAccount) window.applikaAccount.openSupport(); };
     setBottomNavActive('help');
     markCareRoute('help');
     hideAppViews();

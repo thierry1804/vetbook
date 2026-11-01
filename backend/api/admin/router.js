@@ -40,6 +40,21 @@ export function buildAdminRouter() {
   router.use('/notifications',buildNotificationRouter('admin'));
   router.get('/events',realtimeHandler('admin'));
 
+  router.get('/support-requests', requireAdmin('users.support'), async (req, res, next) => {
+    try {
+      const rows = (await withClient((c) => c.query('select id,email,subject,description,status,created_at,updated_at from support_requests order by created_at desc limit 200'))).rows;
+      res.json({ rows });
+    } catch (error) { next(error); }
+  });
+  router.patch('/support-requests/:id', requireAdmin('users.support'), async (req, res, next) => {
+    try {
+      if (!['nouveau', 'en_cours', 'traite'].includes(req.body?.status) || !/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'État invalide.' });
+      const row = (await withClient((c) => c.query('update support_requests set status=$2,updated_at=now() where id=$1 returning id,status', [req.params.id, req.body.status]))).rows[0];
+      if (!row) return res.status(404).json({ error: 'Demande introuvable.' });
+      res.json(row);
+    } catch (error) { next(error); }
+  });
+
   // ───────── Authentification ─────────
   router.post('/auth/login', loginLimiter, async (req, res, next) => {
     try {

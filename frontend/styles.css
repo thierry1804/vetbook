@@ -8408,7 +8408,7 @@ button.fr__card:hover { border-color: var(--brand-light); background: var(--mint
    ≥ 768 px : navigation des sections à gauche, panneau à droite.
    < 768 px : liste de sections ; chaque section s'ouvre en plein écran avec un bouton « Réglages ».
    ============================================================ */
-.acc { display: grid; gap: 20px; max-width: 1040px; margin-inline: auto; padding-bottom: 32px; }
+.acc { display: grid; gap: 20px; width: 100%; min-width: 0; padding-bottom: 32px; }
 .acc button, .acc input, .acc select { font-family: var(--font-ui); }
 .acc-top { display: block; }
 .acc-me { display: flex; align-items: center; gap: 16px; }
@@ -8711,6 +8711,7 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 /* Fenêtre « choisir une formule » en 3 étapes (ouverte depuis le bouton de la carte). */
 .acc-steps { display: flex; gap: 6px; margin: -4px 0 4px; }
+.acc-step-label { margin: 0; color: var(--text-muted); font-size: .82rem; font-weight: 600; }
 .acc-steps__dot { width: 22px; height: 4px; border-radius: 9999px; background: var(--border-soft); }
 .acc-steps__dot.is-on { background: var(--brand-mid); }
 .acc-steps__dot.is-done { background: var(--brand-light); }
