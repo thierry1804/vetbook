@@ -8640,7 +8640,18 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 #maintenance-banner { position: sticky; top: 0; z-index: 60; padding: 10px 16px; text-align: center; font-size: .9rem; background: var(--warning-bg, #fff4d6); color: var(--warning-fg, #5c4300); border-bottom: 1px solid rgba(0,0,0,.08); }
 .acc-plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-block: 12px; }
 .acc-plan.is-current { outline: 2px solid var(--accent, #1f3d34); }
+.acc-plan__current-hint { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 0; color: var(--accent, #1f3d34); font-size: .9rem; font-weight: 600; }
+.acc-plan__current-hint svg { flex: none; }
 .acc-plan__price { margin: 4px 0 8px; font-size: 1.05rem; }
+/* Repère ce qui distingue vraiment la formule (les quotas), avant la longue liste complète : la carte se
+   lit en 2 secondes au lieu d'obliger à parcourir ~20 lignes identiques d'une formule à l'autre. */
+.acc-plan__headline { margin-top: 10px; }
+.acc-plan__details { margin-top: 10px; border-top: 1px solid var(--border-soft); padding-top: 8px; }
+.acc-plan__details summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--action-ink); list-style: none; display: flex; align-items: center; gap: 4px; }
+.acc-plan__details summary::-webkit-details-marker { display: none; }
+.acc-plan__details summary::before { content: '▸'; font-size: .75em; transition: transform .15s; }
+.acc-plan__details[open] summary::before { transform: rotate(90deg); }
+.acc-plan__details .acc-plan__list { margin-top: 10px; }
 .acc-plan__price small { display: block; font-weight: 400; opacity: .7; }
 .acc-plan__list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; font-size: .9rem; }
 .acc-plan__list li { display: flex; gap: 8px; align-items: flex-start; }

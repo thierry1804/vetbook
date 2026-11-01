@@ -694,15 +694,24 @@
         (cfg.enforced ? '' : '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>') +
         (usage ? '<ul class="acc-plan__list">' + usage + '</ul>' : '') + '</div>' +
       '<div class="acc-plans">' + cfg.plans.map(function (o) {
+        var keys = Object.keys(labels);
+        var included = keys.filter(function (k) { return o.features && o.features[k] && o.features[k].enabled; });
+        var headlineKeys = included.filter(function (k) { return labels[k].kind === 'quota'; }).slice(0, 4);
+        if (!headlineKeys.length) headlineKeys = included.slice(0, 3);
+        var headline = headlineKeys.map(function (k) { return featureLine(k, o.features[k], labels); }).join('');
         var lastCat = null;
-        var feats = Object.keys(labels).map(function (k) {
+        var feats = keys.map(function (k) {
           var cat = labels[k].category || '', head = cat && cat !== lastCat ? '<li class="acc-plan__cat">' + esc(cat) + '</li>' : '';
           lastCat = cat || lastCat;
           return head + featureLine(k, o.features && o.features[k], labels);
         }).join('');
         var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
         return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
-          (o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' + (!acc.user ? '<p class="acc-hint">Connexion requise pour envoyer la demande.</p>' : '') : '') + (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul></div>';
+          (o.code === cur ? '<p class="acc-plan__current-hint">' + icon('check', 14) + 'C’est ta formule actuelle.</p>'
+            : o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' + (!acc.user ? '<p class="acc-hint">Connexion requise pour envoyer la demande.</p>' : '') : '') +
+          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') +
+          '<ul class="acc-plan__list acc-plan__headline">' + headline + '</ul>' +
+          '<details class="acc-plan__details"><summary>Voir le détail (' + keys.length + ' fonctionnalités)</summary><ul class="acc-plan__list">' + feats + '</ul></details></div>';
       }).join('') + '</div>' +
       '<div class="acc-card"><h3>Souscrire</h3><p class="acc-hint">' + esc(contact.subscribe_instructions || 'Contacte-nous pour souscrire.') + '</p>' +
         (contactLinks ? '<div class="acc-actions">' + contactLinks + '</div>' : '') + '</div>';
