@@ -8731,6 +8731,42 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 .acc-field textarea { width: 100%; min-height: 88px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--card-bg); color: var(--text); font: inherit; resize: vertical; }
 
 #btn-inbox-nav { position: relative; flex-shrink: 0; }
+.app-header .header-actions > .care-sos,
+.app-header .header-actions > .animal-select,
+.app-header .header-actions > .btn-add-animal,
+.app-header .header-actions > #btn-inbox-nav,
+.app-header .header-actions > #btn-user-nav {
+  box-sizing: border-box;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 14px !important;
+}
+.app-header .header-actions > .animal-select { padding-block: 0; }
+.app-header .header-actions > .btn-add-animal { min-width: 44px; padding-inline: 14px; }
+.app-header .header-actions > #btn-inbox-nav { width: 44px; min-width: 44px; padding: 0; }
+.app-header .header-actions > #btn-user-nav {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: 50% !important;
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .app-header .logo::after { content: none; }
+}
+@media (max-width: 639px) {
+  .app-header .header-actions > .care-sos,
+  .app-header .header-actions > .btn-add-animal,
+  .app-header .header-actions > #btn-inbox-nav,
+  .app-header .header-actions > #btn-user-nav { height: 40px; min-height: 40px; }
+  .app-header .header-actions > .btn-add-animal,
+  .app-header .header-actions > #btn-inbox-nav,
+  .app-header .header-actions > #btn-user-nav { width: 40px; min-width: 40px; padding: 0; }
+}
+@media (max-width: 359px) {
+  .app-header .logo { font-size: 14px; gap: 6px; }
+  .app-header .header-actions > .care-sos { width: 40px; padding: 0; justify-content: center; }
+  .care-sos::after { content: none; }
+}
 .inbox-count { position: absolute; top: -3px; right: -4px; border-radius: 999px; min-width: 17px; padding: 1px 3px; background: #b42318; color: white; font: 700 11px/15px sans-serif; }
 .acc-inbox-popover { position: fixed; z-index: 1200; width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 90px); overflow: hidden; border: 1px solid var(--border-soft); border-radius: 22px; background: var(--card-bg); color: var(--text); box-shadow: var(--shadow-xl); }
 .acc-inbox-popover .acc-inbox__header { padding: 18px 18px 12px; }
