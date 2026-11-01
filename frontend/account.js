@@ -548,18 +548,103 @@
     toast(code ? 'Pays : ' + countryLabel(code) : 'Tous les pays affichés', 'success');
   }
 
-  function fmtMga(n) { return Number(n || 0).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' Ar'; }
+  // toLocaleString('fr-FR') sépare les milliers par une espace fine insécable (U+202F) : plusieurs polices de
+  // l'app n'ont pas ce glyphe et l'affichent comme rien du tout (« 20000 » au lieu de « 20 000 »). On la
+  // remplace par une espace normale, visible partout.
+  var THIN_SPACES = new RegExp('[' + String.fromCharCode(0x202f, 0x00a0) + ']', 'g');
+  function fmtMga(n) { return Number(n || 0).toLocaleString('fr-FR').replace(THIN_SPACES, ' ') + ' Ar'; }
   function planBase(code) { return String(code || 'gratuit').replace(/_annuel$/, ''); }
   function planName(code) {
     var base = planBase(code), c = plans() && plans().config();
     var o = c && c.plans.filter(function (p) { return p.code === base; })[0];
     return o ? o.name : ({ gratuit: 'Gratuit', premium: 'Premium', eleveur: 'Éleveur', cabinet: 'Cabinet' }[base] || base);
   }
-  function featureLine(code, f, labels) {
-    var l = (labels[code] && labels[code].label) || code;
-    if (!f || !f.enabled) return '<li class="acc-plan__off">' + icon('lock', 14) + '<span>' + esc(l) + '</span></li>';
-    var q = f.quota != null ? ' <b>' + esc(f.quota) + '</b>' : (labels[code] && labels[code].kind === 'quota' ? ' <b>illimité</b>' : '');
-    return '<li>' + icon('check', 14) + '<span>' + esc(l) + q + '</span></li>';
+  // Sélection éditoriale des avantages par formule (4-5 lignes) — « pourquoi payer » doit se lire d'un
+  // coup d'œil sur la carte, pas se déduire d'une liste de quotas. Les chiffres restent branchés sur les
+  // données réelles (plans/fonctionnalités) pour ne pas se désynchroniser si un admin les change ; le texte
+  // qui les encadre est écrit à la main. Une ligne finissant par « : » s'affiche comme en-tête, pas comme item.
+  function planBenefits(code, features, labels) {
+    var q = function (k) { var f = features && features[k]; return f && f.quota != null ? f.quota : null; };
+    if (code === 'gratuit') return [
+      'Carnet de santé complet, rappels dans l’app',
+      (q('animals') || 5) + ' animaux',
+      'Lien de partage vétérinaire',
+      'Sauvegarde et synchronisation cloud',
+    ];
+    if (code === 'premium') return [
+      (q('animals') || 15) + ' animaux',
+      'Rappels par SMS et e-mail',
+      'Export PDF et calendrier (.ics)',
+      'Lien vétérinaire prolongé (' + (q('share_link_days') || 90) + ' jours)',
+      'Assistant IA santé et bien-être',
+    ];
+    if (code === 'eleveur') return [
+      'Tout Premium, en plus :',
+      'Animaux illimités',
+      'Reproduction et déclarations LOMAD',
+      'Pedigree et recherche ACYM',
+    ];
+    return Object.keys(labels).filter(function (k) { return features && features[k] && features[k].enabled; }).slice(0, 4).map(function (k) { return labels[k].label; });
+  }
+  function planSavings(o) {
+    if (!o.monthly || !o.yearly || !o.monthly.priceMga || !o.yearly.priceMga) return null;
+    var diff = o.monthly.priceMga * 12 - o.yearly.priceMga;
+    var months = Math.round(diff / o.monthly.priceMga);
+    return months > 0 ? months : null;
+  }
+  var planPeriod = 'monthly'; // partagé par toutes les cartes — une seule bascule au-dessus, pas un prix par carte
+  // Tableau comparatif unique (remplace les 3 « Voir le détail » dépliés indépendamment, qui cassaient la
+  // mise en page) : lignes groupées par catégorie, repliables, un — au lieu d'un cadenas barré pour « non
+  // inclus » (moins négatif à lire), en-tête de formules qui reste visible au défilement.
+  function comparisonTableHtml(cfgPlans, labels) {
+    var cats = [], byCat = {};
+    Object.keys(labels).forEach(function (k) {
+      var cat = labels[k].category || 'Autres';
+      if (!byCat[cat]) { byCat[cat] = []; cats.push(cat); }
+      byCat[cat].push(k);
+    });
+    var cols = '140px repeat(' + cfgPlans.length + ', minmax(96px, 1fr))';
+    var header = '<div class="acc-compare__row acc-compare__row--head" style="grid-template-columns:' + cols + '"><div class="acc-compare__cell acc-compare__cell--label"></div>' +
+      cfgPlans.map(function (o) { return '<div class="acc-compare__cell"><b>' + esc(o.name) + '</b></div>'; }).join('') + '</div>';
+    var body = cats.map(function (cat) {
+      var rows = byCat[cat].map(function (k) {
+        return '<div class="acc-compare__row" style="grid-template-columns:' + cols + '"><div class="acc-compare__cell acc-compare__cell--label">' + esc(labels[k].label) + '</div>' +
+          cfgPlans.map(function (o) {
+            var f = o.features && o.features[k];
+            var val = !f || !f.enabled ? '<span class="acc-compare__no" aria-label="Non inclus">—</span>'
+              : (f.quota != null ? '<b>' + esc(f.quota) + '</b>' : (labels[k].kind === 'quota' ? '<b>Illimité</b>' : '<span class="acc-compare__yes">' + icon('check', 16) + '</span>'));
+            return '<div class="acc-compare__cell">' + val + '</div>';
+          }).join('') + '</div>';
+      }).join('');
+      return '<details class="acc-compare__cat"><summary>' + icon('chevron', 16) + '<span>' + esc(cat) + '</span><span class="acc-compare__cat-count">' + byCat[cat].length + '</span></summary><div class="acc-compare__body">' + rows + '</div></details>';
+    }).join('');
+    return '<div class="acc-card acc-compare-card"><h3>Comparer en détail</h3><div class="acc-compare">' + header + body + '</div></div>';
+  }
+  // Remplace l'ancien bloc « Ta formule » (qui ne faisait que répéter les limites de la carte au-dessus) par
+  // une jauge d'usage réel : ce qui pousse à passer à une formule supérieure doit venir du produit au bon
+  // moment (on approche la limite), pas d'une grille de prix relue à froid.
+  function usageGaugeHtml(cfg, ent, counts) {
+    var labels = cfg.featureLabels || {}, cur = ent && ent.plan ? planBase(ent.plan) : 'gratuit';
+    var rows = [];
+    if (ent && ent.enforced && ent.features) {
+      Object.keys(ent.features).forEach(function (k) {
+        var f = ent.features[k];
+        if (!f.enabled || f.quota == null || !labels[k] || labels[k].kind !== 'quota') return;
+        var used = k === 'animals' ? counts.animals : null;
+        rows.push({ label: labels[k].label, used: used, quota: f.quota, pct: used != null ? Math.min(100, Math.round(used / f.quota * 100)) : null });
+      });
+    }
+    var near = rows.filter(function (r) { return r.pct != null && r.pct >= 80; });
+    var next = cur === 'gratuit' ? 'Premium' : cur === 'premium' ? 'Éleveur' : null;
+    var html = '<div class="acc-card acc-usage"><div class="acc-usage__head"><h3>' + esc(planName(cur)) + '</h3>' + (ent && ent.status === 'essai' ? ' <span class="acc-chip">Essai</span>' : '') + '</div>';
+    if (cfg.enforced === false) html += '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>';
+    if (rows.length) html += '<div class="acc-usage__bars">' + rows.map(function (r) {
+      return '<div class="acc-usage__bar"><div class="acc-usage__bar-label"><span>' + esc(r.label) + '</span><span>' + (r.used != null ? r.used + ' / ' + esc(r.quota) : 'jusqu’à ' + esc(r.quota)) + '</span></div>' +
+        (r.pct != null ? '<div class="acc-usage__track"><div class="acc-usage__fill' + (r.pct >= 80 ? ' is-near' : '') + '" style="width:' + r.pct + '%"></div></div>' : '') + '</div>';
+    }).join('') + '</div>';
+    if (near.length && next) html += '<p class="acc-usage__nudge">' + icon('sparkle', 14) + 'Tu approches de la limite « ' + esc(near[0].label) + ' » — ' + esc(next) + ' l’enlève.</p>';
+    html += '</div>';
+    return html;
   }
   var subscriptionAccount = null, subscriptionError = '', subscriptionLoading = false;
   function loadSubscriptionAccount() {
@@ -587,12 +672,9 @@
       html += (state.upcoming || []).map(function (r) { return '<p>Activation prévue : <b>' + esc(planName(r.plan_code)) + '</b> le ' + esc(subscriptionDate(r.started_at)) + ', fin : ' + esc(subscriptionDate(r.ends_at)) + '</p>'; }).join('');
     }
     if (tracked && tracked.ends_at && ['actif','expire'].indexOf(tracked.state) >= 0 && !tracked.is_trial) html += '<button class="acc-btn" data-act="subscription-renew" data-plan="' + esc(tracked.plan_code) + '">Demander un renouvellement</button>';
-    if (tracked && !tracked.ends_at) html += '<p class="acc-hint">Cet accès est sans échéance : aucun renouvellement n’est nécessaire. Tu peux demander une autre formule ci-dessous.</p>';
-    else if (tracked && (tracked.is_trial || tracked.state === 'essai')) html += '<p class="acc-hint">Pour poursuivre après cet essai, choisis Souscrire / changer de formule dans le formulaire ci-dessous.</p>';
-    html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Les demandes sont examinées manuellement.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
-    var options = [];
-    cfg.plans.forEach(function (p) { if (p.code === 'gratuit') return; if (p.monthly) options.push('<option value="' + esc(p.monthly.planCode || p.code) + '">' + esc(p.name) + ' · mensuel</option>'); if (p.yearly) options.push('<option value="' + esc(p.yearly.planCode || p.code + '_annuel') + '">' + esc(p.name) + ' · annuel</option>'); });
-    if (options.length) html += '<div class="acc-card"><h3>Faire une demande</h3><form data-form="subscription-request" class="acc-form"><div class="acc-field"><label for="sub-kind">Demande</label><select id="sub-kind"><option value="assign">Souscrire / changer de formule</option><option value="renew">Renouveler</option></select></div><div class="acc-field"><label for="sub-plan">Offre souhaitée</label><select id="sub-plan">' + options.join('') + '</select></div><div class="acc-field"><label for="sub-date">Début souhaité (facultatif)</label><input id="sub-date" type="date"></div><div class="acc-field"><label for="sub-comment">Commentaire (facultatif)</label><textarea id="sub-comment" maxlength="1000"></textarea></div><p id="sub-status" class="acc-status" role="status" hidden></p><button class="acc-btn acc-btn--primary" type="submit">Envoyer la demande</button></form></div>';
+    if (tracked && !tracked.ends_at) html += '<p class="acc-hint">Cet accès est sans échéance : aucun renouvellement n’est nécessaire. Tu peux choisir une autre formule plus haut si besoin.</p>';
+    else if (tracked && (tracked.is_trial || tracked.state === 'essai')) html += '<p class="acc-hint">Pour poursuivre après cet essai, choisis une formule plus haut.</p>';
+    html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Les demandes sont examinées manuellement, réponse sous 24 h.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
     html += '<div class="acc-card"><h3>Mes demandes</h3>' + (data.requests.length ? data.requests.map(function (r) { return '<div class="acc-card"><b>' + esc(r.plan_name) + ' · ' + esc(r.period) + '</b><p>' + esc(r.kind === 'renew' ? 'Renouvellement' : 'Souscription / changement') + ' · ' + esc(labels[r.status]) + '</p>' + (r.desired_start ? '<p>Début souhaité : ' + esc(subscriptionDate(r.desired_start)) + '</p>' : '') + (r.comment ? '<p>' + esc(r.comment) + '</p>' : '') + (r.public_reply ? '<p>Réponse : ' + esc(r.public_reply) + '</p>' : '') + (['nouveau','en_cours'].indexOf(r.status) >= 0 ? '<button class="acc-btn" data-act="subscription-cancel" data-id="' + esc(r.id) + '">Annuler la demande</button>' : '') + '</div>'; }).join('') : '<p>Aucune demande.</p>') + '</div>';
     html += '<div class="acc-card"><h3>Notifications</h3>' + (data.notifications.length ? data.notifications.map(function (n) { return '<div class="acc-card"><b>' + esc(n.title) + '</b><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small>' + (!n.read_at ? '<button class="acc-btn" data-act="subscription-read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div>'; }).join('') : '<p>Aucune notification.</p>') + '</div>';
     return html;
@@ -676,45 +758,90 @@
     if (!cfg || !cfg.plans || !cfg.plans.length) return '<div class="acc-card"><h3>Formules</h3><p class="acc-hint">Les formules ne sont pas disponibles pour le moment. Vérifie ta connexion puis réessaie.</p><div class="acc-actions"><button type="button" class="acc-btn" data-act="plan-refresh">' + icon('refresh', 18) + 'Actualiser</button></div></div>';
     var ent = P.entitlements(), cur = ent && ent.plan ? planBase(ent.plan) : 'gratuit', labels = cfg.featureLabels || {};
     var counts = P.counts();
-    var usage = '';
-    if (ent && ent.enforced && ent.features) {
-      usage = Object.keys(ent.features).filter(function (k) { return ent.features[k].enabled && ent.features[k].quota != null && labels[k] && labels[k].kind === 'quota'; }).map(function (k) {
-        var used = k === 'animals' ? counts.animals : null;
-        return '<li>' + icon('check', 14) + '<span>' + esc(labels[k].label) + ' : <b>' + (used != null ? used + ' / ' : 'jusqu’à ') + esc(ent.features[k].quota) + '</b></span></li>';
-      }).join('');
-    }
+    var anyYearly = cfg.plans.some(function (o) { return o.yearly; });
+    var toggle = anyYearly ? '<div class="acc-plan-toggle" role="group" aria-label="Période">' +
+      '<button type="button" class="acc-plan-toggle__opt' + (planPeriod === 'monthly' ? ' is-on' : '') + '" data-act="plan-period" data-period="monthly" aria-pressed="' + (planPeriod === 'monthly') + '">Mensuel</button>' +
+      '<button type="button" class="acc-plan-toggle__opt' + (planPeriod === 'yearly' ? ' is-on' : '') + '" data-act="plan-period" data-period="yearly" aria-pressed="' + (planPeriod === 'yearly') + '">Annuel <span class="acc-plan-toggle__badge">2 mois offerts</span></button></div>' : '';
+    var cards = '<div class="acc-plans">' + cfg.plans.map(function (o) {
+      var isCurrent = o.code === cur, isFeatured = o.code === 'premium';
+      var activePrice = planPeriod === 'yearly' && o.yearly ? o.yearly : o.monthly;
+      var priceMga = (activePrice && activePrice.priceMga) || 0;
+      var savings = planPeriod === 'yearly' ? planSavings(o) : null;
+      var price = '<p class="acc-plan__price"><b>' + fmtMga(priceMga) + '</b><span>/ ' + (planPeriod === 'yearly' ? 'an' : 'mois') + '</span></p>' +
+        (savings ? '<p class="acc-plan__savings">' + icon('sparkle', 12) + savings + ' mois offerts</p>' : '');
+      var cta = isCurrent ? '<button type="button" class="acc-btn acc-plan__cta" disabled>' + icon('check', 16) + 'Ton plan</button>'
+        : o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary acc-plan__cta" data-act="plan-subscribe" data-plan="' + esc(o.code) + '">' + (o.trialDays ? 'Essayer ' + esc(o.trialDays) + ' jours' : 'Choisir ' + esc(o.name)) + '</button>' + (o.trialDays ? '<p class="acc-plan__cta-note">Sans engagement</p>' : '') : '';
+      var benefits = planBenefits(o.code, o.features, labels);
+      var benefitsHtml = '<ul class="acc-plan__benefits">' + benefits.map(function (b) {
+        return (/:\s*$/.test(b)) ? '<li class="acc-plan__benefits-lead">' + esc(b) + '</li>' : '<li>' + icon('check', 14) + '<span>' + esc(b) + '</span></li>';
+      }).join('') + '</ul>';
+      return '<div class="acc-card acc-plan' + (isFeatured ? ' acc-plan--featured' : '') + (isCurrent ? ' is-current' : '') + '">' +
+        '<div class="acc-plan__head"><h3>' + esc(o.name) + (isFeatured ? ' <span class="acc-chip acc-chip--featured">' + icon('sparkle', 12) + 'Recommandée</span>' : '') + (isCurrent ? ' <span class="acc-chip">Ton plan</span>' : '') + '</h3>' +
+        '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' + price + '</div>' +
+        cta + benefitsHtml + '</div>';
+    }).join('') + '</div>';
+    return usageGaugeHtml(cfg, ent, counts) + toggle + cards + comparisonTableHtml(cfg.plans, labels) + subscriptionAccountHtml(cfg);
+  }
+  function planSubtitle(code) {
+    return { gratuit: 'Pour découvrir App’lika', premium: 'Pour toi et tes animaux', eleveur: 'Pour éleveurs et chenils' }[code] || '';
+  }
+
+  // Le bouton d'une carte ouvre une seule fenêtre focalisée (période → paiement → confirmation) au lieu de
+  // faire défiler jusqu'à un formulaire générique en bas de page partagé par toutes les formules. Pas de
+  // paiement automatisé ici (aucun numéro mobile money par moyen de paiement n'est configuré côté Réglages) :
+  // la demande reste examinée manuellement, comme avant — juste un parcours net pour l'envoyer.
+  function openSubscribeDialog(kind, planCode) {
+    if (!acc.user) { acc.panel = 'security'; acc.mobileOpen = true; render(); scrollTop(); toast('Connecte-toi pour continuer.', 'info'); return; }
+    var P = plans(), cfg = P && P.config();
+    var o = cfg && cfg.plans.filter(function (p) { return p.code === planCode; })[0];
+    if (!o) { toast('Offre indisponible pour le moment.', 'error'); return; }
     var contact = cfg.contact || {};
-    var contactLinks = [
-      contact.whatsapp ? '<a class="acc-btn" href="https://wa.me/' + esc(String(contact.whatsapp).replace(/[^0-9]/g, '')) + '" target="_blank" rel="noopener noreferrer">WhatsApp</a>' : '',
-      contact.phone ? '<a class="acc-btn" href="tel:' + esc(contact.phone) + '">' + esc(contact.phone) + '</a>' : '',
-      contact.email ? '<a class="acc-btn" href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + '</a>' : ''
-    ].join('');
-    return '' +
-      subscriptionAccountHtml(cfg) + '<div class="acc-card"><h3>Ta formule</h3><p><b>' + esc(planName(cur)) + '</b>' + (ent && ent.status === 'essai' ? ' <span class="acc-chip">Essai</span>' : '') + '</p>' +
-        (cfg.enforced ? '' : '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>') +
-        (usage ? '<ul class="acc-plan__list">' + usage + '</ul>' : '') + '</div>' +
-      '<div class="acc-plans">' + cfg.plans.map(function (o) {
-        var keys = Object.keys(labels);
-        var included = keys.filter(function (k) { return o.features && o.features[k] && o.features[k].enabled; });
-        var headlineKeys = included.filter(function (k) { return labels[k].kind === 'quota'; }).slice(0, 4);
-        if (!headlineKeys.length) headlineKeys = included.slice(0, 3);
-        var headline = headlineKeys.map(function (k) { return featureLine(k, o.features[k], labels); }).join('');
-        var lastCat = null;
-        var feats = keys.map(function (k) {
-          var cat = labels[k].category || '', head = cat && cat !== lastCat ? '<li class="acc-plan__cat">' + esc(cat) + '</li>' : '';
-          lastCat = cat || lastCat;
-          return head + featureLine(k, o.features && o.features[k], labels);
-        }).join('');
-        var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
-        return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
-          (o.code === cur ? '<p class="acc-plan__current-hint">' + icon('check', 14) + 'C’est ta formule actuelle.</p>'
-            : o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' + (!acc.user ? '<p class="acc-hint">Connexion requise pour envoyer la demande.</p>' : '') : '') +
-          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') +
-          '<ul class="acc-plan__list acc-plan__headline">' + headline + '</ul>' +
-          '<details class="acc-plan__details"><summary>Voir le détail (' + keys.length + ' fonctionnalités)</summary><ul class="acc-plan__list">' + feats + '</ul></details></div>';
-      }).join('') + '</div>' +
-      '<div class="acc-card"><h3>Souscrire</h3><p class="acc-hint">' + esc(contact.subscribe_instructions || 'Contacte-nous pour souscrire.') + '</p>' +
-        (contactLinks ? '<div class="acc-actions">' + contactLinks + '</div>' : '') + '</div>';
+    var step = 1, period = (o.yearly && planPeriod === 'yearly') ? 'yearly' : (o.monthly ? 'monthly' : 'yearly'), desiredStart = '', comment = '';
+    function activePrice() { return period === 'yearly' ? o.yearly : o.monthly; }
+    function stepsDots() { return '<div class="acc-steps" aria-hidden="true">' + [1, 2, 3].map(function (n) { return '<span class="acc-steps__dot' + (n === step ? ' is-on' : n < step ? ' is-done' : '') + '"></span>'; }).join('') + '</div>'; }
+    function stepHtml() {
+      if (step === 1) {
+        var hasBoth = o.monthly && o.yearly;
+        return '<h2 id="accd-title">' + (kind === 'renew' ? 'Renouveler ' : 'Choisir ') + esc(o.name) + '</h2>' + stepsDots() +
+          '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' +
+          (hasBoth ? '<div class="acc-plan-toggle" role="group" aria-label="Période">' +
+            '<button type="button" class="acc-plan-toggle__opt' + (period === 'monthly' ? ' is-on' : '') + '" data-step-act="period" data-period="monthly">Mensuel</button>' +
+            '<button type="button" class="acc-plan-toggle__opt' + (period === 'yearly' ? ' is-on' : '') + '" data-step-act="period" data-period="yearly">Annuel <span class="acc-plan-toggle__badge">' + (planSavings(o) || 2) + ' mois offerts</span></button></div>' : '') +
+          '<p class="acc-plan__price" style="margin-top:16px">' + '<b>' + fmtMga((activePrice() || {}).priceMga || 0) + '</b><span>/ ' + (period === 'yearly' ? 'an' : 'mois') + '</span></p>' +
+          (o.trialDays && kind === 'assign' ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai, sans engagement.</p>' : '') +
+          '<div class="accd__actions"><button type="button" class="acc-btn" data-dlg-close>Annuler</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="next">Continuer</button></div>';
+      }
+      if (step === 2) {
+        var methods = ['MVola', 'Orange Money', 'Airtel Money'];
+        return '<h2 id="accd-title">Paiement</h2>' + stepsDots() +
+          '<p class="acc-hint">' + esc(contact.subscribe_instructions || 'Le paiement se fait par mobile money. Contacte-nous pour les coordonnées.') + '</p>' +
+          '<ul class="acc-pay-methods">' + methods.map(function (m) { return '<li>' + icon('phone', 16) + '<span>' + m + '</span></li>'; }).join('') + '</ul>' +
+          '<div class="acc-field"><label for="sub2-date">Début souhaité (facultatif)</label><input id="sub2-date" type="date" value="' + esc(desiredStart) + '"></div>' +
+          '<div class="acc-field"><label for="sub2-comment">Référence de paiement ou commentaire (facultatif)</label><textarea id="sub2-comment" maxlength="1000">' + esc(comment) + '</textarea></div>' +
+          '<div class="accd__actions"><button type="button" class="acc-btn" data-step-act="back">Retour</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="next">Continuer</button></div>';
+      }
+      return '<h2 id="accd-title">Confirmer la demande</h2>' + stepsDots() +
+        '<p>' + esc(o.name) + ' · ' + (period === 'yearly' ? 'Annuel' : 'Mensuel') + ' · <b>' + fmtMga((activePrice() || {}).priceMga || 0) + '</b></p>' +
+        (desiredStart ? '<p class="acc-hint">Début souhaité : ' + esc(new Date(desiredStart + 'T12:00:00').toLocaleDateString('fr-FR')) + '</p>' : '') +
+        '<p class="acc-hint">Demande examinée manuellement, réponse sous 24 h.</p>' +
+        '<p id="sub-dlg-status" class="acc-status" role="status" hidden></p>' +
+        '<div class="accd__actions"><button type="button" class="acc-btn" data-step-act="back">Retour</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="submit">Envoyer la demande</button></div>';
+    }
+    var dialog = openDialog(stepHtml());
+    function rerender() { dialog.querySelector('.accd__panel').innerHTML = stepHtml(); }
+    dialog.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-step-act]'); if (!b) return;
+      var act = b.dataset.stepAct;
+      if (act === 'period') { period = b.dataset.period; rerender(); return; }
+      if (act === 'next') { if (step === 2) { var d = dialog.querySelector('#sub2-date'), c = dialog.querySelector('#sub2-comment'); desiredStart = d ? d.value : ''; comment = c ? c.value : ''; } step = Math.min(3, step + 1); rerender(); return; }
+      if (act === 'back') { step = Math.max(1, step - 1); rerender(); return; }
+      if (act === 'submit') {
+        withBusy(b, function () {
+          return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: kind, planCode: (activePrice() || {}).planCode || o.code, desiredStart: desiredStart ? new Date(desiredStart + 'T12:00:00').toISOString() : null, comment: comment }) })
+            .then(function () { closeDialog(); toast('Demande envoyée — réponse sous 24 h.', 'success'); loadSubscriptionAccount(); });
+        }).catch(function (err) { var st = dialog.querySelector('#sub-dlg-status'); if (st) { st.hidden = false; st.textContent = err.message; } });
+      }
+    });
   }
 
   // ——— Panneau : partage ————————————————————————————————————
@@ -955,8 +1082,9 @@
   }
 
   var actions = {
-    'subscription-choose': function (t) { if (!acc.user) { acc.panel = 'security'; acc.mobileOpen = true; render(); scrollTop(); toast('Connecte-toi pour demander cette formule.', 'info'); return; } var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'assign'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { toast('Actualise le suivi de ton abonnement pour ouvrir le formulaire.', 'info'); loadSubscriptionAccount(); } },
-    'subscription-renew': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'renew'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { toast('Actualise le suivi de ton abonnement pour ouvrir le formulaire.', 'info'); loadSubscriptionAccount(); } },
+    'plan-subscribe': function (t) { openSubscribeDialog('assign', t.dataset.plan); },
+    'subscription-renew': function (t) { openSubscribeDialog('renew', planBase(t.dataset.plan)); },
+    'plan-period': function (t) { planPeriod = t.dataset.period; renderPanel(); },
     'subscription-refresh': function () { loadSubscriptionAccount(); if (plans()) plans().refresh(); },
     'subscription-cancel': function (t) { confirmDialog({ title: 'Annuler cette demande ?', text: 'Elle ne sera plus traitée par l’équipe.', ok: 'Annuler la demande' }).then(function (ok) { if (ok) withBusy(t, function () { return cs().api('/api/me/subscription/requests/' + t.dataset.id + '/cancel', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); }); },
     'subscription-read': function (t) { withBusy(t, function () { return cs().api('/api/me/subscription/notifications/' + t.dataset.id + '/read', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); },
@@ -1033,12 +1161,6 @@
   // ——— Formulaires ——————————————————————————————————————————
   function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var forms = {
-    'subscription-request': function (form) {
-      var desired = val('sub-date');
-      withBusy($('button[type="submit"]', form), function () {
-        return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: val('sub-kind'), planCode: val('sub-plan'), desiredStart: desired ? new Date(desired + 'T12:00:00').toISOString() : null, comment: val('sub-comment') }) }).then(function () { toast('Demande enregistrée', 'success'); form.reset(); return loadSubscriptionAccount(); });
-      }).catch(function (e) { setStatus('sub-status', e.message, true); });
-    },
     profile: function (form) {
       var first = val('pf-first').trim();
       if (!first) { setStatus('pf-status', 'Indiquez votre prénom.', true); document.getElementById('pf-first').focus(); return; }

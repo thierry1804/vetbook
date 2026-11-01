@@ -8638,25 +8638,83 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 .is-feature-locked { opacity: .75; }
 .feature-lock { margin-left: 6px; vertical-align: -2px; flex: none; }
 #maintenance-banner { position: sticky; top: 0; z-index: 60; padding: 10px 16px; text-align: center; font-size: .9rem; background: var(--warning-bg, #fff4d6); color: var(--warning-fg, #5c4300); border-bottom: 1px solid rgba(0,0,0,.08); }
-.acc-plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-block: 12px; }
-.acc-plan.is-current { outline: 2px solid var(--accent, #1f3d34); }
-.acc-plan__current-hint { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 0; color: var(--accent, #1f3d34); font-size: .9rem; font-weight: 600; }
-.acc-plan__current-hint svg { flex: none; }
-.acc-plan__price { margin: 4px 0 8px; font-size: 1.05rem; }
-/* Repère ce qui distingue vraiment la formule (les quotas), avant la longue liste complète : la carte se
-   lit en 2 secondes au lieu d'obliger à parcourir ~20 lignes identiques d'une formule à l'autre. */
-.acc-plan__headline { margin-top: 10px; }
-.acc-plan__details { margin-top: 10px; border-top: 1px solid var(--border-soft); padding-top: 8px; }
-.acc-plan__details summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--action-ink); list-style: none; display: flex; align-items: center; gap: 4px; }
-.acc-plan__details summary::-webkit-details-marker { display: none; }
-.acc-plan__details summary::before { content: '▸'; font-size: .75em; transition: transform .15s; }
-.acc-plan__details[open] summary::before { transform: rotate(90deg); }
-.acc-plan__details .acc-plan__list { margin-top: 10px; }
-.acc-plan__price small { display: block; font-weight: 400; opacity: .7; }
-.acc-plan__list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; font-size: .9rem; }
-.acc-plan__list li { display: flex; gap: 8px; align-items: flex-start; }
-.acc-plan__list svg { flex: none; margin-top: 3px; }
-.acc-plan__off { opacity: .55; text-decoration: line-through; }
+/* Bascule mensuel/annuel partagée par toutes les cartes — un seul prix par carte, pas un « ou X Ar/an »
+   en petit à côté de chaque prix mensuel. */
+.acc-plan-toggle { display: inline-flex; padding: 4px; border-radius: 9999px; background: var(--warm-gray); gap: 2px; margin: 4px 0 16px; }
+.acc-plan-toggle__opt { border: 0; background: transparent; color: var(--text-muted); font: 600 13.5px var(--font-ui); padding: 9px 16px; border-radius: 9999px; cursor: pointer; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; }
+.acc-plan-toggle__opt.is-on { background: var(--card-bg); color: var(--text); box-shadow: var(--shadow-card); }
+.acc-plan-toggle__badge { background: var(--brand-light); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; }
+
+.acc-plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-block: 0 16px; align-items: stretch; }
+.acc-plan { display: flex; flex-direction: column; padding: 22px; }
+/* Le plan actuel reste discret (fine étiquette + bouton désactivé) — ce n'est pas lui qu'on essaie de
+   vendre ; la mise en avant visuelle va à la formule recommandée, jamais à la formule déjà active. */
+.acc-plan.is-current { border-color: var(--border); }
+
+/* Carte vedette (Premium) : même procédé que .care-welcome (lavis radial menthe très doux sur fond clair)
+   plutôt qu'un aplat sombre — ce système reste des « surfaces aériennes et claires », pas des blocs pleins ;
+   l'ambre/orange (--honey) est déjà pris par les rappels « à venir », donc hors de question ici, ça lirait
+   comme une alerte. Repère = liseré menthe + pastille, pas un changement de ton. */
+.acc-plan--featured { background: radial-gradient(ellipse at top right, var(--mint-soft), transparent 70%), var(--card-bg); border-color: var(--brand-light); box-shadow: var(--shadow-lg); }
+
+.acc-chip--featured { display: inline-flex; align-items: center; gap: 4px; background: var(--brand-light); color: #fff; }
+
+.acc-plan__sub { margin: 2px 0 0; font-size: .82rem; color: var(--text-muted); }
+.acc-plan__price { margin: 10px 0 0; display: flex; align-items: baseline; gap: 6px; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.acc-plan__price span { font-size: .8rem; font-weight: 500; opacity: .65; }
+.acc-plan__savings { display: flex; align-items: center; gap: 4px; margin: 2px 0 0; font-size: .8rem; font-weight: 600; color: var(--brand-mid); }
+
+.acc-plan__cta { width: 100%; margin-top: 16px; }
+.acc-plan__cta:disabled { opacity: 1; background: var(--warm-gray); color: var(--text-muted); border-color: transparent; }
+.acc-plan__cta-note { margin: 6px 0 0; text-align: center; font-size: .78rem; color: var(--text-muted); }
+
+/* Bénéfices : 4-5 lignes écrites pour répondre « pourquoi payer », pas un sous-ensemble arbitraire des
+   quotas — voir planBenefits() dans account.js. Le détail exhaustif vit dans le tableau comparatif unique
+   plus bas, plus jamais dans un repli par carte. */
+.acc-plan__benefits { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 9px; font-size: .88rem; }
+.acc-plan__benefits li { display: flex; gap: 8px; align-items: flex-start; }
+.acc-plan__benefits svg { flex: none; margin-top: 3px; color: var(--action-ink); }
+.acc-plan__benefits-lead { font-weight: 700; color: var(--text-muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+
+/* Jauge d'usage (remplace l'ancien bloc « Ta formule », qui ne faisait que répéter la carte active). */
+.acc-usage__head { display: flex; align-items: center; gap: 8px; }
+.acc-usage__bars { display: grid; gap: 12px; margin-top: 14px; }
+.acc-usage__bar-label { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: 5px; }
+.acc-usage__bar-label span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+.acc-usage__track { height: 6px; border-radius: 9999px; background: var(--warm-gray); overflow: hidden; }
+.acc-usage__fill { height: 100%; border-radius: 9999px; background: var(--brand-light); }
+.acc-usage__fill.is-near { background: var(--terracotta, var(--status-watch)); }
+.acc-usage__nudge { display: flex; align-items: center; gap: 6px; margin: 14px 0 0; padding: 10px 14px; border-radius: 14px; background: var(--mint-soft); color: var(--brand-mid); font-size: .85rem; font-weight: 600; }
+.acc-usage__nudge svg { flex: none; }
+
+/* Tableau comparatif unique, repliable par catégorie — remplace les 3 « Voir le détail » indépendants qui
+   ne dépliaient qu'une carte à la fois et cassaient la mise en page. */
+.acc-compare-card { overflow: hidden; }
+.acc-compare { overflow-x: auto; margin: 4px -4px 0; }
+.acc-compare__row { display: grid; align-items: center; min-height: 44px; }
+.acc-compare__row--head { position: sticky; top: 0; z-index: 1; background: var(--card-bg); border-bottom: 1px solid var(--border-soft); padding-bottom: 8px; }
+.acc-compare__cell { padding: 8px 6px; font-size: .85rem; text-align: center; }
+.acc-compare__cell--label { text-align: left; font-weight: 500; position: sticky; left: 0; background: var(--card-bg); padding-left: 4px; }
+.acc-compare__row--head .acc-compare__cell--label { background: var(--card-bg); }
+.acc-compare__no { color: var(--text-muted); opacity: .5; }
+.acc-compare__yes { display: inline-flex; color: var(--action-ink); }
+.acc-compare__cat { border-top: 1px solid var(--border-soft); }
+.acc-compare__cat summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .88rem; list-style: none; }
+.acc-compare__cat summary::-webkit-details-marker { display: none; }
+.acc-compare__cat summary svg { transition: transform .15s var(--ease-out); flex: none; }
+.acc-compare__cat[open] summary svg { transform: rotate(90deg); }
+.acc-compare__cat-count { margin-left: auto; font-size: .78rem; color: var(--text-muted); font-weight: 500; }
+.acc-compare__body { padding-bottom: 6px; }
+.acc-compare__body .acc-compare__row:nth-child(odd) { background: var(--warm-gray); border-radius: 10px; }
+
+/* Fenêtre « choisir une formule » en 3 étapes (ouverte depuis le bouton de la carte). */
+.acc-steps { display: flex; gap: 6px; margin: -4px 0 4px; }
+.acc-steps__dot { width: 22px; height: 4px; border-radius: 9999px; background: var(--border-soft); }
+.acc-steps__dot.is-on { background: var(--brand-mid); }
+.acc-steps__dot.is-done { background: var(--brand-light); }
+.acc-pay-methods { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.acc-pay-methods li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: 14px; font-weight: 600; font-size: .9rem; }
+.acc-pay-methods svg { color: var(--action-ink); flex: none; }
 .acc-list .is-on { outline: 2px solid var(--accent, #1f3d34); border-radius: 12px; }
 .cms-body p, .community-tip-content p { margin: 0 0 .6em; }
 .cms-body ul, .cms-body ol, .community-tip-content ul, .community-tip-content ol { margin: 0 0 .6em 1.2em; padding: 0; }
