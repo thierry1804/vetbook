@@ -561,14 +561,14 @@
   function loadSubscriptionAccount() {
     if (!acc.user || subscriptionLoading) return Promise.resolve();
     subscriptionLoading = true;
-    var requestedUser = acc.user.id;
-    return cs().api('/api/me/subscription').then(function (data) { if (acc.user && acc.user.id === requestedUser) { subscriptionAccount = data; subscriptionError = ''; } })
+    var requestedUser = acc.user.userId;
+    return cs().api('/api/me/subscription').then(function (data) { if (acc.user && acc.user.userId === requestedUser) { subscriptionAccount = data; subscriptionError = ''; } })
       .catch(function (error) { subscriptionError = error.message || 'Actualisation impossible.'; })
       .then(function () { subscriptionLoading = false; if (acc.panel === 'plan') renderPanel(); });
   }
   function subscriptionDate(value) { return value ? new Date(value).toLocaleString('fr-FR') : 'Sans échéance'; }
   function subscriptionAccountHtml(cfg) {
-    if (!acc.user) return '<div class="acc-card"><p>Connecte-toi pour envoyer et suivre une demande.</p></div>';
+    if (!acc.user) return '<div class="acc-card"><h3>Demander une formule</h3><p>Connecte-toi pour envoyer et suivre une demande.</p><button type="button" class="acc-btn acc-btn--primary" data-act="goto" data-panel="security">Se connecter ou créer un compte</button></div>';
     var data = subscriptionAccount, state = data && data.entitlements.subscription;
     var stale = data && data.entitlements.validUntil && Date.parse(data.entitlements.validUntil) <= Date.now();
     var labels = { nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Traitée', refuse: 'Refusée', annule: 'Annulée', actif: 'Actif', essai: 'Essai', suspendu: 'Suspendu', expire: 'Expiré', termine: 'Terminé', remplace: 'Remplacé' };
@@ -583,6 +583,8 @@
       html += (state.upcoming || []).map(function (r) { return '<p>Activation prévue : <b>' + esc(planName(r.plan_code)) + '</b> le ' + esc(subscriptionDate(r.started_at)) + ', fin : ' + esc(subscriptionDate(r.ends_at)) + '</p>'; }).join('');
     }
     if (tracked && tracked.ends_at && ['actif','expire'].indexOf(tracked.state) >= 0 && !tracked.is_trial) html += '<button class="acc-btn" data-act="subscription-renew" data-plan="' + esc(tracked.plan_code) + '">Demander un renouvellement</button>';
+    if (tracked && !tracked.ends_at) html += '<p class="acc-hint">Cet accès est sans échéance : aucun renouvellement n’est nécessaire. Tu peux demander une autre formule ci-dessous.</p>';
+    else if (tracked && (tracked.is_trial || tracked.state === 'essai')) html += '<p class="acc-hint">Pour poursuivre après cet essai, choisis Souscrire / changer de formule dans le formulaire ci-dessous.</p>';
     html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Les demandes sont examinées manuellement.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
     var options = [];
     cfg.plans.forEach(function (p) { if (p.code === 'gratuit') return; if (p.monthly) options.push('<option value="' + esc(p.monthly.planCode || p.code) + '">' + esc(p.name) + ' · mensuel</option>'); if (p.yearly) options.push('<option value="' + esc(p.yearly.planCode || p.code + '_annuel') + '">' + esc(p.name) + ' · annuel</option>'); });
@@ -622,7 +624,7 @@
         }).join('');
         var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
         return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
-          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul>' + (acc.user && o.code !== 'gratuit' ? '<button type="button" class="acc-btn" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' : '') + '</div>';
+          (o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' + (!acc.user ? '<p class="acc-hint">Connexion requise pour envoyer la demande.</p>' : '') : '') + (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul></div>';
       }).join('') + '</div>' +
       '<div class="acc-card"><h3>Souscrire</h3><p class="acc-hint">' + esc(contact.subscribe_instructions || 'Contacte-nous pour souscrire.') + '</p>' +
         (contactLinks ? '<div class="acc-actions">' + contactLinks + '</div>' : '') + '</div>';
@@ -864,8 +866,8 @@
   }
 
   var actions = {
-    'subscription-choose': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'assign'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },
-    'subscription-renew': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'renew'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },
+    'subscription-choose': function (t) { if (!acc.user) { acc.panel = 'security'; acc.mobileOpen = true; render(); scrollTop(); toast('Connecte-toi pour demander cette formule.', 'info'); return; } var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'assign'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { toast('Actualise le suivi de ton abonnement pour ouvrir le formulaire.', 'info'); loadSubscriptionAccount(); } },
+    'subscription-renew': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'renew'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { toast('Actualise le suivi de ton abonnement pour ouvrir le formulaire.', 'info'); loadSubscriptionAccount(); } },
     'subscription-refresh': function () { loadSubscriptionAccount(); if (plans()) plans().refresh(); },
     'subscription-cancel': function (t) { confirmDialog({ title: 'Annuler cette demande ?', text: 'Elle ne sera plus traitée par l’équipe.', ok: 'Annuler la demande' }).then(function (ok) { if (ok) withBusy(t, function () { return cs().api('/api/me/subscription/requests/' + t.dataset.id + '/cancel', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); }); },
     'subscription-read': function (t) { withBusy(t, function () { return cs().api('/api/me/subscription/notifications/' + t.dataset.id + '/read', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); },

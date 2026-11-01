@@ -89,7 +89,7 @@ Si la période est encore valable, la prolongation part de sa fin : les jours re
 
 Exemple : une fin au 15 décembre prolongée d’un mois devient le 15 janvier, même si la décision est prise le 1er décembre. Les mois sont calendaires : un début le 31 janvier peut finir le 28 février, puis retrouver le 31 mars au renouvellement suivant.
 
-Un accès sans échéance n’a pas de fin à prolonger. Un essai encore valable doit passer par **Changer de formule** pour être converti. Une période suspendue encore valable doit être reprise avant renouvellement. Si une activation future entre en conflit avec la prolongation, l’opération est refusée : examiner cette activation et décider explicitement de la conserver ou de l’annuler.
+Un accès sans échéance n’a pas de fin à prolonger : le bouton utilisateur de renouvellement est donc absent et une explication est affichée. Un essai encore valable doit passer par **Changer de formule** pour être converti. Une période suspendue encore valable doit être reprise avant renouvellement. Si une activation future entre en conflit avec la prolongation, l’opération est refusée : examiner cette activation et décider explicitement de la conserver ou de l’annuler.
 
 ### Changer de formule
 
@@ -139,7 +139,7 @@ Si un autre administrateur modifie la demande ou si l’utilisateur l’annule e
 Dans l’application, se connecter puis ouvrir **Mon compte → Formule et abonnement**.
 
 1. Consulter l’accès effectif, la période suivie, les dates, le temps restant, les activations futures et la dernière vérification. **Actualiser** recharge le suivi.
-2. Cliquer sur **Demander cette formule** dans une offre, ou sur **Demander un renouvellement** lorsque ce bouton est proposé. Ces boutons préparent le formulaire **Faire une demande**.
+2. Cliquer sur **Demander cette formule** dans une offre, ou sur **Demander un renouvellement** lorsque ce bouton est proposé. Ces boutons préparent le formulaire **Faire une demande**. Le bouton de chaque offre est placé sous son prix, avant la liste des fonctionnalités. Pour un visiteur non connecté, **Demander cette formule** ouvre la connexion.
 3. Vérifier le type de demande et la variante. Ajouter éventuellement une date de début souhaitée future et un commentaire.
 4. Cliquer sur **Envoyer la demande**. L’équipe doit l’examiner : l’envoi n’active pas immédiatement de droits.
 5. Suivre l’état et la réponse dans **Mes demandes**. Une demande encore nouvelle ou en cours peut être annulée avec **Annuler la demande**.

@@ -62,3 +62,13 @@ Pour rejouer les tests métier : `npm run test:subscriptions --prefix backend`, 
 - Contrôles en lecture seule : API `/api/health` à 200, réponse positive via le proxy Nginx et page du backoffice accessible.
 - Après migration : **4 périodes**, **3 sans échéance**, **4 périodes historiques conservées avec `workflow_version=0`**. Aucun accès métier réel modifié par les tests ou la migration.
 - Lots 1A, 1B, 1C et 2 réalisés. Aucun développement de paiement inclus. Les décisions métier et limites d’exploitation figurent ci-dessus.
+
+## Complément — visibilité des demandes utilisateur
+
+Après un signalement de boutons difficiles à trouver, contrôle de la version publique : le fichier servi contenait les boutons et les offres étaient visibles. Le parcours complet avec réponses API simulées permettait de les afficher ; le signalement ne permet donc pas d’attribuer la cause à un cache périmé.
+
+- **Demander cette formule** est remonté sous le prix, avant la liste des fonctionnalités, et reste visible pour un visiteur ; son clic ouvre alors la connexion.
+- Un accès sans échéance explique explicitement l’absence de renouvellement nécessaire ; un essai oriente vers une demande de souscription/changement.
+- Le clic affiche une indication si le formulaire n’est pas encore disponible, au lieu de rester sans effet, et relance le chargement du suivi.
+- Le contrôle d’identité du chargement utilise `userId`, conformément au format réel du profil.
+- Validation : lint, compilation et tests navigateur avec visiteur, compte Gratuit, période sans échéance et période avec une fin ; boutons, ordre d’affichage et préremplissage contrôlés.
