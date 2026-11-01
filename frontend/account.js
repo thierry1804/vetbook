@@ -134,6 +134,7 @@
     user: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
     bell: '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/>',
+    settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>',
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
     share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
     database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
@@ -680,7 +681,7 @@
     return html;
   }
   var inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false };
-  var inboxStream = null, inboxUser = null, inboxTimer = null, inboxRefresh = null, inboxDialogOpen = false, inboxConnected = false;
+  var inboxStream = null, inboxUser = null, inboxTimer = null, inboxRefresh = null, inboxDialogOpen = false, inboxConnected = false, inboxPushActive = false;
   function updateInboxBadge() {
     var anchor = document.getElementById('btn-user-nav');
     var button = document.getElementById('btn-inbox-nav');
@@ -690,9 +691,29 @@
     button.innerHTML = icon('bell', 22) + (inbox.unread ? '<span class="inbox-count">' + Math.min(inbox.unread, 99) + '</span>' : '');
   }
   function inboxHtml() {
-    return '<h2 id="accd-title">Notifications</h2><p class="acc-hint">' + (inboxConnected ? 'Mises à jour en direct' : 'Reconnexion en cours · vérification périodique active') + '</p><div class="acc-actions"><button class="acc-btn" data-inbox="filter">' + (inbox.onlyUnread ? 'Afficher toutes' : 'Afficher les non lues') + '</button><button class="acc-btn" data-inbox="read-all"' + (!inbox.unread ? ' disabled' : '') + '>Tout marquer comme lu</button></div>' +
-      (inbox.pushConfigured ? '<div class="acc-actions"><button class="acc-btn" data-inbox="push">Activer les notifications sur cet appareil</button><button class="acc-btn" data-inbox="push-off">Désactiver sur cet appareil</button></div>' : '<p class="acc-hint">Les notifications restent disponibles ici. Le push externe n’est pas configuré.</p>') +
-      '<div class="acc-list">' + (inbox.rows.length ? inbox.rows.map(function (n) { return '<article class="acc-card"><h3>' + esc(n.title) + (!n.read_at ? ' · Non lue' : '') + '</h3><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small><div class="acc-actions"><button class="acc-btn" data-inbox="open" data-id="' + esc(n.id) + '">Ouvrir</button>' + (!n.read_at ? '<button class="acc-btn" data-inbox="read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div></article>'; }).join('') : '<p>Aucune notification.</p>') + '</div><div class="acc-actions"><button class="acc-btn" data-inbox="previous"' + (!inbox.offset ? ' disabled' : '') + '>Précédent</button><button class="acc-btn" data-inbox="next"' + (inbox.next == null ? ' disabled' : '') + '>Suivant</button><button class="acc-btn" data-dlg-close>Fermer</button></div>';
+    var count = inbox.unread ? '<span class="acc-inbox__count">' + inbox.unread + '</span>' : '';
+    var rows = inbox.rows.length ? inbox.rows.map(function (n) {
+      return '<article class="acc-inbox__item' + (!n.read_at ? ' is-unread' : '') + '">' +
+        '<span class="acc-inbox__item-icon" aria-hidden="true">' + icon('bell', 18) + '</span><div class="acc-inbox__item-content"><div class="acc-inbox__item-top"><h3>' + esc(n.title) + '</h3>' + (!n.read_at ? '<span class="acc-inbox__dot" aria-hidden="true"></span><span class="sr-only">Non lue</span>' : '') + '</div>' +
+        '<p>' + esc(n.body) + '</p><time datetime="' + esc(n.created_at) + '">' + esc(subscriptionDate(n.created_at)) + '</time><div class="acc-inbox__item-actions"><button type="button" data-inbox="open" data-id="' + esc(n.id) + '">Voir le détail ' + icon('chevron', 14) + '</button>' +
+        (!n.read_at ? '<button type="button" data-inbox="read" data-id="' + esc(n.id) + '" aria-label="Marquer comme lue : ' + esc(n.title) + '">Marquer comme lue</button>' : '') + '</div></div></article>';
+    }).join('') : '<div class="acc-inbox__empty">' + icon('bell', 24) + '<strong>' + (inbox.onlyUnread ? 'Tout est lu' : 'Aucune notification pour le moment') + '</strong><p>' + (inbox.onlyUnread ? 'Les nouvelles notifications apparaîtront ici.' : 'Tu retrouveras ici les nouvelles concernant ton compte.') + '</p></div>';
+    return '<div class="acc-inbox__header"><div><div class="acc-inbox__eyebrow">Votre activité</div><h2 id="accd-title">Notifications ' + count + '</h2><p class="acc-inbox__sync"><span class="acc-inbox__sync-dot' + (inboxConnected ? ' is-live' : '') + '"></span>' + (inboxConnected ? 'À jour' : 'Actualisation régulière') + '</p></div><button type="button" class="acc-inbox__close" data-dlg-close aria-label="Fermer les notifications">×</button></div>' +
+      '<div class="acc-inbox__toolbar"><div class="acc-inbox__tabs" role="group" aria-label="Filtrer les notifications"><button type="button" data-inbox="all" aria-pressed="' + (!inbox.onlyUnread) + '" class="' + (!inbox.onlyUnread ? 'is-active' : '') + '">Toutes</button><button type="button" data-inbox="unread" aria-pressed="' + inbox.onlyUnread + '" class="' + (inbox.onlyUnread ? 'is-active' : '') + '">Non lues</button></div><button type="button" class="acc-inbox__read-all" data-inbox="read-all"' + (!inbox.unread ? ' disabled' : '') + '>Tout marquer comme lu</button></div>' +
+      '<div class="acc-inbox__list">' + rows + '</div>' +
+      '<div class="acc-inbox__footer"><div class="acc-inbox__pages">' + (inbox.offset || inbox.next != null ? '<button type="button" data-inbox="previous"' + (!inbox.offset ? ' disabled' : '') + ' aria-label="Page précédente">‹</button><span>Page ' + (Math.floor(inbox.offset / 30) + 1) + '</span><button type="button" data-inbox="next"' + (inbox.next == null ? ' disabled' : '') + ' aria-label="Page suivante">›</button>' : '') + '</div>' +
+      '<details class="acc-inbox__settings"><summary>' + icon('settings', 16) + ' Notifications sur cet appareil</summary>' + (inbox.pushConfigured ? '<button type="button" class="acc-btn" data-inbox="' + (inboxPushActive ? 'push-off' : 'push') + '">' + (inboxPushActive ? 'Désactiver les alertes sur cet appareil' : 'Activer les alertes sur cet appareil') + '</button>' : '<p>Les alertes hors application ne sont pas disponibles. Les messages restent visibles ici.</p>') + '</details></div>';
+  }
+  function renderInboxDialog() {
+    if (!inboxDialogOpen || !dialogState) return;
+    var panel = dialogState.el.querySelector('.accd__panel');
+    var focused = document.activeElement, action = focused && focused.dataset.inbox, id = focused && focused.dataset.id;
+    var list = panel.querySelector('.acc-inbox__list');
+    var scroll = list ? list.scrollTop : 0, settingsOpen = !!panel.querySelector('.acc-inbox__settings[open]');
+    panel.innerHTML = inboxHtml(); panel.classList.add('accd__panel--inbox');
+    panel.querySelector('.acc-inbox__list').scrollTop = scroll;
+    if (settingsOpen) panel.querySelector('.acc-inbox__settings').open = true;
+    if (action) { var target = Array.from(panel.querySelectorAll('[data-inbox]')).filter(function (node) { return node.dataset.inbox === action && node.dataset.id === id; })[0]; if (target && !target.disabled) target.focus({ preventScroll: true }); else { var heading = panel.querySelector('#accd-title'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
   }
   function loadInbox() {
     if (!acc.user) return Promise.resolve();
@@ -700,18 +721,20 @@
     return cs().api('/api/me/notifications?offset=' + inbox.offset + '&unread=' + (inbox.onlyUnread ? '1' : '0')).then(function (data) {
       if (!acc.user || acc.user.userId !== userId) return;
       inbox = Object.assign({}, inbox, data); updateInboxBadge();
-      if (inboxDialogOpen && dialogState && dialogState.el.querySelector('[data-inbox]')) dialogState.el.querySelector('.accd__panel').innerHTML = inboxHtml();
+      renderInboxDialog();
     }).catch(function () { if (inboxDialogOpen) toast('Notifications indisponibles. Réessaie dans un instant.', 'error'); });
   }
   function showInbox() {
     var dialog = openDialog(inboxHtml());
     inboxDialogOpen = true;
+    dialog.querySelector('.accd__panel').classList.add('accd__panel--inbox');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration('/').then(function (registration) { return registration && registration.pushManager.getSubscription(); }).then(function (subscription) { inboxPushActive = !!subscription; renderInboxDialog(); }).catch(function () {});
     dialog.addEventListener('click', function (event) {
       var button = event.target.closest('[data-inbox]'); if (!button || button.disabled) return;
       var action = button.dataset.inbox, id = button.dataset.id;
-      if (action === 'filter') { inbox.onlyUnread = !inbox.onlyUnread; inbox.offset = 0; loadInbox(); return; }
+      if (action === 'all' || action === 'unread') { if (inbox.onlyUnread === (action === 'unread')) return; inbox.onlyUnread = action === 'unread'; inbox.offset = 0; loadInbox(); return; }
       if (action === 'next' || action === 'previous') { inbox.offset = action === 'next' ? inbox.next : Math.max(0, inbox.offset - 30); loadInbox(); return; }
-      if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).catch(function (e) { toast(e.message, 'error'); }); return; }
+      if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxDialog(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
       var row = inbox.rows.filter(function (n) { return n.id === id; })[0];
       withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
         if (action === 'open' && row) { closeDialog(); if (row.href === '/?account=plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
@@ -735,7 +758,7 @@
   }
   function stopInboxLive() {
     if (inboxStream) inboxStream.close(); inboxStream = null; inboxUser = null; clearInterval(inboxTimer); clearTimeout(inboxRefresh); inboxConnected = false;
-    inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false }; var badge = document.getElementById('btn-inbox-nav'); if (badge) badge.remove(); if (inboxDialogOpen) closeDialog();
+    inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false }; inboxPushActive = false; var badge = document.getElementById('btn-inbox-nav'); if (badge) badge.remove(); if (inboxDialogOpen) closeDialog();
   }
   function startInboxLive() {
     if (!acc.user || inboxUser === acc.user.userId) return;

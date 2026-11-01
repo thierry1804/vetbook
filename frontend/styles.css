@@ -8731,6 +8731,55 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 #btn-inbox-nav { position: relative; flex-shrink: 0; }
 .inbox-count { position: absolute; top: -3px; right: -4px; border-radius: 999px; min-width: 17px; padding: 1px 3px; background: #b42318; color: white; font: 700 11px/15px sans-serif; }
+.accd__panel--inbox { width: min(540px, 100%); gap: 0; padding: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.acc-inbox__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 24px 24px 16px; }
+.acc-inbox__eyebrow { color: var(--brand-mid); font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.acc-inbox__header h2 { display: flex; align-items: center; gap: 9px; margin: 3px 0 0; font: 800 1.45rem/1.2 var(--font-ui); letter-spacing: -.025em; }
+.acc-inbox__count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 99px; background: var(--mint-soft); color: var(--brand-mid); font: 800 .75rem var(--font-ui); letter-spacing: 0; }
+.acc-inbox__sync { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--text-muted); font-size: .76rem; }
+.acc-inbox__sync-dot, .acc-inbox__dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.acc-inbox__sync-dot.is-live, .acc-inbox__dot { background: var(--brand-mid); }
+.acc-inbox__close { width: 36px; height: 36px; flex: none; border: 0; border-radius: 12px; background: var(--warm-gray); color: var(--text); font: 24px/1 var(--font-ui); cursor: pointer; }
+.acc-inbox__toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 0 24px 14px; border-bottom: 1px solid var(--border-soft); }
+.acc-inbox__tabs { display: inline-flex; gap: 3px; padding: 3px; border-radius: 12px; background: var(--warm-gray); }
+.acc-inbox__tabs button { min-height: 34px; padding: 5px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--text-muted); font: 700 .78rem var(--font-ui); cursor: pointer; }
+.acc-inbox__tabs button.is-active { background: var(--card-bg); color: var(--text); box-shadow: var(--shadow-card); }
+.acc-inbox__read-all { min-height: 34px; border: 0; background: transparent; color: var(--brand-mid); font: 700 .76rem var(--font-ui); cursor: pointer; }
+.acc-inbox__read-all:disabled { opacity: .4; cursor: default; }
+.acc-inbox__list { min-height: 140px; overflow-y: auto; overscroll-behavior: contain; }
+.acc-inbox__item { display: flex; gap: 12px; padding: 17px 24px; border-bottom: 1px solid var(--border-soft); }
+.acc-inbox__item.is-unread { background: var(--mint-soft); }
+.acc-inbox__item-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 12px; background: var(--card-bg); color: var(--brand-mid); }
+.acc-inbox__item-content { min-width: 0; flex: 1; }
+.acc-inbox__item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.acc-inbox__item h3 { margin: 0; font: 700 .9rem/1.4 var(--font-ui); }
+.acc-inbox__item p { margin: 4px 0 8px; color: var(--text-body); font-size: .83rem; line-height: 1.5; overflow-wrap: anywhere; }
+.acc-inbox__item time { color: var(--text-muted); font-size: .72rem; }
+.acc-inbox__item-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+.acc-inbox__item-actions button { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--brand-mid); font: 700 .75rem var(--font-ui); cursor: pointer; }
+.acc-inbox__item-actions button:last-child:not(:first-child) { color: var(--text-muted); }
+.acc-inbox__empty { display: grid; justify-items: center; align-content: center; gap: 8px; min-height: 220px; padding: 32px; text-align: center; color: var(--text-muted); }
+.acc-inbox__empty svg { color: var(--brand-mid); }
+.acc-inbox__empty strong { color: var(--text); font-size: .92rem; }
+.acc-inbox__empty p { margin: 0; font-size: .8rem; }
+.acc-inbox__footer { padding: 10px 24px 14px; border-top: 1px solid var(--border-soft); }
+.acc-inbox__pages { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); font-size: .78rem; }
+.acc-inbox__pages:empty { display: none; }
+.acc-inbox__pages button { width: 32px; height: 32px; border: 0; border-radius: 9px; background: var(--warm-gray); color: var(--text); font-size: 20px; cursor: pointer; }
+.acc-inbox__pages button:disabled { opacity: .4; cursor: default; }
+.acc-inbox__settings { margin-top: 4px; font-size: .78rem; }
+.acc-inbox__settings summary { display: flex; align-items: center; gap: 7px; padding: 8px 0; color: var(--text-muted); cursor: pointer; list-style: none; }
+.acc-inbox__settings summary::-webkit-details-marker { display: none; }
+.acc-inbox__settings .acc-btn { width: 100%; margin: 6px 0 2px; }
+.acc-inbox__settings p { margin: 4px 0; color: var(--text-muted); line-height: 1.5; }
+.acc-inbox__close:focus-visible, .acc-inbox__toolbar button:focus-visible, .acc-inbox__item-actions button:focus-visible, .acc-inbox__pages button:focus-visible, .acc-inbox__settings summary:focus-visible { outline: 2px solid var(--brand-mid); outline-offset: 2px; }
+@media (max-width: 767px) {
+  .accd__panel--inbox { width: 100%; max-height: 92dvh; padding: 0 0 env(safe-area-inset-bottom, 0px); }
+  .acc-inbox__header { padding: 22px 18px 14px; }
+  .acc-inbox__toolbar { padding: 0 18px 12px; }
+  .acc-inbox__item { padding: 15px 18px; }
+  .acc-inbox__footer { padding: 8px 18px 12px; }
+}
 
 /* Share title, subtitle, price, savings and action rows across cards so prices and CTAs align. */
 @supports (grid-template-rows: subgrid) {
