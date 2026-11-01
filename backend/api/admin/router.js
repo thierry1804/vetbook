@@ -1,3 +1,5 @@
+import { buildNotificationRouter } from '../_lib/notification-router.js';
+import { realtimeHandler } from '../_lib/realtime.js';
 import { mountSubscriptions } from './subscriptions.js';
 import { computeEntitlements } from '../_lib/entitlements.js';
 // Backoffice : /api/admin/* (auth séparée, RBAC, audit). Voir docs/backoffice/PLAN.md.
@@ -35,6 +37,8 @@ function listParams(req, defSort) {
 export function buildAdminRouter() {
   const router = express.Router();
   router.use(auditFallback);
+  router.use('/notifications',buildNotificationRouter('admin'));
+  router.get('/events',realtimeHandler('admin'));
 
   // ───────── Authentification ─────────
   router.post('/auth/login', loginLimiter, async (req, res, next) => {

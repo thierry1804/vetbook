@@ -46,7 +46,7 @@ export function buildMySubscriptionRouter() {
   }catch(error){next(error);}});
   router.post('/notifications/:id/read',async(req,res,next)=>{try{
     if(!/^[0-9a-f-]{36}$/i.test(req.params.id))throw subscriptionError('Notification invalide.');
-    const row=(await withClient((c)=>c.query('update subscription_notifications set read_at=coalesce(read_at,now()) where id=$1 and user_id=$2 returning id',[req.params.id,req.subscriptionUser.userId]))).rows[0];
+    const row=(await withTransaction(async(c)=>{await c.query('select pg_advisory_xact_lock(73922,1)');return c.query('update subscription_notifications set read_at=coalesce(read_at,now()) where id=$1 and user_id=$2 returning id',[req.params.id,req.subscriptionUser.userId]);})).rows[0];
     if(!row)throw subscriptionError('Notification introuvable.',404);res.json({ok:true});
   }catch(error){next(error);}});
   router.use((error,_req,res,_next)=>{void _next;if(error.status)res.status(error.status).json({error:error.message,code:error.code});else{console.error('subscription',error);res.status(500).json({error:'Erreur serveur.'});}});

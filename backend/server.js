@@ -1,3 +1,5 @@
+import { buildNotificationRouter, runInboxPush } from './api/_lib/notification-router.js';
+import { realtimeHandler, startRealtime } from './api/_lib/realtime.js';
 import { runSubscriptionNotifications } from './api/_lib/subscription-notifications.js';
 import { buildMySubscriptionRouter } from './api/me/subscription.js';
 // Runtime API — schéma appliqué au démarrage, pas de fichiers statiques.
@@ -122,6 +124,8 @@ app.use('/api/admin', buildAdminRouter());
 app.get('/api/ref', refHandler);
 app.get('/api/public-config', publicConfig);
 app.get('/api/me/entitlements', meEntitlements);
+app.use('/api/me/notifications',buildNotificationRouter('user'));
+app.get('/api/me/events',realtimeHandler('user'));
 app.use('/api/me/subscription', buildMySubscriptionRouter());
 app.all('/api/sync/push', syncPush);
 app.all('/api/sync/pull', syncPull);
@@ -152,7 +156,9 @@ async function boot() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API App'lika sur http://0.0.0.0:${PORT}`);
-    const subscriptionTimer=setInterval(()=>{ runSubscriptionNotifications().catch((error)=>console.error('subscription notifications',error.message)); },60000);
+    startRealtime();
+    const inboxTimer=setInterval(()=>runInboxPush().catch(error=>console.error('inbox push',error.message)),5000);inboxTimer.unref();
+    const subscriptionTimer=setInterval(()=>{ runSubscriptionNotifications().catch((error)=>console.error('subscription notifications',error.message)); },5000);
     subscriptionTimer.unref();
   });
 }

@@ -15,7 +15,7 @@ export const Dashboard = () => {
   const [d, setD] = useState<any>(null); const [err, setErr] = useState('');
   const { me, permissions } = useAuth(); const nav = useNavigate();
   const load = () => { setErr(''); api('/dashboard').then((r) => setD(r.json)).catch((e) => setErr(e.message)); };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); window.addEventListener('applika:realtime',load); return () => window.removeEventListener('applika:realtime',load); }, []);
   const first = String(me?.name || '').split(' ')[0];
   // « Créer » (une action) et « aller à » (une navigation) n'ont pas le même poids : un bouton plein
   // pour les premières, un simple lien pour les secondes — avant, les cinq étaient des boutons identiques.

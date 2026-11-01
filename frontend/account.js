@@ -198,7 +198,7 @@
   var dialogState = null;
   function closeDialog() {
     if (!dialogState) return;
-    var d = dialogState; dialogState = null;
+    var d = dialogState; dialogState = null; inboxDialogOpen = false;
     d.el.remove();
     document.removeEventListener('keydown', d.onKey, true);
     if (d.returnFocus && document.body.contains(d.returnFocus)) d.returnFocus.focus({ preventScroll: true });
@@ -343,7 +343,11 @@
     var body = $('#acc-panel-body', root);
     if (!body) return;
     var fn = { profile: panelProfile, security: panelSecurity, notifications: panelNotifications, display: panelDisplay, plan: panelPlan, sharing: panelSharing, data: panelData, help: panelHelp }[acc.panel];
+    var draft = {}, activeId = document.activeElement && document.activeElement.id;
+    if (acc.panel === 'plan') $$('[id^="sub-"]', body).forEach(function (el) { if ('value' in el) draft[el.id] = el.value; });
     body.innerHTML = fn();
+    Object.keys(draft).forEach(function (id) { var el = document.getElementById(id); if (el) el.value = draft[id]; });
+    if (draft[activeId] !== undefined) { var focused = document.getElementById(activeId); if (focused) focused.focus({ preventScroll: true }); }
     bindMeters(body);
     afterPanel();
   }
@@ -593,6 +597,80 @@
     html += '<div class="acc-card"><h3>Notifications</h3>' + (data.notifications.length ? data.notifications.map(function (n) { return '<div class="acc-card"><b>' + esc(n.title) + '</b><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small>' + (!n.read_at ? '<button class="acc-btn" data-act="subscription-read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div>'; }).join('') : '<p>Aucune notification.</p>') + '</div>';
     return html;
   }
+  var inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false };
+  var inboxStream = null, inboxUser = null, inboxTimer = null, inboxRefresh = null, inboxDialogOpen = false, inboxConnected = false;
+  function updateInboxBadge() {
+    var anchor = document.getElementById('btn-user-nav');
+    var button = document.getElementById('btn-inbox-nav');
+    if (!anchor || !acc.user) { if (button) button.remove(); return; }
+    if (!button) { button = document.createElement('button'); button.id = 'btn-inbox-nav'; button.type = 'button'; button.className = 'btn-icon'; button.addEventListener('click', function () { showInbox(); }); anchor.parentNode.insertBefore(button, anchor); }
+    button.setAttribute('aria-label', 'Notifications' + (inbox.unread ? ' : ' + inbox.unread + ' non lues' : ''));
+    button.innerHTML = icon('bell', 22) + (inbox.unread ? '<span class="inbox-count">' + Math.min(inbox.unread, 99) + '</span>' : '');
+  }
+  function inboxHtml() {
+    return '<h2 id="accd-title">Notifications</h2><p class="acc-hint">' + (inboxConnected ? 'Mises à jour en direct' : 'Reconnexion en cours · vérification périodique active') + '</p><div class="acc-actions"><button class="acc-btn" data-inbox="filter">' + (inbox.onlyUnread ? 'Afficher toutes' : 'Afficher les non lues') + '</button><button class="acc-btn" data-inbox="read-all"' + (!inbox.unread ? ' disabled' : '') + '>Tout marquer comme lu</button></div>' +
+      (inbox.pushConfigured ? '<div class="acc-actions"><button class="acc-btn" data-inbox="push">Activer les notifications sur cet appareil</button><button class="acc-btn" data-inbox="push-off">Désactiver sur cet appareil</button></div>' : '<p class="acc-hint">Les notifications restent disponibles ici. Le push externe n’est pas configuré.</p>') +
+      '<div class="acc-list">' + (inbox.rows.length ? inbox.rows.map(function (n) { return '<article class="acc-card"><h3>' + esc(n.title) + (!n.read_at ? ' · Non lue' : '') + '</h3><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small><div class="acc-actions"><button class="acc-btn" data-inbox="open" data-id="' + esc(n.id) + '">Ouvrir</button>' + (!n.read_at ? '<button class="acc-btn" data-inbox="read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div></article>'; }).join('') : '<p>Aucune notification.</p>') + '</div><div class="acc-actions"><button class="acc-btn" data-inbox="previous"' + (!inbox.offset ? ' disabled' : '') + '>Précédent</button><button class="acc-btn" data-inbox="next"' + (inbox.next == null ? ' disabled' : '') + '>Suivant</button><button class="acc-btn" data-dlg-close>Fermer</button></div>';
+  }
+  function loadInbox() {
+    if (!acc.user) return Promise.resolve();
+    var userId = acc.user.userId;
+    return cs().api('/api/me/notifications?offset=' + inbox.offset + '&unread=' + (inbox.onlyUnread ? '1' : '0')).then(function (data) {
+      if (!acc.user || acc.user.userId !== userId) return;
+      inbox = Object.assign({}, inbox, data); updateInboxBadge();
+      if (inboxDialogOpen && dialogState && dialogState.el.querySelector('[data-inbox]')) dialogState.el.querySelector('.accd__panel').innerHTML = inboxHtml();
+    }).catch(function () { if (inboxDialogOpen) toast('Notifications indisponibles. Réessaie dans un instant.', 'error'); });
+  }
+  function showInbox() {
+    var dialog = openDialog(inboxHtml());
+    inboxDialogOpen = true;
+    dialog.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-inbox]'); if (!button || button.disabled) return;
+      var action = button.dataset.inbox, id = button.dataset.id;
+      if (action === 'filter') { inbox.onlyUnread = !inbox.onlyUnread; inbox.offset = 0; loadInbox(); return; }
+      if (action === 'next' || action === 'previous') { inbox.offset = action === 'next' ? inbox.next : Math.max(0, inbox.offset - 30); loadInbox(); return; }
+      if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).catch(function (e) { toast(e.message, 'error'); }); return; }
+      var row = inbox.rows.filter(function (n) { return n.id === id; })[0];
+      withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
+        if (action === 'open' && row) { closeDialog(); if (row.href === '/?account=plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        return loadInbox();
+      }); }).catch(function (e) { toast(e.message, 'error'); });
+    });
+    loadInbox();
+  }
+  function configureInboxPush(enable) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.reject(new Error('Notifications push indisponibles dans ce navigateur.'));
+    return navigator.serviceWorker.ready.then(function (registration) {
+      return registration.pushManager.getSubscription().then(function (subscription) {
+        if (!enable) { if (!subscription) return; return cs().api('/api/me/notifications/push', { method: 'DELETE', body: JSON.stringify({ endpoint: subscription.endpoint }) }).then(function () { return subscription.unsubscribe(); }).then(function () { toast('Notifications désactivées sur cet appareil.', 'success'); }); }
+        return Notification.requestPermission().then(function (permission) {
+          if (permission !== 'granted') throw new Error('Autorise les notifications dans les réglages du navigateur.');
+          var bytes = Uint8Array.from(atob(inbox.vapidPublicKey.replace(/-/g, '+').replace(/_/g, '/')), function (c) { return c.charCodeAt(0); });
+          return subscription || registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes });
+        }).then(function (sub) { return cs().api('/api/me/notifications/push', { method: 'POST', body: JSON.stringify(sub.toJSON()) }).catch(function (error) { if (!subscription) sub.unsubscribe(); throw error; }); }).then(function () { setPrefs({ notifications: { push: true } }); toast('Notifications activées sur cet appareil.', 'success'); });
+      });
+    });
+  }
+  function stopInboxLive() {
+    if (inboxStream) inboxStream.close(); inboxStream = null; inboxUser = null; clearInterval(inboxTimer); clearTimeout(inboxRefresh); inboxConnected = false;
+    inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false }; var badge = document.getElementById('btn-inbox-nav'); if (badge) badge.remove(); if (inboxDialogOpen) closeDialog();
+  }
+  function startInboxLive() {
+    if (!acc.user || inboxUser === acc.user.userId) return;
+    stopInboxLive(); inboxUser = acc.user.userId; loadInbox();
+    function refresh() { clearTimeout(inboxRefresh); inboxRefresh = setTimeout(function () { loadInbox(); if (plans()) plans().refresh(); if (acc.panel === 'plan') loadSubscriptionAccount(); }, 150); }
+    if (window.EventSource) {
+      inboxStream = new EventSource('/api/me/events');
+      inboxStream.addEventListener('ready', function () { inboxConnected = true; refresh(); });
+      inboxStream.addEventListener('change', refresh);
+      inboxStream.addEventListener('session-ended', function () { stopInboxLive(); onSignedOut(); });
+      inboxStream.onerror = function () { inboxConnected = false; };
+    }
+    inboxTimer = setInterval(function () { if (!inboxConnected) refresh(); }, 30000);
+  }
+  window.addEventListener('online', function () { if (acc.user) { loadInbox(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && acc.user) { loadInbox(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
+
   function panelPlan() {
     var P = plans(), cfg = P && P.config();
     if (!cfg || !cfg.plans || !cfg.plans.length) return '<div class="acc-card"><h3>Formules</h3><p class="acc-hint">Les formules ne sont pas disponibles pour le moment. Vérifie ta connexion puis réessaie.</p><div class="acc-actions"><button type="button" class="acc-btn" data-act="plan-refresh">' + icon('refresh', 18) + 'Actualiser</button></div></div>';
@@ -775,6 +853,7 @@
     return cs().api('/api/user/profile').then(function (p) {
       acc.user = p;
       acc.planRefreshed = false;
+      startInboxLive();
       adoptServerPrefs(p);
       syncOwnerFromAccount(p);
       updateNavAvatar();
@@ -805,6 +884,7 @@
     });
   }
   function onSignedOut() {
+    stopInboxLive();
     subscriptionAccount = null; subscriptionError = ''; acc.planRefreshed = false;
     acc.user = null; acc.sessions = acc.links = acc.household = null; acc.justCreatedLink = null;
     updateNavAvatar();
@@ -947,7 +1027,7 @@
     'subscription-request': function (form) {
       var desired = val('sub-date');
       withBusy($('button[type="submit"]', form), function () {
-        return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: val('sub-kind'), planCode: val('sub-plan'), desiredStart: desired ? new Date(desired + 'T12:00:00').toISOString() : null, comment: val('sub-comment') }) }).then(function () { toast('Demande enregistrée', 'success'); return loadSubscriptionAccount(); });
+        return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: val('sub-kind'), planCode: val('sub-plan'), desiredStart: desired ? new Date(desired + 'T12:00:00').toISOString() : null, comment: val('sub-comment') }) }).then(function () { toast('Demande enregistrée', 'success'); form.reset(); return loadSubscriptionAccount(); });
       }).catch(function (e) { setStatus('sub-status', e.message, true); });
     },
     profile: function (form) {
@@ -1060,6 +1140,7 @@
   // ——— Liens reçus par e-mail ————————————————————————————————
   function cleanUrl() { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* rien */ } }
   function handleDeepLinks() {
+    if (new URLSearchParams(location.search).get('account') === 'plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); }
     var q = new URLSearchParams(location.search);
     var verify = q.get('verify'), reset = q.get('reset'), invite = q.get('invite');
     if (!verify && !reset && !invite) return;

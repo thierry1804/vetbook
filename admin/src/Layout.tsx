@@ -1,3 +1,4 @@
+import { Notifications } from './Notifications';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Button, Modal, Input, Tooltip, Typography } from 'antd';
 import { SearchOutlined, UserOutlined, LogoutOutlined, BulbOutlined, MenuFoldOutlined, MenuUnfoldOutlined, DashboardOutlined, SettingOutlined } from '@ant-design/icons';
@@ -183,6 +184,7 @@ export const AppLayout = () => {
             aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <ReleasePill />
+            <Notifications />
             <Tooltip title="Aller à… ou rechercher (Ctrl+K)"><Button type="text" icon={<SearchOutlined />} onClick={() => setPalette(true)} aria-label="Ouvrir la recherche" /></Tooltip>
             <Tooltip title="Thème clair/sombre"><Button type="text" icon={<BulbOutlined />} onClick={toggle} aria-label="Changer de thème (clair/sombre)" /></Tooltip>
             <Dropdown placement="bottomRight" menu={{

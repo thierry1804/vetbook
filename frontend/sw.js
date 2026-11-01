@@ -115,7 +115,10 @@ self.addEventListener('notificationclick', function (event) {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
       for (var i = 0; i < list.length; i++) {
-        if ('focus' in list[i]) return list[i].focus();
+        if ('focus' in list[i]) {
+          if ('navigate' in list[i]) return list[i].navigate(new URL(targetUrl, self.location.origin).href).then(function (client) { return client && client.focus(); });
+          return list[i].focus();
+        }
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })

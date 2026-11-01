@@ -8656,3 +8656,6 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 /* Subscription request comments use the same field sizing as other account inputs. */
 .acc-field textarea { width: 100%; min-height: 88px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--card-bg); color: var(--text); font: inherit; resize: vertical; }
+
+#btn-inbox-nav { position: relative; flex-shrink: 0; }
+.inbox-count { position: absolute; top: -3px; right: -4px; border-radius: 999px; min-width: 17px; padding: 1px 3px; background: #b42318; color: white; font: 700 11px/15px sans-serif; }

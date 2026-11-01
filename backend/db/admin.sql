@@ -455,3 +455,148 @@ create table if not exists subscription_notifications (
   attempted_at timestamptz
 );
 create index if not exists subscription_notifications_user_idx on subscription_notifications (user_id, created_at desc);
+
+-- Persistent inboxes and transactionally published realtime changes.
+create table if not exists inbox_notifications (
+  id uuid primary key default gen_random_uuid(),
+  audience text not null check(audience in ('user','admin')),
+  recipient_id uuid not null,
+  event_key text not null,
+  title text not null,
+  body text not null,
+  href text not null,
+  permission text,
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  push_status text not null default 'pending',
+  attempted_at timestamptz,
+  unique(audience,recipient_id,event_key)
+);
+create index if not exists inbox_recipient_idx on inbox_notifications(audience,recipient_id,created_at desc);
+create table if not exists realtime_events (
+  id bigserial primary key,
+  audience text not null,
+  recipient_id uuid,
+  resource text not null,
+  record_id text,
+  created_at timestamptz not null default now()
+);
+create index if not exists realtime_events_created_idx on realtime_events(created_at);
+create table if not exists admin_push_subscriptions (
+  endpoint text primary key,
+  admin_id uuid not null references admin_users(id) on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+create or replace function publish_realtime(aud text, recipient uuid, resource_name text, record_key text) returns void as $$
+begin
+  -- Serialize event IDs through commit, including concurrent transactions.
+  perform pg_advisory_xact_lock(73922,1);
+  insert into realtime_events(audience,recipient_id,resource,record_id) values(aud,recipient,resource_name,record_key);
+  perform pg_notify('applika_realtime','changed');
+end;
+$$ language plpgsql;
+create or replace function realtime_inbox_change() returns trigger as $$
+begin
+  if TG_OP='UPDATE' and old.read_at is not distinct from new.read_at then return new; end if;
+  perform publish_realtime(new.audience,new.recipient_id,'notifications',new.id::text);
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists inbox_realtime on inbox_notifications;
+create trigger inbox_realtime after insert or update of read_at on inbox_notifications for each row execute function realtime_inbox_change();
+create or replace function notify_subscription_admins(key text, heading text, message text, link text, actor uuid default null) returns void as $$
+begin
+  insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,permission)
+    select 'admin',a.id,key,heading,message,link,'subscriptions.read' from admin_users a
+    where a.status='actif' and (actor is null or a.id<>actor) and exists(
+      select 1 from admin_role_permissions p where p.role_code=a.role_code and p.permission in ('*','subscriptions.*','subscriptions.read'))
+    on conflict(audience,recipient_id,event_key) do nothing;
+end;
+$$ language plpgsql;
+create or replace function subscription_request_realtime() returns trigger as $$
+begin
+  perform publish_realtime('user',new.user_id,'subscription-requests',new.id::text);
+  perform publish_realtime('admin',null,'subscription-requests',new.id::text);
+  if TG_OP='INSERT' then
+    perform notify_subscription_admins('request:'||new.id,'Nouvelle demande d’abonnement','Une demande attend votre examen.','/subscription-requests?status=open');
+    insert into inbox_notifications(audience,recipient_id,event_key,title,body,href)
+      values('user',new.user_id,'request-received:'||new.id,'Votre demande a été reçue','L’équipe examinera votre demande. Aucun accès n’est activé par son envoi.','/?account=plan') on conflict do nothing;
+  elsif new.status='en_cours' and old.status is distinct from new.status then
+    insert into inbox_notifications(audience,recipient_id,event_key,title,body,href)
+      values('user',new.user_id,'request-taken:'||new.id,'Votre demande est en cours de traitement','L’équipe a pris en charge votre demande d’abonnement.','/?account=plan') on conflict do nothing;
+  elsif new.status='annule' and old.status is distinct from new.status then
+    perform notify_subscription_admins('request-cancelled:'||new.id,'Demande d’abonnement annulée','L’utilisateur a annulé sa demande.','/subscription-requests?status=annule');
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists subscription_requests_realtime on subscription_requests;
+create trigger subscription_requests_realtime after insert or update on subscription_requests for each row execute function subscription_request_realtime();
+create or replace function subscription_period_realtime() returns trigger as $$
+begin
+  perform publish_realtime('user',new.user_id,'subscription',new.id::text);
+  perform publish_realtime('admin',null,'subscription',new.id::text);
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists subscription_periods_realtime on subscriptions;
+create trigger subscription_periods_realtime after insert or update on subscriptions for each row execute function subscription_period_realtime();
+create or replace function subscription_notice_inbox() returns trigger as $$
+begin
+  insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,push_status,created_at,read_at)
+    values('user',new.user_id,'subscription:'||new.event_key,new.title,new.body,'/?account=plan','legacy',new.created_at,new.read_at)
+    on conflict(audience,recipient_id,event_key) do update set read_at=excluded.read_at;
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists subscription_notice_realtime on subscription_notifications;
+create trigger subscription_notice_realtime after insert or update of read_at on subscription_notifications for each row execute function subscription_notice_inbox();
+insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,push_status,created_at,read_at)
+  select 'user',user_id,'subscription:'||event_key,title,body,'/?account=plan','legacy',created_at,read_at from subscription_notifications on conflict do nothing;
+create or replace function subscription_action_inbox() returns trigger as $$
+begin
+  perform notify_subscription_admins('subscription-action:'||new.id,'Abonnement modifié','Une décision d’accès a été enregistrée. Consultez le dossier et son historique.','/subscriptions/users/'||new.user_id,new.admin_id);
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists subscription_action_notice on subscription_events;
+create trigger subscription_action_notice after insert on subscription_events for each row execute function subscription_action_inbox();
+create or replace function subscription_deadline_admin_notice() returns trigger as $$
+begin
+  if new.event_key like 'soon:%' or new.event_key like 'expiry:%' then
+    perform notify_subscription_admins('deadline:'||new.event_key,new.title,'Une échéance d’abonnement nécessite votre attention. Consultez le dossier.','/subscriptions/users/'||new.user_id);
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists subscription_deadline_admin on subscription_notifications;
+create trigger subscription_deadline_admin after insert on subscription_notifications for each row execute function subscription_deadline_admin_notice();
+create or replace function entitlement_realtime() returns trigger as $$
+begin
+  if TG_OP='DELETE' then
+    perform publish_realtime('user',old.user_id,'subscription',old.id::text);
+    perform publish_realtime('admin',null,'subscription',old.id::text);
+    return old;
+  end if;
+  perform publish_realtime('user',new.user_id,'subscription',new.id::text);
+  perform publish_realtime('admin',null,'subscription',new.id::text);
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists entitlement_overrides_realtime on entitlement_overrides;
+create trigger entitlement_overrides_realtime after insert or update or delete on entitlement_overrides for each row execute function entitlement_realtime();
+-- Existing open requests must also be discoverable in the new admin inbox.
+select notify_subscription_admins('request:'||r.id,'Demande d’abonnement à examiner','Une demande ouverte attend votre examen.','/subscription-requests?status=open')
+  from subscription_requests r where r.status in ('nouveau','en_cours');
+create or replace function remove_account_inbox() returns trigger as $$
+begin
+  delete from inbox_notifications where audience=TG_ARGV[0] and recipient_id=old.id;
+  return old;
+end;
+$$ language plpgsql;
+drop trigger if exists user_inbox_cleanup on users;
+create trigger user_inbox_cleanup after delete on users for each row execute function remove_account_inbox('user');
+drop trigger if exists admin_inbox_cleanup on admin_users;
+create trigger admin_inbox_cleanup after delete on admin_users for each row execute function remove_account_inbox('admin');

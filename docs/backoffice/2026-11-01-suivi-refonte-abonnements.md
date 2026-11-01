@@ -72,3 +72,23 @@ Après un signalement de boutons difficiles à trouver, contrôle de la version 
 - Le clic affiche une indication si le formulaire n’est pas encore disponible, au lieu de rester sans effet, et relance le chargement du suivi.
 - Le contrôle d’identité du chargement utilise `userId`, conformément au format réel du profil.
 - Validation : lint, compilation et tests navigateur avec visiteur, compte Gratuit, période sans échéance et période avec une fin ; boutons, ordre d’affichage et préremplissage contrôlés.
+
+
+## Extension — temps réel et notifications globales
+
+Guide dédié : [utilisation et exploitation](2026-11-01-temps-reel-notifications.md).
+
+- Cloches admin/utilisateur, compteur de non-lus, filtres, pagination, lecture personnelle synchronisée et liens vers les dossiers.
+- Événements transactionnels persistants, diffusion SSE par PostgreSQL LISTEN/NOTIFY, reprise après coupure, contrôle des sessions et permissions, vérification périodique de secours.
+- Demandes, opérations et échéances reliées aux notifications ; reprise des demandes ouvertes côté admin. Les notes internes restent privées.
+- Push activable par appareil côté admin et utilisateur, avec les clés VAPID existantes validées sans envoi réel. Worker admin dédié ; les notifications incertaines ne sont pas rejouées automatiquement.
+- Les formulaires conservent leurs saisies lors des actualisations en arrière-plan.
+- Validation supplémentaire : 14 scénarios API/SSE/PostgreSQL, fournisseur push injecté, parcours navigateur admin/utilisateur et petit écran. Vérification des compilations et du lint des modules modifiés.
+
+
+### Livraison de l’extension
+
+- 63 vérifications automatisées réussies : 23 contrôles admin, 18 scénarios abonnements, 14 scénarios temps réel et 8 tests unitaires.
+- Contrôles navigateur : cloches, lecture, conservation des saisies et tiroir mobile ; captures examinées.
+- API et Nginx reconstruits ; configuration Nginx valide, santé API à 200 et nouveaux endpoints protégés à 401 sans session. Service worker admin servi par son hôte.
+- Clés VAPID existantes validées sans affichage de secrets ni envoi de test à un appareil réel. L’activation du push reste un choix explicite sur chaque appareil.

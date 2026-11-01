@@ -162,6 +162,8 @@ Routine conseillée : examiner **À traiter**, puis les échéances proches, les
 
 ## 10. Notifications
 
+Une cloche globale est désormais disponible dans les deux interfaces. Consulter le [guide du temps réel et des notifications](2026-11-01-temps-reel-notifications.md) pour la lecture, les mises à jour automatiques et l’activation du push sur chaque appareil.
+
 L’application présente les notifications dans **Formule et abonnement → Notifications**. **Marquer comme lue** ne change pas l’abonnement.
 
 Les opérations et les échéances peuvent produire une information dans l’application. Les rappels de fin utilisent des seuils de sept jours et d’un jour ; une nouvelle date de fin peut donner lieu à de nouveaux rappels. Les notifications de dates sont préparées périodiquement, environ chaque minute lorsque l’API fonctionne. Les droits changent à l’heure prévue même si ce traitement n’a pas tourné.
