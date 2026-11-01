@@ -1,3 +1,5 @@
+import { runSubscriptionNotifications } from './api/_lib/subscription-notifications.js';
+import { buildMySubscriptionRouter } from './api/me/subscription.js';
 // Runtime API — schéma appliqué au démarrage, pas de fichiers statiques.
 import 'dotenv/config';
 import express from 'express';
@@ -120,6 +122,7 @@ app.use('/api/admin', buildAdminRouter());
 app.get('/api/ref', refHandler);
 app.get('/api/public-config', publicConfig);
 app.get('/api/me/entitlements', meEntitlements);
+app.use('/api/me/subscription', buildMySubscriptionRouter());
 app.all('/api/sync/push', syncPush);
 app.all('/api/sync/pull', syncPull);
 app.all('/api/push/subscription', pushSubscription);
@@ -149,6 +152,8 @@ async function boot() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API App'lika sur http://0.0.0.0:${PORT}`);
+    const subscriptionTimer=setInterval(()=>{ runSubscriptionNotifications().catch((error)=>console.error('subscription notifications',error.message)); },60000);
+    subscriptionTimer.unref();
   });
 }
 

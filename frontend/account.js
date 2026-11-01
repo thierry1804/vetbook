@@ -557,6 +557,40 @@
     var q = f.quota != null ? ' <b>' + esc(f.quota) + '</b>' : (labels[code] && labels[code].kind === 'quota' ? ' <b>illimité</b>' : '');
     return '<li>' + icon('check', 14) + '<span>' + esc(l) + q + '</span></li>';
   }
+  var subscriptionAccount = null, subscriptionError = '', subscriptionLoading = false;
+  function loadSubscriptionAccount() {
+    if (!acc.user || subscriptionLoading) return Promise.resolve();
+    subscriptionLoading = true;
+    var requestedUser = acc.user.id;
+    return cs().api('/api/me/subscription').then(function (data) { if (acc.user && acc.user.id === requestedUser) { subscriptionAccount = data; subscriptionError = ''; } })
+      .catch(function (error) { subscriptionError = error.message || 'Actualisation impossible.'; })
+      .then(function () { subscriptionLoading = false; if (acc.panel === 'plan') renderPanel(); });
+  }
+  function subscriptionDate(value) { return value ? new Date(value).toLocaleString('fr-FR') : 'Sans échéance'; }
+  function subscriptionAccountHtml(cfg) {
+    if (!acc.user) return '<div class="acc-card"><p>Connecte-toi pour envoyer et suivre une demande.</p></div>';
+    var data = subscriptionAccount, state = data && data.entitlements.subscription;
+    var stale = data && data.entitlements.validUntil && Date.parse(data.entitlements.validUntil) <= Date.now();
+    var labels = { nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Traitée', refuse: 'Refusée', annule: 'Annulée', actif: 'Actif', essai: 'Essai', suspendu: 'Suspendu', expire: 'Expiré', termine: 'Terminé', remplace: 'Remplacé' };
+    var html = '<div class="acc-card"><h3>Ton abonnement</h3>';
+    if (subscriptionError) html += '<p role="alert">' + esc(subscriptionError) + '</p>';
+    if (!data) return html + '<p>Chargement du suivi…</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
+    if (state) {
+      var tracked = state.tracked;
+      html += '<p class="acc-hint">Dernière vérification : ' + esc(subscriptionDate(data.entitlements.computedAt)) + '. Dates affichées dans le fuseau de cet appareil.</p><p>Accès effectif : <b>' + esc(stale ? 'À actualiser' : planName(data.entitlements.plan)) + '</b></p>';
+      if (tracked) html += '<p>' + esc(planName(tracked.plan_code)) + ' · ' + esc(stale ? 'État à actualiser' : labels[tracked.state] || tracked.state || tracked.status) + '<br>Du ' + esc(subscriptionDate(tracked.started_at)) + ' au ' + esc(subscriptionDate(tracked.ends_at)) + '</p>';
+      if (state.effective && state.effective.ends_at) html += '<p>Temps restant : ' + Math.max(0, Math.ceil((Date.parse(state.effective.ends_at) - Date.now()) / 86400000)) + ' jour(s).</p>';
+      html += (state.upcoming || []).map(function (r) { return '<p>Activation prévue : <b>' + esc(planName(r.plan_code)) + '</b> le ' + esc(subscriptionDate(r.started_at)) + ', fin : ' + esc(subscriptionDate(r.ends_at)) + '</p>'; }).join('');
+    }
+    if (tracked && tracked.ends_at && ['actif','expire'].indexOf(tracked.state) >= 0 && !tracked.is_trial) html += '<button class="acc-btn" data-act="subscription-renew" data-plan="' + esc(tracked.plan_code) + '">Demander un renouvellement</button>';
+    html += '<p class="acc-hint">Tes données et leur export restent disponibles après une expiration. Les demandes sont examinées manuellement.</p><button class="acc-btn" data-act="subscription-refresh">Actualiser</button></div>';
+    var options = [];
+    cfg.plans.forEach(function (p) { if (p.code === 'gratuit') return; if (p.monthly) options.push('<option value="' + esc(p.monthly.planCode || p.code) + '">' + esc(p.name) + ' · mensuel</option>'); if (p.yearly) options.push('<option value="' + esc(p.yearly.planCode || p.code + '_annuel') + '">' + esc(p.name) + ' · annuel</option>'); });
+    if (options.length) html += '<div class="acc-card"><h3>Faire une demande</h3><form data-form="subscription-request" class="acc-form"><div class="acc-field"><label for="sub-kind">Demande</label><select id="sub-kind"><option value="assign">Souscrire / changer de formule</option><option value="renew">Renouveler</option></select></div><div class="acc-field"><label for="sub-plan">Offre souhaitée</label><select id="sub-plan">' + options.join('') + '</select></div><div class="acc-field"><label for="sub-date">Début souhaité (facultatif)</label><input id="sub-date" type="date"></div><div class="acc-field"><label for="sub-comment">Commentaire (facultatif)</label><textarea id="sub-comment" maxlength="1000"></textarea></div><p id="sub-status" class="acc-status" role="status" hidden></p><button class="acc-btn acc-btn--primary" type="submit">Envoyer la demande</button></form></div>';
+    html += '<div class="acc-card"><h3>Mes demandes</h3>' + (data.requests.length ? data.requests.map(function (r) { return '<div class="acc-card"><b>' + esc(r.plan_name) + ' · ' + esc(r.period) + '</b><p>' + esc(r.kind === 'renew' ? 'Renouvellement' : 'Souscription / changement') + ' · ' + esc(labels[r.status]) + '</p>' + (r.desired_start ? '<p>Début souhaité : ' + esc(subscriptionDate(r.desired_start)) + '</p>' : '') + (r.comment ? '<p>' + esc(r.comment) + '</p>' : '') + (r.public_reply ? '<p>Réponse : ' + esc(r.public_reply) + '</p>' : '') + (['nouveau','en_cours'].indexOf(r.status) >= 0 ? '<button class="acc-btn" data-act="subscription-cancel" data-id="' + esc(r.id) + '">Annuler la demande</button>' : '') + '</div>'; }).join('') : '<p>Aucune demande.</p>') + '</div>';
+    html += '<div class="acc-card"><h3>Notifications</h3>' + (data.notifications.length ? data.notifications.map(function (n) { return '<div class="acc-card"><b>' + esc(n.title) + '</b><p>' + esc(n.body) + '</p><small>' + esc(subscriptionDate(n.created_at)) + '</small>' + (!n.read_at ? '<button class="acc-btn" data-act="subscription-read" data-id="' + esc(n.id) + '">Marquer comme lue</button>' : '') + '</div>'; }).join('') : '<p>Aucune notification.</p>') + '</div>';
+    return html;
+  }
   function panelPlan() {
     var P = plans(), cfg = P && P.config();
     if (!cfg || !cfg.plans || !cfg.plans.length) return '<div class="acc-card"><h3>Formules</h3><p class="acc-hint">Les formules ne sont pas disponibles pour le moment. Vérifie ta connexion puis réessaie.</p><div class="acc-actions"><button type="button" class="acc-btn" data-act="plan-refresh">' + icon('refresh', 18) + 'Actualiser</button></div></div>';
@@ -576,7 +610,7 @@
       contact.email ? '<a class="acc-btn" href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + '</a>' : ''
     ].join('');
     return '' +
-      '<div class="acc-card"><h3>Ta formule</h3><p><b>' + esc(planName(cur)) + '</b>' + (ent && ent.status === 'essai' ? ' <span class="acc-chip">Essai</span>' : '') + '</p>' +
+      subscriptionAccountHtml(cfg) + '<div class="acc-card"><h3>Ta formule</h3><p><b>' + esc(planName(cur)) + '</b>' + (ent && ent.status === 'essai' ? ' <span class="acc-chip">Essai</span>' : '') + '</p>' +
         (cfg.enforced ? '' : '<p class="acc-hint">Pour l’instant, toutes les fonctionnalités sont ouvertes : les formules seront appliquées prochainement.</p>') +
         (usage ? '<ul class="acc-plan__list">' + usage + '</ul>' : '') + '</div>' +
       '<div class="acc-plans">' + cfg.plans.map(function (o) {
@@ -588,7 +622,7 @@
         }).join('');
         var price = o.monthly && o.monthly.priceMga ? '<p class="acc-plan__price"><b>' + fmtMga(o.monthly.priceMga) + '</b> / mois' + (o.yearly ? '<small> ou ' + fmtMga(o.yearly.priceMga) + ' / an</small>' : '') + '</p>' : '<p class="acc-plan__price"><b>Gratuit</b></p>';
         return '<div class="acc-card acc-plan' + (o.code === cur ? ' is-current' : '') + '"><h3>' + esc(o.name) + (o.code === cur ? ' <span class="acc-chip">Actuelle</span>' : '') + '</h3>' + price +
-          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul></div>';
+          (o.trialDays ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai</p>' : '') + '<ul class="acc-plan__list">' + feats + '</ul>' + (acc.user && o.code !== 'gratuit' ? '<button type="button" class="acc-btn" data-act="subscription-choose" data-plan="' + esc((o.monthly || o.yearly).planCode) + '">Demander cette formule</button>' : '') + '</div>';
       }).join('') + '</div>' +
       '<div class="acc-card"><h3>Souscrire</h3><p class="acc-hint">' + esc(contact.subscribe_instructions || 'Contacte-nous pour souscrire.') + '</p>' +
         (contactLinks ? '<div class="acc-actions">' + contactLinks + '</div>' : '') + '</div>';
@@ -686,7 +720,7 @@
     if (acc.panel === 'security') { $$('.acc-form[data-form="register"], .acc-form[data-form="login"]', root); mountGoogle(); if (acc.user && !acc.sessions) loadSessions(); }
     if (acc.panel === 'sharing' && acc.user) { if (!acc.links) loadLinks(); if (!acc.household) loadHousehold(); if (acc.justCreatedLink) renderQr(); }
     if (acc.panel === 'data') loadStorage();
-    if (acc.panel === 'plan' && plans() && !acc.planRefreshed) { acc.planRefreshed = true; plans().refresh(); }
+    if (acc.panel === 'plan' && plans() && !acc.planRefreshed) { acc.planRefreshed = true; subscriptionAccount = null; loadSubscriptionAccount(); plans().refresh(); }
   }
   function setHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
 
@@ -738,6 +772,7 @@
     if (!configured()) return Promise.resolve();
     return cs().api('/api/user/profile').then(function (p) {
       acc.user = p;
+      acc.planRefreshed = false;
       adoptServerPrefs(p);
       syncOwnerFromAccount(p);
       updateNavAvatar();
@@ -768,6 +803,7 @@
     });
   }
   function onSignedOut() {
+    subscriptionAccount = null; subscriptionError = ''; acc.planRefreshed = false;
     acc.user = null; acc.sessions = acc.links = acc.household = null; acc.justCreatedLink = null;
     updateNavAvatar();
     if (root && !root.closest('[hidden]')) render();
@@ -828,6 +864,11 @@
   }
 
   var actions = {
+    'subscription-choose': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'assign'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },
+    'subscription-renew': function (t) { var select = document.getElementById('sub-plan'); if (select) { select.value = t.dataset.plan; document.getElementById('sub-kind').value = 'renew'; select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },
+    'subscription-refresh': function () { loadSubscriptionAccount(); if (plans()) plans().refresh(); },
+    'subscription-cancel': function (t) { confirmDialog({ title: 'Annuler cette demande ?', text: 'Elle ne sera plus traitée par l’équipe.', ok: 'Annuler la demande' }).then(function (ok) { if (ok) withBusy(t, function () { return cs().api('/api/me/subscription/requests/' + t.dataset.id + '/cancel', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); }); },
+    'subscription-read': function (t) { withBusy(t, function () { return cs().api('/api/me/subscription/notifications/' + t.dataset.id + '/read', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); },
     open: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
     goto: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
     back: function () { acc.mobileOpen = false; render(); scrollTop(); },
@@ -901,6 +942,12 @@
   // ——— Formulaires ——————————————————————————————————————————
   function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var forms = {
+    'subscription-request': function (form) {
+      var desired = val('sub-date');
+      withBusy($('button[type="submit"]', form), function () {
+        return cs().api('/api/me/subscription/requests', { method: 'POST', body: JSON.stringify({ kind: val('sub-kind'), planCode: val('sub-plan'), desiredStart: desired ? new Date(desired + 'T12:00:00').toISOString() : null, comment: val('sub-comment') }) }).then(function () { toast('Demande enregistrée', 'success'); return loadSubscriptionAccount(); });
+      }).catch(function (e) { setStatus('sub-status', e.message, true); });
+    },
     profile: function (form) {
       var first = val('pf-first').trim();
       if (!first) { setStatus('pf-status', 'Indiquez votre prénom.', true); document.getElementById('pf-first').focus(); return; }

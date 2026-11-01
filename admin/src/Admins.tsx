@@ -16,11 +16,12 @@ type Role = { code: string; label: string; permissions: string[] };
 // Traduction des codes de droit (module.action) en français, groupés par module — un humain choisit ici
 // qui a accès à quoi, ça ne doit jamais s'afficher en codes bruts (voir ROLES dans api/_lib/admin-auth.js).
 const PERM_MODULES: Record<string, string> = {
-  dashboard: 'Tableau de bord', users: 'Utilisateurs', pets: 'Animaux', referentiels: 'Référentiels', notifications: 'Notifications',
+  subscriptions: 'Abonnements', dashboard: 'Tableau de bord', users: 'Utilisateurs', pets: 'Animaux', referentiels: 'Référentiels', notifications: 'Notifications',
   sharing: 'Partage', storage: 'Stockage', system: 'Système', audit: 'Audit', rgpd: 'RGPD', billing: 'Facturation',
   contents: 'Contenus', directory: 'Annuaire',
 };
 const PERM_LABELS: Record<string, string> = {
+  'subscriptions.read':'Consulter les accès et demandes', 'subscriptions.manage':'Attribuer, renouveler et traiter les demandes', 'subscriptions.control':'Suspendre, reprendre et terminer', 'subscriptions.advanced':'Dérogations et corrections avancées',
   'dashboard.read': 'Consulter',
   'users.read': 'Consulter les fiches', 'users.support': 'Actions de support', 'users.suspend': 'Suspendre un compte', 'users.aggregate': 'Statistiques agrégées',
   'pets.read': 'Consulter les fiches', 'pets.read_reason': 'Consulter avec motif journalisé', 'pets.read_anon': 'Consulter anonymisé', 'pets.aggregate': 'Statistiques agrégées',

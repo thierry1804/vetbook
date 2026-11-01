@@ -8653,3 +8653,6 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 .is-feature-hidden { display: none !important; }
 .acc-plan__cat { margin-top: 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .6; display: block !important; }
+
+/* Subscription request comments use the same field sizing as other account inputs. */
+.acc-field textarea { width: 100%; min-height: 88px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--card-bg); color: var(--text); font: inherit; resize: vertical; }

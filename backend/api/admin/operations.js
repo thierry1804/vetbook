@@ -1,3 +1,4 @@
+import { listSubscriptions } from '../_lib/subscription-read.js';
 import { withClient } from '../_lib/db.js';
 import { requireAdmin, permits } from '../_lib/admin-auth.js';
 import { getSetting } from '../_lib/entitlements.js';
@@ -31,7 +32,12 @@ export function mountOperations(router) {
         await add('notifications.read', 'messages', 'Envois échoués (7 jours)', "select count(*) n from message_log where status = 'echec' and created_at >= now() - interval '7 days'", listUrl('messages', { status: 'echec', recent_days: 7 }));
         await add('notifications.read', 'jobs', 'Exécutions échouées (7 jours)', "select count(*) n from job_runs where status = 'echec' and started_at >= now() - interval '7 days'", listUrl('jobs', { status: 'echec', recent_days: 7 }));
         await add('notifications.read', 'jobs-partial', 'Exécutions partielles (7 jours)', "select count(*) n from job_runs where status = 'partial' and started_at >= now() - interval '7 days'", listUrl('jobs', { status: 'partial', recent_days: 7 }));
-        await add('billing.read', 'subscriptions', 'Abonnements à échéance sous 7 jours', "select count(*) n from subscriptions where status in ('actif','essai') and ends_at >= now() and ends_at <= now() + interval '7 days'", listUrl('subscriptions', { expiring_days: 7 }));
+        if(permits(req.admin.perms,'subscriptions.read')){
+          const {counts}=await listSubscriptions(c);
+          for(const [view,label] of [['soon','Abonnements à échéance sous 7 jours'],['essai','Essais en cours'],['expire','Périodes expirées'],['prevu','Activations prévues']])out.push({key:'subscriptions-'+view,label,count:counts[view],to:'/subscriptions?view='+view});
+          const requests=Number((await c.query("select count(*) n from subscription_requests where status in ('nouveau','en_cours')")).rows[0].n);
+          out.push({key:'subscription-requests',label:'Demandes d’abonnement à traiter',count:requests,to:'/subscription-requests?status=open'});
+        }
         return out;
       });
       res.json({ items, updatedAt: new Date().toISOString() });

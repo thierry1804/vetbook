@@ -83,6 +83,9 @@ export const SettingsScreen = () => {
       </Section>
 
       <Section title="Formules" help="Ce qui est appliqué à tous les comptes, et comment les fonctionnalités hors formule apparaissent dans l'app. Cette section possède sa propre confirmation.">
+        <Field label="Fuseau de gestion des abonnements" help="Les échéances sont calculées et affichées dans ce fuseau ; les instants sont stockés en UTC.">
+          <Select showSearch style={{width:'100%'}} value={st.subscription_timezone||'UTC'} onChange={(value)=>set({subscription_timezone:value})} options={['UTC','Africa/Antananarivo','Europe/Paris','Indian/Reunion','Africa/Nairobi'].map((value)=>({value,label:value}))} />
+        </Field>
         <Enforcement canWrite />
       </Section>
 
@@ -143,7 +146,7 @@ export const SettingsScreen = () => {
       <Modal open={saveOpen} onCancel={() => setSaveOpen(false)} title="Enregistrer les réglages"
         footer={<><Button onClick={() => setSaveOpen(false)}>Annuler</Button><Button type="primary" loading={saving} disabled={reason.trim().length < 5} onClick={save}>Confirmer</Button></>}>
         <Text strong>Modifications à enregistrer</Text>
-        <ul>{changedKeys.map((key) => <li key={key}>{({ maintenance: 'Maintenance', open_countries: 'Pays ouverts', default_country: 'Pays par défaut', contact: 'Coordonnées et instructions de souscription', max_household_members: 'Nombre de membres du foyer', max_share_days: 'Durée des liens vétérinaires', max_upload_mb: 'Taille maximale des photos', storage_quota_mb: 'Quota de stockage', four_eyes_publish: 'Validation à quatre yeux', min_client_version: 'Version minimale' } as Record<string, string>)[key] || key}</li>)}</ul>
+        <ul>{changedKeys.map((key) => <li key={key}>{({ subscription_timezone: 'Fuseau des abonnements', maintenance: 'Maintenance', open_countries: 'Pays ouverts', default_country: 'Pays par défaut', contact: 'Coordonnées et instructions de souscription', max_household_members: 'Nombre de membres du foyer', max_share_days: 'Durée des liens vétérinaires', max_upload_mb: 'Taille maximale des photos', storage_quota_mb: 'Quota de stockage', four_eyes_publish: 'Validation à quatre yeux', min_client_version: 'Version minimale' } as Record<string, string>)[key] || key}</li>)}</ul>
         <Input.TextArea placeholder="Motif (5 caractères min., journalisé)" value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 2 }} />
       </Modal>
     </div>

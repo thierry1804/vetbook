@@ -9,6 +9,7 @@ import { getSetting } from '../_lib/entitlements.js';
 const DEFAULTS = {
   contact: { email: '', phone: '', whatsapp: '', subscribe_instructions: '' },
   default_country: 'MG',
+  subscription_timezone: 'UTC',
   four_eyes_publish: true,
   maintenance: { enabled: false, message: '' },
   max_household_members: 10,
@@ -24,7 +25,10 @@ function sanitize(b) {
   const contact = b.contact && typeof b.contact === 'object' ? b.contact : {};
   const maintenance = b.maintenance && typeof b.maintenance === 'object' ? b.maintenance : {};
   const countries = Array.isArray(b.open_countries) ? b.open_countries : [];
+  const timezone=String(b.subscription_timezone||'UTC');
+  try {new Intl.DateTimeFormat('fr-FR',{timeZone:timezone});}catch{const error=new Error('Fuseau horaire invalide.');error.status=400;throw error;}
   return {
+    subscription_timezone: timezone,
     contact: {
       email: String(contact.email || '').slice(0, 200), phone: String(contact.phone || '').slice(0, 60),
       whatsapp: String(contact.whatsapp || '').slice(0, 60), subscribe_instructions: String(contact.subscribe_instructions || '').slice(0, 2000),
@@ -50,7 +54,7 @@ export function mountSettingsTyped(router) {
         return o;
       });
       res.json(out);
-    } catch (err) { next(err); }
+    } catch (err) { if(err.status===400)res.status(400).json({error:err.message});else next(err); }
   });
 
   router.put('/app-settings', requireAdmin('system.write'), async (req, res, next) => {
@@ -69,6 +73,6 @@ export function mountSettingsTyped(router) {
         await audit(req, res, { action: 'settings.update', targetType: 'setting', targetId: 'app-settings', before, after: next_, reason }, c);
       });
       res.json({ ok: true });
-    } catch (err) { next(err); }
+    } catch (err) { if(err.status===400)res.status(400).json({error:err.message});else next(err); }
   });
 }

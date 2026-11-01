@@ -38,7 +38,7 @@ export function mountMeta(router) {
       const out = await withClient(async (c) => {
         const enforced = (await getSetting(c, 'subscriptions_enforced', false)) === true;
         const q = async (feature) => { const r = (await c.query("select enabled, quota from plan_features where plan_code = 'gratuit' and feature_code = $1", [feature])).rows[0]; return r && r.enabled ? (r.quota == null ? null : Number(r.quota)) : 0; };
-        const free = `not exists (select 1 from subscriptions s where s.user_id = u.id and s.status in ('essai','actif') and (s.ends_at is null or s.ends_at > now()))`;
+        const free = `not exists (select 1 from subscriptions s where s.user_id = u.id and s.status in ('essai','actif') and s.started_at<=now() and (s.ends_at is null or s.ends_at > now()))`;
         const total = Number((await c.query(`select count(*) n from users u where ${free}`)).rows[0].n);
         const animalsQ = await q('animals'); const photosQ = await q('photos_count');
         const over = async (table, limit) => (limit == null ? 0 : Number((await c.query(

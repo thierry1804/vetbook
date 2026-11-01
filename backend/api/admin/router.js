@@ -1,3 +1,5 @@
+import { mountSubscriptions } from './subscriptions.js';
+import { computeEntitlements } from '../_lib/entitlements.js';
 // Backoffice : /api/admin/* (auth séparée, RBAC, audit). Voir docs/backoffice/PLAN.md.
 import express from 'express';
 import argon2 from 'argon2';
@@ -133,7 +135,8 @@ export function buildAdminRouter() {
           storage_bytes: Number((await q('select coalesce(sum(byte_size),0) as s from photos where user_id = $1'))[0].s),
           share_links: Number((await q('select count(*) from share_links where user_id = $1'))[0].count),
           household_members: Number((await q('select count(*) from household_members where owner_id = $1'))[0].count),
-          subscription: (await q(`select id, plan_code, status, started_at, ends_at from subscriptions where user_id = $1 order by started_at desc limit 1`))[0] || null,
+          subscription: (await computeEntitlements(c,u.id)).subscription.tracked,
+          subscriptionAccess: await computeEntitlements(c,u.id),
           audit: await q(`select id, admin_email, action, reason, created_at from admin_audit_log where target_type = 'user' and target_id = $1 order by id desc limit 20`),
         };
       });
@@ -343,24 +346,7 @@ export function buildAdminRouter() {
     }
   });
 
-  router.post('/users/:id/subscription', requireAdmin('billing.payment'), async (req, res, next) => {
-    try {
-      const reason = requireReason(req, res); if (!reason) return;
-      const { plan_code: plan, status = 'actif', ends_at: endsAt = null } = req.body || {};
-      const row = await withTransaction(async (c) => {
-        await c.query("update subscriptions set status = 'resilie' where user_id = $1 and status in ('essai','actif')", [req.params.id]);
-        const s = (await c.query(
-          'insert into subscriptions (user_id, plan_code, status, ends_at) values ($1,$2,$3,$4) returning id, user_id, plan_code, status, started_at, ends_at',
-          [req.params.id, plan, status, endsAt])).rows[0];
-        await audit(req, res, { action: 'subscription.assign', targetType: 'user', targetId: req.params.id, after: s, reason }, c);
-        return s;
-      });
-      res.status(201).json(row);
-    } catch (err) {
-      if (err.code === '23503') { res.status(400).json({ error: 'Utilisateur ou formule inconnu.' }); return; }
-      next(err);
-    }
-  });
+  router.post('/users/:id/subscription', requireAdmin('subscriptions.manage'), (_req,res) => res.status(410).json({ error: 'Utilise le parcours Abonnements avec aperçu et confirmation.' }));
 
   router.post('/subscriptions/:id/payments', requireAdmin('billing.payment'), async (req, res, next) => {
     try {
@@ -393,6 +379,7 @@ export function buildAdminRouter() {
   mountSettingsTyped(router);
   mountJobs(router);
   mountOperations(router);
+  mountSubscriptions(router);
   router.use(buildResourceRouter());
   router.use((err, _req, res, _next) => { void _next; console.error('admin', err); res.status(500).json({ error: 'Erreur serveur.' }); });
   return router;

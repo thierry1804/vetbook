@@ -1,3 +1,4 @@
+import { subscriptionRows, describeSubscriptions } from './subscription-read.js';
 // Droits d'abonnement : formule active + surcharges ponctuelles. Sans application stricte
 // (app_settings.subscriptions_enforced = false, valeur par défaut), tout est ouvert : le calcul
 // reste exposé au front, mais aucune fonctionnalité n'est refusée.
@@ -10,12 +11,11 @@ export async function getSetting(client, key, fallback) {
   return rows[0] ? rows[0].value : fallback;
 }
 
-export async function computeEntitlements(client, userId) {
+export async function computeEntitlements(client, userId, options = {}) {
   const enforced = (await getSetting(client, 'subscriptions_enforced', false)) === true;
-  const sub = (await client.query(
-    `select plan_code, status, ends_at from subscriptions
-      where user_id = $1 and status in ('essai','actif') and (ends_at is null or ends_at > now())
-      order by started_at desc limit 1`, [userId])).rows[0];
+  const now = options.now ?? Date.now();
+  const subscription = describeSubscriptions(options.rows || await subscriptionRows(client,userId),now);
+  const sub = subscription.effective;
   const planCode = sub ? sub.plan_code : 'gratuit';
   const features = {};
   for (const r of (await client.query(
@@ -26,16 +26,18 @@ export async function computeEntitlements(client, userId) {
   if (enforced) {
     for (const o of (await client.query(
       `select feature_code, enabled, quota from entitlement_overrides
-        where user_id = $1 and (expires_at is null or expires_at > now())`, [userId])).rows) {
+        where user_id = $1 and (expires_at is null or expires_at > $2) order by created_at,id`, [userId,new Date(now)])).rows) {
       features[o.feature_code] = { enabled: o.enabled, quota: o.quota != null ? Number(o.quota) : (features[o.feature_code] || {}).quota ?? null };
     }
   }
-  const now = Date.now();
+  const overrideEnd = (await client.query('select min(expires_at) as end from entitlement_overrides where user_id=$1 and expires_at>$2', [userId,new Date(now)])).rows[0]?.end;
+  const transitions = [now + OFFLINE_GRACE_DAYS * 86400_000, subscription.nextTransition, overrideEnd].filter(Boolean).map((v)=>new Date(v).getTime());
   return {
     enforced, plan: planCode, status: sub ? sub.status : 'gratuit', features,
+    subscription,
     computedAt: new Date(now).toISOString(),
     // Le client garde ces droits jusqu'à cette date sans réseau : un abonné ne perd pas l'accès faute de connexion.
-    validUntil: new Date(now + OFFLINE_GRACE_DAYS * 86400_000).toISOString(),
+    validUntil: new Date(Math.min(...transitions)).toISOString(),
   };
 }
 
@@ -90,10 +92,8 @@ export async function guardQuota(res, userId, code, current, settingKey, fallbac
 // instance) pour ne jamais l'ouvrir par inadvertance aux formules gratuites.
 export async function guardAiAssistant(res, userId) {
   return withClient(async (client) => {
-    const sub = (await client.query(
-      `select plan_code from subscriptions where user_id = $1 and status in ('essai','actif') and (ends_at is null or ends_at > now())
-        order by started_at desc limit 1`, [userId])).rows[0];
-    const planCode = sub ? sub.plan_code : 'gratuit';
+    const state = describeSubscriptions(await subscriptionRows(client,userId));
+    const planCode = state.effective?.plan_code || 'gratuit';
     const pf = (await client.query('select enabled from plan_features where plan_code = $1 and feature_code = $2', [planCode, 'ai_assistant'])).rows[0];
     const override = (await client.query(
       `select enabled from entitlement_overrides where user_id = $1 and feature_code = 'ai_assistant' and (expires_at is null or expires_at > now())

@@ -8818,8 +8818,8 @@
   }
 
   // Droits : tant que le serveur ne les applique pas (enforced = false), tout est ouvert. Les droits
-  // sont gardés en cache : un abonné ne perd pas l'accès faute de réseau (validUntil = simple indication).
-  function currentEntitlements() { return readJson(ENT_KEY); }
+  // sont gardés en cache uniquement jusqu’à la prochaine transition connue.
+  function currentEntitlements() { var e = readJson(ENT_KEY); return e && e.validUntil && Date.parse(e.validUntil) > Date.now() ? e : null; }
   // Droits en vigueur : ceux du compte connecté (mis en cache) ; sans droits connus (pas de compte, ou hors ligne
   // depuis toujours), tout utilisateur est en formule « gratuit » dès que le serveur applique les formules.
   // null = formules non appliquées (tout est ouvert).
@@ -8827,9 +8827,11 @@
     var e = currentEntitlements();
     if (e) return e.enforced ? (e.features || {}) : null;
     var cfg = publicConfig();
-    if (cfg && cfg.enforced) {
-      var free = (cfg.plans || []).filter(function (p) { return p.code === 'gratuit'; })[0];
+    var cached = readJson(ENT_KEY);
+    if ((cfg && cfg.enforced) || (cached && cached.enforced)) {
+      var free = ((cfg && cfg.plans) || []).filter(function (p) { return p.code === 'gratuit'; })[0];
       if (free) return free.features || {};
+      return {};
     }
     return null;
   }
@@ -9028,11 +9030,16 @@
   var lockTimer = null;
   function scheduleLocks() { if (lockTimer) return; lockTimer = setTimeout(function () { lockTimer = null; applyLocks(); }, 60); }
   if (window.MutationObserver) new MutationObserver(scheduleLocks).observe(document.documentElement, { childList: true, subtree: true });
+  var entitlementTimer;
+  window.addEventListener('online', refreshEntitlements);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshEntitlements(); });
   function refreshEntitlements() {
-    if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getEntitlements) return;
-    window.cloudSync.getEntitlements().then(function (e) {
+    if (!window.cloudSync || !window.cloudSync.isConfigured() || !window.cloudSync.getEntitlements) return Promise.resolve();
+    return window.cloudSync.getEntitlements().then(function (e) {
       if (!e || !e.features) return;
       try { localStorage.setItem(ENT_KEY, JSON.stringify(e)); } catch (err) { /* quota */ }
+      clearTimeout(entitlementTimer);
+      entitlementTimer = setTimeout(function () { applyLocks(); refreshEntitlements(); }, Math.max(1000, Math.min(2147483647, Date.parse(e.validUntil) - Date.now())));
       applyLocks();
       if (window.applikaAccount && window.applikaAccount.refreshPlan) window.applikaAccount.refreshPlan();
     }).catch(function () { /* garde les droits en cache */ });
@@ -9103,7 +9110,7 @@
     window.addEventListener('applika:feature-locked', function (e) { showFeatureLocked(e.detail && e.detail.feature); });
     window.applikaPlan = {
       config: publicConfig, entitlements: currentEntitlements, hasFeature: hasFeature, featureQuota: featureQuota,
-      country: currentCountry, setCountry: setCountry, refresh: function () { refreshEntitlements(); return refreshPublicConfig(); },
+      country: currentCountry, setCountry: setCountry, refresh: function () { return Promise.all([refreshEntitlements(), refreshPublicConfig()]); },
       counts: function () { return { animals: state.animals.length }; }, richContent: richContent, lockedViews: function () { return readJson('vetbook_locked_views') || {}; }
     };
     renderHelpPages();

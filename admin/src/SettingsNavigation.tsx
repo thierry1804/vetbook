@@ -3,7 +3,7 @@ import { Badge, Button, Input, Space, Typography } from 'antd';
 
 export const SETTING_SECTIONS = [
   { id: 'maintenance', title: 'Maintenance', keys: ['maintenance'], terms: 'application ouverte fermée message' },
-  { id: 'formules', title: 'Formules', keys: [], terms: 'application droits quotas cadenas abonnement' },
+  { id: 'formules', title: 'Formules', keys: ['subscription_timezone'], terms: 'application droits quotas cadenas abonnement' },
   { id: 'pays', title: 'Pays', keys: ['open_countries', 'default_country'], terms: 'pays ouverts défaut inscription' },
   { id: 'contact', title: 'Contact & abonnement', keys: ['contact'], terms: 'email e-mail téléphone whatsapp instructions souscription' },
   { id: 'limites', title: 'Limites', keys: ['max_household_members', 'max_share_days', 'max_upload_mb', 'storage_quota_mb'], terms: 'membres foyer lien vétérinaire durée photo stockage taille quota' },

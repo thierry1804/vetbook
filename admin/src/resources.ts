@@ -83,7 +83,7 @@ export const RES: Res[] = [
   { name: 'coupons', label: 'Coupons', group: 'Abonnements', perm: 'billing.read', write: 'billing.plans_write', deletable: true, createPk: true, search: true, fields: [
     f('code', 'text', { required: true, list: true }), f('percent_off', 'discount', { label: 'Réduction', list: true }), f('amount_off_mga', 'int', { hidden: true }),
     f('valid_until', 'date', { list: true }), f('max_uses', 'int', { list: true }), f('active', 'bool', { list: true })] },
-  { name: 'subscriptions', label: 'Abonnements', group: 'Abonnements', perm: 'billing.read', write: 'billing.payment', search: true, fields: [
+  { name: 'subscriptions', label: 'Abonnements', group: 'Abonnements', perm: 'subscriptions.read', readOnly: true, search: true, fields: [
     f('user_id', 'text', { list: true }), f('plan_code', 'text', { list: true }), f('status', 'select', { choices: ['essai', 'actif', 'en_retard', 'suspendu', 'resilie'], list: true }),
     f('started_at', 'ts', { list: true }), f('ends_at', 'ts', { list: true }), f('auto_renew', 'bool', { list: true })] },
   { name: 'overrides', label: 'Droits accordés', group: 'Abonnements', perm: 'billing.read', write: 'billing.extend', deletable: true, reason: true, fields: [

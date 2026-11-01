@@ -1,3 +1,5 @@
+import { SubscriptionList, SubscriptionDetail, SubscriptionLegacyLink, SubscriptionReview } from './Subscriptions';
+import { SubscriptionRequests } from './SubscriptionRequests';
 import React from 'react';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin } from 'antd';
@@ -39,7 +41,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function ResourceRoutes() {
   const { permissions } = useAuth();
-  const visibleRes = RES.filter((r) => permits(permissions, r.perm));
+  const visibleRes = RES.filter((r) => r.name !== 'subscriptions' && permits(permissions, r.perm));
   const resourceEls = new Map(visibleRes.map((r) => [r.name, makeResource(r, permissions)] as const));
   // Les onglets d'un hub (Référentiels/Offres/Facturation) gardent leurs URLs plates (/breeds, /plans…) — seule
   // la route de LISTE part sous le chrome du hub (barre d'onglets) ; Créer/Modifier/Afficher restent hors hub.
@@ -62,6 +64,15 @@ function ResourceRoutes() {
         </> : null}
         {permits(permissions, 'system.read') ? <Route path="app-settings" element={<SettingsScreen />} /> : null}
         {permits(permissions, 'system.write') ? <Route path="ai-settings" element={<AiSettings />} /> : null}
+        {permits(permissions,'subscriptions.read') ? <>
+          <Route path="subscriptions" element={<SubscriptionList/>}/>
+          <Route path="subscriptions/users/:userId" element={<SubscriptionDetail/>}/>
+          <Route path="subscriptions/create" element={<Navigate replace to="/subscriptions?assign=1"/>}/>
+          <Route path="subscriptions/:id" element={<SubscriptionLegacyLink/>}/>
+          <Route path="subscriptions/:id/show" element={<SubscriptionLegacyLink/>}/>
+          <Route path="subscription-requests" element={<SubscriptionRequests/>}/>
+        </>:null}
+        {permits(permissions,'subscriptions.advanced')?<Route path="subscription-review" element={<SubscriptionReview/>}/>:null}
         <Route path="profile" element={<Profile />} />
 
         {HUBS.map((h) => (

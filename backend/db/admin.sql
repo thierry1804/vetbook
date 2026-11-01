@@ -392,3 +392,66 @@ create table if not exists ai_usage_log (
   http_status integer
 );
 create index if not exists ai_usage_created_idx on ai_usage_log (created_at);
+
+-- Subscription access workflow: additive migration, existing periods are preserved.
+alter table subscriptions add column if not exists version integer not null default 1;
+alter table subscriptions add column if not exists workflow_version integer not null default 0;
+alter table subscriptions add column if not exists anchor_day integer;
+alter table subscriptions add column if not exists timezone text not null default 'UTC';
+alter table subscriptions add column if not exists is_trial boolean not null default false;
+alter table subscriptions add column if not exists replaced_by uuid;
+alter table subscriptions add column if not exists metadata jsonb not null default '{}'::jsonb;
+create index if not exists subscriptions_dates_idx on subscriptions (user_id, started_at, ends_at);
+
+create table if not exists subscription_events (
+  id bigserial primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  subscription_id uuid references subscriptions(id) on delete set null,
+  action text not null,
+  admin_id uuid references admin_users(id) on delete set null,
+  admin_name text,
+  reason text not null,
+  before jsonb,
+  after jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists subscription_events_user_idx on subscription_events (user_id, id desc);
+create table if not exists subscription_operations (
+  user_id uuid not null references users(id) on delete cascade,
+  operation_id uuid not null,
+  admin_id uuid references admin_users(id) on delete set null,
+  token_hash text not null,
+  response jsonb not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, operation_id)
+);
+create table if not exists subscription_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('assign','renew')),
+  plan_code text not null references plans(code),
+  desired_start timestamptz,
+  comment text not null default '',
+  status text not null default 'nouveau' check (status in ('nouveau','en_cours','traite','refuse','annule')),
+  assigned_to uuid references admin_users(id) on delete set null,
+  public_reply text,
+  internal_note text not null default '',
+  version integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists subscription_requests_open_idx on subscription_requests (user_id, kind, plan_code) where status in ('nouveau','en_cours');
+create table if not exists subscription_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  subscription_id uuid references subscriptions(id) on delete cascade,
+  event_key text not null unique,
+  title text not null,
+  body text not null,
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  email_status text not null default 'pending',
+  push_status text not null default 'pending',
+  attempted_at timestamptz
+);
+create index if not exists subscription_notifications_user_idx on subscription_notifications (user_id, created_at desc);

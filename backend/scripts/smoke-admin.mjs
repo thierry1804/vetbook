@@ -138,20 +138,27 @@ await t('release : brouillon → quatre yeux → publication → GET /api/ref', 
   const same = await call('GET', `/api/ref?since=${ref.json.version}`); assert.equal(same.json.unchanged, true);
 });
 
+async function setAccess(planCode, reason) {
+  const current = (await call('GET', `/api/admin/subscription-users/${uid}`, {cookie:supC})).json;
+  const action = planCode === 'gratuit' ? 'end' : current.effective ? 'change' : 'assign';
+  if (planCode === 'gratuit' && !current.effective) return null;
+  const preview = await call('POST', `/api/admin/subscription-users/${uid}/preview`, {cookie:supC,body:{action,planCode,reason,periods:1,futureDisposition:'cancel'}});
+  assert.equal(preview.status,200,JSON.stringify(preview.json));
+  const out = await call('POST', `/api/admin/subscription-users/${uid}/commit`, {cookie:supC,body:{token:preview.json.token,operationId:crypto.randomUUID()}});
+  assert.equal(out.status,200,JSON.stringify(out.json)); return out;
+}
+
 await t('droits : gratuit par défaut, application désactivée = tout ouvert, activée = quotas de la formule', async () => {
   const tok = await signSessionToken(uid, 'u1@test.mg');
   const get = async () => (await fetch(base + '/api/me/entitlements', { headers: { cookie: `applika_session=${tok}` } })).json();
   let e = await get(); assert.equal(e.plan, 'gratuit'); assert.equal(e.enforced, false); assert.equal(e.features.reproduction.enabled, true);
   await withClient((c) => c.query("update app_settings set value = 'true' where key = 'subscriptions_enforced'"));
   e = await get(); assert.equal(e.enforced, true); assert.equal(e.features.reproduction.enabled, false); assert.equal(e.features.animals.quota, 1);
-  // abonnement Éleveur + paiement manuel + reçu
-  const s = await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'eleveur', reason: 'Paiement reçu en agence' } });
-  assert.equal(s.status, 201);
-  const p = await call('POST', `/api/admin/subscriptions/${s.json.id}/payments`, { cookie: supC, body: { amount_mga: 20000, method: 'mvola', reference: 'MV123', reason: 'Saisie manuelle' } });
-  assert.equal(p.status, 201); assert.match(p.json.invoice.number, /^F-\d{4}-\d{6}$/);
+  assert.equal((await call('POST', `/api/admin/users/${uid}/subscription`, {cookie:supC,body:{plan_code:'eleveur'}})).status,410);
+  await setAccess('eleveur', 'Attribution manuelle de test');
   e = await get(); assert.equal(e.plan, 'eleveur'); assert.equal(e.features.reproduction.enabled, true); assert.equal(e.features.animals.quota, null);
   // surcharge ponctuelle sur un compte gratuit
-  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'gratuit', reason: 'Retour gratuit' } });
+  await setAccess('gratuit', 'Retour gratuit');
   await call('POST', '/api/admin/r/overrides', { cookie: rootC, body: { user_id: uid, feature_code: 'reproduction', enabled: true, reason: 'Partenaire élevage' } });
   e = await get(); assert.equal(e.features.reproduction.enabled, true);
   await withClient((c) => c.query("update app_settings set value = 'false' where key = 'subscriptions_enforced'"));
@@ -189,7 +196,7 @@ await t('quotas serveur : animaux refusés au-delà de la formule, saillies igno
     return { status: r.status, json: await r.json() };
   };
   const pet = (id) => ({ id, animal: { name: `Chien ${id}` }, matings: [{ id: 1, date: '2026-01-01' }] });
-  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'gratuit', reason: 'Test quotas' } });
+  await setAccess('gratuit', 'Test quotas');
   await withClient((c) => c.query("update app_settings set value = 'true' where key = 'subscriptions_enforced'"));
   await withClient((c) => c.query('delete from pets where user_id = $1', [uid]));
   await withClient((c) => c.query('delete from entitlement_overrides where user_id = $1', [uid])); // celle du test précédent ouvrait « reproduction »
@@ -199,13 +206,13 @@ await t('quotas serveur : animaux refusés au-delà de la formule, saillies igno
   assert.equal(one.status, 200); assert.deepEqual(one.json.ignored, ['reproduction']);
   assert.equal((await withClient((c) => c.query('select count(*)::int n from matings where user_id = $1', [uid]))).rows[0].n, 0);
   // formule Éleveur : plus de limite, saillies conservées
-  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'eleveur', reason: 'Test quotas' } });
+  await setAccess('eleveur', 'Test quotas');
   const many = await push([pet(1), pet(2), pet(3)]);
   assert.equal(many.status, 200); assert.deepEqual(many.json.ignored, []);
   assert.equal((await withClient((c) => c.query('select count(*)::int n from matings where user_id = $1', [uid]))).rows[0].n, 3);
   // application désactivée : tout passe
   await withClient((c) => c.query("update app_settings set value = 'false' where key = 'subscriptions_enforced'"));
-  await call('POST', `/api/admin/users/${uid}/subscription`, { cookie: supC, body: { plan_code: 'gratuit', reason: 'Fin des tests' } });
+  await setAccess('gratuit', 'Fin des tests');
   assert.equal((await push([pet(1), pet(2)])).status, 200);
 });
 

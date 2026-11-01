@@ -46,6 +46,7 @@ export const NAV: NavGroup[] = [
   { title: 'Publication', items: [{ label: 'Versions publiées', to: '/releases', icon: 'releases', perm: 'referentiels.read' }] },
   { title: 'Offres', items: [{ label: 'Offres', to: '/plans', icon: 'matrix', perm: hubPerm('plans') }] },
   { title: 'Abonnements', items: [
+    { label: 'Demandes', to: '/subscription-requests', icon: 'subscriptions', perm: 'subscriptions.read' },
     ...RES.filter((r) => r.name === 'subscriptions' || r.name === 'overrides').map((r) => ({ label: r.label, to: '/' + r.name, icon: r.name, perm: r.perm })),
   ] },
   { title: 'Facturation', items: [{ label: 'Facturation', to: '/payments', icon: 'invoices', perm: hubPerm('payments') }] },

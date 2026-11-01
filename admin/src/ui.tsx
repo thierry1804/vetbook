@@ -26,7 +26,7 @@ export function RelativeDate({ value, empty = '—' }: { value?: string | null; 
 // soit la trace de secours "MÉTHODE /chemin" posée quand aucun audit détaillé n'a été produit. Partagé entre
 // le Journal d'audit et les historiques d'actions affichés sur les fiches utilisateur/administrateur.
 const ADMIN_VERB_LABELS: Record<string, string> = {
-  run: 'Lancement', publish: 'Publication', create: 'Création', update: 'Modification', delete: 'Suppression', login: 'Connexion', login_failed: 'Connexion échouée',
+  trial:'Essai', renew:'Renouvellement', change:'Changement de formule', suspend:'Suspension', resume:'Reprise', end:'Fin de période', cancel:'Annulation', correct:'Correction des dates', run: 'Lancement', publish: 'Publication', create: 'Création', update: 'Modification', delete: 'Suppression', login: 'Connexion', login_failed: 'Connexion échouée',
   logout: 'Déconnexion', password_change: 'Changement de mot de passe', enforcement: 'Application des formules',
   features_update: 'Modification des droits', create_draft: 'Brouillon créé', assign: 'Attribution', 'mark-verified': 'Marqué vérifié',
 };

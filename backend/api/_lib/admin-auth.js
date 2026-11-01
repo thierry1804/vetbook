@@ -16,13 +16,13 @@ export const ROLES = {
   admin_tech: {
     label: 'Admin technique',
     perms: ['dashboard.read', 'users.read', 'pets.read', 'referentiels.read', 'notifications.read', 'notifications.templates',
-      'sharing.read', 'storage.*', 'system.*', 'audit.read', 'rgpd.execute', 'billing.read', 'billing.integrations'],
+      'sharing.read', 'storage.*', 'system.*', 'audit.read', 'rgpd.execute', 'billing.read', 'billing.integrations', 'subscriptions.read'],
   },
   support: {
     label: 'Support',
     perms: ['dashboard.read', 'users.read', 'users.support', 'users.suspend', 'pets.read_reason', 'referentiels.read', 'contents.read',
       'directory.*', 'notifications.read', 'notifications.resend', 'sharing.read', 'sharing.revoke', 'storage.moderate',
-      'rgpd.instruct', 'billing.read', 'billing.payment', 'billing.extend'],
+      'rgpd.instruct', 'billing.read', 'billing.payment', 'billing.extend', 'subscriptions.read', 'subscriptions.manage', 'subscriptions.control'],
   },
   editor: {
     label: 'Éditeur contenu',
@@ -40,7 +40,7 @@ export const ROLES = {
   },
   commercial: {
     label: 'Gestionnaire commercial',
-    perms: ['dashboard.read', 'users.read', 'billing.read', 'billing.payment', 'billing.plans_write', 'billing.refund', 'billing.export'],
+    perms: ['dashboard.read', 'users.read', 'billing.read', 'billing.payment', 'billing.plans_write', 'billing.refund', 'billing.export', 'subscriptions.read', 'subscriptions.manage', 'subscriptions.control'],
   },
 };
 

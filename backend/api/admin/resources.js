@@ -28,7 +28,7 @@ export const RESOURCES = {
   plans: R('plans', 'code', plansPerm, { code: 'text', name: 'text', audience: 'text', price_mga: 'int', period: 'text', trial_days: 'int', country: 'text', visible: 'bool', archived: 'bool', sort_order: 'int' }, { search: ['code', 'name'], order: 'sort_order' }),
   features: R('features', 'code', plansPerm, { code: 'text', label: 'text', kind: 'text' }, { search: ['code', 'label'], order: 'code' }),
   coupons: R('coupons', 'code', plansPerm, { code: 'text', percent_off: 'int', amount_off_mga: 'int', valid_until: 'date', max_uses: 'int', active: 'bool' }, { search: ['code'], order: 'code', deletable: true }),
-  subscriptions: R('subscriptions', 'id', { read: 'billing.read', write: 'billing.payment' }, { user_id: 'text', plan_code: 'text', status: 'text', started_at: 'ts', ends_at: 'ts', auto_renew: 'bool' }, { search: ['plan_code', 'status'], order: 'created_at', joinUser: 'user_id' }),
+  subscriptions: R('subscriptions', 'id', { read: 'subscriptions.read', write: 'subscriptions.manage' }, {}, { search: ['plan_code', 'status'], order: 'created_at', joinUser: 'user_id', readOnly: true }),
   payments: R('payments', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['reference', 'method'], order: 'paid_at', readOnly: true }),
   invoices: R('invoices', 'id', { read: 'billing.read', write: 'billing.payment' }, {}, { search: ['number'], order: 'issued_at', readOnly: true }),
   overrides: R('entitlement_overrides', 'id', { read: 'billing.read', write: 'billing.extend' }, { user_id: 'text', feature_code: 'text', enabled: 'bool', quota: 'num', reason: 'text', expires_at: 'ts' }, { order: 'id', deletable: true, reasonRequired: true, joinUser: 'user_id' }),
@@ -148,7 +148,10 @@ export function buildResourceRouter() {
       } catch (err) { next(err); }
     });
 
-    if (def.readOnly) continue;
+    if (def.readOnly) {
+      if(name==='subscriptions')router.all(base+'/:id?', requireAdmin('subscriptions.manage'), (_req,res)=>res.status(410).json({error:'Utilise le parcours Abonnements avec aperçu et confirmation.'}));
+      continue;
+    }
 
     const writable = (body) => {
       const out = {};
