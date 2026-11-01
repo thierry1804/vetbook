@@ -52,3 +52,5 @@ table, .ant-table { font-variant-numeric: tabular-nums; }
 .release-indicator { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 767px) { .release-indicator { max-width: 110px; font-size: 11px; } }
 .admin-content .ant-space { max-width: 100%; }
+.plan-catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 20px; }
+.plan-offer { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }

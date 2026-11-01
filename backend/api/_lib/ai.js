@@ -1,6 +1,7 @@
 // Assistant IA (conseil santé/bien-être animal) — appel OpenRouter côté serveur uniquement, clé
 // jamais exposée au client. Réglages dans app_settings (pas de nouvelle table) : ai_enabled,
 // ai_model, ai_system_prompt, ai_api_key_enc (chiffrée, voir crypto.js).
+import { reserveAiAttempt, finishAiAttempt } from './ai-usage.js';
 import { getSetting } from './entitlements.js';
 import { withClient } from './db.js';
 import { decryptSecret } from './crypto.js';
@@ -31,25 +32,13 @@ export function resolveApiKey(cfg) {
   try { return decryptSecret(cfg.apiKeyEnc); } catch { return null; }
 }
 
-// Débit global : les modèles :free d'OpenRouter sont plafonnés à 20 req/min PAR COMPTE (pas par
-// utilisateur final) — file simple en mémoire du process, sous la limite réelle par prudence.
-const MAX_PER_MINUTE = 15;
-const WINDOW_MS = 60_000;
-let windowStart = Date.now();
-let windowCount = 0;
-export function withinGlobalRate() {
-  const now = Date.now();
-  if (now - windowStart >= WINDOW_MS) { windowStart = now; windowCount = 0; }
-  if (windowCount >= MAX_PER_MINUTE) return false;
-  windowCount += 1;
-  return true;
-}
-
-export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000 }) {
+export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000, source = 'chat', fetchImpl = fetch }) {
+  const attemptId = await reserveAiAttempt({ source, model });
+  let httpStatus = null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetchImpl(OPENROUTER_URL, {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -60,6 +49,7 @@ export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 2500
       },
       body: JSON.stringify({ model, messages, temperature: 0.6, max_tokens: 700 }),
     });
+    httpStatus = res.status;
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       const msg = (json && json.error && json.error.message) || `Erreur OpenRouter (${res.status}).`;
@@ -67,7 +57,11 @@ export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 2500
     }
     const content = json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
     if (!content) { const err = new Error('Réponse vide du modèle.'); err.status = 502; throw err; }
+    await finishAiAttempt(attemptId, 'success', httpStatus);
     return content;
+  } catch (error) {
+    await finishAiAttempt(attemptId, 'error', httpStatus);
+    throw error;
   } finally {
     clearTimeout(timer);
   }

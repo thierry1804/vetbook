@@ -3,7 +3,7 @@
 import { requireUser } from '../_lib/auth.js';
 import { guardAiAssistant } from '../_lib/entitlements.js';
 import { withClient } from '../_lib/db.js';
-import { getAiConfig, resolveApiKey, callOpenRouter, buildMessages, withinGlobalRate } from '../_lib/ai.js';
+import { getAiConfig, resolveApiKey, callOpenRouter, buildMessages } from '../_lib/ai.js';
 
 function ageLabel(dob) {
   if (!dob) return null;
@@ -41,7 +41,6 @@ export default async function handler(req, res) {
   if (!cfg.enabled) { res.status(503).json({ error: "L'assistant IA n'est pas disponible pour le moment." }); return; }
   const apiKey = resolveApiKey(cfg);
   if (!apiKey) { res.status(503).json({ error: "L'assistant IA n'est pas configuré." }); return; }
-  if (!withinGlobalRate()) { res.status(429).json({ error: 'Assistant très sollicité, réessaie dans une minute.' }); return; }
 
   try {
     const petContext = await petContextFor(session.userId, body.animalId);
@@ -49,6 +48,7 @@ export default async function handler(req, res) {
     const reply = await callOpenRouter({ apiKey, model: cfg.model, messages });
     res.json({ reply });
   } catch (err) {
+    if (err.status === 429) { res.set('Retry-After', String(err.retryAfter || 60)); res.status(429).json({ error: 'Assistant très sollicité, réessaie dans une minute.' }); return; }
     res.status(err.status && err.status < 500 ? 400 : 502).json({ error: "L'assistant est momentanément indisponible." });
   }
 }

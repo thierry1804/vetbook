@@ -2,10 +2,18 @@ import { withClient } from '../_lib/db.js';
 import { requireAdmin, permits } from '../_lib/admin-auth.js';
 import { getSetting } from '../_lib/entitlements.js';
 import { RESOURCES } from './resources.js';
+import { groupPlanOffers } from '../_lib/plan-offers.js';
 import { compareReleaseContent } from '../_lib/release-comparison.js';
 
 const listUrl = (resource, filter) => `/${resource}?${new URLSearchParams({ filter: JSON.stringify(filter) })}`;
 export function mountOperations(router) {
+  router.get('/plan-catalog', requireAdmin('billing.read'), async (_req, res, next) => {
+    try {
+      const plans = (await withClient((c) => c.query('select * from plans order by sort_order, code'))).rows;
+      res.json({ offers: groupPlanOffers(plans), variantCount: plans.length });
+    } catch (error) { next(error); }
+  });
+
   router.get('/work-queue', requireAdmin('dashboard.read'), async (req, res, next) => {
     try {
       const items = await withClient(async (c) => {

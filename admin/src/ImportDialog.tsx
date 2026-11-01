@@ -1,3 +1,5 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateResource } from './data';
 import React, { useMemo, useRef, useState } from 'react';
 import { Alert, Button, Modal, Steps, Table, Tag, Typography, Input, message } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -34,6 +36,7 @@ export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; 
   const cols = useMemo(() => columnsOf(res), [res]);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [report, setReport] = useState<any>(null);
+  const queryClient = useQueryClient();
   const [text, setText] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [done, setDone] = useState<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const step = done ? 2 : report ? 1 : 0;
@@ -77,7 +80,7 @@ export function ImportDialog({ res, open, onClose }: { res: Res; open: boolean; 
 
   const commit = async () => {
     setBusy(true); setError('');
-    try { const r = await api('/import/' + res.name, { method: 'POST', body: { rows, commit: true } }); setDone(r.json); message.success(`${r.json.ok} élément(s) importé(s)`); }
+    try { const r = await api('/import/' + res.name, { method: 'POST', body: { rows, commit: true } }); setDone(r.json); invalidateResource(queryClient, res.name); message.success(`${r.json.ok} élément(s) importé(s)`); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
 

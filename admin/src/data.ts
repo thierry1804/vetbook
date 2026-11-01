@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
 // Ressources servies par des routes dédiées ; toutes les autres passent par /r/<ressource> (CRUD générique).
@@ -39,11 +39,23 @@ export function useResourceOne(resource: string, id?: string | number) {
   });
 }
 
+export function invalidateResource(qc: QueryClient, resource: string, id?: string | number) {
+  qc.invalidateQueries({ queryKey: ['list', resource] });
+  qc.invalidateQueries({ queryKey: ['counts', resource] });
+  qc.invalidateQueries({ queryKey: ['work-queue'] });
+  if (resource === 'species') qc.invalidateQueries({ queryKey: ['species-usage'] });
+  if (resource === 'plans') qc.invalidateQueries({ queryKey: ['plan-catalog'] });
+  if (id !== undefined) {
+    qc.invalidateQueries({ queryKey: ['one', resource, id] });
+    qc.invalidateQueries({ queryKey: ['record-history', resource, id] });
+  }
+}
+
 export function useCreate(resource: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: any) => withId((await api(base(resource), { method: 'POST', body: data })).json),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
+    onSuccess: () => invalidateResource(qc, resource),
   });
 }
 
@@ -52,12 +64,7 @@ export function useUpdate(resource: string) {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string | number; data: any }) =>
       withId((await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'PUT', body: data })).json),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ['list', resource] });
-      qc.invalidateQueries({ queryKey: ['one', resource, vars.id] });
-      qc.invalidateQueries({ queryKey: ['record-history', resource, vars.id] });
-      qc.invalidateQueries({ queryKey: ['work-queue'] });
-    },
+    onSuccess: (_data, vars) => invalidateResource(qc, resource, vars.id),
   });
 }
 
@@ -68,11 +75,11 @@ export function useUpdateMany(resource: string) {
       for (const id of ids) await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'PUT', body: data });
       return ids;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
+    // A later row can fail after earlier rows succeeded; counts must still refresh.
+    onSettled: () => invalidateResource(qc, resource),
   });
 }
 
-// Le motif est journalisé (obligatoire pour certaines ressources) : `reason` sinon un motif générique.
 export function useDeleteOne(resource: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -80,6 +87,14 @@ export function useDeleteOne(resource: string) {
       await api(`${base(resource)}/${encodeURIComponent(String(id))}`, { method: 'DELETE', body: { reason: reason || 'Suppression depuis le backoffice' } });
       return id;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['list', resource] }); qc.invalidateQueries({ queryKey: ['work-queue'] }); },
+    onSuccess: () => invalidateResource(qc, resource),
+  });
+}
+
+export function useStatusCounts(resource: string, filter: Record<string, any>, enabled = true) {
+  const otherFilters = { ...filter }; delete otherFilters.status;
+  return useQuery<{ total: number; counts: Record<string, number> }>({
+    queryKey: ['counts', resource, otherFilters], enabled,
+    queryFn: async () => (await api(`/r/${resource}/counts?${new URLSearchParams({ filter: JSON.stringify(otherFilters) })}`)).json,
   });
 }

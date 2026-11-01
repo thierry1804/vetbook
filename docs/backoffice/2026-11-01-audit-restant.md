@@ -2,8 +2,7 @@
 
 Contexte : un audit manuel écran par écran du backoffice (admin React Router + antd) a produit une
 longue liste de corrections, traitées sur plusieurs sessions (voir commits `231f3f9` → `2cd2124`, puis
-`fc48c97`/`0838b15` faits par une autre session/agent). Il reste 4 points mineurs, listés ci-dessous avec
-assez de contexte pour les reprendre sans refaire l'investigation.
+`fc48c97`/`0838b15` faits par une autre session/agent). Ce document conserve les 4 points initialement restants et le résultat de leur traitement.
 
 Règles du projet à respecter (voir aussi `CLAUDE.md`/mémoire du dépôt) :
 - Jamais de mention Anthropic/Claude dans les messages ou l'auteur des commits.
@@ -19,6 +18,33 @@ Règles du projet à respecter (voir aussi `CLAUDE.md`/mémoire du dépôt) :
   déployer ; `npx tsc --noEmit` dans `admin/` avant de déployer.
 - Le moteur générique de ressources est `admin/src/content.tsx` (liste/fiche/formulaire à partir de
   `admin/src/resources.ts`) + `backend/api/admin/resources.js` (factory `R()` générique, route `/r/<nom>`).
+
+## État après traitement — 1er novembre 2026
+
+Les quatre points sont traités. Les descriptions d’audit ci-dessous sont conservées comme contexte initial.
+
+- [x] **Compteurs des statuts** : agrégation serveur unique `GET /r/<ressource>/counts`, même recherche et mêmes filtres que la liste, statut courant exclu du calcul. Les statuts absents affichent zéro. Cache partagé entre onglets et invalidé après sauvegarde, import et actions groupées ; une panne des compteurs ne masque pas la liste.
+- [x] **Formules** : catalogue dédié `/plans`, regroupement explicite des variantes `_annuel`, bascule mensuel/annuel, économie annuelle calculée depuis les prix enregistrés, prise en charge du gratuit, des variantes manquantes et archivées. Les fiches génériques de création, lecture et édition sont conservées.
+- [x] **Espèces utilisées** : nombre d’animaux liés affiché ; confirmation explicite avant archivage individuel ou groupé. L’API renvoie `409 SPECIES_IN_USE` sans le booléen `confirmArchive: true` et journalise la confirmation. Les carnets ne sont pas modifiés. Une espèce déjà archivée reste éditable et porte un avertissement si elle est utilisée. Lecture préalable sur l’instance : Canine active (6 animaux), Féline archivée (1), Autre archivée (0) ; aucun changement de ces données.
+- [x] **Assistant IA** : compteur et limite de 4 000 caractères, rejet serveur des messages système trop longs, rétablissement du modèle et du message système par défaut sans sauvegarde implicite. Consommation persistante en base, décrite ci-dessous.
+
+### Décision sur le suivi IA
+
+L’investigation a retrouvé un limiteur global **en mémoire de 15 appels/minute** dans `api/_lib/ai.js`, en plus de la limite par IP de `server.js`. Il ne couvrait pas les tests administrateur.
+
+Le budget global est désormais glissant et partagé en PostgreSQL entre tous les processus et les appels applicatifs/administrateur. `ai_usage_log` réserve chaque tentative avant l’appel réseau puis conserve son résultat (succès, erreur ou résultat non finalisé), sa provenance, son modèle et son statut HTTP. Aucun prompt, réponse, jeton API, identifiant utilisateur ou animal n’est enregistré. Le journal est consultable sur 30 jours ; les anciennes entrées sont purgées lors des nouveaux appels.
+
+`GET /ai-settings/usage` alimente l’indicateur actualisé toutes les 10 secondes : appels de la dernière minute, places restantes, résultats des dernières 24 heures. **Il mesure le budget local, pas le quota du compte OpenRouter**, dont les appels provenant d’autres applications sont inconnus. L’historique commence à l’activation de ce suivi et n’est pas reconstitué artificiellement.
+
+### Vérification
+
+- TypeScript, compilation admin et lint des modules backend modifiés.
+- `node backend/tests/audit-remainder.test.mjs` : regroupement des variantes, absence de perte des offres particulières, économies annuelles sans remise fictive.
+- `backend/tests/audit-remainder.integration.mjs`, uniquement sur la base jetable `applika_qa` : compteurs filtrés et permissions, catalogue, archivage confirmé sans altération des animaux, validation du prompt, suivi des réponses/échecs/timeouts, concurrence des appels et expiration du budget. Tous les appels au fournisseur sont simulés.
+- Les 8 tests de parcours existants et les 23 vérifications de `smoke-admin.mjs` passent sur base isolée.
+- Chromium sur API simulée : compteurs et cache entre onglets, panne de comptage indépendante, remise et édition des variantes, archivage annulé/confirmé/groupé, protection contre une confirmation implicite après changement d’usage, limite du prompt, retour aux valeurs par défaut sans écriture et indicateur de consommation. Affichage contrôlé à 390, 768, 1 440 et 2 560 pixels.
+
+La nouvelle table est ajoutée par `ensureSchema` au démarrage de l’API. Reconstruire ensemble API et Nginx après validation TypeScript.
 
 ## 1. Compteurs sur les onglets de statut (Cliniques, et génériquement partout)
 

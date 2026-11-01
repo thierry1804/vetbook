@@ -1,3 +1,5 @@
+import { AiUsage } from './AiUsage';
+import { useQueryClient } from '@tanstack/react-query';
 import { QueryFeedback } from './QueryFeedback';
 import { useUnsavedChanges } from './interaction';
 import React, { useEffect, useState } from 'react';
@@ -10,6 +12,7 @@ const { Text, Link } = Typography;
 // Réglages de l'assistant IA (conseil santé/bien-être animal, OpenRouter) — clé API chiffrée côté
 // serveur, jamais renvoyée : un champ laissé vide conserve la clé déjà enregistrée.
 export const AiSettings = () => {
+  const queryClient = useQueryClient();
   const [st, setSt] = useState<any>(null);
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState('');
@@ -35,7 +38,7 @@ export const AiSettings = () => {
       const r = await api('/ai-settings/test', { method: 'POST', body: { model: model || undefined, systemPrompt: systemPrompt || undefined, apiKey: apiKey || undefined } });
       setTestResult({ ok: true, text: r.json.reply });
     } catch (e: any) { setTestResult({ ok: false, text: e.message || 'Échec du test.' }); }
-    finally { setTesting(false); }
+    finally { setTesting(false); queryClient.invalidateQueries({ queryKey: ['ai-usage'] }); }
   };
 
   const save = async () => {
@@ -56,9 +59,10 @@ export const AiSettings = () => {
       <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
         Compagnon de conseil sur la santé et le bien-être animal, intégré à l'app — réservé aux formules payantes (Matrice des droits, fonctionnalité « Assistant IA »).
         Appelle <Link href="https://openrouter.ai" target="_blank">OpenRouter</Link> avec ta propre clé. Les modèles se terminant par <code>:free</code> sont gratuits
-        mais plafonnés à 20 requêtes/minute, par compte — partagées entre tous les utilisateurs de l'app.
+        et restent soumis aux limites du fournisseur. Le budget local ci-dessous est partagé par les utilisateurs et les tests administrateur.
       </Text>
 
+      <div style={{ marginBottom: 20 }}><AiUsage /></div>
       <Space direction="vertical" size={20} style={{ width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Switch checked={enabled} onChange={setEnabled} />
@@ -82,13 +86,14 @@ export const AiSettings = () => {
 
         <div>
           <Text style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Message système (persona)</Text>
-          <Input.TextArea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} autoSize={{ minRows: 4 }} />
+          <Input.TextArea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} autoSize={{ minRows: 4 }} showCount maxLength={4000} status={systemPrompt.length >= 3800 ? 'error' : undefined} aria-label="Message système" />
           <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
             Un rappel de sécurité est toujours ajouté après ce texte (jamais de diagnostic, toujours orienter vers un vétérinaire) — non modifiable ici.
           </Text>
         </div>
 
-        <Space>
+        <Space wrap>
+          <Button onClick={() => { setModel(st.defaultModel); setSystemPrompt(st.defaultSystemPrompt); setTestResult(null); }} disabled={saving || testing}>Rétablir par défaut</Button>
           <Button onClick={test} loading={testing}>Tester</Button>
           <Button type="primary" disabled={!dirty} onClick={() => setSaveOpen(true)}>Enregistrer</Button>
         </Space>

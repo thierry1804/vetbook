@@ -380,3 +380,15 @@ create index if not exists access_log_kind_idx on access_log (kind);
 -- Link notification attempts to an execution; historical messages remain unlinked.
 alter table message_log add column if not exists job_run_id bigint references job_runs(id) on delete set null;
 create index if not exists message_log_job_run_idx on message_log (job_run_id);
+
+-- Outbound AI attempts only: no prompts, replies, API keys, or animal/user identifiers.
+create table if not exists ai_usage_log (
+  id bigserial primary key,
+  created_at timestamptz not null default clock_timestamp(),
+  finished_at timestamptz,
+  source text not null check (source in ('chat', 'admin')),
+  model text not null,
+  status text not null default 'pending' check (status in ('pending', 'success', 'error')),
+  http_status integer
+);
+create index if not exists ai_usage_created_idx on ai_usage_log (created_at);

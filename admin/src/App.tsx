@@ -11,6 +11,7 @@ import { Dashboard } from './Dashboard';
 import { UserList, UserShow } from './Users';
 import { AuditList } from './Audit';
 import { ReleaseList } from './Releases';
+import { Plans } from './Plans';
 import { PlanMatrix } from './PlanMatrix';
 import { AiSettings } from './AiSettings';
 import { SettingsScreen } from './SettingsScreen';
@@ -66,6 +67,7 @@ function ResourceRoutes() {
         {HUBS.map((h) => (
           <Route key={h.key} element={<Hub hub={h} />}>
             {h.tabs.map((t) => {
+              if (t.key === 'plans') return permits(permissions, 'billing.read') ? <Route key={t.key} path={t.key} element={<Plans />} /> : null;
               if (t.key === 'plan-matrix') return <Route key={t.key} path={t.key} element={<PlanMatrix />} />;
               const r = resourceEls.get(t.key);
               return r ? <Route key={t.key} path={t.key} element={<r.List />} /> : null;

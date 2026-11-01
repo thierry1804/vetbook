@@ -1,3 +1,4 @@
+import { SpeciesUsage, confirmSpeciesArchive } from './SpeciesUsage';
 import { JobDetails } from './JobDetails';
 import { RecordHistory } from './RecordHistory';
 import { ManagedTable } from './ManagedTable';
@@ -18,7 +19,7 @@ import { ICONS } from './icons';
 import { RichTextEditor } from './RichText';
 import { ImportDialog, IMPORTABLE } from './ImportDialog';
 import { toCsv, download } from './csv';
-import { useResourceList, useResourceOne, useCreate, useUpdate, useDeleteOne, useUpdateMany } from './data';
+import { useResourceList, useResourceOne, useCreate, useUpdate, useDeleteOne, useUpdateMany, useStatusCounts, invalidateResource } from './data';
 
 const { Text } = Typography;
 
@@ -460,6 +461,7 @@ export function makeResource(res: Res, perms: string[]) {
     useListReturn(`/${res.name}`);
     const queryClient = useQueryClient();
     const { data, isFetching, error, refetch } = useResourceList(res.name, { page, perPage: pageSize, sort, filter });
+    const statusCounts = useStatusCounts(res.name, filter, !!st);
     const [selected, setSelected] = useState<React.Key[]>([]);
     const updateMany = useUpdateMany(res.name);
     const reorder = useUpdate(res.name);
@@ -503,10 +505,20 @@ export function makeResource(res: Res, perms: string[]) {
       ),
     };
 
-    const runBulk = (status: string) => updateMany.mutate({ ids: selected as (string | number)[], data: { status } }, {
-      onSuccess: () => { message.success(`${selected.length} élément(s) mis à jour`); setSelected([]); },
-      onError: (e: any) => message.error(e.message),
-    });
+    const runBulk = async (status: string) => {
+      try {
+        let confirmedArchive = false;
+        if (res.name === 'species' && status === 'archive') {
+          const confirmation = await confirmSpeciesArchive(selected as string[]);
+          if (confirmation === false) return;
+          confirmedArchive = confirmation === 'confirmed';
+        }
+        updateMany.mutate({ ids: selected as (string | number)[], data: { status, ...(confirmedArchive ? { confirmArchive: true } : {}) } }, {
+          onSuccess: () => { message.success(`${selected.length} élément(s) mis à jour`); setSelected([]); },
+          onError: (e: any) => message.error(e.message),
+        });
+      } catch (error: any) { message.error(error.message); }
+    };
 
     // Mode « console » : aucun SMTP configuré, les e-mails ne partent jamais réellement (même vers de
     // vraies adresses) — juste consignés dans les logs serveur. Signal visible, pas juste un statut discret.
@@ -520,15 +532,16 @@ export function makeResource(res: Res, perms: string[]) {
           message="Historique des exécutions du job de rappels. Les compteurs correspondent aux traitements du job et ne garantissent pas la réception des notifications. Le lancement peut être manuel ou planifié via la crontab système. La configuration de l’hôte est à vérifier séparément." /> : null}
         <PageHeader title={isJobs ? 'Exécutions' : res.label} actions={
           <Space wrap>
-            {isJobs && permits(perms, 'notifications.resend') ? <JobsRunButton onDone={() => queryClient.invalidateQueries({ queryKey: ['list', 'jobs'] })} /> : null}
+            {isJobs && permits(perms, 'notifications.resend') ? <JobsRunButton onDone={() => invalidateResource(queryClient, 'jobs')} /> : null}
             <Button onClick={() => exportCsv(filter, sort)}>Exporter CSV</Button>
             {canImport ? <Button onClick={() => setImporting(true)}>Importer</Button> : null}
             {canWrite ? <Button type="primary" onClick={() => navigate(`/${res.name}/create`)}>Nouveau</Button> : null}
           </Space>} />
         {st ? (
           <Tabs activeKey={filter.status ?? ''} onChange={(k) => { setFilter({ ...filter, status: k || undefined }); }}
-            items={[{ key: '', label: 'Tous' }, ...stChoices.map((c) => ({ key: String(c.value), label: STATUS_PLURAL[String(c.value)] || c.label }))]} />
+            items={[{ key: '', label: statusCounts.data ? `Tous (${statusCounts.data.total})` : 'Tous' }, ...stChoices.map((c) => ({ key: String(c.value), label: `${STATUS_PLURAL[String(c.value)] || c.label}${statusCounts.data ? ` (${statusCounts.data.counts[String(c.value)] || 0})` : ''}` }))]} />
         ) : null}
+        {statusCounts.error ? <Alert type="warning" style={{ marginBottom: 12 }} message="Compteurs de statut indisponibles" action={<Button size="small" onClick={() => statusCounts.refetch()}>Réessayer</Button>} /> : null}
         <Space wrap style={{ marginBottom: 12 }}>
           {res.search ? <Input.Search key={String(filter.q || '')} defaultValue={filter.q} placeholder="Rechercher" allowClear style={{ width: 280 }} onSearch={(q) => { setFilter({ ...filter, q: q || undefined }); }} /> : null}
           {(res.filters || []).map((name) => {
@@ -640,6 +653,11 @@ export function makeResource(res: Res, perms: string[]) {
       try {
         const values = await form.validateFields();
         const data = fromFormValues(values, res, statusOverride);
+        if (res.name === 'species' && isEdit && data.status === 'archive' && record?.status !== 'archive') {
+          const confirmation = await confirmSpeciesArchive([id!]);
+          if (confirmation === false) return;
+          if (confirmation === 'confirmed') data.confirmArchive = true;
+        }
         const saved = isEdit ? await update.mutateAsync({ id: id!, data }) : await create.mutateAsync(data);
         message.success('Enregistré');
         original.current = toFormValues({ ...values, ...saved }, res);
@@ -666,6 +684,7 @@ export function makeResource(res: Res, perms: string[]) {
             <Button size="small" onClick={() => { const copy: any = { ...record }; delete copy.id; delete copy.published_at; if (copy.status) copy.status = res.defaults?.status || 'brouillon'; if (copy.title) copy.title = `${copy.title} (copie)`; if (copy.slug) copy.slug = `${copy.slug}-copie`; navigate(`/${res.name}/create`, { state: { record: copy } }); }}>Dupliquer</Button>
           ) : undefined} />
         {guard.dialog}
+        {res.name === 'species' && isEdit ? <SpeciesUsage code={id} /> : null}
         {changed.length ? <Alert type="warning" showIcon style={{ marginBottom: 16 }} message={`${changed.length} champ(s) modifié(s), non enregistré(s)`} description={changed.map((name) => label(res.fields.find((field) => field.name === name)!)).join(', ')} /> : null}
         {saveError ? <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Enregistrement impossible" description={saveError} /> : null}
         {validationErrors.length ? <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Corrige les champs signalés" description={<ul>{validationErrors.map((error) => <li key={error.name.join('.')}><Button type="link" onClick={() => form.scrollToField(error.name, { focus: true, block: 'center' })}>{error.errors.join(', ')}</Button></li>)}</ul>} /> : null}

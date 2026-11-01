@@ -1,13 +1,17 @@
 // Réglages de l'assistant IA (conseil santé/bien-être animal, OpenRouter). Clé API chiffrée au
 // repos (crypto.js), jamais renvoyée en clair ni même sous forme chiffrée au backoffice — seul un
 // indicateur « clé enregistrée » est exposé.
-import { withClient, withTransaction } from '../_lib/db.js';
+import { withTransaction } from '../_lib/db.js';
 import { requireAdmin, audit, requireReason } from '../_lib/admin-auth.js';
-import { getSetting } from '../_lib/entitlements.js';
+import { getAiUsage } from '../_lib/ai-usage.js';
 import { encryptSecret } from '../_lib/crypto.js';
 import { DEFAULT_MODEL, DEFAULT_SYSTEM_PROMPT, getAiConfig, resolveApiKey, callOpenRouter, buildMessages } from '../_lib/ai.js';
 
 export function mountAi(router) {
+  router.get('/ai-settings/usage', requireAdmin('system.read'), async (_req, res, next) => {
+    try { res.json(await getAiUsage()); } catch (error) { next(error); }
+  });
+
   router.get('/ai-settings', requireAdmin('system.read'), async (_req, res, next) => {
     try {
       const cfg = await getAiConfig();
@@ -19,6 +23,7 @@ export function mountAi(router) {
     try {
       const b = req.body || {};
       if (typeof b.enabled !== 'boolean') { res.status(400).json({ error: '« enabled » (booléen) requis.' }); return; }
+      if (typeof b.systemPrompt === 'string' && b.systemPrompt.length > 4000) return res.status(400).json({ error: 'Le message système est limité à 4000 caractères.' });
       const model = typeof b.model === 'string' && b.model.trim() ? b.model.trim().slice(0, 200) : DEFAULT_MODEL;
       const systemPrompt = typeof b.systemPrompt === 'string' && b.systemPrompt.trim() ? b.systemPrompt.trim().slice(0, 4000) : DEFAULT_SYSTEM_PROMPT;
       const reason = requireReason(req, res); if (!reason) return;
@@ -41,8 +46,9 @@ export function mountAi(router) {
 
   // Appel réel à OpenRouter avec les réglages (déjà enregistrés, sauf si une clé/un modèle de brouillon est fourni) —
   // pour vérifier la configuration avant de l'activer pour les utilisateurs.
-  router.post('/ai-settings/test', requireAdmin('system.write'), async (req, res, next) => {
+  router.post('/ai-settings/test', requireAdmin('system.write'), async (req, res) => {
     try {
+      if (typeof req.body?.systemPrompt === 'string' && req.body.systemPrompt.length > 4000) return res.status(400).json({ error: 'Le message système est limité à 4000 caractères.' });
       const cfg = await getAiConfig();
       const draftKey = typeof req.body?.apiKey === 'string' && req.body.apiKey.trim() ? req.body.apiKey.trim() : null;
       const apiKey = draftKey || resolveApiKey(cfg);
@@ -50,9 +56,10 @@ export function mountAi(router) {
       const model = (typeof req.body?.model === 'string' && req.body.model.trim()) || cfg.model;
       const systemPrompt = (typeof req.body?.systemPrompt === 'string' && req.body.systemPrompt.trim()) || cfg.systemPrompt;
       const messages = buildMessages({ systemPrompt, userMessage: 'Dis bonjour en une phrase et confirme que tu es prêt à aider.' });
-      const reply = await callOpenRouter({ apiKey, model, messages, timeoutMs: 20000 });
+      const reply = await callOpenRouter({ apiKey, model, messages, timeoutMs: 20000, source: 'admin' });
       res.json({ ok: true, reply });
     } catch (err) {
+      if (err.status === 429) { res.set('Retry-After', String(err.retryAfter || 60)); res.status(429).json({ ok: false, error: err.message }); return; }
       res.status(err.status && err.status < 500 ? 400 : 502).json({ ok: false, error: err.message || 'Appel OpenRouter impossible.' });
     }
   });

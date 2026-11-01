@@ -115,6 +115,29 @@ export function buildResourceRouter() {
       } catch (err) { next(err); }
     });
 
+    // One aggregate for every status tab, with the same search and filters as the list.
+    if ('status' in def.cols || def.filterable?.includes('status')) {
+      router.get(`${base}/counts`, requireAdmin(def.perms.read), async (req, res, next) => {
+        try {
+          if (req.query.field && req.query.field !== 'status') return res.status(400).json({ error: 'Seuls les statuts peuvent être comptés.' });
+          const { filter } = parseList(req, def);
+          const otherFilters = { ...filter }; delete otherFilters.status;
+          const { where, params } = listSql(def, { sort: [def.pk, 'ASC'], filter: otherFilters });
+          const rows = (await withClient((c) => c.query(`select ${def.table}.status::text as status, count(*)::int as count from ${def.table} ${where} group by ${def.table}.status`, params))).rows;
+          res.json({ total: rows.reduce((total, row) => total + row.count, 0), counts: Object.fromEntries(rows.map((row) => [row.status, row.count])) });
+        } catch (error) { next(error); }
+      });
+    }
+    if (name === 'species') {
+      router.get(`${base}/:id/usage`, requireAdmin(def.perms.read), async (req, res, next) => {
+        try {
+          const row = (await withClient((c) => c.query('select s.code, s.status, count(p.id)::int as animals from ref_species s left join pets p on p.species = s.code where s.code = $1 group by s.code, s.status', [req.params.id]))).rows[0];
+          if (!row) return res.status(404).json({ error: 'Espèce introuvable.' });
+          res.json(row);
+        } catch (error) { next(error); }
+      });
+    }
+
     router.get(`${base}/:id`, requireAdmin(def.perms.read), async (req, res, next) => {
       try {
         const row = (await withClient((c) => c.query(
@@ -171,18 +194,27 @@ export function buildResourceRouter() {
         const out = await withTransaction(async (c) => {
           const before = (await c.query(`select * from ${def.table} where ${def.pk}::text = $1 for update`, [req.params.id])).rows[0];
           if (!before) return null;
+          let archiveUsage = 0;
+          if (name === 'species' && before.status !== 'archive' && data.status === 'archive') {
+            archiveUsage = Number((await c.query('select count(*)::int as count from pets where species = $1', [req.params.id])).rows[0].count);
+            if (archiveUsage && req.body?.confirmArchive !== true) {
+              const error = new Error(`${archiveUsage} animal(aux) utilisent cette espèce. Une confirmation explicite est nécessaire pour l’archiver.`);
+              error.code = 'SPECIES_IN_USE'; error.animals = archiveUsage; throw error;
+            }
+          }
           // Publication : la date est posée automatiquement la première fois.
           if (data.status === 'publie' && 'published_at' in def.cols && !data.published_at && !before.published_at) data.published_at = new Date().toISOString();
           const cols = Object.keys(data);
           const after = (await c.query(
             `update ${def.table} set ${cols.map((k, i) => `${k} = $${i + 2}`).join(',')} where ${def.pk}::text = $1 returning *, ${def.pk} as id`,
             [req.params.id, ...cols.map((k) => data[k])])).rows[0];
-          await audit(req, res, { action: `${name}.update`, targetType: name, targetId: req.params.id, before, after, reason: req.body?.reason || null }, c);
+          await audit(req, res, { action: `${name}.update`, targetType: name, targetId: req.params.id, before, after, reason: req.body?.reason || (archiveUsage ? `Archivage confirmé malgré ${archiveUsage} animal(aux) liés` : null) }, c);
           return after;
         });
         if (!out) { res.status(404).json({ error: 'Introuvable.' }); return; }
         res.json(out);
       } catch (err) {
+        if (err.code === 'SPECIES_IN_USE') { res.status(409).json({ error: err.message, code: err.code, animals: err.animals }); return; }
         if (err.code === '23505') { res.status(409).json({ error: 'Doublon.' }); return; }
         if (err.message && /attendu/.test(err.message)) { res.status(400).json({ error: err.message }); return; }
         next(err);
