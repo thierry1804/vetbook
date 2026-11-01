@@ -45,7 +45,8 @@ export function buildAdminRouter() {
       const rows = (await withClient((c) => c.query(`
         select s.id,s.email,s.subject,s.description,s.status,s.created_at,s.updated_at,
           (s.user_id is not null) as account_linked,
-          coalesce((select json_agg(json_build_object('id',r.id,'body',r.body,'created_at',r.created_at) order by r.id)
+          ((select count(*) from users u where lower(u.email)=lower(s.email))=1) as matching_account,
+          coalesce((select json_agg(json_build_object('id',r.id,'body',r.body,'author',r.author,'created_at',r.created_at) order by r.id)
             from support_request_replies r where r.request_id=s.id),'[]'::json) as replies
         from support_requests s order by s.created_at desc limit 200`))).rows;
       res.json({ rows });
@@ -54,7 +55,16 @@ export function buildAdminRouter() {
   router.patch('/support-requests/:id', requireAdmin('users.support'), async (req, res, next) => {
     try {
       if (!['nouveau', 'en_cours', 'traite'].includes(req.body?.status) || !/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'État invalide.' });
-      const row = (await withClient((c) => c.query('update support_requests set status=$2,updated_at=now() where id=$1 returning id,status', [req.params.id, req.body.status]))).rows[0];
+      const row = await withTransaction(async (c) => {
+        const current = (await c.query('select id,user_id,subject,status from support_requests where id=$1 for update', [req.params.id])).rows[0];
+        if (!current) return null;
+        const updated = (await c.query('update support_requests set status=$2,updated_at=now() where id=$1 returning id,status', [req.params.id, req.body.status])).rows[0];
+        if (req.body.status === 'traite' && current.status !== 'traite' && current.user_id) {
+          await c.query(`insert into inbox_notifications(audience,recipient_id,event_key,title,body,href)
+            values('user',$1,$2,$3,$4,$5)`, [current.user_id, `support-close:${current.id}:${Date.now()}`, `Discussion close : ${current.subject}`, 'Le support a clos cette discussion. Un message de votre part la rouvre.', `/?account=help&request=${current.id}`]);
+        }
+        return updated;
+      });
       if (!row) return res.status(404).json({ error: 'Demande introuvable.' });
       res.json(row);
     } catch (error) { next(error); }
@@ -62,19 +72,26 @@ export function buildAdminRouter() {
   router.post('/support-requests/:id/replies', requireAdmin('users.support'), async (req, res, next) => {
     try {
       const body = req.body?.body;
-      if (!/^\d+$/.test(req.params.id) || typeof body !== 'string' || !body.trim() || body.length > 4000) return res.status(400).json({ error: 'Réponse invalide (1 à 4 000 caractères).' });
+      const name = String(req.admin?.name || '').trim();
+      const signature = name ? `\n\n— ${name}\nL'équipe App'lika` : `\n\n— L'équipe App'lika`;
+      const text = typeof body === 'string' && body.trim().endsWith(signature.trim()) ? body.trim() : `${typeof body === 'string' ? body.trim() : ''}${signature}`;
+      if (!/^\d+$/.test(req.params.id) || typeof body !== 'string' || !body.trim() || text.length > 4000) return res.status(400).json({ error: 'Réponse invalide (1 à 4 000 caractères, signature comprise).' });
       const result = await withTransaction(async (c) => {
-        const request = (await c.query('select id,user_id,subject from support_requests where id=$1 for update', [req.params.id])).rows[0];
+        const request = (await c.query('select id,user_id,email,subject from support_requests where id=$1 for update', [req.params.id])).rows[0];
         if (!request) return { error: 'missing' };
-        if (!request.user_id) return { error: 'guest' };
-        const reply = (await c.query('insert into support_request_replies(request_id,admin_id,body) values($1,$2,$3) returning id,body,created_at', [request.id,req.admin.id,body.trim()])).rows[0];
-        await c.query("update support_requests set status=case when status='nouveau' then 'en_cours' else status end,updated_at=now() where id=$1", [request.id]);
+        if (!request.user_id) {
+          const matches = (await c.query('select id from users where lower(email)=lower($1) limit 2', [request.email])).rows;
+          if (matches.length !== 1) return { error: 'guest' };
+          request.user_id = matches[0].id;
+        }
+        const reply = (await c.query('insert into support_request_replies(request_id,admin_id,body) values($1,$2,$3) returning id,body,created_at', [request.id,req.admin.id,text])).rows[0];
+        await c.query("update support_requests set user_id=$2,status=case when status='nouveau' then 'en_cours' else status end,updated_at=now() where id=$1", [request.id, request.user_id]);
         await c.query(`insert into inbox_notifications(audience,recipient_id,event_key,title,body,href)
-          values('user',$1,$2,$3,$4,'/?account=help')`, [request.user_id,`support-reply:${reply.id}`,`Réponse du support : ${request.subject}`,reply.body]);
+          values('user',$1,$2,$3,$4,$5)`, [request.user_id,`support-reply:${reply.id}`,`Réponse du support : ${request.subject}`,reply.body,`/?account=help&request=${request.id}`]);
         return { reply };
       });
       if (result.error === 'missing') return res.status(404).json({ error: 'Demande introuvable.' });
-      if (result.error === 'guest') return res.status(409).json({ error: 'Cette demande n’est liée à aucun compte. Répondez par e-mail.' });
+      if (result.error === 'guest') return res.status(409).json({ error: 'Aucun compte ne correspond à cette adresse.' });
       res.status(201).json(result.reply);
     } catch (error) { next(error); }
   });

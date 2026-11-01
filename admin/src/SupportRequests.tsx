@@ -1,45 +1,106 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Input, Modal, Select, Space, Table, Typography, message } from 'antd';
+import { Button, Drawer, Input, Popconfirm, Table, Typography, message } from 'antd';
 import { api } from './api';
+import { useAuth } from './auth';
+import { PageHeader } from './ui';
 
-type Reply = { id: number; body: string; created_at: string };
-type Request = { id: string; email: string; subject: string; description: string; status: string; created_at: string; updated_at: string; account_linked: boolean; replies: Reply[] };
-const states = [{ value: 'nouveau', label: 'Nouveau' }, { value: 'en_cours', label: 'En cours' }, { value: 'traite', label: 'Traité' }];
+type Reply = { id: number; body: string; author?: 'user' | 'admin'; created_at: string };
+type Request = {
+  id: string; email: string; subject: string; description: string; status: string;
+  created_at: string; updated_at: string; account_linked: boolean; matching_account: boolean; replies: Reply[];
+};
+const states = [{ value: 'nouveau', label: 'Nouveau' }, { value: 'en_cours', label: 'En cours' }, { value: 'traite', label: 'Close' }];
+const labelOf = (status: string) => states.find((state) => state.value === status)?.label || status;
+const when = (value: string) => new Date(value).toLocaleString('fr-FR');
+const preview = (row: Request) => {
+  const last = row.replies[row.replies.length - 1];
+  const text = (last?.body || row.description).split('\n').map((line) => line.trim()).filter(Boolean)[0] || '';
+  return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+};
 
 export function SupportRequests() {
+  const { me } = useAuth();
+  const signature = me?.name?.trim() ? `— ${me.name.trim()}\nL'équipe App'lika` : `— L'équipe App'lika`;
   const cache = useQueryClient();
-  const [replyTo, setReplyTo] = useState<Request | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
   const [sending, setSending] = useState(false);
-  const { data, isLoading } = useQuery({ queryKey: ['support-requests'], queryFn: async () => (await api<{ rows: Request[] }>('/support-requests')).json, refetchInterval: 30000 });
+  const [changingStatus, setChangingStatus] = useState(false);
+  const query = useQuery({ queryKey: ['support-requests'], queryFn: async () => (await api<{ rows: Request[] }>('/support-requests')).json, refetchInterval: 30000 });
+  const rows = query.data?.rows || [];
+  const selected = rows.find((row) => row.id === selectedId) || null;
+  const canReply = !!selected && (selected.account_linked || selected.matching_account);
+
+  function open(row: Request) {
+    if (row.id !== selectedId) setReplyBody('');
+    setSelectedId(row.id);
+  }
   async function change(id: string, status: string) {
-    try { await api(`/support-requests/${id}`, { method: 'PATCH', body: { status } }); await cache.invalidateQueries({ queryKey: ['support-requests'] }); }
+    setChangingStatus(true);
+    try { await api(`/support-requests/${id}`, { method: 'PATCH', body: { status } }); await cache.invalidateQueries({ queryKey: ['support-requests'] }); message.success(status === 'traite' ? 'Discussion close.' : 'Discussion rouverte.'); }
     catch (error) { message.error(error instanceof Error ? error.message : 'Modification impossible.'); }
+    finally { setChangingStatus(false); }
   }
   async function sendReply() {
-    if (!replyTo || !replyBody.trim()) return;
+    if (!selected || !replyBody.trim()) return;
     setSending(true);
     try {
-      await api(`/support-requests/${replyTo.id}/replies`, { method: 'POST', body: { body: replyBody.trim() } });
+      await api(`/support-requests/${selected.id}/replies`, { method: 'POST', body: { body: replyBody.trim() } });
       await cache.invalidateQueries({ queryKey: ['support-requests'] });
-      setReplyTo(null); setReplyBody(''); message.success('Réponse envoyée dans l’application.');
+      setReplyBody('');
+      message.success('Réponse visible dans le compte de l’utilisateur.');
     } catch (error) { message.error(error instanceof Error ? error.message : 'Réponse impossible.'); }
     finally { setSending(false); }
   }
+
   return <div style={{ padding: 24 }}>
-    <Typography.Title level={2} style={{ marginTop: 0 }}>Demandes de support</Typography.Title>
-    <Typography.Paragraph>Les demandes et les réponses liées à un compte se mettent à jour en direct. Pour une demande sans compte, répondez par e-mail.</Typography.Paragraph>
-    <Table<Request> rowKey="id" loading={isLoading} dataSource={data?.rows || []} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} columns={[
-      { title: 'Reçue le', dataIndex: 'created_at', render: (v: string) => new Date(v).toLocaleString('fr-FR') },
-      { title: 'Contact', dataIndex: 'email', render: (v: string) => <a href={`mailto:${v}`}>{v}</a> },
-      { title: 'Sujet et échanges', render: (_: unknown, r: Request) => <Space direction="vertical"><strong>{r.subject}</strong><span style={{ whiteSpace: 'pre-wrap' }}>{r.description}</span>{r.replies.map(reply => <div key={reply.id} style={{ whiteSpace: 'pre-wrap', borderLeft: '3px solid #1677ff', paddingLeft: 10 }}><Typography.Text type="secondary">Réponse du {new Date(reply.created_at).toLocaleString('fr-FR')}</Typography.Text><br />{reply.body}</div>)}</Space> },
-      { title: 'État', render: (_: unknown, r: Request) => <Select aria-label={`État de la demande ${r.id}`} value={r.status} options={states} style={{ width: 130 }} onChange={(v) => change(r.id, v)} /> },
-      { title: '', render: (_: unknown, r: Request) => r.account_linked ? <Button onClick={() => { setReplyTo(r); setReplyBody(''); }}>Répondre dans l’application</Button> : <Button href={`mailto:${r.email}?subject=${encodeURIComponent(`Re: ${r.subject}`)}`}>Répondre par e-mail</Button> },
-    ]} />
-    <Modal title={replyTo ? `Répondre à : ${replyTo.subject}` : 'Répondre'} open={!!replyTo} onCancel={() => { if (!sending) setReplyTo(null); }} onOk={sendReply} okText="Envoyer la réponse" okButtonProps={{ disabled: !replyBody.trim(), loading: sending }} cancelButtonProps={{ disabled: sending }}>
-      <Typography.Paragraph>La réponse apparaîtra immédiatement dans le compte de l’utilisateur et dans ses notifications.</Typography.Paragraph>
-      <Input.TextArea aria-label="Réponse au support" value={replyBody} onChange={event => setReplyBody(event.target.value)} maxLength={4000} showCount rows={6} />
-    </Modal>
+    <PageHeader title="Demandes de support" subtitle="Ouvrez une demande pour lire l’échange et répondre dans le compte." />
+    <Table<Request>
+      rowKey="id"
+      loading={query.isLoading}
+      dataSource={rows}
+      pagination={{ pageSize: 20, showSizeChanger: false }}
+      scroll={{ x: 760 }}
+      onRow={(row) => ({ onClick: () => open(row), style: { cursor: 'pointer' } })}
+      columns={[
+        { title: 'Reçue le', dataIndex: 'created_at', width: 170, render: when },
+        { title: 'Contact', dataIndex: 'email', width: 220 },
+        { title: 'Sujet', key: 'subject', render: (_: unknown, row: Request) => <div style={{ minWidth: 220, maxWidth: 420 }}><div style={{ fontWeight: 600 }}>{row.subject}</div><Typography.Text type="secondary" ellipsis style={{ display: 'block' }}>{preview(row)}</Typography.Text></div> },
+        { title: 'Échanges', key: 'count', width: 120, render: (_: unknown, row: Request) => row.replies.length ? `${row.replies.length} message${row.replies.length > 1 ? 's' : ''}` : 'En attente' },
+        { title: 'État', dataIndex: 'status', width: 110, render: labelOf },
+        { title: '', key: 'open', width: 110, render: (_: unknown, row: Request) => <Button onClick={(event) => { event.stopPropagation(); open(row); }}>Ouvrir</Button> },
+      ]}
+    />
+    <Drawer
+      title={selected ? selected.subject : 'Demande'}
+      open={!!selected}
+      onClose={() => { if (!sending) setSelectedId(null); }}
+      width="min(640px, 100vw)"
+      destroyOnClose
+      extra={selected ? (selected.status === 'traite'
+        ? <Button loading={changingStatus} disabled={sending} onClick={() => change(selected.id, 'en_cours')}>Rouvrir</Button>
+        : <Popconfirm title="Clore cette discussion ?" description="L’utilisateur verra la discussion comme close. Un message de sa part la rouvre." okText="Clore" cancelText="Annuler" onConfirm={() => change(selected.id, 'traite')}><Button loading={changingStatus} disabled={sending}>Clore</Button></Popconfirm>) : null}
+    >
+      {selected ? <div style={{ display: 'grid', gap: 12 }}>
+        <Typography.Text type="secondary">{selected.email} · reçue le {when(selected.created_at)}</Typography.Text>
+        <Message who="Utilisateur" at={when(selected.created_at)} body={selected.description} />
+        {selected.replies.map((reply) => <Message key={reply.id} who={reply.author === 'user' ? 'Utilisateur' : 'Support'} at={when(reply.created_at)} body={reply.body} />)}
+        {selected.status === 'traite' ? <Typography.Text type="secondary">Discussion close. L’utilisateur peut la rouvrir en écrivant un message.</Typography.Text> : canReply ? <div>
+          <Typography.Text strong>Répondre</Typography.Text>
+          {!selected.account_linked ? <Typography.Paragraph type="secondary" style={{ margin: '4px 0 0' }}>La demande sera rattachée au compte qui utilise cette adresse.</Typography.Paragraph> : null}
+          <Input.TextArea aria-label="Réponse au support" value={replyBody} onChange={(event) => setReplyBody(event.target.value)} maxLength={4000 - signature.length - 2} showCount rows={5} style={{ marginTop: 8 }} />
+          <Typography.Paragraph type="secondary" style={{ whiteSpace: 'pre-wrap', margin: '8px 0 12px' }}>{signature}</Typography.Paragraph>
+          <Button type="primary" loading={sending} disabled={!replyBody.trim()} onClick={sendReply}>Envoyer la réponse</Button>
+        </div> : <Typography.Text type="secondary">Aucun compte ne correspond à cette adresse.</Typography.Text>}
+      </div> : null}
+    </Drawer>
+  </div>;
+}
+
+function Message({ who, at, body }: { who: string; at: string; body: string }) {
+  return <div className="admin-panel" style={{ padding: 12 }}>
+    <Typography.Text type="secondary" style={{ fontSize: 12 }}>{who} · {at}</Typography.Text>
+    <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{body}</Typography.Paragraph>
   </div>;
 }

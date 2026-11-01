@@ -225,6 +225,11 @@ create table if not exists support_request_replies (
   created_at timestamptz not null default now()
 );
 create index if not exists support_request_replies_request_idx on support_request_replies (request_id, id);
+alter table support_request_replies add column if not exists author text not null default 'admin';
+do $$ begin
+  alter table support_request_replies add constraint support_request_replies_author_check check (author in ('user','admin'));
+exception when duplicate_object then null;
+end $$;
 
 -- ═══ Annuaire vétérinaire public et urgences ═══
 create table if not exists directory_clinics (

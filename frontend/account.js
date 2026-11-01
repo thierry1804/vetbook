@@ -251,7 +251,9 @@
     sessions: null, links: null, household: null, storage: null,
     authTab: 'login',
     justCreatedLink: null,
-    avatarBusy: false
+    avatarBusy: false,
+    supportFocus: null,
+    supportOpen: null
   };
   var root = null;
 
@@ -314,7 +316,7 @@
     if (key === 'sharing') return acc.user ? (acc.links ? acc.links.filter(function (l) { return l.active; }).length + ' lien(s) actif(s)' : 'Vétérinaire et foyer') : 'Connexion requise';
     if (key === 'data') { var ls = configured() && cs().lastSyncAt ? cs().lastSyncAt() : null; return acc.user ? (ls ? 'Synchronisé ' + ago(ls) : 'Sauvegarde serveur active') : 'Sauvegarde locale'; }
     if (key === 'plan') { var e = window.applikaPlan && window.applikaPlan.entitlements(); return e && e.plan ? planName(e.plan) : 'Gratuit'; }
-    if (key === 'help') return 'Centre d’aide, introduction';
+    if (key === 'help') return supportHint();
     return id.email;
   }
 
@@ -346,6 +348,7 @@
     var fn = { profile: panelProfile, security: panelSecurity, notifications: panelNotifications, display: panelDisplay, plan: panelPlan, sharing: panelSharing, data: panelData, help: panelHelp }[acc.panel];
     var draft = {}, activeId = document.activeElement && document.activeElement.id;
     if (acc.panel === 'plan') $$('[id^="sub-"]', body).forEach(function (el) { if ('value' in el) draft[el.id] = el.value; });
+    if (acc.panel === 'help') $$('textarea[data-support-reply]', body).forEach(function (el) { draft[el.id] = el.value; });
     body.innerHTML = fn();
     Object.keys(draft).forEach(function (id) { var el = document.getElementById(id); if (el) el.value = draft[id]; });
     if (draft[activeId] !== undefined) { var focused = document.getElementById(activeId); if (focused) focused.focus({ preventScroll: true }); }
@@ -787,7 +790,7 @@
       if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxSurfaces(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
       var row = (inboxPopover && inboxPopover.contains(button) ? inboxPreviewRows : inbox.rows).filter(function (n) { return n.id === id; })[0];
       withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
-        if (action === 'open' && row) { closeInbox(); if (row.href === '/?account=plan' || row.href === '/?account=help') { acc.panel = row.href === '/?account=help' ? 'help' : 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        if (action === 'open' && row) { var target = accountTarget(row.href); if (target) { closeInbox(); acc.panel = target.panel; acc.supportFocus = target.request; acc.supportOpen = target.request; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
         return Promise.all([loadInbox(), loadInboxPreview()]);
       }); }).catch(function (e) { toast(e.message, 'error'); });
   }
@@ -992,17 +995,75 @@
   }
 
   // ——— Panneau : aide ———————————————————————————————————————
+  function supportHint() {
+    if (!acc.user) return 'Centre d’aide';
+    if (!supportRequests) return 'Échanges avec le support';
+    var n = supportRequests.reduce(function (sum, request) { return sum + (request.replies || []).length; }, 0);
+    return n ? n + ' réponse' + (n > 1 ? 's' : '') + ' du support' : 'Échanges avec le support';
+  }
+  function accountTarget(href) {
+    try {
+      var url = new URL(href, location.origin);
+      var panel = url.searchParams.get('account');
+      if (panel !== 'help' && panel !== 'plan') return null;
+      return { panel: panel, request: url.searchParams.get('request') };
+    } catch (e) { return null; }
+  }
+  function supportMessage(mine, at, body) {
+    var text = String(body || '');
+    var sign = '';
+    if (!mine) {
+      var cut = text.match(/\n\n— [^\n]*\nL'équipe App'lika\s*$/);
+      if (cut) { sign = cut[0].trim(); text = text.slice(0, cut.index).replace(/\s+$/, ''); }
+    }
+    return '<div class="acc-support-turn ' + (mine ? 'is-user' : 'is-support') + '"><b>' + (mine ? 'Vous' : 'Support') + '<time datetime="' + esc(at) + '">' + esc(subscriptionDate(at)) + '</time></b><p>' + esc(text) + '</p>' + (sign ? '<p class="acc-support-sign">' + esc(sign) + '</p>' : '') + '</div>';
+  }
+  function supportBadge(status) {
+    return status === 'traite' ? 'acc-badge acc-badge--ok' : status === 'nouveau' ? 'acc-badge acc-badge--warn' : 'acc-badge';
+  }
+  function supportPreview(request) {
+    var replies = request.replies || [];
+    var source = replies.length ? replies[replies.length - 1].body : request.description;
+    var line = String(source || '').split('\n').map(function (part) { return part.trim(); }).filter(Boolean)[0] || '';
+    return line.length > 80 ? line.slice(0, 80) + '…' : line;
+  }
+  function supportConversation(request) {
+    var states = { nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Close' };
+    var replies = request.replies || [];
+    var supportCount = replies.filter(function (reply) { return reply.author !== 'user'; }).length;
+    var closed = request.status === 'traite';
+    return '<article class="acc-support-request" id="support-request-' + esc(request.id) + '"><button type="button" class="acc-support-back" data-act="support-back">' + icon('back', 18) + 'Discussions</button><header class="acc-support-head"><strong>' + esc(request.subject) + '</strong><span class="' + supportBadge(request.status) + '">' + esc(states[request.status] || request.status) + '</span><p class="acc-hint">Reçue le ' + esc(subscriptionDate(request.created_at)) + (supportCount ? ' · ' + supportCount + ' réponse' + (supportCount > 1 ? 's' : '') + ' du support' : '') + '</p></header><div class="acc-support-log">' +
+      supportMessage(true, request.created_at, request.description) +
+      replies.map(function (reply) { return supportMessage(reply.author === 'user', reply.created_at, reply.body); }).join('') +
+      '</div><form class="acc-form" data-form="support-reply" data-id="' + esc(request.id) + '">' + (closed ? '<p class="acc-hint">Cette discussion est close. Un message la rouvre.</p>' : '') + '<div class="acc-field"><label for="support-reply-' + esc(request.id) + '">Répondre</label><textarea id="support-reply-' + esc(request.id) + '" data-support-reply="' + esc(request.id) + '" maxlength="4000" rows="3" required placeholder="Écrire un message"></textarea></div><p class="acc-status" id="support-reply-status-' + esc(request.id) + '" role="status" aria-live="polite" hidden></p><button type="submit" class="acc-btn acc-btn--primary">Envoyer</button></form></article>';
+  }
+  function supportThread() {
+    if (!acc.user) return '';
+    var states = { nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Close' };
+    var opened = supportRequests && supportRequests.filter(function (request) { return String(request.id) === String(acc.supportOpen); })[0];
+    var body = supportRequestsError ? '<p role="alert">' + esc(supportRequestsError) + '</p><button type="button" class="acc-btn" data-act="support-refresh">Réessayer</button>' :
+      !supportRequests ? '<p class="acc-hint">Chargement des échanges…</p>' :
+      opened ? supportConversation(opened) :
+      supportRequests.length ? '<ul class="acc-list acc-support-list">' + supportRequests.map(function (request) {
+        return '<li><button type="button" class="acc-row acc-row--btn" data-act="support-open" data-id="' + esc(request.id) + '"><span class="acc-row__text"><b>' + esc(request.subject) + ' <span class="' + supportBadge(request.status) + '">' + esc(states[request.status] || request.status) + '</span></b><small>' + esc(subscriptionDate(request.updated_at || request.created_at)) + (supportPreview(request) ? ' · ' + esc(supportPreview(request)) : '') + '</small></span>' + icon('chevron', 18) + '</button></li>';
+      }).join('') + '</ul>' : '<p class="acc-hint">Aucun échange pour le moment. Une demande envoyée ici apparaîtra dans cette liste.</p>';
+    return '<div class="acc-card" id="support-thread"><h3>Échanges avec le support</h3>' + body + '</div>';
+  }
+  function revealSupportFocus() {
+    if (acc.panel !== 'help' || !acc.supportFocus) return;
+    if (String(acc.supportOpen) !== String(acc.supportFocus)) { acc.supportOpen = acc.supportFocus; renderPanel(); return; }
+    var el = document.getElementById('support-request-' + acc.supportFocus);
+    acc.supportFocus = null;
+    if (!el) return;
+    el.classList.add('is-focus');
+    el.scrollIntoView({ block: 'start' });
+  }
   function panelHelp() {
-    return '<div class="acc-card"><ul class="acc-list acc-list--links">' +
+    return supportThread() + '<div class="acc-card"><ul class="acc-list acc-list--links">' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="help">' + '<span class="acc-row__icon">' + icon('help', 20) + '</span><span class="acc-row__text"><b>Centre d’aide</b><small>Questions fréquentes et guides</small></span>' + icon('chevron', 18) + '</button></li>' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="onboarding"><span class="acc-row__icon">' + icon('info', 20) + '</span><span class="acc-row__text"><b>Revoir l’introduction</b><small>Refaire le tour de l’application</small></span>' + icon('chevron', 18) + '</button></li>' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="support"><span class="acc-row__icon">' + icon('mail', 20) + '</span><span class="acc-row__text"><b>Signaler un problème</b><small>Envoyer une demande au support</small></span>' + icon('chevron', 18) + '</button></li>' +
-      '</ul></div>' + (acc.user ? '<div class="acc-card"><h3>Mes demandes de support</h3>' +
-        (supportRequestsError ? '<p role="alert">' + esc(supportRequestsError) + '</p><button type="button" class="acc-btn" data-act="support-refresh">Réessayer</button>' :
-          supportRequests ? (supportRequests.length ? supportRequests.map(function (request) {
-            return '<div class="acc-support-request"><strong>' + esc(request.subject) + '</strong><p class="acc-hint">Demande n°' + esc(request.id) + ' · ' + esc(subscriptionDate(request.created_at)) + ' · ' + esc(({ nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Traitée' })[request.status] || request.status) + '</p><p>' + esc(request.description) + '</p>' +
-              (request.replies || []).map(function (reply) { return '<div class="acc-support-reply"><b>Réponse du support · ' + esc(subscriptionDate(reply.created_at)) + '</b><p>' + esc(reply.body) + '</p></div>'; }).join('') + '</div>';
-          }).join('') : '<p class="acc-hint">Aucune demande pour le moment.</p>') : '<p class="acc-hint">Chargement des demandes…</p>') + '</div>' : '') +
+      '</ul></div>' +
       '<p class="acc-foot">App’lika · conçu avec soin pour la santé animale.<br>Vos compagnons, leurs carnets, vos données.</p>';
   }
   var supportRequests = null, supportRequestsError = '', supportRequestsLoading = false, supportRequestsRequest = 0;
@@ -1019,10 +1080,11 @@
       if (request !== supportRequestsRequest) return;
       supportRequestsLoading = false;
       if (acc.panel === 'help' && root && !root.closest('[hidden]')) renderPanel();
+      refreshNavHints();
     });
   }
   function openSupportDialog() {
-    var el = openDialog('<h2 class="accd__title" id="accd-title">Contacter le support</h2><p class="acc-hint">Décris le problème rencontré. ' + (acc.user ? 'La réponse apparaîtra dans ton compte et dans tes notifications.' : 'Une personne de l’équipe pourra répondre à ton adresse e-mail.') + '</p>' +
+    var el = openDialog('<h2 class="accd__title" id="accd-title">Contacter le support</h2><p class="acc-hint">Décris le problème rencontré. ' + (acc.user ? 'La réponse apparaîtra dans Aide, en tête des échanges, et dans tes notifications.' : 'Si cette adresse correspond à un compte, la réponse apparaîtra dans ce compte.') + '</p>' +
       '<form id="support-form" class="acc-form"><div class="acc-field"><label for="support-email">Adresse e-mail</label><input id="support-email" type="email" required maxlength="200" value="' + esc(acc.user && acc.user.email || '') + '"></div>' +
       '<div class="acc-field"><label for="support-subject">Sujet</label><input id="support-subject" required minlength="3" maxlength="160"></div>' +
       '<div class="acc-field"><label for="support-description">Description</label><textarea id="support-description" required minlength="10" maxlength="4000" rows="5"></textarea></div>' +
@@ -1034,7 +1096,7 @@
       button.disabled = true;
       fetch('/api/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.querySelector('#support-email').value, subject: form.querySelector('#support-subject').value, description: form.querySelector('#support-description').value }) })
         .then(function (response) { return response.json().then(function (body) { if (!response.ok) throw new Error(body.error || 'Envoi impossible.'); return body; }); })
-        .then(function (body) { if (acc.user) loadSupportRequests(); form.innerHTML = '<p role="status">Demande n°' + esc(body.id) + ' enregistrée. ' + (acc.user ? 'Tu recevras la réponse dans l’application.' : 'L’équipe pourra te répondre par e-mail.') + '</p><button type="button" class="acc-btn acc-btn--primary" data-dlg-close>Fermer</button>'; form.querySelector('button').focus(); })
+        .then(function (body) { if (acc.user) loadSupportRequests(); form.innerHTML = '<p role="status">Demande n°' + esc(body.id) + ' enregistrée. ' + (acc.user ? 'La réponse s’affichera dans Aide, Échanges avec le support.' : 'Si cette adresse correspond à un compte, la réponse y apparaîtra.') + '</p><button type="button" class="acc-btn acc-btn--primary" data-dlg-close>Fermer</button>'; form.querySelector('button').focus(); })
         .catch(function (error) { status.hidden = false; status.textContent = error.message; button.disabled = false; });
     });
   }
@@ -1046,6 +1108,7 @@
     if (acc.panel === 'data') loadStorage();
     if (acc.panel === 'plan' && plans() && !acc.planRefreshed) { acc.planRefreshed = true; subscriptionAccount = null; loadSubscriptionAccount(); plans().refresh(); }
     if (acc.panel === 'help' && acc.user && !supportRequests && !supportRequestsLoading && !supportRequestsError) loadSupportRequests();
+    revealSupportFocus();
   }
   function setHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
 
@@ -1268,6 +1331,8 @@
     help: function () { var c = ctx(); if (c) c.showHelp(); },
     support: openSupportDialog,
     'support-refresh': function () { supportRequestsError = ''; loadSupportRequests(); },
+    'support-open': function (t) { acc.supportOpen = t.dataset.id; renderPanel(); var field = document.getElementById('support-reply-' + t.dataset.id); if (field) field.focus(); },
+    'support-back': function () { acc.supportOpen = null; renderPanel(); },
     onboarding: function () { var c = ctx(); if (c) c.showOnboarding(); }
   };
   function scrollTop() { var v = document.getElementById('view-user-profile'); if (v && v.scrollIntoView) v.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); }
@@ -1276,6 +1341,16 @@
   // ——— Formulaires ——————————————————————————————————————————
   function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var forms = {
+    'support-reply': function (form) {
+      var id = form.dataset.id;
+      var field = form.querySelector('textarea');
+      var text = field.value.trim();
+      if (!text) { setStatus('support-reply-status-' + id, 'Écrivez un message.', true); field.focus(); return; }
+      var btn = form.querySelector('[type="submit"]');
+      withBusy(btn, function () { return cs().api('/api/me/support-requests/' + encodeURIComponent(id) + '/replies', { method: 'POST', body: JSON.stringify({ body: text }) }); })
+        .then(function () { field.value = ''; toast('Message envoyé', 'success'); return loadSupportRequests(); })
+        .catch(function (e) { setStatus('support-reply-status-' + id, e.message, true); });
+    },
     profile: function (form) {
       var first = val('pf-first').trim();
       if (!first) { setStatus('pf-status', 'Indiquez votre prénom.', true); document.getElementById('pf-first').focus(); return; }
@@ -1387,7 +1462,7 @@
   function cleanUrl() { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* rien */ } }
   function handleDeepLinks() {
     var accountLink = new URLSearchParams(location.search).get('account');
-    if (accountLink === 'plan' || accountLink === 'help') { acc.panel = accountLink; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); }
+    if (accountLink === 'plan' || accountLink === 'help') { acc.panel = accountLink; acc.supportFocus = new URLSearchParams(location.search).get('request'); acc.supportOpen = acc.supportFocus; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); }
     var q = new URLSearchParams(location.search);
     var verify = q.get('verify'), reset = q.get('reset'), invite = q.get('invite');
     if (!verify && !reset && !invite) return;

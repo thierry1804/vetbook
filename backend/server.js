@@ -47,7 +47,7 @@ import filesUpload from './api/files/upload.js';
 import filesGet from './api/files/get.js';
 import filesDelete from './api/files/delete.js';
 import aiChat from './api/ai/chat.js';
-import support, { mySupportRequests } from './api/support.js';
+import support, { mySupportRequests, replyToMySupportRequest } from './api/support.js';
 import help from './api/help.js';
 
 const PORT = process.env.PORT || 3000;
@@ -87,6 +87,7 @@ app.get('/api/health', (_req, res) => {
 });
 app.all('/api/support', rateLimit({ windowMs: 15 * 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false }), support);
 app.get('/api/me/support-requests', mySupportRequests);
+app.post('/api/me/support-requests/:id/replies', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de messages. Réessayez dans un moment.' } }), replyToMySupportRequest);
 app.all('/api/help', publicLimiter, help);
 
 app.all('/api/auth/register', authLimiter, trackAccess('auth.register'), register);
