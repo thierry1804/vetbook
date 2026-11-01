@@ -2,6 +2,8 @@
 
 Référence : [proposition fonctionnelle](2026-11-01-proposition-gestion-abonnements.md).
 
+Mode d’emploi : [guide d’utilisation des abonnements et demandes](2026-11-01-guide-utilisation-abonnements.md).
+
 Périmètre : gestion des accès uniquement, décisions administratives manuelles, aucun paiement ajouté. Les tests d’écriture utilisent une base jetable ; les données métier réelles ne servent pas de jeu de test.
 
 | Lot | État | Livrable attendu |
