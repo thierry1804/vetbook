@@ -124,7 +124,10 @@ Ouvrir **Demandes**. L’onglet **À traiter** regroupe les demandes **Nouveau**
 2. Cliquer sur **Prendre en charge** pour devenir le responsable affiché. Cette action n’accorde aucun accès.
 3. Cliquer sur **Traiter** pour ouvrir le formulaire commun, prérempli avec l’utilisateur et l’offre. Une demande de souscription sur un accès existant propose un changement de formule.
 4. Vérifier les dates : la date souhaitée est une indication à examiner, pas une promesse d’activation.
-5. Saisir le motif, calculer l’aperçu et confirmer l’opération correspondant à la demande.
+5. Renseigner la **Référence de paiement** si un règlement a été reçu manuellement (120 caractères maximum, sur une seule ligne). Elle reste facultative pour les essais et les accès accordés sans règlement.
+6. Saisir le motif, calculer l’aperçu et vérifier la référence dans le récapitulatif, puis confirmer l’opération correspondant à la demande.
+
+La référence est enregistrée avec l’opération réussie : elle apparaît dans la liste des demandes, l’historique du dossier et l’audit admin. La recherche des demandes accepte aussi cette référence. Elle reste interne au backoffice et n’est pas publiée dans les notifications utilisateur. Sa saisie n’effectue aucune vérification ni aucun encaissement automatique.
 
 La demande passe à **Traité** uniquement si l’opération réussit. Fermer le formulaire ou rencontrer une erreur ne la marque pas traitée. Ne pas accorder l’accès dans un formulaire indépendant si l’objectif est aussi de clôturer la demande : partir de **Traiter** pour conserver le lien.
 

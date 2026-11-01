@@ -113,7 +113,7 @@ export function proposeSubscription(context,input,admin,now=Date.now()) {
 }
 async function dossierFromContext(c,context) {
   const state=describeSubscriptions(context.rows);
-  const events=(await c.query('select id,subscription_id,action,admin_name,reason,before,after,created_at from subscription_events where user_id=$1 order by id desc limit 50',[context.user.id])).rows;
+  const events=(await c.query('select id,subscription_id,action,admin_name,reason,payment_reference,before,after,created_at from subscription_events where user_id=$1 order by id desc limit 50',[context.user.id])).rows;
   return {user:context.user,...state,rows:context.rows.map((r)=>({...r,state:describeSubscriptions([r]).tracked?.state||'termine'})),plans:context.plans,revision:context.revision,timezone:context.timezone,usage:context.usage,overrides:context.overrides,events,entitlements:await computeEntitlements(c,context.user.id,{rows:context.rows})};
 }
 export async function subscriptionDossier(c,userId){return dossierFromContext(c,await subscriptionContext(c,userId));}
@@ -129,16 +129,20 @@ export async function previewSubscription(userId,input,admin) {
   return withTransaction(async(c)=>{
     const context=await subscriptionContext(c,userId); const now=Date.now(); const proposal=proposeSubscription(context,input,admin,now);
     const request=await validateRequest(c,input.requestId,userId,proposal);
+    if(input.paymentReference!=null&&typeof input.paymentReference!=='string')fail('La référence de paiement doit être un texte.');
+    const paymentReference=String(input.paymentReference||'').trim();
+    if(paymentReference.length>120||[...paymentReference].some(char=>char.charCodeAt(0)<32||char.charCodeAt(0)===127))fail('La référence de paiement doit contenir au maximum 120 caractères, sur une seule ligne.');
+    if(paymentReference&&!request)fail('La référence de paiement doit être associée au traitement d’une demande.');
     const before=await computeEntitlements(c,userId,{rows:context.rows,now});
     const subject=proposal.rows.find((r)=>r.id===proposal.subjectId);
     const comparisonAt=Math.max(now,instant(subject?.started_at)||now);
     const after=await computeEntitlements(c,userId,{rows:proposal.rows,now:comparisonAt});
     const transitions=[describeSubscriptions(context.rows,now).nextTransition,...context.overrides.map((o)=>o.expires_at)].filter((v)=>v&&instant(v)>now).map(instant);
     const expiresAt=Math.min(now+300000,...transitions);
-    return {comparisonAt:new Date(comparisonAt).toISOString(),before:before.subscription,after:after.subscription,changed:proposal.changed,featuresBefore:before.features,featuresAfter:after.features,usage:context.usage,timezone:context.timezone,
+    return {paymentReference:paymentReference||null,comparisonAt:new Date(comparisonAt).toISOString(),before:before.subscription,after:after.subscription,changed:proposal.changed,featuresBefore:before.features,featuresAfter:after.features,usage:context.usage,timezone:context.timezone,
       labels:Object.fromEntries(context.features.map((f)=>[f.feature_code,f.label])),
       warnings:[...(context.user.status==='suspendu'?['Le compte est suspendu : l’abonnement ne réactive pas le compte.']:[]),...(proposal.changed.some((r)=>!r.ends_at)?['Cet accès est sans échéance.']:[])],request,
-      token:signedPreview({userId,adminId:admin.id,revision:context.revision,proposal:{...proposal,rows:undefined},requestId:request?.id,requestVersion:request?.version,expiresAt})};
+      token:signedPreview({userId,adminId:admin.id,revision:context.revision,proposal:{...proposal,rows:undefined},paymentReference:paymentReference||null,requestId:request?.id,requestVersion:request?.version,expiresAt})};
   });
 }
 const uuid=(value)=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -163,9 +167,9 @@ export async function commitSubscription(userId,{token,operationId},req,res) {
       if(context.rows.some((r)=>r.id===row.id))await c.query(`update subscriptions set ${columns.map((key,i)=>`${key}=$${i+2}`).join(',')} where id=$1 and user_id=$12`,[row.id,...columns.map((key)=>key==='metadata'?JSON.stringify(row[key]):row[key]),userId]);
       else await c.query(`insert into subscriptions (id,user_id,plan_code,${columns.join(',')}) values (${Array.from({length:13},(_,i)=>'$'+(i+1)).join(',')})`,[row.id,userId,row.plan_code,...columns.map((key)=>key==='metadata'?JSON.stringify(row[key]):row[key])]);
     }
-    await c.query('insert into subscription_events (user_id,subscription_id,action,admin_id,admin_name,reason,before,after) values ($1,$2,$3,$4,$5,$6,$7,$8)',[userId,proposal.subjectId,proposal.action,req.admin.id,req.admin.name||req.admin.email,proposal.reason+(proposal.exception?` — Dérogation : ${proposal.exception}`:''),JSON.stringify(context.rows),JSON.stringify(proposal.rows)]);
-    await audit(req,res,{action:`subscription.${proposal.action}`,targetType:'user',targetId:userId,before:context.rows,after:proposal.changed,reason:proposal.reason},c);
-    if(request)await c.query("update subscription_requests set status='traite',assigned_to=$2,public_reply='Votre demande a été traitée. Consultez votre accès actuel.',version=version+1,updated_at=now() where id=$1",[request.id,req.admin.id]);
+    await c.query('insert into subscription_events (user_id,subscription_id,action,admin_id,admin_name,reason,before,after,payment_reference) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)',[userId,proposal.subjectId,proposal.action,req.admin.id,req.admin.name||req.admin.email,proposal.reason+(proposal.exception?` — Dérogation : ${proposal.exception}`:''),JSON.stringify(context.rows),JSON.stringify(proposal.rows),parsed.paymentReference||null]);
+    await audit(req,res,{action:`subscription.${proposal.action}`,targetType:'user',targetId:userId,before:context.rows,after:{periods:proposal.changed,requestId:request?.id||null,paymentReference:parsed.paymentReference||null},reason:proposal.reason},c);
+    if(request)await c.query("update subscription_requests set status='traite',assigned_to=$2,payment_reference=$3,public_reply='Votre demande a été traitée. Consultez votre accès actuel.',version=version+1,updated_at=now() where id=$1",[request.id,req.admin.id,parsed.paymentReference||null]);
     const subject=proposal.rows.find((r)=>r.id===proposal.subjectId);
     const immediate=subject&&['assign','trial','change'].includes(proposal.action)&&instant(subject.started_at)<=Date.now();
     const key=immediate?`activation:${subject.id}:${new Date(subject.started_at).toISOString()}`:`operation:${operationId}`;

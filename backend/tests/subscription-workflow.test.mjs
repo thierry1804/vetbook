@@ -91,8 +91,21 @@ await test('customer requests deduplicate, isolate ownership, and expose no inte
  await sql("update subscription_requests set internal_note='INTERNE SECRET' where id=$1",[request.id]);assert.ok(!JSON.stringify((await call('')).json).includes('INTERNE SECRET'));
 });
 await test('request fulfilment and access grant are one transaction; stale requests cannot be fulfilled',async()=>{
- const p=await preview(customer,{action:'assign',planCode:'premium',requestId:request.id});await sql('update subscription_requests set version=version+1 where id=$1',[request.id]);await assert.rejects(commit(customer,p),{status:409});assert.equal((await context(customer)).rows.length,0);
- await commit(customer,await preview(customer,{action:'assign',planCode:'premium',requestId:request.id}));assert.equal((await sql('select status from subscription_requests where id=$1',[request.id])).rows[0].status,'traite');assert.equal((await call('/requests/'+request.id+'/cancel',{method:'POST'})).status,409);
+ const p=await preview(customer,{action:'assign',planCode:'premium',requestId:request.id,paymentReference:' MV-STALE '});await sql('update subscription_requests set version=version+1 where id=$1',[request.id]);await assert.rejects(commit(customer,p),{status:409});assert.equal((await context(customer)).rows.length,0);
+ const valid=await preview(customer,{action:'assign',planCode:'premium',requestId:request.id,paymentReference:'  MV-2026-001234  '});assert.equal(valid.paymentReference,'MV-2026-001234');
+ const operation=crypto.randomUUID();await commit(customer,valid,operation);await commit(customer,valid,operation);
+ const stored=(await sql('select status,payment_reference from subscription_requests where id=$1',[request.id])).rows[0];assert.equal(stored.status,'traite');assert.equal(stored.payment_reference,'MV-2026-001234');
+ assert.equal((await sql('select payment_reference from subscription_events where user_id=$1',[customer])).rows[0].payment_reference,'MV-2026-001234');
+ assert.equal((await sql("select after->>'paymentReference' as reference from admin_audit_log where target_id=$1 and action='subscription.assign'",[customer])).rows[0].reference,'MV-2026-001234');
+ assert.ok(!JSON.stringify((await call('')).json).includes('MV-2026-001234'));
+ assert.equal((await call('/requests/'+request.id+'/cancel',{method:'POST'})).status,409);
+});
+await test('payment references validate before writing and remain tied to a request',async()=>{
+ const id=await newUser();const r=(await sql("insert into subscription_requests(user_id,kind,plan_code) values($1,'assign','premium') returning id",[id])).rows[0];
+ for(const paymentReference of ['x'.repeat(121),'MV-123\nSECOND',123,{reference:'invalid'}])await assert.rejects(preview(id,{action:'assign',planCode:'premium',requestId:r.id,paymentReference}),{status:400});
+ await assert.rejects(preview(id,{action:'assign',planCode:'premium',paymentReference:'MV-123'}),{status:400});
+ assert.equal((await context(id)).rows.length,0);assert.equal((await sql('select payment_reference from subscription_requests where id=$1',[r.id])).rows[0].payment_reference,null);
+ const p=await preview(id,{action:'assign',planCode:'premium',requestId:r.id,paymentReference:'   '});assert.equal(p.paymentReference,null);
 });
 await test('cancelled requests grant no access and cannot be processed',async()=>{
  const id=await newUser();const cancelled=(await sql("insert into subscription_requests(user_id,kind,plan_code,status) values($1,'assign','premium','annule') returning id",[id])).rows[0];await assert.rejects(preview(id,{action:'assign',planCode:'premium',requestId:cancelled.id}),{status:409});assert.equal((await context(id)).rows.length,0);

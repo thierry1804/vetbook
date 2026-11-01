@@ -600,3 +600,7 @@ drop trigger if exists user_inbox_cleanup on users;
 create trigger user_inbox_cleanup after delete on users for each row execute function remove_account_inbox('user');
 drop trigger if exists admin_inbox_cleanup on admin_users;
 create trigger admin_inbox_cleanup after delete on admin_users for each row execute function remove_account_inbox('admin');
+
+-- Manual payment reference recorded while fulfilling a subscription request.
+alter table subscription_requests add column if not exists payment_reference text;
+alter table subscription_events add column if not exists payment_reference text;

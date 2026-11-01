@@ -49,7 +49,7 @@ export function mountSubscriptions(router) {
     const data=await withClient(async(c)=>{
       const all=(await c.query(`select r.*,u.name as user_name,u.email as user_email,p.name as plan_name,p.period,a.name as assigned_name
         from subscription_requests r join users u on u.id=r.user_id join plans p on p.code=r.plan_code left join admin_users a on a.id=r.assigned_to
-        where ($1='' or u.name ilike $1 or u.email ilike $1) order by r.created_at desc`,[q?'%'+q+'%':''])).rows;
+        where ($1='' or u.name ilike $1 or u.email ilike $1 or r.payment_reference ilike $1) order by r.created_at desc`,[q?'%'+q+'%':''])).rows;
       const matches=(row,key)=>key==='open'?['nouveau','en_cours'].includes(row.status):!key||row.status===key;
       const rows=all.filter((row)=>matches(row,status)); const page=Math.max(1,Number(req.query.page)||1);
       return {rows:rows.slice((page-1)*25,page*25),total:rows.length,counts:Object.fromEntries(['open','nouveau','en_cours','traite','refuse','annule',''].map((key)=>[key,all.filter((row)=>matches(row,key)).length]))};

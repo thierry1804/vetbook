@@ -92,3 +92,12 @@ Guide dédié : [utilisation et exploitation](2026-11-01-temps-reel-notification
 - Contrôles navigateur : cloches, lecture, conservation des saisies et tiroir mobile ; captures examinées.
 - API et Nginx reconstruits ; configuration Nginx valide, santé API à 200 et nouveaux endpoints protégés à 401 sans session. Service worker admin servi par son hôte.
 - Clés VAPID existantes validées sans affichage de secrets ni envoi de test à un appareil réel. L’activation du push reste un choix explicite sur chaque appareil.
+
+
+## Complément — référence de paiement au traitement
+
+- Champ **Référence de paiement** dans l’étape Action et durée du formulaire ouvert depuis **Demandes → Traiter** ; rappel de la valeur dans l’aperçu avant confirmation.
+- Référence facultative, limitée à 120 caractères sur une ligne, espaces extérieurs retirés ; aucun encaissement ou contrôle externe ajouté.
+- Valeur liée à l’aperçu signé et enregistrée dans la même transaction que l’accès et la clôture de la demande. Conservation sur la demande, dans l’événement métier et dans l’audit ; recherche et colonne dédiées côté admin.
+- Valeur interne, exclue de l’API et des notifications utilisateur. Les anciennes demandes restent sans référence ; aucune donnée historique n’est inventée.
+- Validation : 64 contrôles automatisés (23 admin, 19 abonnements, 14 temps réel, 8 unitaires), dont validation des références, transaction annulée/obsolète, confirmation répétée, audit et confidentialité. Parcours navigateur : saisie, aperçu, confirmation et affichage dans la liste.
