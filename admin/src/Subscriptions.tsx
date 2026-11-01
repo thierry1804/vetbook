@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Checkbox, Descriptions, Empty, Form, Input, InputNumber, Modal, Select, Space, Steps, Table, Tabs, Tag, Typography, message } from 'antd';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, permits } from './api';
+import { api, permits, randomId } from './api';
 import { useAuth } from './auth';
 import { PageHeader } from './ui';
 import { QueryFeedback } from './QueryFeedback';
@@ -54,7 +54,7 @@ export function SubscriptionWizard({userId:fixedUser,initialAction='assign',targ
   const {permissions}=useAuth();const [userId,setUserId]=useState(fixedUser||'');const [search,setSearch]=useState('');const [action,setAction]=useState(initialAction);
   const [target,setTarget]=useState(targetId||'');const [planCode,setPlanCode]=useState(request?.plan_code||'');const [step,setStep]=useState(fixedUser?1:0);
   const [fields,setFields]=useState<any>({paymentReference:request?.payment_reference||'',periods:1,when:'now',reason:'',exceptionReason:'',futureDisposition:'',startLocal:'',unlimited:false,confirmUnlimited:false});
-  const [preview,setPreview]=useState<any>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [dirty,setDirty]=useState(false);const [operationId]=useState(()=>crypto.randomUUID());
+  const [preview,setPreview]=useState<any>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [dirty,setDirty]=useState(false);const [operationId]=useState(()=>randomId());
   const guard=useUnsavedChanges(dirty);const dossier=useDossier(userId);
   const users=useQuery({queryKey:['subscription-users',search],enabled:!fixedUser&&search.trim().length>=2,queryFn:async()=>(await api('/subscription-users?'+new URLSearchParams({q:search}))).json});
   const set=(key:string,value:any)=>{setFields((old:any)=>({...old,[key]:value}));setDirty(true);setPreview(null);setError('');};

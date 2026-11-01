@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Empty, Input, Modal, Popover, Select, Space, Table, Typography, message } from 'antd';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from './auth';
+import { randomId } from './api';
 
 type SavedView = { id: string; name: string; search: string; columns: string[] };
 type Preferences = { columns?: string[]; views: SavedView[] };
@@ -35,7 +36,7 @@ export function ManagedTable({ tableKey, ...props }: React.ComponentProps<typeof
   const save = () => {
     const trimmed = name.trim(); if (!trimmed) return;
     if (prefs.views.some((v) => v.name.toLocaleLowerCase() === trimmed.toLocaleLowerCase())) { message.error('Une vue porte déjà ce nom.'); return; }
-    persist({ ...prefs, views: [...prefs.views, { id: crypto.randomUUID(), name: trimmed, search: location.search, columns: [...shown] }] });
+    persist({ ...prefs, views: [...prefs.views, { id: randomId(), name: trimmed, search: location.search, columns: [...shown] }] });
     setOpen(false); setName('');
   };
   const selectedView = prefs.views.find((view) => view.search === location.search && JSON.stringify([...view.columns].sort()) === JSON.stringify([...shown].sort()));
