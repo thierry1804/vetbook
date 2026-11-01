@@ -7359,6 +7359,11 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
 .account-privacy p { background: var(--warm-gray); padding: 16px; border-radius: 12px; font-size: 12px; line-height: 1.7; color: var(--text-body); }
 .account-footer { text-align: center; font-size: 11px; line-height: 1.9; color: var(--text-muted); padding: 0 8px; }
 .account-footer span { font-size: 11px; }
+.acc-support-request { padding: 16px 0; border-top: 1px solid var(--border-soft); overflow-wrap: anywhere; }
+.acc-support-request:first-of-type { margin-top: 12px; }
+.acc-support-request > p { white-space: pre-wrap; }
+.acc-support-reply { margin-top: 12px; padding: 14px; border-left: 3px solid var(--brand-mid); border-radius: 0 10px 10px 0; background: var(--mint-soft); }
+.acc-support-reply p { margin-bottom: 0; white-space: pre-wrap; }
 body:has(#view-user-profile:not([hidden])) > .container,
 body:has(#view-notifications:not([hidden])) > .container { display: none; }
 @media (min-width: 1100px) {

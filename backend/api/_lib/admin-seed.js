@@ -80,7 +80,7 @@ const PUBLIC_SETTINGS = {
 };
 const SETTINGS = {
   ...PUBLIC_SETTINGS,
-  subscriptions_enforced: false, four_eyes_publish: true, default_country: 'MG',
+  subscriptions_enforced: false, four_eyes_publish: false, default_country: 'MG',
   max_share_days: 90, max_household_members: 10, max_upload_mb: 12, storage_quota_mb: null,
   maintenance: { enabled: false, message: '' }, min_client_version: null,
 };

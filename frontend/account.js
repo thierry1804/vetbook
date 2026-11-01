@@ -787,7 +787,7 @@
       if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxSurfaces(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
       var row = (inboxPopover && inboxPopover.contains(button) ? inboxPreviewRows : inbox.rows).filter(function (n) { return n.id === id; })[0];
       withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
-        if (action === 'open' && row) { closeInbox(); if (row.href === '/?account=plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        if (action === 'open' && row) { closeInbox(); if (row.href === '/?account=plan' || row.href === '/?account=help') { acc.panel = row.href === '/?account=help' ? 'help' : 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
         return Promise.all([loadInbox(), loadInboxPreview()]);
       }); }).catch(function (e) { toast(e.message, 'error'); });
   }
@@ -812,7 +812,7 @@
   function startInboxLive() {
     if (!acc.user || inboxUser === acc.user.userId) return;
     stopInboxLive(); inboxUser = acc.user.userId; loadInbox(); loadInboxPreview();
-    function refresh() { clearTimeout(inboxRefresh); inboxRefresh = setTimeout(function () { loadInbox(); loadInboxPreview(); if (plans()) plans().refresh(); if (acc.panel === 'plan') loadSubscriptionAccount(); }, 150); }
+    function refresh() { clearTimeout(inboxRefresh); inboxRefresh = setTimeout(function () { loadInbox(); loadInboxPreview(); if (plans()) plans().refresh(); if (acc.panel === 'plan') loadSubscriptionAccount(); if (supportRequests || acc.panel === 'help') loadSupportRequests(); }, 150); }
     if (window.EventSource) {
       inboxStream = new EventSource('/api/me/events');
       inboxStream.addEventListener('ready', function () { inboxConnected = true; refresh(); });
@@ -822,8 +822,8 @@
     }
     inboxTimer = setInterval(function () { if (!inboxConnected) refresh(); }, 30000);
   }
-  window.addEventListener('online', function () { if (acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
+  window.addEventListener('online', function () { if (acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); if (supportRequests || acc.panel === 'help') loadSupportRequests(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); if (supportRequests || acc.panel === 'help') loadSupportRequests(); } });
 
   function panelPlan() {
     var P = plans(), cfg = P && P.config();
@@ -997,10 +997,32 @@
       '<li><button type="button" class="acc-row acc-row--btn" data-act="help">' + '<span class="acc-row__icon">' + icon('help', 20) + '</span><span class="acc-row__text"><b>Centre d’aide</b><small>Questions fréquentes et guides</small></span>' + icon('chevron', 18) + '</button></li>' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="onboarding"><span class="acc-row__icon">' + icon('info', 20) + '</span><span class="acc-row__text"><b>Revoir l’introduction</b><small>Refaire le tour de l’application</small></span>' + icon('chevron', 18) + '</button></li>' +
       '<li><button type="button" class="acc-row acc-row--btn" data-act="support"><span class="acc-row__icon">' + icon('mail', 20) + '</span><span class="acc-row__text"><b>Signaler un problème</b><small>Envoyer une demande au support</small></span>' + icon('chevron', 18) + '</button></li>' +
-      '</ul></div><p class="acc-foot">App’lika · conçu avec soin pour la santé animale.<br>Vos compagnons, leurs carnets, vos données.</p>';
+      '</ul></div>' + (acc.user ? '<div class="acc-card"><h3>Mes demandes de support</h3>' +
+        (supportRequestsError ? '<p role="alert">' + esc(supportRequestsError) + '</p><button type="button" class="acc-btn" data-act="support-refresh">Réessayer</button>' :
+          supportRequests ? (supportRequests.length ? supportRequests.map(function (request) {
+            return '<div class="acc-support-request"><strong>' + esc(request.subject) + '</strong><p class="acc-hint">Demande n°' + esc(request.id) + ' · ' + esc(subscriptionDate(request.created_at)) + ' · ' + esc(({ nouveau: 'Nouvelle', en_cours: 'En cours', traite: 'Traitée' })[request.status] || request.status) + '</p><p>' + esc(request.description) + '</p>' +
+              (request.replies || []).map(function (reply) { return '<div class="acc-support-reply"><b>Réponse du support · ' + esc(subscriptionDate(reply.created_at)) + '</b><p>' + esc(reply.body) + '</p></div>'; }).join('') + '</div>';
+          }).join('') : '<p class="acc-hint">Aucune demande pour le moment.</p>') : '<p class="acc-hint">Chargement des demandes…</p>') + '</div>' : '') +
+      '<p class="acc-foot">App’lika · conçu avec soin pour la santé animale.<br>Vos compagnons, leurs carnets, vos données.</p>';
+  }
+  var supportRequests = null, supportRequestsError = '', supportRequestsLoading = false, supportRequestsRequest = 0;
+  function loadSupportRequests() {
+    if (!acc.user) return Promise.resolve();
+    var userId = acc.user.userId, request = ++supportRequestsRequest;
+    supportRequestsLoading = true;
+    return cs().api('/api/me/support-requests').then(function (data) {
+      if (!acc.user || acc.user.userId !== userId || request !== supportRequestsRequest) return;
+      supportRequests = data.rows; supportRequestsError = '';
+    }).catch(function (error) {
+      if (request === supportRequestsRequest) supportRequestsError = error.message || 'Demandes indisponibles.';
+    }).then(function () {
+      if (request !== supportRequestsRequest) return;
+      supportRequestsLoading = false;
+      if (acc.panel === 'help' && root && !root.closest('[hidden]')) renderPanel();
+    });
   }
   function openSupportDialog() {
-    var el = openDialog('<h2 class="accd__title" id="accd-title">Contacter le support</h2><p class="acc-hint">Décris le problème rencontré. Une personne de l’équipe pourra répondre à ton adresse e-mail.</p>' +
+    var el = openDialog('<h2 class="accd__title" id="accd-title">Contacter le support</h2><p class="acc-hint">Décris le problème rencontré. ' + (acc.user ? 'La réponse apparaîtra dans ton compte et dans tes notifications.' : 'Une personne de l’équipe pourra répondre à ton adresse e-mail.') + '</p>' +
       '<form id="support-form" class="acc-form"><div class="acc-field"><label for="support-email">Adresse e-mail</label><input id="support-email" type="email" required maxlength="200" value="' + esc(acc.user && acc.user.email || '') + '"></div>' +
       '<div class="acc-field"><label for="support-subject">Sujet</label><input id="support-subject" required minlength="3" maxlength="160"></div>' +
       '<div class="acc-field"><label for="support-description">Description</label><textarea id="support-description" required minlength="10" maxlength="4000" rows="5"></textarea></div>' +
@@ -1012,7 +1034,7 @@
       button.disabled = true;
       fetch('/api/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.querySelector('#support-email').value, subject: form.querySelector('#support-subject').value, description: form.querySelector('#support-description').value }) })
         .then(function (response) { return response.json().then(function (body) { if (!response.ok) throw new Error(body.error || 'Envoi impossible.'); return body; }); })
-        .then(function (body) { form.innerHTML = '<p role="status">Demande n°' + esc(body.id) + ' enregistrée. L’équipe pourra te répondre par e-mail.</p><button type="button" class="acc-btn acc-btn--primary" data-dlg-close>Fermer</button>'; form.querySelector('button').focus(); })
+        .then(function (body) { if (acc.user) loadSupportRequests(); form.innerHTML = '<p role="status">Demande n°' + esc(body.id) + ' enregistrée. ' + (acc.user ? 'Tu recevras la réponse dans l’application.' : 'L’équipe pourra te répondre par e-mail.') + '</p><button type="button" class="acc-btn acc-btn--primary" data-dlg-close>Fermer</button>'; form.querySelector('button').focus(); })
         .catch(function (error) { status.hidden = false; status.textContent = error.message; button.disabled = false; });
     });
   }
@@ -1023,6 +1045,7 @@
     if (acc.panel === 'sharing' && acc.user) { if (!acc.links) loadLinks(); if (!acc.household) loadHousehold(); if (acc.justCreatedLink) renderQr(); }
     if (acc.panel === 'data') loadStorage();
     if (acc.panel === 'plan' && plans() && !acc.planRefreshed) { acc.planRefreshed = true; subscriptionAccount = null; loadSubscriptionAccount(); plans().refresh(); }
+    if (acc.panel === 'help' && acc.user && !supportRequests && !supportRequestsLoading && !supportRequestsError) loadSupportRequests();
   }
   function setHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
 
@@ -1099,6 +1122,7 @@
   }
   function onSignedIn() {
     acc.sessions = acc.links = acc.household = acc.storage = null;
+    ++supportRequestsRequest; supportRequests = null; supportRequestsError = ''; supportRequestsLoading = false;
     return loadUser().then(function () {
       acceptPendingInvite();
       if (root && !root.closest('[hidden]')) render();
@@ -1108,6 +1132,7 @@
   }
   function onSignedOut() {
     stopInboxLive();
+    ++supportRequestsRequest; supportRequests = null; supportRequestsError = ''; supportRequestsLoading = false;
     subscriptionAccount = null; subscriptionError = ''; acc.planRefreshed = false;
     acc.user = null; acc.sessions = acc.links = acc.household = null; acc.justCreatedLink = null;
     updateNavAvatar();
@@ -1242,6 +1267,7 @@
     'import-backup': function () { var c = ctx(); if (c) c.openModal('backup'); },
     help: function () { var c = ctx(); if (c) c.showHelp(); },
     support: openSupportDialog,
+    'support-refresh': function () { supportRequestsError = ''; loadSupportRequests(); },
     onboarding: function () { var c = ctx(); if (c) c.showOnboarding(); }
   };
   function scrollTop() { var v = document.getElementById('view-user-profile'); if (v && v.scrollIntoView) v.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); }
@@ -1360,7 +1386,8 @@
   // ——— Liens reçus par e-mail ————————————————————————————————
   function cleanUrl() { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* rien */ } }
   function handleDeepLinks() {
-    if (new URLSearchParams(location.search).get('account') === 'plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); }
+    var accountLink = new URLSearchParams(location.search).get('account');
+    if (accountLink === 'plan' || accountLink === 'help') { acc.panel = accountLink; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); }
     var q = new URLSearchParams(location.search);
     var verify = q.get('verify'), reset = q.get('reset'), invite = q.get('invite');
     if (!verify && !reset && !invite) return;

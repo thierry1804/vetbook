@@ -42,7 +42,12 @@ export function buildAdminRouter() {
 
   router.get('/support-requests', requireAdmin('users.support'), async (req, res, next) => {
     try {
-      const rows = (await withClient((c) => c.query('select id,email,subject,description,status,created_at,updated_at from support_requests order by created_at desc limit 200'))).rows;
+      const rows = (await withClient((c) => c.query(`
+        select s.id,s.email,s.subject,s.description,s.status,s.created_at,s.updated_at,
+          (s.user_id is not null) as account_linked,
+          coalesce((select json_agg(json_build_object('id',r.id,'body',r.body,'created_at',r.created_at) order by r.id)
+            from support_request_replies r where r.request_id=s.id),'[]'::json) as replies
+        from support_requests s order by s.created_at desc limit 200`))).rows;
       res.json({ rows });
     } catch (error) { next(error); }
   });
@@ -52,6 +57,25 @@ export function buildAdminRouter() {
       const row = (await withClient((c) => c.query('update support_requests set status=$2,updated_at=now() where id=$1 returning id,status', [req.params.id, req.body.status]))).rows[0];
       if (!row) return res.status(404).json({ error: 'Demande introuvable.' });
       res.json(row);
+    } catch (error) { next(error); }
+  });
+  router.post('/support-requests/:id/replies', requireAdmin('users.support'), async (req, res, next) => {
+    try {
+      const body = req.body?.body;
+      if (!/^\d+$/.test(req.params.id) || typeof body !== 'string' || !body.trim() || body.length > 4000) return res.status(400).json({ error: 'Réponse invalide (1 à 4 000 caractères).' });
+      const result = await withTransaction(async (c) => {
+        const request = (await c.query('select id,user_id,subject from support_requests where id=$1 for update', [req.params.id])).rows[0];
+        if (!request) return { error: 'missing' };
+        if (!request.user_id) return { error: 'guest' };
+        const reply = (await c.query('insert into support_request_replies(request_id,admin_id,body) values($1,$2,$3) returning id,body,created_at', [request.id,req.admin.id,body.trim()])).rows[0];
+        await c.query("update support_requests set status=case when status='nouveau' then 'en_cours' else status end,updated_at=now() where id=$1", [request.id]);
+        await c.query(`insert into inbox_notifications(audience,recipient_id,event_key,title,body,href)
+          values('user',$1,$2,$3,$4,'/?account=help')`, [request.user_id,`support-reply:${reply.id}`,`Réponse du support : ${request.subject}`,reply.body]);
+        return { reply };
+      });
+      if (result.error === 'missing') return res.status(404).json({ error: 'Demande introuvable.' });
+      if (result.error === 'guest') return res.status(409).json({ error: 'Cette demande n’est liée à aucun compte. Répondez par e-mail.' });
+      res.status(201).json(result.reply);
     } catch (error) { next(error); }
   });
 
@@ -303,7 +327,7 @@ export function buildAdminRouter() {
         const r = (await c.query('select version, status, created_by from ref_releases where version = $1 for update', [req.params.version])).rows[0];
         if (!r) return { code: 404, error: 'Version introuvable.' };
         if (r.status !== 'draft') return { code: 409, error: 'Seul un brouillon peut être publié.' };
-        if ((await getSetting(c, 'four_eyes_publish', true)) === true && r.created_by === req.admin.id) {
+        if ((await getSetting(c, 'four_eyes_publish', false)) === true && r.created_by === req.admin.id) {
           return { code: 403, error: 'Principe des quatre yeux : la publication doit être faite par un autre administrateur que l\'auteur du brouillon.' };
         }
         if (req.body?.baseVersion !== undefined) {

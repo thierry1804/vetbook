@@ -214,7 +214,17 @@ create table if not exists support_requests (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table support_requests add column if not exists user_id uuid references users(id) on delete set null;
 create index if not exists support_requests_created_idx on support_requests (created_at desc);
+create index if not exists support_requests_user_idx on support_requests (user_id, created_at desc) where user_id is not null;
+create table if not exists support_request_replies (
+  id bigserial primary key,
+  request_id bigint not null references support_requests(id) on delete cascade,
+  admin_id uuid references admin_users(id) on delete set null,
+  body text not null check (length(trim(body)) between 1 and 4000),
+  created_at timestamptz not null default now()
+);
+create index if not exists support_request_replies_request_idx on support_request_replies (request_id, id);
 
 -- ═══ Annuaire vétérinaire public et urgences ═══
 create table if not exists directory_clinics (
@@ -529,6 +539,18 @@ end;
 $$ language plpgsql;
 drop trigger if exists support_request_notice_trigger on support_requests;
 create trigger support_request_notice_trigger after insert on support_requests for each row execute function support_request_notice();
+create or replace function support_request_realtime() returns trigger as $$
+begin
+  perform publish_realtime('admin',null,'support-requests',new.id::text);
+  if new.user_id is not null then
+    perform publish_realtime('user',new.user_id,'support-requests',new.id::text);
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+drop trigger if exists support_request_realtime_trigger on support_requests;
+create trigger support_request_realtime_trigger after insert or update of status,updated_at on support_requests
+  for each row execute function support_request_realtime();
 create or replace function notify_subscription_admins(key text, heading text, message text, link text, actor uuid default null) returns void as $$
 begin
   insert into inbox_notifications(audience,recipient_id,event_key,title,body,href,permission)

@@ -51,7 +51,7 @@ export function mountOperations(router) {
         const draft = (await c.query('select version, status, created_by, note, content from ref_releases where version = $1', [req.params.version])).rows[0];
         if (!draft) return null;
         const published = (await c.query("select version, content from ref_releases where status = 'published' order by version desc limit 1")).rows[0];
-        const fourEyes = await getSetting(c, 'four_eyes_publish', true);
+        const fourEyes = await getSetting(c, 'four_eyes_publish', false);
         return { version: draft.version, status: draft.status, note: draft.note, baseVersion: published?.version || 0,
           canPublish: draft.status === 'draft' && permits(req.admin.perms, 'referentiels.publish') && !(fourEyes && draft.created_by === req.admin.id),
           ownDraft: fourEyes && draft.created_by === req.admin.id,

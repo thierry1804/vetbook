@@ -15,7 +15,11 @@ export async function realtimeIdentity(req,res,audience) {
   const user=await requireUser(req,res);
   return user?{audience,id:user.userId,perms:[]}:null;
 }
-export function canReadRealtime(identity,resource){return identity.audience==='user'||resource==='notifications'||permits(identity.perms,'subscriptions.read');}
+export function canReadRealtime(identity,resource){
+  if(identity.audience==='user'||resource==='notifications')return true;
+  if(resource==='support-requests')return permits(identity.perms,'users.support');
+  return permits(identity.perms,'subscriptions.read');
+}
 async function drain(client){
   if(client.closed)return;
   if(client.busy){client.pending=true;return;}

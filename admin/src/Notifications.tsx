@@ -13,14 +13,14 @@ export function Notifications(){
  useEffect(()=>{
   if(!me)return;const stream=new EventSource('/api/admin/events');
   let refreshTimer:ReturnType<typeof setTimeout>;
-  const refresh=()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{for(const key of ['inbox','subscription','subscription-periods','subscription-requests','subscription-review','work-queue','one','dashboard'])qc.invalidateQueries({queryKey:[key]});window.dispatchEvent(new Event('applika:realtime'));},120);};
+  const refresh=()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{for(const key of ['inbox','subscription','subscription-periods','subscription-requests','subscription-review','support-requests','work-queue','one','dashboard'])qc.invalidateQueries({queryKey:[key]});window.dispatchEvent(new Event('applika:realtime'));},120);};
   stream.addEventListener('ready',()=>{setConnected(true);refresh();});
   stream.addEventListener('change',()=>refresh());stream.onerror=()=>setConnected(false);
   stream.addEventListener('session-ended',()=>{stream.close();setConnected(false);window.location.reload();});
   const foreground=()=>{if(!document.hidden)refresh();};window.addEventListener('online',refresh);document.addEventListener('visibilitychange',foreground);
   return()=>{clearTimeout(refreshTimer);stream.close();window.removeEventListener('online',refresh);document.removeEventListener('visibilitychange',foreground);};
  },[me?.id,qc]);
- useEffect(()=>{if(connected)return;const timer=setInterval(()=>{for(const key of ['subscription','subscription-periods','subscription-requests','work-queue','dashboard'])qc.invalidateQueries({queryKey:[key]});window.dispatchEvent(new Event('applika:realtime'));},30000);return()=>clearInterval(timer);},[connected,qc]);
+ useEffect(()=>{if(connected)return;const timer=setInterval(()=>{for(const key of ['subscription','subscription-periods','subscription-requests','support-requests','work-queue','dashboard'])qc.invalidateQueries({queryKey:[key]});window.dispatchEvent(new Event('applika:realtime'));},30000);return()=>clearInterval(timer);},[connected,qc]);
  useEffect(()=>{if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration('/').then(r=>r?.pushManager.getSubscription()).then(s=>setPush(!!s)).catch(()=>{});},[]);
  const read=async(id?:string)=>{try{await api('/notifications/read',{method:'POST',body:id?{id}:{before:query.data.checkedAt}});qc.invalidateQueries({queryKey:['inbox']});}catch(e:any){message.error(e.message);}};
  const togglePush=async()=>{setBusy(true);try{

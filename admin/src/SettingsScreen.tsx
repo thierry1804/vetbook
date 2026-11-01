@@ -135,7 +135,7 @@ export const SettingsScreen = () => {
       <Section title="Publication">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Switch checked={st.four_eyes_publish} onChange={(v) => set({ four_eyes_publish: v })} />
-          <Text>Principe des quatre yeux (un autre administrateur doit publier qu'on a préparé)</Text>
+          <Text>Exiger un second administrateur pour publier une version (désactivé : son auteur peut la publier)</Text>
         </div>
         <Field label="Version minimale de l'app" help="Vide = aucune contrainte. Les versions antérieures seront bloquées.">
           <Input style={{ width: 160 }} value={st.min_client_version || ''} onChange={(e) => set({ min_client_version: e.target.value || null })} placeholder="ex. 2.4.0" />
