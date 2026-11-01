@@ -8659,6 +8659,7 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 
 .acc-chip--featured { display: inline-flex; align-items: center; gap: 4px; background: var(--brand-light); color: #fff; }
 
+.acc-plan__title { margin-top: 0; }
 .acc-plan__sub { margin: 2px 0 0; font-size: .82rem; color: var(--text-muted); }
 .acc-plan__price { margin: 10px 0 0; display: flex; align-items: baseline; gap: 6px; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .acc-plan__price span { font-size: .8rem; font-weight: 500; opacity: .65; }
@@ -8730,8 +8731,8 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
 #btn-inbox-nav { position: relative; flex-shrink: 0; }
 .inbox-count { position: absolute; top: -3px; right: -4px; border-radius: 999px; min-width: 17px; padding: 1px 3px; background: #b42318; color: white; font: 700 11px/15px sans-serif; }
 
-/* Share section heights across cards in the same row so CTAs stay aligned. */
+/* Share title, subtitle, price, savings and action rows across cards so prices and CTAs align. */
 @supports (grid-template-rows: subgrid) {
-  .acc-plan { display: grid; grid-template-rows: subgrid; grid-row: span 3; }
-  .acc-plan__head, .acc-plan__actions, .acc-plan__benefits { align-self: start; }
+  .acc-plan { display: grid; grid-template-rows: subgrid; grid-row: span 6; }
+  .acc-plan__title, .acc-plan__sub, .acc-plan__price, .acc-plan__savings, .acc-plan__actions, .acc-plan__benefits { align-self: start; }
 }

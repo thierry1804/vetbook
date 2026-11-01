@@ -768,7 +768,7 @@
       var priceMga = (activePrice && activePrice.priceMga) || 0;
       var savings = planPeriod === 'yearly' ? planSavings(o) : null;
       var price = '<p class="acc-plan__price"><b>' + fmtMga(priceMga) + '</b><span>/ ' + (planPeriod === 'yearly' ? 'an' : 'mois') + '</span></p>' +
-        (savings ? '<p class="acc-plan__savings">' + icon('sparkle', 12) + savings + ' mois offerts</p>' : '');
+        '<p class="acc-plan__savings">' + (savings ? icon('sparkle', 12) + savings + ' mois offerts' : '') + '</p>';
       var cta = isCurrent ? '<button type="button" class="acc-btn acc-plan__cta" disabled>' + icon('check', 16) + 'Ton plan</button>'
         : o.code !== 'gratuit' ? '<button type="button" class="acc-btn acc-btn--primary acc-plan__cta" data-act="plan-subscribe" data-plan="' + esc(o.code) + '">' + (o.trialDays ? 'Essayer ' + esc(o.trialDays) + ' jours' : 'Choisir ' + esc(o.name)) + '</button>' + (o.trialDays ? '<p class="acc-plan__cta-note">Sans engagement</p>' : '') : '';
       var benefits = planBenefits(o.code, o.features, labels);
@@ -776,8 +776,8 @@
         return (/:\s*$/.test(b)) ? '<li class="acc-plan__benefits-lead">' + esc(b) + '</li>' : '<li>' + icon('check', 14) + '<span>' + esc(b) + '</span></li>';
       }).join('') + '</ul>';
       return '<div class="acc-card acc-plan' + (isFeatured ? ' acc-plan--featured' : '') + (isCurrent ? ' is-current' : '') + '">' +
-        '<div class="acc-plan__head"><h3>' + esc(o.name) + (isFeatured ? ' <span class="acc-chip acc-chip--featured">' + icon('sparkle', 12) + 'Recommandée</span>' : '') + (isCurrent ? ' <span class="acc-chip">Ton plan</span>' : '') + '</h3>' +
-        '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' + price + '</div>' +
+        '<h3 class="acc-plan__title">' + esc(o.name) + (isFeatured ? ' <span class="acc-chip acc-chip--featured">' + icon('sparkle', 12) + 'Recommandée</span>' : '') + (isCurrent ? ' <span class="acc-chip">Ton plan</span>' : '') + '</h3>' +
+        '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' + price +
         '<div class="acc-plan__actions">' + cta + '</div>' + benefitsHtml + '</div>';
     }).join('') + '</div>';
     return usageGaugeHtml(cfg, ent, counts) + toggle + cards + comparisonTableHtml(cfg.plans, labels) + subscriptionAccountHtml(cfg);
