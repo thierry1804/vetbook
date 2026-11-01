@@ -27,8 +27,8 @@ export function SupportRequests() {
     } catch (error) { message.error(error instanceof Error ? error.message : 'Réponse impossible.'); }
     finally { setSending(false); }
   }
-  return <div style={{ width: '100%' }}>
-    <Typography.Title level={2}>Demandes de support</Typography.Title>
+  return <div style={{ padding: 24 }}>
+    <Typography.Title level={2} style={{ marginTop: 0 }}>Demandes de support</Typography.Title>
     <Typography.Paragraph>Les demandes et les réponses liées à un compte se mettent à jour en direct. Pour une demande sans compte, répondez par e-mail.</Typography.Paragraph>
     <Table<Request> rowKey="id" loading={isLoading} dataSource={data?.rows || []} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} columns={[
       { title: 'Reçue le', dataIndex: 'created_at', render: (v: string) => new Date(v).toLocaleString('fr-FR') },
