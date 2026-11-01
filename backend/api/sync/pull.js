@@ -63,6 +63,7 @@ export default async function handler(req, res) {
         const photos = photosRes.rows.map((ph) => ({ id: Number(ph.local_id), date: ph.date || '', caption: ph.caption || '', serverId: ph.id }));
         const wrapper = { id: Number(pet.local_id), owner: ownerObj, photos };
         wrapper.animal = fromRow(pet, ANIMAL_FIELDS);
+        if (typeof wrapper.animal.avatar === 'string' && /^\d+$/.test(wrapper.animal.avatar)) wrapper.animal.avatar = Number(wrapper.animal.avatar);
         wrapper.animal.weight = pet.weight != null ? Number(pet.weight) : null;
         wrapper.animal.height = pet.height != null ? Number(pet.height) : null;
         wrapper.animal.weightHistory = weightRes.rows.map((w) => ({ id: Number(w.local_id), date: w.date, weight: Number(w.weight) }));

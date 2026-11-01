@@ -1647,6 +1647,51 @@
     });
   }
 
+  function portraitKey(avatar) {
+    if (typeof avatar === 'number' && isFinite(avatar)) return avatar;
+    if (typeof avatar === 'string' && /^\d+$/.test(avatar.trim())) return Number(avatar.trim());
+    return null;
+  }
+
+  async function resolvePortraitUrl(wrap) {
+    var animal = (wrap && wrap.animal) || {};
+    var key = portraitKey(animal.avatar);
+    if (key == null && typeof animal.avatar === 'string' && animal.avatar) return animal.avatar;
+    if (key != null) {
+      var own = await getPhotoObjectUrl(key);
+      if (own) return own;
+    }
+    var photos = (wrap && wrap.photos) || [];
+    for (var i = photos.length - 1; i >= 0; i--) {
+      var photo = photos[i];
+      if (!photo) continue;
+      if (photo.serverId && window.cloudSync && window.cloudSync.getPhotoUrl) return window.cloudSync.getPhotoUrl(photo.serverId);
+      if (photo.id != null) {
+        var url = await getPhotoObjectUrl(photo.id);
+        if (url) return url;
+      }
+    }
+    return '';
+  }
+
+  function paintPortrait(el, wrap, size) {
+    if (!el || !wrap) return;
+    var species = wrap.animal && wrap.animal.species;
+    var iconSize = size || 28;
+    el.innerHTML = ico(species === 'Féline' ? 'cat' : 'paw', iconSize);
+    resolvePortraitUrl(wrap).then(function (url) {
+      if (!url || !el.isConnected) return;
+      var img = document.createElement('img');
+      img.alt = (wrap.animal && wrap.animal.name) || '';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.onerror = function () { if (el.isConnected) el.innerHTML = ico(species === 'Féline' ? 'cat' : 'paw', iconSize); };
+      img.src = url;
+      el.replaceChildren(img);
+    }).catch(function () {});
+  }
+
   async function getPhotoObjectUrl(photoId) {
     if (photoUrlCache.has(photoId)) return photoUrlCache.get(photoId);
     // Préfère l'URL serveur (MinIO via API) si un serverId est connu.
@@ -2190,13 +2235,8 @@
       var a = data.animal;
       var name = escapeHtml(a.name || 'Sans nom');
       var isActive = data.id === state.currentAnimalId;
-      var avatarInner = a.avatar
-        ? (typeof a.avatar === 'number'
-            ? '<img data-avatar-key="' + a.avatar + '" alt="">'
-            : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
-        : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
       return '<div class="home-pet-bubble' + (isActive ? ' active' : '') + '" data-pet-id="' + data.id + '">' +
-        '<div class="home-pet-bubble__avatar">' + avatarInner + '</div>' +
+        '<div class="home-pet-bubble__avatar" data-portrait="' + data.id + '">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 28) + '</div>' +
         '<span class="home-pet-bubble__name">' + name + '</span>' +
         '</div>';
     }).join('') +
@@ -2220,9 +2260,9 @@
     var addBubble = document.getElementById('detail-add-pet-bubble');
     if (addBubble) addBubble.addEventListener('click', function () { openModal('addAnimal'); });
 
-    row.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
-      var key = parseInt(img.getAttribute('data-avatar-key'), 10);
-      if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
+    row.querySelectorAll('[data-portrait]').forEach(function (el) {
+      var id = parseInt(el.getAttribute('data-portrait'), 10);
+      paintPortrait(el, state.animals.find(function (animal) { return animal.id === id; }), 28);
     });
   }
 
@@ -2591,14 +2631,8 @@
     }
     el.innerHTML += '<div class="care-overview"><article class="care-card"><div class="care-card-head"><h2>Courbe de poids & croissance</h2>' + careButton('addWeight','Ajouter','plus') + '</div><p>Chaque mesure compte pour son bien-être.</p>' + chart + '</article><article class="care-card care-companion"><span class="care-eyebrow">Le carnet de votre compagnon</span><h2>' + escapeHtml(a.name || 'Mon animal') + '</h2><p>' + escapeHtml([a.species,a.race].filter(Boolean).join(' · ')) + '</p>' + careButton('profil','Identité & passeport','paw') + careButton('photos','Photos & souvenirs','camera') + careButton('calendar','Prochains rendez-vous','calendar') + '</article></div>';
     el.innerHTML += '<div class="stitch-home-links"><article class="stitch-card"><h2>Astuces & conseils</h2><p>Retrouvez les conseils pour accompagner son quotidien.</p>' + careButton('tips', 'Explorer les conseils', 'lightbulb') + '</article><article class="stitch-card"><h2>Événements canins</h2><p>Adoption, rencontres et sensibilisation : explorez le calendrier.</p>' + careButton('events', 'Voir les événements', 'calendar') + '</article></div>';
-    if (a.avatar) {
-      var portraitEl = el.querySelector('.care-portrait');
-      var portraitImg = document.createElement('img');
-      portraitImg.alt = a.name || 'Votre compagnon';
-      portraitEl.replaceChildren(portraitImg);
-      if (typeof a.avatar === 'number') getPhotoObjectUrl(a.avatar).then(function (url) { if (url) portraitImg.src = url; }).catch(function () {});
-      else portraitImg.src = a.avatar;
-    }
+    var portraitEl = el.querySelector('.care-portrait');
+    if (portraitEl && data) paintPortrait(portraitEl, data, 38);
 
   }
 
@@ -2734,13 +2768,8 @@
         var tone = healthTone(data);
         var short = animalIssueLine(data) || (a.race || a.species || '');
         if (short.length > 18) short = short.slice(0, 16) + '…';
-        var avatarInner = a.avatar
-          ? (typeof a.avatar === 'number'
-              ? '<img data-avatar-key="' + a.avatar + '" alt="">'
-              : '<img src="' + escapeHtml(a.avatar) + '" alt="">')
-          : ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
         return '<button type="button" class="home-pet-chip" data-animal-id="' + data.id + '">' +
-          '<div class="home-pet-chip__avatar home-pet-chip__avatar--' + tone + '">' + avatarInner + '</div>' +
+          '<div class="home-pet-chip__avatar home-pet-chip__avatar--' + tone + '" data-portrait="' + data.id + '">' + ico(a.species === 'Féline' ? 'cat' : 'paw', 28) + '</div>' +
           '<div class="home-pet-chip__name">' + escapeHtml(a.name || 'Sans nom') + '</div>' +
           '<div class="home-pet-chip__meta">' + escapeHtml(short) + '</div>' +
           '</button>';
@@ -2752,9 +2781,9 @@
           showDetail({ tab: 'profil', nav: 'pets' });
         });
       });
-      petsStrip.querySelectorAll('img[data-avatar-key]').forEach(function (img) {
-        var key = parseInt(img.getAttribute('data-avatar-key'), 10);
-        if (!isNaN(key)) getPhotoObjectUrl(key).then(function (url) { if (url) img.src = url; }).catch(function () {});
+      petsStrip.querySelectorAll('[data-portrait]').forEach(function (el) {
+        var id = parseInt(el.getAttribute('data-portrait'), 10);
+        paintPortrait(el, state.animals.find(function (animal) { return animal.id === id; }), 28);
       });
     }
 
@@ -2833,20 +2862,7 @@
       headerEl.setAttribute('data-status', kindH);
       statusEl.innerHTML = '<span class="care-status care-status--' + kindH + '">' + escapeHtml(lateH ? lateH + ' soin' + (lateH > 1 ? 's' : '') + ' en retard' : soonH ? soonH + ' soin' + (soonH > 1 ? 's' : '') + ' à prévoir ce mois-ci' : 'Carnet à jour') + '</span>';
     }
-    if (avEl) {
-      if (a.avatar && typeof a.avatar === 'number') {
-        avEl.innerHTML = '<img data-avatar-key="' + a.avatar + '" alt="">';
-        getPhotoObjectUrl(a.avatar).then(function (url) {
-          var img = avEl.querySelector('img');
-          if (img && url) img.src = url;
-        }).catch(function () {});
-      } else if (a.avatar) {
-        avEl.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="">';
-      } else {
-        avEl.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
-        avEl.style.fontSize = '28px';
-      }
-    }
+    if (avEl) paintPortrait(avEl, data, 28);
   }
 
   function stitchInfo(label, value, icon) {
@@ -3434,21 +3450,8 @@
 
     var av = document.getElementById('hero-avatar');
     if (av) {
-      av.innerHTML = '';
       av.style.fontSize = '';
-
-      if (a.avatar && typeof a.avatar === 'number') {
-        av.innerHTML = '<img data-avatar-key="' + a.avatar + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
-        getPhotoObjectUrl(a.avatar).then(function (url) {
-          var img = av.querySelector('img[data-avatar-key]');
-          if (img && url) img.src = url;
-        }).catch(function () {});
-      } else if (a.avatar && typeof a.avatar === 'string') {
-        av.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" alt="' + escapeHtml(a.name || 'Animal') + '">';
-      } else {
-        av.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
-        av.style.fontSize = '64px';
-      }
+      paintPortrait(av, data, 40);
     }
 
     var colorEl = document.getElementById('info-color');
@@ -3735,20 +3738,7 @@
       var colorEl = document.getElementById('ea-themeColor');
       if (colorEl) colorEl.value = a.themeColor || '#1F3D34';
       var prev = document.getElementById('edit-avatar-preview');
-      if (prev) {
-        prev.innerHTML = '';
-        if (a.avatar && typeof a.avatar === 'number') {
-          prev.innerHTML = '<img data-avatar-key="' + a.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
-          getPhotoObjectUrl(a.avatar).then(function (url) {
-            var img = prev.querySelector('img[data-avatar-key]');
-            if (img && url) img.src = url;
-          }).catch(function () {});
-        } else if (a.avatar && typeof a.avatar === 'string') {
-          prev.innerHTML = '<img src="' + escapeHtml(a.avatar) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">';
-        } else {
-          prev.innerHTML = ico(a.species === 'Féline' ? 'cat' : 'paw', 28);
-        }
-      }
+      if (prev) paintPortrait(prev, data, 28);
     }
 
     if (name === 'editOwner') {
@@ -4367,7 +4357,7 @@
     var data = getCurrent();
     if (!data) return;
 
-    var oldKey = typeof data.animal.avatar === 'number' ? data.animal.avatar : null;
+    var oldKey = portraitKey(data.animal.avatar);
     var inputKey = state.nextId++;
 
     resizeImageToBlob(file, 320, 'image/jpeg', 0.85).then(function (blob) {
