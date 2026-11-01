@@ -1474,6 +1474,9 @@
     } else if (route.view === 'profile') {
       showUserProfile();
       return;
+    } else if (route.view === 'notifications') {
+      showNotifications();
+      return;
     } else if (route.view === 'favorites') {
       showFavorites();
       return;
@@ -3240,7 +3243,7 @@
   }
 
   function hideAppViews() {
-    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire', 'view-assistant'].forEach(function (id) {
+    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-notifications', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire', 'view-assistant'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -9720,6 +9723,19 @@
     if (window.applikaAccount) window.applikaAccount.show();
     saveRoute({ view: 'profile' });
   }
+  function showNotifications() {
+    if (!window.applikaAccount) return;
+    state.viewMode = 'notifications';
+    setBottomNavActive('account');
+    hideAppViews();
+    var view = document.getElementById('view-notifications');
+    if (view) view.hidden = false;
+    document.getElementById('animal-select').hidden = true;
+    document.getElementById('fab-container').hidden = true;
+    window.applikaAccount.renderInboxPage();
+    saveRoute({ view: 'notifications' });
+    window.scrollTo(0, 0);
+  }
 
   function showFavorites() {
     hideAppViews();
@@ -9836,6 +9852,7 @@
     switchTab: switchTab,
     showCommunity: showCommunity,
     showUserProfile: showUserProfile,
+    showNotifications: showNotifications,
     showAgenda: showAgenda,
     showDirectory: showDirectory,
     // keep legacy helpers referenced for tooling / future screens
@@ -9849,6 +9866,7 @@
       showToast: showToast,
       openModal: openModal,
       showUserProfile: showUserProfile,
+      showNotifications: showNotifications,
       showHelp: showHelp,
       showOnboarding: showOnboarding,
       setTheme: setTheme,

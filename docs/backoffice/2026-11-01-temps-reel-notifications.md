@@ -20,7 +20,7 @@ Les événements sont adressés au compte concerné. Les notifications d’abonn
 
 **Backoffice** : cloche dans la barre supérieure, à côté des commandes générales. **Application** : cloche dans l’en-tête, près du bouton du compte, après connexion.
 
-La pastille indique le nombre de non-lus. Ouvrir la cloche pour consulter les notifications, filtrer les non-lues, parcourir les pages et ouvrir le dossier ou la page concernée.
+La pastille indique le nombre de non-lus. Côté utilisateur, la cloche ouvre un menu déroulant avec les trois messages les plus récents. **Voir toutes les notifications** ouvre une page dédiée : filtres **Toutes / Non lues**, historique paginé, lecture et réglages des alertes sur cet appareil. Cette page est retrouvée après un rechargement. Le menu se ferme avec Échap ou un clic à l’extérieur. Côté admin, la cloche ouvre le panneau de notifications.
 
 - **Marquer comme lue** concerne uniquement son propre compte.
 - **Tout marquer comme lu** porte sur les notifications antérieures à la dernière vérification affichée par le serveur ; les nouvelles arrivées restent non lues.
@@ -33,7 +33,7 @@ Les demandes déjà ouvertes au déploiement sont ajoutées à la boîte des adm
 
 ## Recevoir une notification lorsque l’application est fermée
 
-Dans la cloche, choisir **Activer les notifications sur cet appareil**, puis accepter la permission du navigateur. L’activation est propre au navigateur et à l’appareil. Le compte doit disposer d’un abonnement push enregistré ; le serveur doit avoir ses clés VAPID configurées.
+Dans l’application utilisateur, ouvrir la page de toutes les notifications puis déplier **Notifications sur cet appareil** et choisir **Activer les alertes sur cet appareil**. Dans le backoffice, utiliser la commande du panneau de notifications. Accepter ensuite la permission du navigateur. L’activation est propre au navigateur et à l’appareil. Le compte doit disposer d’un abonnement push enregistré ; le serveur doit avoir ses clés VAPID configurées.
 
 La désactivation sur cet appareil retire son abonnement push. Côté utilisateur, les préférences de notifications et les heures silencieuses sont prises en compte. L’activation explicite autorise aussi le push dans ses préférences. Les réglages globaux de rappel et l’éligibilité aux rappels métier restent séparés du simple accès à la boîte de notifications.
 

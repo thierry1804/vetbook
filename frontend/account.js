@@ -199,7 +199,7 @@
   var dialogState = null;
   function closeDialog() {
     if (!dialogState) return;
-    var d = dialogState; dialogState = null; inboxDialogOpen = false;
+    var d = dialogState; dialogState = null;
     d.el.remove();
     document.removeEventListener('keydown', d.onKey, true);
     if (d.returnFocus && document.body.contains(d.returnFocus)) d.returnFocus.focus({ preventScroll: true });
@@ -681,67 +681,115 @@
     return html;
   }
   var inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false };
-  var inboxStream = null, inboxUser = null, inboxTimer = null, inboxRefresh = null, inboxDialogOpen = false, inboxConnected = false, inboxPushActive = false;
+  var inboxStream = null, inboxUser = null, inboxTimer = null, inboxRefresh = null, inboxPopover = null, inboxPreviewRows = [], inboxConnected = false, inboxPushActive = false;
+  var inboxRequest = 0, inboxPreviewRequest = 0;
   function updateInboxBadge() {
     var anchor = document.getElementById('btn-user-nav');
     var button = document.getElementById('btn-inbox-nav');
     if (!anchor || !acc.user) { if (button) button.remove(); return; }
-    if (!button) { button = document.createElement('button'); button.id = 'btn-inbox-nav'; button.type = 'button'; button.className = 'btn-icon'; button.addEventListener('click', function () { showInbox(); }); anchor.parentNode.insertBefore(button, anchor); }
+    if (!button) { button = document.createElement('button'); button.id = 'btn-inbox-nav'; button.type = 'button'; button.className = 'btn-icon'; button.setAttribute('aria-haspopup', 'dialog'); button.addEventListener('click', function () { showInbox(); }); anchor.parentNode.insertBefore(button, anchor); }
     button.setAttribute('aria-label', 'Notifications' + (inbox.unread ? ' : ' + inbox.unread + ' non lues' : ''));
+    button.setAttribute('aria-expanded', inboxPopover ? 'true' : 'false');
     button.innerHTML = icon('bell', 22) + (inbox.unread ? '<span class="inbox-count">' + Math.min(inbox.unread, 99) + '</span>' : '');
   }
-  function inboxHtml() {
+  function inboxHtml(compact) {
     var count = inbox.unread ? '<span class="acc-inbox__count">' + inbox.unread + '</span>' : '';
-    var rows = inbox.rows.length ? inbox.rows.map(function (n) {
+    var visibleRows = compact ? inboxPreviewRows : inbox.rows;
+    var rows = visibleRows.length ? (compact ? visibleRows.slice(0, 3) : visibleRows).map(function (n) {
       return '<article class="acc-inbox__item' + (!n.read_at ? ' is-unread' : '') + '">' +
         '<span class="acc-inbox__item-icon" aria-hidden="true">' + icon('bell', 18) + '</span><div class="acc-inbox__item-content"><div class="acc-inbox__item-top"><h3>' + esc(n.title) + '</h3>' + (!n.read_at ? '<span class="acc-inbox__dot" aria-hidden="true"></span><span class="sr-only">Non lue</span>' : '') + '</div>' +
         '<p>' + esc(n.body) + '</p><time datetime="' + esc(n.created_at) + '">' + esc(subscriptionDate(n.created_at)) + '</time><div class="acc-inbox__item-actions"><button type="button" data-inbox="open" data-id="' + esc(n.id) + '">Voir le détail ' + icon('chevron', 14) + '</button>' +
         (!n.read_at ? '<button type="button" data-inbox="read" data-id="' + esc(n.id) + '" aria-label="Marquer comme lue : ' + esc(n.title) + '">Marquer comme lue</button>' : '') + '</div></div></article>';
-    }).join('') : '<div class="acc-inbox__empty">' + icon('bell', 24) + '<strong>' + (inbox.onlyUnread ? 'Tout est lu' : 'Aucune notification pour le moment') + '</strong><p>' + (inbox.onlyUnread ? 'Les nouvelles notifications apparaîtront ici.' : 'Tu retrouveras ici les nouvelles concernant ton compte.') + '</p></div>';
-    return '<div class="acc-inbox__header"><div><div class="acc-inbox__eyebrow">Votre activité</div><h2 id="accd-title">Notifications ' + count + '</h2><p class="acc-inbox__sync"><span class="acc-inbox__sync-dot' + (inboxConnected ? ' is-live' : '') + '"></span>' + (inboxConnected ? 'À jour' : 'Actualisation régulière') + '</p></div><button type="button" class="acc-inbox__close" data-dlg-close aria-label="Fermer les notifications">×</button></div>' +
-      '<div class="acc-inbox__toolbar"><div class="acc-inbox__tabs" role="group" aria-label="Filtrer les notifications"><button type="button" data-inbox="all" aria-pressed="' + (!inbox.onlyUnread) + '" class="' + (!inbox.onlyUnread ? 'is-active' : '') + '">Toutes</button><button type="button" data-inbox="unread" aria-pressed="' + inbox.onlyUnread + '" class="' + (inbox.onlyUnread ? 'is-active' : '') + '">Non lues</button></div><button type="button" class="acc-inbox__read-all" data-inbox="read-all"' + (!inbox.unread ? ' disabled' : '') + '>Tout marquer comme lu</button></div>' +
+    }).join('') : '<div class="acc-inbox__empty">' + icon('bell', 24) + '<strong>' + (!compact && inbox.onlyUnread ? 'Tout est lu' : 'Aucune notification pour le moment') + '</strong><p>' + (!compact && inbox.onlyUnread ? 'Les nouvelles notifications apparaîtront ici.' : 'Tu retrouveras ici les nouvelles concernant ton compte.') + '</p></div>';
+    return '<div class="acc-inbox__header"><div><div class="acc-inbox__eyebrow">Votre activité</div><h2 id="' + (compact ? 'inbox-preview-title' : 'inbox-page-title') + '">Notifications ' + count + '</h2><p class="acc-inbox__sync"><span class="acc-inbox__sync-dot' + (inboxConnected ? ' is-live' : '') + '"></span>' + (inboxConnected ? 'À jour' : 'Actualisation régulière') + '</p></div><button type="button" class="acc-inbox__close" data-inbox="' + (compact ? 'close' : 'back') + '" aria-label="' + (compact ? 'Fermer le menu des notifications' : 'Retour au compte') + '">' + (compact ? '×' : '←') + '</button></div>' +
+      (compact ? '<div class="acc-inbox__preview-label">Les plus récentes</div>' : '') +
+      (compact ? '' : '<div class="acc-inbox__toolbar"><div class="acc-inbox__tabs" role="group" aria-label="Filtrer les notifications"><button type="button" data-inbox="all" aria-pressed="' + (!inbox.onlyUnread) + '" class="' + (!inbox.onlyUnread ? 'is-active' : '') + '">Toutes</button><button type="button" data-inbox="unread" aria-pressed="' + inbox.onlyUnread + '" class="' + (inbox.onlyUnread ? 'is-active' : '') + '">Non lues</button></div><button type="button" class="acc-inbox__read-all" data-inbox="read-all"' + (!inbox.unread ? ' disabled' : '') + '>Tout marquer comme lu</button></div>') +
       '<div class="acc-inbox__list">' + rows + '</div>' +
-      '<div class="acc-inbox__footer"><div class="acc-inbox__pages">' + (inbox.offset || inbox.next != null ? '<button type="button" data-inbox="previous"' + (!inbox.offset ? ' disabled' : '') + ' aria-label="Page précédente">‹</button><span>Page ' + (Math.floor(inbox.offset / 30) + 1) + '</span><button type="button" data-inbox="next"' + (inbox.next == null ? ' disabled' : '') + ' aria-label="Page suivante">›</button>' : '') + '</div>' +
-      '<details class="acc-inbox__settings"><summary>' + icon('settings', 16) + ' Notifications sur cet appareil</summary>' + (inbox.pushConfigured ? '<button type="button" class="acc-btn" data-inbox="' + (inboxPushActive ? 'push-off' : 'push') + '">' + (inboxPushActive ? 'Désactiver les alertes sur cet appareil' : 'Activer les alertes sur cet appareil') + '</button>' : '<p>Les alertes hors application ne sont pas disponibles. Les messages restent visibles ici.</p>') + '</details></div>';
+      (compact ? '<div class="acc-inbox__footer"><button type="button" class="acc-inbox__see-all" data-inbox="page">Voir toutes les notifications ' + icon('chevron', 16) + '</button></div>' : '<div class="acc-inbox__footer"><div class="acc-inbox__pages">' + (inbox.offset || inbox.next != null ? '<button type="button" data-inbox="previous"' + (!inbox.offset ? ' disabled' : '') + ' aria-label="Page précédente">‹</button><span>Page ' + (Math.floor(inbox.offset / 30) + 1) + '</span><button type="button" data-inbox="next"' + (inbox.next == null ? ' disabled' : '') + ' aria-label="Page suivante">›</button>' : '') + '</div>' +
+      '<details class="acc-inbox__settings"><summary>' + icon('settings', 16) + ' Notifications sur cet appareil</summary>' + (inbox.pushConfigured ? '<button type="button" class="acc-btn" data-inbox="' + (inboxPushActive ? 'push-off' : 'push') + '">' + (inboxPushActive ? 'Désactiver les alertes sur cet appareil' : 'Activer les alertes sur cet appareil') + '</button>' : '<p>Les alertes hors application ne sont pas disponibles. Les messages restent visibles ici.</p>') + '</details></div>');
   }
-  function renderInboxDialog() {
-    if (!inboxDialogOpen || !dialogState) return;
-    var panel = dialogState.el.querySelector('.accd__panel');
-    var focused = document.activeElement, action = focused && focused.dataset.inbox, id = focused && focused.dataset.id;
-    var list = panel.querySelector('.acc-inbox__list');
-    var scroll = list ? list.scrollTop : 0, settingsOpen = !!panel.querySelector('.acc-inbox__settings[open]');
-    panel.innerHTML = inboxHtml(); panel.classList.add('accd__panel--inbox');
-    panel.querySelector('.acc-inbox__list').scrollTop = scroll;
-    if (settingsOpen) panel.querySelector('.acc-inbox__settings').open = true;
-    if (action) { var target = Array.from(panel.querySelectorAll('[data-inbox]')).filter(function (node) { return node.dataset.inbox === action && node.dataset.id === id; })[0]; if (target && !target.disabled) target.focus({ preventScroll: true }); else { var heading = panel.querySelector('#accd-title'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
+  function renderInboxArea(area, compact) {
+    if (!area) return;
+    var focused = document.activeElement, action = area.contains(focused) && focused.dataset.inbox, id = focused && focused.dataset.id;
+    var list = area.querySelector('.acc-inbox__list'), scroll = list ? list.scrollTop : 0;
+    var settingsOpen = !!area.querySelector('.acc-inbox__settings[open]');
+    area.innerHTML = inboxHtml(compact);
+    area.querySelector('.acc-inbox__list').scrollTop = scroll;
+    var settings = area.querySelector('.acc-inbox__settings'); if (settings && settingsOpen) settings.open = true;
+    if (action) { var target = Array.from(area.querySelectorAll('[data-inbox]')).filter(function (node) { return node.dataset.inbox === action && node.dataset.id === id; })[0]; if (target && !target.disabled) target.focus({ preventScroll: true }); else { var heading = area.querySelector('h2'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
+  }
+  function renderInboxSurfaces() {
+    if (inboxPopover) renderInboxArea(inboxPopover, true);
+    var page = document.getElementById('view-notifications');
+    if (page && !page.hidden) renderInboxArea(page.querySelector('.acc-inbox-page__panel'), false);
   }
   function loadInbox() {
     if (!acc.user) return Promise.resolve();
-    var userId = acc.user.userId;
-    return cs().api('/api/me/notifications?offset=' + inbox.offset + '&unread=' + (inbox.onlyUnread ? '1' : '0')).then(function (data) {
-      if (!acc.user || acc.user.userId !== userId) return;
+    var userId = acc.user.userId, request = ++inboxRequest;
+    var offset = inbox.offset, onlyUnread = inbox.onlyUnread;
+    return cs().api('/api/me/notifications?offset=' + offset + '&unread=' + (onlyUnread ? '1' : '0')).then(function (data) {
+      if (!acc.user || acc.user.userId !== userId || request !== inboxRequest) return;
       inbox = Object.assign({}, inbox, data); updateInboxBadge();
-      renderInboxDialog();
-    }).catch(function () { if (inboxDialogOpen) toast('Notifications indisponibles. Réessaie dans un instant.', 'error'); });
+      renderInboxSurfaces();
+    }).catch(function () { var page = document.getElementById('view-notifications'); if (request === inboxRequest && page && !page.hidden) toast('Notifications indisponibles. Réessaie dans un instant.', 'error'); });
+  }
+  function loadInboxPreview() {
+    if (!acc.user) return Promise.resolve();
+    var userId = acc.user.userId, request = ++inboxPreviewRequest;
+    return cs().api('/api/me/notifications?offset=0&unread=0').then(function (data) {
+      if (!acc.user || acc.user.userId !== userId || request !== inboxPreviewRequest) return;
+      inboxPreviewRows = data.rows;
+      inbox.unread = data.unread;
+      updateInboxBadge();
+      if (inboxPopover) renderInboxArea(inboxPopover, true);
+    }).catch(function () { if (request === inboxPreviewRequest && inboxPopover) toast('Notifications indisponibles. Réessaie dans un instant.', 'error'); });
+  }
+  function closeInbox() {
+    if (!inboxPopover) return;
+    inboxPopover.remove(); inboxPopover = null;
+    document.removeEventListener('pointerdown', closeInboxOutside);
+    document.removeEventListener('keydown', closeInboxEscape);
+    updateInboxBadge();
+  }
+  function closeInboxOutside(event) { if (inboxPopover && !inboxPopover.contains(event.target) && !event.target.closest('#btn-inbox-nav')) closeInbox(); }
+  function closeInboxEscape(event) { if (event.key === 'Escape') { closeInbox(); document.getElementById('btn-inbox-nav')?.focus(); } }
+  function renderInboxPage() {
+    closeInbox();
+    var page = document.getElementById('view-notifications'); if (!page) return;
+    if (!page.dataset.inboxBound) { page.addEventListener('click', handleInboxClick); page.dataset.inboxBound = '1'; }
+    page.innerHTML = '<div class="acc-inbox-page"><div class="acc-inbox-page__panel"></div></div>';
+    if (!acc.user) { page.querySelector('.acc-inbox-page__panel').innerHTML = '<h1>Notifications</h1><p>Connecte-toi pour consulter tes notifications.</p><button type="button" class="acc-btn" id="inbox-login">Se connecter</button>'; page.querySelector('#inbox-login').onclick = function () { openAccountView(); }; return; }
+    renderInboxArea(page.querySelector('.acc-inbox-page__panel'), false);
+    loadInbox();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration('/').then(function (registration) { return registration && registration.pushManager.getSubscription(); }).then(function (subscription) { inboxPushActive = !!subscription; renderInboxSurfaces(); }).catch(function () {});
   }
   function showInbox() {
-    var dialog = openDialog(inboxHtml());
-    inboxDialogOpen = true;
-    dialog.querySelector('.accd__panel').classList.add('accd__panel--inbox');
-    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration('/').then(function (registration) { return registration && registration.pushManager.getSubscription(); }).then(function (subscription) { inboxPushActive = !!subscription; renderInboxDialog(); }).catch(function () {});
-    dialog.addEventListener('click', function (event) {
+    if (inboxPopover) { closeInbox(); return; }
+    var button = document.getElementById('btn-inbox-nav');
+    inboxPopover = document.createElement('div'); inboxPopover.className = 'acc-inbox-popover'; inboxPopover.setAttribute('role', 'dialog'); inboxPopover.setAttribute('aria-labelledby', 'inbox-preview-title');
+    inboxPopover.style.top = Math.min(window.innerHeight - 80, button.getBoundingClientRect().bottom + 8) + 'px';
+    inboxPopover.style.right = Math.max(12, window.innerWidth - button.getBoundingClientRect().right) + 'px';
+    document.body.appendChild(inboxPopover);
+    inboxPopover.addEventListener('click', handleInboxClick);
+    renderInboxArea(inboxPopover, true); updateInboxBadge();
+    document.addEventListener('pointerdown', closeInboxOutside); document.addEventListener('keydown', closeInboxEscape);
+    inboxPopover.querySelector('[data-inbox="page"]').focus();
+    loadInboxPreview();
+  }
+  function handleInboxClick(event) {
       var button = event.target.closest('[data-inbox]'); if (!button || button.disabled) return;
       var action = button.dataset.inbox, id = button.dataset.id;
+      if (action === 'close') { closeInbox(); document.getElementById('btn-inbox-nav')?.focus(); return; }
+      if (action === 'page') { closeInbox(); var app = ctx(); if (app && app.showNotifications) app.showNotifications(); return; }
+      if (action === 'back') { openAccountView(); return; }
       if (action === 'all' || action === 'unread') { if (inbox.onlyUnread === (action === 'unread')) return; inbox.onlyUnread = action === 'unread'; inbox.offset = 0; loadInbox(); return; }
       if (action === 'next' || action === 'previous') { inbox.offset = action === 'next' ? inbox.next : Math.max(0, inbox.offset - 30); loadInbox(); return; }
-      if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxDialog(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
-      var row = inbox.rows.filter(function (n) { return n.id === id; })[0];
+      if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxSurfaces(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
+      var row = (inboxPopover && inboxPopover.contains(button) ? inboxPreviewRows : inbox.rows).filter(function (n) { return n.id === id; })[0];
       withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
-        if (action === 'open' && row) { closeDialog(); if (row.href === '/?account=plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
-        return loadInbox();
+        if (action === 'open' && row) { closeInbox(); if (row.href === '/?account=plan') { acc.panel = 'plan'; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        return Promise.all([loadInbox(), loadInboxPreview()]);
       }); }).catch(function (e) { toast(e.message, 'error'); });
-    });
-    loadInbox();
   }
   function configureInboxPush(enable) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.reject(new Error('Notifications push indisponibles dans ce navigateur.'));
@@ -758,12 +806,13 @@
   }
   function stopInboxLive() {
     if (inboxStream) inboxStream.close(); inboxStream = null; inboxUser = null; clearInterval(inboxTimer); clearTimeout(inboxRefresh); inboxConnected = false;
-    inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false }; inboxPushActive = false; var badge = document.getElementById('btn-inbox-nav'); if (badge) badge.remove(); if (inboxDialogOpen) closeDialog();
+    ++inboxRequest; ++inboxPreviewRequest; inboxPreviewRows = [];
+    inbox = { rows: [], unread: 0, offset: 0, onlyUnread: false, checkedAt: null, pushConfigured: false }; inboxPushActive = false; var badge = document.getElementById('btn-inbox-nav'); if (badge) badge.remove(); closeInbox();
   }
   function startInboxLive() {
     if (!acc.user || inboxUser === acc.user.userId) return;
-    stopInboxLive(); inboxUser = acc.user.userId; loadInbox();
-    function refresh() { clearTimeout(inboxRefresh); inboxRefresh = setTimeout(function () { loadInbox(); if (plans()) plans().refresh(); if (acc.panel === 'plan') loadSubscriptionAccount(); }, 150); }
+    stopInboxLive(); inboxUser = acc.user.userId; loadInbox(); loadInboxPreview();
+    function refresh() { clearTimeout(inboxRefresh); inboxRefresh = setTimeout(function () { loadInbox(); loadInboxPreview(); if (plans()) plans().refresh(); if (acc.panel === 'plan') loadSubscriptionAccount(); }, 150); }
     if (window.EventSource) {
       inboxStream = new EventSource('/api/me/events');
       inboxStream.addEventListener('ready', function () { inboxConnected = true; refresh(); });
@@ -773,8 +822,8 @@
     }
     inboxTimer = setInterval(function () { if (!inboxConnected) refresh(); }, 30000);
   }
-  window.addEventListener('online', function () { if (acc.user) { loadInbox(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && acc.user) { loadInbox(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
+  window.addEventListener('online', function () { if (acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && acc.user) { loadInbox(); loadInboxPreview(); if (acc.panel === 'plan') loadSubscriptionAccount(); } });
 
   function panelPlan() {
     var P = plans(), cfg = P && P.config();
@@ -1053,6 +1102,7 @@
     return loadUser().then(function () {
       acceptPendingInvite();
       if (root && !root.closest('[hidden]')) render();
+      var inboxPage = document.getElementById('view-notifications'); if (inboxPage && !inboxPage.hidden) renderInboxPage();
       var c = ctx(); if (c && c.refreshAll) c.refreshAll();
     });
   }
@@ -1061,6 +1111,7 @@
     subscriptionAccount = null; subscriptionError = ''; acc.planRefreshed = false;
     acc.user = null; acc.sessions = acc.links = acc.household = null; acc.justCreatedLink = null;
     updateNavAvatar();
+    var inboxPage = document.getElementById('view-notifications'); if (inboxPage && !inboxPage.hidden) renderInboxPage();
     if (root && !root.closest('[hidden]')) render();
   }
 
@@ -1410,12 +1461,12 @@
     if (!configured()) { updateNavAvatar(); return; }
     cs().onAuthChange(function (event) { if (event === 'SIGNED_IN') onSignedIn(); else if (event === 'SIGNED_OUT') onSignedOut(); });
     cs().onSyncEvent(function (kind) { if (kind === 'synced') refreshSyncLine(); });
-    cs().getSession().then(function (s) { if (s) return loadUser(); }).then(function () { updateNavAvatar(); handleDeepLinks(); });
+    cs().getSession().then(function (s) { if (s) return loadUser(); }).then(function () { updateNavAvatar(); var inboxPage = document.getElementById('view-notifications'); if (inboxPage && !inboxPage.hidden) renderInboxPage(); handleDeepLinks(); });
     updateNavAvatar();
   }
 
   window.applikaAccount = { chooseCountry: chooseCountry, refreshPlan: function () { if (acc.panel === 'plan') renderPanel(); },
-    show: show, render: render, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, openSupport: openSupportDialog, init: init, updateNavAvatar: updateNavAvatar };
+    show: show, render: render, renderInboxPage: renderInboxPage, openSection: function (k) { acc.panel = k; acc.mobileOpen = true; }, openSupport: openSupportDialog, init: init, updateNavAvatar: updateNavAvatar };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(init, 0); });
   else setTimeout(init, 0);
