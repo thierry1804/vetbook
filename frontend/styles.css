@@ -7218,7 +7218,7 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
      laissait un bandeau vide à droite sur grand écran. Chaque grille interne garde ses propres
      bornes (ex. cartes qui ne s'étirent pas à l'infini) ; voir ajustements par écran ci-dessous. */
   .container { width: calc(100% - 260px); max-width: none; margin: 0 0 0 260px; padding: 24px 32px 48px; }
-  #view-user-profile { margin-left: 260px; width: calc(100% - 260px); }
+  #view-user-profile, #view-notifications { margin-left: 260px; width: calc(100% - 260px); }
   #view-detail.detail-layout { display: block !important; }
   #view-detail[hidden] { display: none !important; }
   #animal-rail { display: none; }
@@ -7275,7 +7275,7 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
 }
 @media print {
   .care-sidebar, .care-emergency, .care-sos, .care-actions { display: none !important; }
-  .container, #view-user-profile { margin: 0; padding: 0; width: 100%; }
+  .container, #view-user-profile, #view-notifications { margin: 0; padding: 0; width: 100%; }
 }
 .care-mobile-menu { display: none; }
 .bottom-nav__item, .bottom-nav__item.active { flex: 1; flex-direction: column; gap: 4px; padding: 8px; background: transparent; }
