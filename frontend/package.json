@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build.mjs",
+    "test:browser": "npm run build && node tests/accessibility-smoke.mjs",
     "lint": "eslint ."
   },
   "devDependencies": {
@@ -13,6 +14,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^9.9.1",
     "globals": "^15.9.0",
+    "playwright": "^1.64.0",
     "vite": "^8.2.2"
   }
 }

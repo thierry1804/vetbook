@@ -713,13 +713,13 @@
   }
   function renderInboxArea(area, compact) {
     if (!area) return;
-    var focused = document.activeElement, action = area.contains(focused) && focused.dataset.inbox, id = focused && focused.dataset.id;
+    var focused = document.activeElement, hadFocus = area.contains(focused), action = hadFocus && focused.dataset.inbox, id = focused && focused.dataset.id;
     var list = area.querySelector('.acc-inbox__list'), scroll = list ? list.scrollTop : 0;
     var settingsOpen = !!area.querySelector('.acc-inbox__settings[open]');
     area.innerHTML = inboxHtml(compact);
     area.querySelector('.acc-inbox__list').scrollTop = scroll;
     var settings = area.querySelector('.acc-inbox__settings'); if (settings && settingsOpen) settings.open = true;
-    if (action) { var target = Array.from(area.querySelectorAll('[data-inbox]')).filter(function (node) { return node.dataset.inbox === action && node.dataset.id === id; })[0]; if (target && !target.disabled) target.focus({ preventScroll: true }); else { var heading = area.querySelector('h2'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
+    if (hadFocus) { var target = action && Array.from(area.querySelectorAll('[data-inbox]')).filter(function (node) { return node.dataset.inbox === action && node.dataset.id === id; })[0]; if (target && !target.disabled) target.focus({ preventScroll: true }); else { var heading = area.querySelector('h2'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
   }
   function renderInboxSurfaces() {
     if (inboxPopover) renderInboxArea(inboxPopover, true);
@@ -761,8 +761,10 @@
     var page = document.getElementById('view-notifications'); if (!page) return;
     if (!page.dataset.inboxBound) { page.addEventListener('click', handleInboxClick); page.dataset.inboxBound = '1'; }
     page.innerHTML = '<div class="acc-inbox-page"><div class="acc-inbox-page__panel"></div></div>';
-    if (!acc.user) { page.querySelector('.acc-inbox-page__panel').innerHTML = '<h1>Notifications</h1><p>Connecte-toi pour consulter tes notifications.</p><button type="button" class="acc-btn" id="inbox-login">Se connecter</button>'; page.querySelector('#inbox-login').onclick = function () { openAccountView(); }; return; }
+    if (!acc.user) { page.querySelector('.acc-inbox-page__panel').innerHTML = '<h1>Notifications</h1><p>Connecte-toi pour consulter tes notifications.</p><button type="button" class="acc-btn" id="inbox-login">Se connecter</button>'; page.querySelector('#inbox-login').onclick = function () { openAccountView(); }; var guestTitle = page.querySelector('h1'); guestTitle.tabIndex = -1; guestTitle.focus({ preventScroll: true }); return; }
     renderInboxArea(page.querySelector('.acc-inbox-page__panel'), false);
+    var pageTitle = page.querySelector('#inbox-page-title');
+    if (pageTitle) { pageTitle.tabIndex = -1; pageTitle.focus({ preventScroll: true }); }
     loadInbox();
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration('/').then(function (registration) { return registration && registration.pushManager.getSubscription(); }).then(function (subscription) { inboxPushActive = !!subscription; renderInboxSurfaces(); }).catch(function () {});
   }
@@ -883,8 +885,8 @@
         return '<h2 id="accd-title">' + (kind === 'renew' ? 'Renouveler ' : 'Choisir ') + esc(o.name) + '</h2>' + stepsDots() +
           '<p class="acc-plan__sub">' + esc(planSubtitle(o.code)) + '</p>' +
           (hasBoth ? '<div class="acc-plan-toggle" role="group" aria-label="Période">' +
-            '<button type="button" class="acc-plan-toggle__opt' + (period === 'monthly' ? ' is-on' : '') + '" data-step-act="period" data-period="monthly">Mensuel</button>' +
-            '<button type="button" class="acc-plan-toggle__opt' + (period === 'yearly' ? ' is-on' : '') + '" data-step-act="period" data-period="yearly">Annuel <span class="acc-plan-toggle__badge">' + (planSavings(o) || 2) + ' mois offerts</span></button></div>' : '') +
+            '<button type="button" class="acc-plan-toggle__opt' + (period === 'monthly' ? ' is-on' : '') + '" data-step-act="period" data-period="monthly" aria-pressed="' + (period === 'monthly') + '">Mensuel</button>' +
+            '<button type="button" class="acc-plan-toggle__opt' + (period === 'yearly' ? ' is-on' : '') + '" data-step-act="period" data-period="yearly" aria-pressed="' + (period === 'yearly') + '">Annuel <span class="acc-plan-toggle__badge">' + (planSavings(o) || 2) + ' mois offerts</span></button></div>' : '') +
           '<p class="acc-plan__price" style="margin-top:16px">' + '<b>' + fmtMga((activePrice() || {}).priceMga || 0) + '</b><span>/ ' + (period === 'yearly' ? 'an' : 'mois') + '</span></p>' +
           (o.trialDays && kind === 'assign' ? '<p class="acc-hint">' + esc(o.trialDays) + ' jours d’essai, sans engagement.</p>' : '') +
           '<div class="accd__actions"><button type="button" class="acc-btn" data-dlg-close>Annuler</button><button type="button" class="acc-btn acc-btn--primary" data-step-act="next">Continuer</button></div>';
@@ -1268,6 +1270,10 @@
     return Promise.resolve().then(fn).then(function (v) { if (btn) btn.disabled = false; return v; }, function (e) { if (btn) btn.disabled = false; throw e; });
   }
 
+  function focusPanelTitle() {
+    var title = document.getElementById('acc-panel-title');
+    if (title) { title.tabIndex = -1; title.focus({ preventScroll: true }); }
+  }
   var actions = {
     'plan-subscribe': function (t) { openSubscribeDialog('assign', t.dataset.plan); },
     'subscription-renew': function (t) { openSubscribeDialog('renew', planBase(t.dataset.plan)); },
@@ -1275,8 +1281,8 @@
     'subscription-refresh': function () { loadSubscriptionAccount(); if (plans()) plans().refresh(); },
     'subscription-cancel': function (t) { confirmDialog({ title: 'Annuler cette demande ?', text: 'Elle ne sera plus traitée par l’équipe.', ok: 'Annuler la demande' }).then(function (ok) { if (ok) withBusy(t, function () { return cs().api('/api/me/subscription/requests/' + t.dataset.id + '/cancel', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); }); },
     'subscription-read': function (t) { withBusy(t, function () { return cs().api('/api/me/subscription/notifications/' + t.dataset.id + '/read', { method: 'POST' }).then(loadSubscriptionAccount); }).catch(function (e) { toast(e.message, 'error'); }); },
-    open: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
-    goto: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); },
+    open: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); focusPanelTitle(); },
+    goto: function (t) { acc.panel = t.dataset.panel; acc.mobileOpen = true; render(); scrollTop(); focusPanelTitle(); },
     back: function () { acc.mobileOpen = false; render(); scrollTop(); },
     'plan-refresh': function () { if (plans()) plans().refresh(); },
     'open-pet': function (t) { var c = ctx(); if (c) c.openPet(Number(t.dataset.pet)); },

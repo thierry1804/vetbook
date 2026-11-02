@@ -8,7 +8,7 @@ import { seedAdminDefaults } from '../api/_lib/admin-seed.js';
 import { signSessionToken } from '../api/_lib/auth.js';
 import { identityMint, identityManage, identityPublic } from '../api/identity.js';
 import { directoryPets } from '../api/directory.js';
-import { petThreadOpen, petThreadRead, petThreadMessage, petThreadBlock, petThreadReport } from '../api/pet-messages.js';
+import { petThreadList, petThreadOpen, petThreadRead, petThreadMessage, petThreadBlock, petThreadReport } from '../api/pet-messages.js';
 
 const sql = (query, params = []) => withClient((c) => c.query(query, params));
 await ensureSchema();
@@ -31,6 +31,7 @@ app.all('/identity/manage', identityManage);
 app.get('/identity/public/:token', identityPublic);
 app.get('/directory', directoryPets);
 app.post('/threads', petThreadOpen);
+app.get('/threads', petThreadList);
 app.get('/threads/:id', petThreadRead);
 app.post('/threads/:id/messages', petThreadMessage);
 app.all('/threads/:id/block', petThreadBlock);
@@ -77,6 +78,20 @@ try {
   const opened = await call('/threads', visitor, 'POST', { petId: pet.id });
   assert.equal(opened.status, 200);
   const id = opened.json.id;
+  await sql(`insert into pet_threads(pet_id,owner_id,requester_id,last_message_at)
+    select p.id,$1,$2,now()-(p.local_id || ' minutes')::interval from pets p
+    where p.user_id=$1 and p.local_id between 1001 and 1044`, [owner.id, visitor.id]);
+  const firstThreads = await call('/threads', visitor);
+  assert.equal(firstThreads.json.threads.length, 20);
+  assert.ok(firstThreads.json.nextBefore);
+  const secondThreads = await call(`/threads?before=${firstThreads.json.nextBefore}`, visitor);
+  assert.equal(secondThreads.json.threads.length, 20);
+  const thirdThreads = await call(`/threads?before=${secondThreads.json.nextBefore}`, visitor);
+  assert.equal(thirdThreads.json.threads.length, 5);
+  assert.equal(thirdThreads.json.nextBefore, null);
+  assert.equal(new Set([...firstThreads.json.threads, ...secondThreads.json.threads, ...thirdThreads.json.threads].map((row) => row.id)).size, 45);
+  assert.equal((await call('/threads?before=invalid', visitor)).status, 400);
+  assert.equal((await call('/threads', stranger)).json.threads.length, 0);
   assert.equal((await call(`/threads/${id}`, stranger)).status, 404);
   for (let i = 0; i < 55; i++) await sql('insert into pet_messages(thread_id,author_id,body,created_at) values($1,$2,$3,now()+($4 || \' seconds\')::interval)', [id, visitor.id, `message ${i}`, String(i)]);
   const newest = await call(`/threads/${id}`, visitor);

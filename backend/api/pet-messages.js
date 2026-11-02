@@ -59,23 +59,29 @@ export async function petThreadList(req, res) {
   if (req.method !== 'GET') { res.status(405).json({ error: 'Méthode non autorisée.' }); return; }
   const session = await requireUser(req, res);
   if (!session) return;
+  const before = String(req.query.before || '');
+  if (before && !UUID_RE.test(before)) return res.status(400).json({ error: 'Page invalide.' });
   try {
-    const threads = await withClient(async (c) => (await c.query(
+    const rows = await withClient(async (c) => (await c.query(
       `select t.*, p.name as pet_name,
               coalesce(nullif(oo.name, ''), ou.name) as owner_name,
               coalesce(nullif(ro.name, ''), ru.name) as requester_name,
-              (select body from pet_messages m where m.thread_id = t.id order by m.created_at desc limit 1) as preview
+              (select body from pet_messages m where m.thread_id = t.id order by m.created_at desc,m.id desc limit 1) as preview
          from pet_threads t
          join pets p on p.id = t.pet_id
          join users ou on ou.id = t.owner_id
          join users ru on ru.id = t.requester_id
          left join owners oo on oo.user_id = t.owner_id
          left join owners ro on ro.user_id = t.requester_id
-        where t.owner_id = $1 or t.requester_id = $1
-        order by coalesce(t.last_message_at, t.created_at) desc
-        limit 200`,
-      [session.userId])).rows.map((row) => summary(row, session.userId)));
-    res.status(200).json({ threads });
+        where (t.owner_id = $1 or t.requester_id = $1)
+          and ($2::uuid is null or (coalesce(t.last_message_at,t.created_at),t.id) <
+            (select coalesce(cursor.last_message_at,cursor.created_at),cursor.id from pet_threads cursor
+              where cursor.id=$2 and (cursor.owner_id=$1 or cursor.requester_id=$1)))
+        order by coalesce(t.last_message_at,t.created_at) desc,t.id desc
+        limit 21`,
+      [session.userId, before || null])).rows);
+    const threads = rows.slice(0, 20).map((row) => summary(row, session.userId));
+    res.status(200).json({ threads, nextBefore: rows.length > 20 ? threads[threads.length - 1].id : null });
   } catch (err) {
     console.error('pet-threads/list', err);
     res.status(500).json({ error: 'Les messages sont indisponibles.' });

@@ -1087,10 +1087,6 @@
     var alias = CENTRALE_CANINE_BREED_ALIASES[key];
     return alias && CENTRALE_CANINE_BREED_SLUGS[alias] ? alias : null;
   }
-  function centraleCanineBreedSlug(race) {
-    var key = centraleCanineBreedKey(race);
-    return key ? CENTRALE_CANINE_BREED_SLUGS[key] : null;
-  }
   function centraleCanineBreedLinkMeta(race) {
     var key = centraleCanineBreedKey(race);
     if (!key) return null;
@@ -1100,10 +1096,6 @@
     }
     var slug = CENTRALE_CANINE_BREED_SLUGS[key];
     return slug ? { url: 'https://www.centrale-canine.fr/le-chien-de-race/' + slug, isPdf: false } : null;
-  }
-  function centraleCanineBreedUrl(race) {
-    var meta = centraleCanineBreedLinkMeta(race);
-    return meta ? meta.url : null;
   }
 
   // Common symptom types suggested in the health journal
@@ -3492,7 +3484,7 @@
     saveRoute({ view: 'directory' });
   }
 
-  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], thread: null, messages: [], nextBefore: null, draft: '', reportOpen: false, reportDraft: '' };
+  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], threadNextBefore: null, thread: null, messages: [], nextBefore: null, draft: '', reportOpen: false, reportDraft: '' };
   var petPoll = null;
   function stopPetPoll() { if (petPoll) { clearInterval(petPoll); petPoll = null; } }
   function petApi(path, options) {
@@ -3528,9 +3520,9 @@
     if (petFind.mode === 'threads') {
       if (title) title.textContent = 'Messages';
       if (sub) sub.textContent = 'Conversations avec d’autres propriétaires.';
-      body.innerHTML = petFind.threads.length ? '<div class="pet-find">' + petFind.threads.map(function (t) {
+      body.innerHTML = petFind.threads.length ? '<div class="pet-find" aria-live="polite">' + petFind.threads.map(function (t) {
         return '<button type="button" class="pet-thread-row" data-pet-thread="' + escapeHtml(t.id) + '"><span><strong>' + escapeHtml(t.petName || 'Animal') + '</strong> · ' + escapeHtml(t.otherName || 'Propriétaire') + (t.closed ? ' · close' : '') + '<br><span class="table-muted">' + escapeHtml(t.preview || 'Aucun message') + '</span></span></button>';
-      }).join('') + '</div>' : '<p class="global-view__sub">Aucune conversation pour le moment.</p>';
+      }).join('') + (petFind.threadNextBefore ? '<button type="button" class="care-action" data-pet-threads-more>Charger les conversations précédentes</button>' : '') + '</div>' : '<p class="global-view__sub">Aucune conversation pour le moment.</p>';
       return;
     }
     if (petFind.mode === 'card' && petFind.card) {
@@ -3595,6 +3587,19 @@
       renderPetFind();
     });
   }
+  function loadPetThreads(before) {
+    return petApi('/api/pet-threads' + (before ? '?before=' + encodeURIComponent(before) : '')).then(function (res) {
+      if (state.viewMode !== 'pets') return;
+      if (before) {
+        var known = new Set(petFind.threads.map(function (t) { return t.id; }));
+        petFind.threads = petFind.threads.concat((res.threads || []).filter(function (t) { return !known.has(t.id); }));
+      } else petFind.threads = res.threads || [];
+      petFind.threadNextBefore = res.nextBefore || null;
+      petFind.mode = 'threads';
+      renderPetFind();
+      if (before) { var button = document.querySelector('[data-pet-threads-more]'); if (button) button.focus(); }
+    });
+  }
   function showPets(opts) {
     opts = opts || {};
     if (opts.thread) { showPetThread(opts.thread); return; }
@@ -3642,19 +3647,21 @@
       var more = e.target.closest('[data-pet-more]');
       var close = e.target.closest('[data-pet-close]');
       var older = e.target.closest('[data-pet-older]');
+      var olderThreads = e.target.closest('[data-pet-threads-more]');
       var block = e.target.closest('[data-pet-block]');
       var report = e.target.closest('[data-pet-report]');
       var swap = e.target.closest('#pets-switch');
       if (swap) {
         if (petFind.mode === 'threads' || petFind.mode === 'thread') showPets();
-        else petApi('/api/pet-threads').then(function (res) { petFind.threads = res.threads || []; petFind.mode = 'threads'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
+        else loadPetThreads(null).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
         return;
       }
       if (back) { petFind.mode = 'search'; renderPetFind(); return; }
       if (messages) {
-        petApi('/api/pet-threads').then(function (res) { petFind.threads = res.threads || []; petFind.mode = 'threads'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
+        loadPetThreads(null).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
         return;
       }
+      if (olderThreads && petFind.threadNextBefore) { loadPetThreads(petFind.threadNextBefore).catch(function (err) { showToast((err && err.message) || 'Chargement impossible.', 'error'); }); return; }
       if (more) { loadPetSearch(Number(more.getAttribute('data-pet-more'))).catch(function (err) { showToast((err && err.message) || 'Recherche impossible.', 'error'); }); return; }
       if (older && petFind.thread && petFind.nextBefore) {
         petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '?before=' + encodeURIComponent(petFind.nextBefore)).then(function (res) {
@@ -4563,6 +4570,7 @@
       modalLastFocused = document.activeElement;
       overlay.classList.add('open');
       overlay.setAttribute('aria-hidden', 'false');
+      overlay.setAttribute('aria-modal', 'true');
       window.setTimeout(function () {
         var focusable = overlay.querySelector('input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])');
         if (!focusable) focusable = overlay.querySelector('button:not([disabled])');
@@ -4578,6 +4586,7 @@
     if (overlay) {
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden', 'true');
+      overlay.removeAttribute('aria-modal');
       if (modalLastFocused && typeof modalLastFocused.focus === 'function') {
         modalLastFocused.focus();
       }
@@ -8819,6 +8828,8 @@
     localStorage.setItem(ONBOARDING_KEY, 'done');
     closeModal('onboarding');
     showHome();
+    var homeAction = document.getElementById('btn-add-animal');
+    if (homeAction) homeAction.focus({ preventScroll: true });
   }
 
   // ——— PWA ————————————————————————————————————————
@@ -9844,9 +9855,11 @@
 
     // Reminder category pills
     document.querySelectorAll('.reminder-cat').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.classList.contains('active')));
       btn.addEventListener('click', function () {
-        document.querySelectorAll('.reminder-cat').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.reminder-cat').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
         var cont = document.getElementById('upcoming-alerts');
         if (cont) cont.setAttribute('data-cat-filter', btn.getAttribute('data-cat'));
         renderAlerts();
@@ -9855,9 +9868,11 @@
 
     // Reminder period pills
     document.querySelectorAll('.reminder-period').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.classList.contains('active')));
       btn.addEventListener('click', function () {
-        document.querySelectorAll('.reminder-period').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.reminder-period').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
         var sel = document.getElementById('alerts-range');
         if (sel) { sel.value = btn.getAttribute('data-range'); }
         renderAlerts();
@@ -9934,8 +9949,7 @@
     document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
       overlay.addEventListener('click', function (e) {
         if (e.target === this) {
-          this.classList.remove('open');
-          this.setAttribute('aria-hidden', 'true');
+          closeModal((this.id || '').replace(/^modal-/, ''));
         }
       });
     });
@@ -9945,6 +9959,18 @@
 
     // Keyboard
     document.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        var activeModal = document.querySelector('.modal-overlay.open');
+        if (activeModal) {
+          var modalControls = Array.from(activeModal.querySelectorAll('button, input:not([type="hidden"]), textarea, select, a[href]')).filter(function (el) { return !el.disabled && el.getClientRects().length && el.tabIndex >= 0; });
+          if (modalControls.length) {
+            var firstControl = modalControls[0], lastControl = modalControls[modalControls.length - 1];
+            if (e.shiftKey && (document.activeElement === firstControl || !activeModal.contains(document.activeElement))) { e.preventDefault(); lastControl.focus(); }
+            else if (!e.shiftKey && (document.activeElement === lastControl || !activeModal.contains(document.activeElement))) { e.preventDefault(); firstControl.focus(); }
+          }
+        }
+        return;
+      }
       if (e.key !== 'Escape') return;
       var lb = document.getElementById('lightbox');
       if (lb && lb.classList.contains('open')) { closeLightbox(); return; }

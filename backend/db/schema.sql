@@ -513,6 +513,8 @@ create table if not exists pet_threads (
 );
 create index if not exists pet_threads_owner_idx on pet_threads (owner_id, last_message_at desc);
 create index if not exists pet_threads_requester_idx on pet_threads (requester_id, last_message_at desc);
+create index if not exists pet_threads_owner_page_idx on pet_threads (owner_id, (coalesce(last_message_at, created_at)) desc, id desc);
+create index if not exists pet_threads_requester_page_idx on pet_threads (requester_id, (coalesce(last_message_at, created_at)) desc, id desc);
 
 create table if not exists pet_messages (
   id uuid primary key default gen_random_uuid(),
