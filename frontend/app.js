@@ -3484,7 +3484,7 @@
     saveRoute({ view: 'directory' });
   }
 
-  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], threadNextBefore: null, thread: null, messages: [], nextBefore: null, draft: '', reportOpen: false, reportDraft: '' };
+  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, searched: false, card: null, threads: [], threadNextBefore: null, thread: null, messages: [], nextBefore: null, draft: '', reportOpen: false, reportDraft: '' };
   var petPoll = null;
   function stopPetPoll() { if (petPoll) { clearInterval(petPoll); petPoll = null; } }
   function petApi(path, options) {
@@ -3551,7 +3551,7 @@
     if (sub) sub.textContent = 'Nom, race, âge et photo. Le téléphone et le carnet restent privés.';
     body.innerHTML = '<form class="pet-find" data-pet-search><div class="pet-find__bar"><select name="species" aria-label="Espèce"><option value="">Espèce</option><option value="Canine"' + (petFind.species === 'Canine' ? ' selected' : '') + '>Chien</option><option value="Féline"' + (petFind.species === 'Féline' ? ' selected' : '') + '>Chat</option><option value="Autre"' + (petFind.species === 'Autre' ? ' selected' : '') + '>Autre</option></select><select name="sex" aria-label="Sexe"><option value="">Sexe</option><option' + (petFind.sex === 'Mâle' ? ' selected' : '') + '>Mâle</option><option' + (petFind.sex === 'Femelle' ? ' selected' : '') + '>Femelle</option></select><select name="sterilise" aria-label="Stérilisation"><option value="">Stérilisation</option><option' + (petFind.sterilise === 'Oui' ? ' selected' : '') + '>Oui</option><option' + (petFind.sterilise === 'Non' ? ' selected' : '') + '>Non</option></select><input name="q" type="search" aria-label="Nom ou race" placeholder="Nom ou race" value="' + escapeHtml(petFind.q) + '"><button type="submit" class="care-action care-action--primary">Chercher</button></div></form><div class="pet-find" id="pet-results" aria-live="polite">' + (petFind.pets.length ? petFind.pets.map(function (p) {
       return '<button type="button" class="pet-hit" data-pet-open="' + escapeHtml(p.id) + '">' + petPhoto(p.id, p.name) + '<span><strong>' + escapeHtml(p.name || 'Animal') + '</strong><br>' + escapeHtml([petSpeciesLabel(p.species), p.race, p.sex, p.age].filter(Boolean).join(' · ')) + (p.ownerName ? '<br>' + escapeHtml(p.ownerName) : '') + '</span></button>';
-    }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<p class="global-view__sub">Lancez une recherche pour voir les animaux visibles.</p>') + '</div>';
+    }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<p class="global-view__sub">' + (petFind.searched ? 'Aucun animal ne correspond pour l’instant. Peu de propriétaires ont encore activé la visibilité — reviens plus tard, ou élargis les critères.' : 'Choisis une espèce ou des lettres du nom/de la race, puis lance la recherche.') + '</p>') + '</div>';
     bindPetPhotos(body);
   }
   function loadPetSearch(offset) {
@@ -3565,6 +3565,7 @@
       if (state.viewMode !== 'pets') return;
       petFind.pets = offset ? petFind.pets.concat(res.pets || []) : (res.pets || []);
       petFind.next = res.next;
+      petFind.searched = true;
       petFind.mode = 'search';
       renderPetFind();
     });
