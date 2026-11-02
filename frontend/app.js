@@ -3492,7 +3492,7 @@
     saveRoute({ view: 'directory' });
   }
 
-  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], thread: null, messages: [], draft: '' };
+  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], thread: null, messages: [], nextBefore: null, draft: '', reportOpen: false, reportDraft: '' };
   var petPoll = null;
   function stopPetPoll() { if (petPoll) { clearInterval(petPoll); petPoll = null; } }
   function petApi(path, options) {
@@ -3545,11 +3545,11 @@
       var t = petFind.thread;
       if (title) title.textContent = t.petName || 'Conversation';
       if (sub) sub.textContent = (t.otherName || 'Propriétaire') + (t.closed ? ' · conversation close' : '');
-      var canWrite = hasFeature('pet_messages') && !t.closed;
-      body.innerHTML = '<div class="pet-thread"><button type="button" class="care-action" data-pet-messages>Messages</button><div class="pet-thread__log">' + (petFind.messages.length ? petFind.messages.map(function (m) {
+      var canWrite = hasFeature('pet_messages') && !t.closed && !t.blocked;
+      body.innerHTML = '<div class="pet-thread"><button type="button" class="care-action" data-pet-messages>Messages</button>' + (petFind.nextBefore ? '<button type="button" class="care-action" data-pet-older>Charger les messages précédents</button>' : '') + '<div class="pet-thread__log" role="log" aria-label="Messages de la conversation" aria-live="off">' + (petFind.messages.length ? petFind.messages.map(function (m) {
         return '<div class="pet-bubble ' + (m.mine ? 'is-mine' : 'is-theirs') + '">' + escapeHtml(m.body) + '</div>';
       }).join('') : '<p class="global-view__sub">Écrivez le premier message.</p>') + '</div>' +
-        (canWrite ? '<form class="pet-thread__form" data-pet-send><input id="pet-draft" maxlength="2000" placeholder="Votre message" value="' + escapeHtml(petFind.draft || '') + '"><button type="submit" class="care-action care-action--primary">Envoyer</button></form><button type="button" class="care-action" data-pet-close="' + escapeHtml(t.id) + '">Clore la conversation</button>' : '<p class="stitch-note">' + (t.closed ? 'Cette conversation est close. Les messages restent lisibles.' : 'L’envoi de messages est réservé aux formules payantes.') + '</p>') + '</div>';
+        (canWrite ? '<form class="pet-thread__form" data-pet-send><input id="pet-draft" maxlength="2000" aria-label="Votre message" placeholder="Votre message" value="' + escapeHtml(petFind.draft || '') + '"><button type="submit" class="care-action care-action--primary">Envoyer</button></form><button type="button" class="care-action" data-pet-close="' + escapeHtml(t.id) + '">Clore la conversation</button>' : '<p class="stitch-note">' + (t.blocked ? 'Contact bloqué.' : t.closed ? 'Cette conversation est close. Les messages restent lisibles.' : 'L’envoi de messages est réservé aux formules payantes.') + '</p>') + '<div class="pet-thread__safety"><button type="button" class="care-action" data-pet-block="' + escapeHtml(t.id) + '">' + (t.blockedByMe ? 'Débloquer ce contact' : 'Bloquer ce contact') + '</button><button type="button" class="care-action" data-pet-report="' + escapeHtml(t.id) + '">Signaler la conversation</button></div>' + (petFind.reportOpen ? '<form data-pet-report-form><label for="pet-report-reason">Motif du signalement</label><textarea id="pet-report-reason" minlength="10" maxlength="1000" required rows="4" placeholder="Décrivez le problème pour le support">' + escapeHtml(petFind.reportDraft) + '</textarea><button type="submit" class="care-action care-action--primary">Envoyer au support</button></form>' : '') + '</div>';
       var log = body.querySelector('.pet-thread__log');
       if (log) log.scrollTop = log.scrollHeight;
       petPoll = setInterval(function () { if (petFind.mode === 'thread' && petFind.thread) loadPetThread(petFind.thread.id, true); }, 8000);
@@ -3557,7 +3557,7 @@
     }
     if (title) title.textContent = 'Recherche d’animaux';
     if (sub) sub.textContent = 'Nom, race, âge et photo. Le téléphone et le carnet restent privés.';
-    body.innerHTML = '<form class="pet-find" data-pet-search><div class="pet-find__bar"><select name="species" aria-label="Espèce"><option value="">Espèce</option><option value="Canine"' + (petFind.species === 'Canine' ? ' selected' : '') + '>Chien</option><option value="Féline"' + (petFind.species === 'Féline' ? ' selected' : '') + '>Chat</option><option value="Autre"' + (petFind.species === 'Autre' ? ' selected' : '') + '>Autre</option></select><select name="sex" aria-label="Sexe"><option value="">Sexe</option><option' + (petFind.sex === 'Mâle' ? ' selected' : '') + '>Mâle</option><option' + (petFind.sex === 'Femelle' ? ' selected' : '') + '>Femelle</option></select><select name="sterilise" aria-label="Stérilisation"><option value="">Stérilisation</option><option' + (petFind.sterilise === 'Oui' ? ' selected' : '') + '>Oui</option><option' + (petFind.sterilise === 'Non' ? ' selected' : '') + '>Non</option></select><input name="q" type="search" placeholder="Nom ou race" value="' + escapeHtml(petFind.q) + '"><button type="submit" class="care-action care-action--primary">Chercher</button></div></form><div class="pet-find" id="pet-results">' + (petFind.pets.length ? petFind.pets.map(function (p) {
+    body.innerHTML = '<form class="pet-find" data-pet-search><div class="pet-find__bar"><select name="species" aria-label="Espèce"><option value="">Espèce</option><option value="Canine"' + (petFind.species === 'Canine' ? ' selected' : '') + '>Chien</option><option value="Féline"' + (petFind.species === 'Féline' ? ' selected' : '') + '>Chat</option><option value="Autre"' + (petFind.species === 'Autre' ? ' selected' : '') + '>Autre</option></select><select name="sex" aria-label="Sexe"><option value="">Sexe</option><option' + (petFind.sex === 'Mâle' ? ' selected' : '') + '>Mâle</option><option' + (petFind.sex === 'Femelle' ? ' selected' : '') + '>Femelle</option></select><select name="sterilise" aria-label="Stérilisation"><option value="">Stérilisation</option><option' + (petFind.sterilise === 'Oui' ? ' selected' : '') + '>Oui</option><option' + (petFind.sterilise === 'Non' ? ' selected' : '') + '>Non</option></select><input name="q" type="search" aria-label="Nom ou race" placeholder="Nom ou race" value="' + escapeHtml(petFind.q) + '"><button type="submit" class="care-action care-action--primary">Chercher</button></div></form><div class="pet-find" id="pet-results" aria-live="polite">' + (petFind.pets.length ? petFind.pets.map(function (p) {
       return '<button type="button" class="pet-hit" data-pet-open="' + escapeHtml(p.id) + '">' + petPhoto(p.id, p.name) + '<span><strong>' + escapeHtml(p.name || 'Animal') + '</strong><br>' + escapeHtml([petSpeciesLabel(p.species), p.race, p.sex, p.age].filter(Boolean).join(' · ')) + (p.ownerName ? '<br>' + escapeHtml(p.ownerName) : '') + '</span></button>';
     }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<p class="global-view__sub">Lancez une recherche pour voir les animaux visibles.</p>') + '</div>';
     bindPetPhotos(body);
@@ -3583,9 +3583,15 @@
       var prev = petFind.messages[petFind.messages.length - 1];
       var next = (res.messages || [])[res.messages.length - 1];
       petFind.thread = res.thread;
-      petFind.messages = res.messages || [];
       petFind.mode = 'thread';
       if (silent && prev && next && prev.id === next.id) return;
+      if (silent && petFind.messages.length && petFind.nextBefore) {
+        var seen = new Set(petFind.messages.map(function (m) { return m.id; }));
+        petFind.messages = petFind.messages.concat((res.messages || []).filter(function (m) { return !seen.has(m.id); }));
+      } else {
+        petFind.messages = res.messages || [];
+        petFind.nextBefore = res.nextBefore;
+      }
       renderPetFind();
     });
   }
@@ -3635,6 +3641,9 @@
       var thread = e.target.closest('[data-pet-thread]');
       var more = e.target.closest('[data-pet-more]');
       var close = e.target.closest('[data-pet-close]');
+      var older = e.target.closest('[data-pet-older]');
+      var block = e.target.closest('[data-pet-block]');
+      var report = e.target.closest('[data-pet-report]');
       var swap = e.target.closest('#pets-switch');
       if (swap) {
         if (petFind.mode === 'threads' || petFind.mode === 'thread') showPets();
@@ -3647,6 +3656,25 @@
         return;
       }
       if (more) { loadPetSearch(Number(more.getAttribute('data-pet-more'))).catch(function (err) { showToast((err && err.message) || 'Recherche impossible.', 'error'); }); return; }
+      if (older && petFind.thread && petFind.nextBefore) {
+        petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '?before=' + encodeURIComponent(petFind.nextBefore)).then(function (res) {
+          petFind.messages = (res.messages || []).concat(petFind.messages.filter(function (m) { return !(res.messages || []).some(function (old) { return old.id === m.id; }); }));
+          petFind.nextBefore = res.nextBefore;
+          renderPetFind();
+          var button = document.querySelector('[data-pet-older]'); if (button) button.focus();
+        }).catch(function (err) { showToast((err && err.message) || 'Chargement impossible.', 'error'); }); return;
+      }
+      if (block && petFind.thread) {
+        var method = petFind.thread.blockedByMe ? 'DELETE' : 'POST';
+        if (method === 'POST' && block.dataset.confirm !== '1') { block.dataset.confirm = '1'; block.textContent = 'Confirmer le blocage'; return; }
+        petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '/block', { method: method, body: '{}' }).then(function () { return loadPetThread(petFind.thread.id, false); }).catch(function (err) { showToast((err && err.message) || 'Action impossible.', 'error'); }); return;
+      }
+      if (report && petFind.thread) {
+        petFind.reportOpen = !petFind.reportOpen;
+        renderPetFind();
+        if (petFind.reportOpen) document.getElementById('pet-report-reason')?.focus();
+        return;
+      }
       if (open) {
         var id = open.getAttribute('data-pet-open');
         petApi('/api/directory/pets/' + encodeURIComponent(id)).then(function (card) { petFind.card = card; petFind.mode = 'card'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Fiche indisponible.', 'error'); });
@@ -3666,6 +3694,13 @@
     view.addEventListener('submit', function (e) {
       var search = e.target.closest('[data-pet-search]');
       var send = e.target.closest('[data-pet-send]');
+      var reportForm = e.target.closest('[data-pet-report-form]');
+      if (reportForm && petFind.thread) {
+        e.preventDefault();
+        var reason = reportForm.querySelector('textarea').value.trim();
+        petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '/report', { method: 'POST', body: JSON.stringify({ reason: reason }) }).then(function () { petFind.reportOpen = false; petFind.reportDraft = ''; renderPetFind(); showToast('Signalement envoyé au support.'); }).catch(function (err) { showToast((err && err.message) || 'Signalement impossible.', 'error'); });
+        return;
+      }
       if (search) {
         e.preventDefault();
         var data = new FormData(search);
@@ -3685,7 +3720,7 @@
         petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '/messages', { method: 'POST', body: JSON.stringify({ body: text }) }).then(function () { return loadPetThread(petFind.thread.id, false); }).catch(function (err) { petFind.draft = text; showToast((err && err.message) || 'Message non envoyé.', 'error'); });
       }
     });
-    view.addEventListener('input', function (e) { if (e.target && e.target.id === 'pet-draft') petFind.draft = e.target.value; });
+    view.addEventListener('input', function (e) { if (e.target && e.target.id === 'pet-draft') petFind.draft = e.target.value; if (e.target && e.target.id === 'pet-report-reason') petFind.reportDraft = e.target.value; });
   }
 
   function showDetail(opts) {
@@ -3949,6 +3984,61 @@
   }
 
   var identityUrlCache = {};
+  var identitySettingsCache = {};
+  var identityRevoked = {};
+  function setIdentityActive(section, active) {
+    section.querySelector('[data-identity-create]').hidden = active;
+    section.querySelector('.identity-qr__settings').hidden = !active;
+    section.querySelector('.identity-qr__actions').hidden = !active;
+    section.querySelector('[data-stitch-action="download-qr"]').hidden = !active;
+  }
+  function applyIdentitySettings(section, settings) {
+    section.querySelectorAll('[data-identity-setting]').forEach(function (input) {
+      input.checked = !!settings[input.dataset.identitySetting];
+    });
+  }
+  function identityManage(action) {
+    var data = getCurrent();
+    var section = document.getElementById('qr-section');
+    if (!data || !section) return;
+    var settings = {};
+    section.querySelectorAll('[data-identity-setting]').forEach(function (input) { settings[input.dataset.identitySetting] = input.checked; });
+    if (action !== 'save') {
+      var button = section.querySelector('[data-identity-' + action + ']');
+      if (button && button.dataset.confirm !== '1') { button.dataset.confirm = '1'; button.textContent = action === 'rotate' ? 'Confirmer le nouveau lien' : 'Confirmer la révocation'; return; }
+    }
+    var method = action === 'save' ? 'PATCH' : action === 'rotate' ? 'POST' : 'DELETE';
+    window.cloudSync.api('/api/identity/manage', { method: method, body: JSON.stringify({ petLocalId: data.id, settings: settings }) }).then(function (res) {
+      if (action === 'revoke') {
+        delete identityUrlCache[data.id];
+        identityRevoked[data.id] = true;
+        setIdentityActive(section, false);
+        document.getElementById('qr-canvas').hidden = true;
+        section.querySelector('[data-stitch-action="download-qr"]').disabled = true;
+        section.querySelector('.identity-qr__note').textContent = 'Lien révoqué. L’ancien QR code ne fonctionne plus. Revenez sur cette fiche pour créer une nouvelle médaille.';
+      } else {
+        identitySettingsCache[data.id] = res.settings;
+        if (action === 'rotate') {
+          identityUrlCache[data.id] = location.origin + '/identite.html?t=' + encodeURIComponent(res.token);
+          paintQRCode(document.getElementById('qr-canvas'), identityUrlCache[data.id]);
+          document.getElementById('qr-canvas').hidden = false;
+          section.querySelector('[data-stitch-action="download-qr"]').disabled = false;
+        }
+        showToast(action === 'save' ? 'Visibilité enregistrée.' : 'Nouveau lien créé. Réimprimez la médaille.');
+      }
+    }).catch(function (err) { showToast((err && err.message) || 'Modification impossible.', 'error'); });
+  }
+  function identityCreate() {
+    var data = getCurrent();
+    if (!data) return;
+    window.cloudSync.api('/api/identity', { method: 'POST', body: JSON.stringify({ petLocalId: data.id }) }).then(function (res) {
+      identityRevoked[data.id] = false;
+      identitySettingsCache[data.id] = res.settings;
+      delete identityUrlCache[data.id];
+      renderQRCode(data);
+      showToast('Médaille créée. Vérifiez les informations visibles.');
+    }).catch(function (err) { showToast((err && err.message) || 'Création impossible.', 'error'); });
+  }
 
   function paintQRCode(canvas, text) {
     var qr = qrcode(0, 'M');
@@ -3983,26 +4073,18 @@
     if (typeof qrcode === 'undefined') { section.hidden = true; return; }
 
     section.hidden = false;
+    setIdentityActive(section, !identityRevoked[data.id]);
+    if (identitySettingsCache[data.id]) applyIdentitySettings(section, identitySettingsCache[data.id]);
+    if (identityRevoked[data.id]) {
+      canvas.hidden = true;
+      section.querySelector('.identity-qr__note').textContent = 'Lien révoqué. Actualisez la page pour créer une nouvelle médaille.';
+      return;
+    }
     var seq = (Number(section.dataset.seq) || 0) + 1;
     section.dataset.seq = String(seq);
     function current() { return section.dataset.seq === String(seq); }
     function setNote(message) { if (note) note.textContent = message; }
     function setReady(ready) { if (downloadBtn) downloadBtn.disabled = !ready; }
-
-    var cached = identityUrlCache[data.id];
-    if (cached) {
-      try {
-        paintQRCode(canvas, cached);
-        canvas.hidden = false;
-        setReady(true);
-        setNote('Un scan ouvre la fiche publique de ' + (a.name || 'votre compagnon') + ' et le bouton pour vous appeler. Le lien reste le même si vous réimprimez la médaille.');
-      } catch (e) {
-        canvas.hidden = true;
-        setReady(false);
-        setNote('Le QR code ne peut pas être affiché.');
-      }
-      return;
-    }
 
     canvas.hidden = true;
     canvas.width = 0;
@@ -4019,20 +4101,26 @@
         setNote('Connectez-vous et sauvegardez le carnet pour activer la médaille.');
         return null;
       }
-      return window.cloudSync.api('/api/identity', { method: 'POST', body: JSON.stringify({ petLocalId: data.id }) });
+      return window.cloudSync.api('/api/identity?petLocalId=' + encodeURIComponent(data.id));
     }).then(function (res) {
       if (!current() || !res || !res.token) return;
+      setIdentityActive(section, true);
+      identitySettingsCache[data.id] = res.settings || {};
+      applyIdentitySettings(section, identitySettingsCache[data.id]);
       var url = location.origin + '/identite.html?t=' + encodeURIComponent(res.token);
       identityUrlCache[data.id] = url;
       paintQRCode(canvas, url);
       canvas.hidden = false;
       setReady(true);
-      setNote('Un scan ouvre la fiche publique de ' + (a.name || 'votre compagnon') + ' et le bouton pour vous appeler. Le lien reste le même si vous réimprimez la médaille.');
+      setNote('Un scan ouvre la fiche publique de ' + (a.name || 'votre compagnon') + '. Seules les informations cochées sont visibles. Le lien reste le même si vous réimprimez la médaille.');
     }).catch(function (err) {
       if (!current()) return;
       canvas.hidden = true;
       setReady(false);
-      setNote((err && err.message) || 'La médaille ne peut pas être préparée.');
+      if (err && err.message === 'Aucune médaille active.') {
+        setIdentityActive(section, false);
+        setNote('Aucun lien public actif. Créez une médaille pour générer le QR code.');
+      } else setNote((err && err.message) || 'La médaille ne peut pas être préparée.');
     });
   }
 
@@ -9902,6 +9990,9 @@
     document.getElementById('tips-search').addEventListener('input', renderCommunityTips);
     document.getElementById('events-search').addEventListener('input', renderCommunityEvents);
     document.addEventListener('click', function (e) {
+      var identityAction = e.target.closest('[data-identity-save], [data-identity-rotate], [data-identity-revoke]');
+      if (identityAction) { identityManage(identityAction.hasAttribute('data-identity-save') ? 'save' : identityAction.hasAttribute('data-identity-rotate') ? 'rotate' : 'revoke'); return; }
+      if (e.target.closest('[data-identity-create]')) { identityCreate(); return; }
       var action = e.target.closest('[data-stitch-action]');
       if (!action) return;
       var key = action.dataset.stitchAction;

@@ -52,6 +52,26 @@ export function buildAdminRouter() {
       res.json({ rows });
     } catch (error) { next(error); }
   });
+  router.get('/pet-reports', requireAdmin('users.support'), async (_req, res, next) => {
+    try {
+      const rows = (await withClient((c) => c.query(`select r.id,r.thread_id,r.reason,r.status,r.created_at,r.reviewed_at,
+        reporter.email as reporter_email,reported.email as reported_email,p.name as pet_name,
+        coalesce((select json_agg(json_build_object('body',m.body,'created_at',m.created_at,'author',case when m.author_id=r.reporter_id then 'reporter' else 'reported' end) order by m.created_at,m.id)
+          from (select * from pet_messages where thread_id=r.thread_id order by created_at desc,id desc limit 50) m),'[]'::json) as messages
+        from pet_reports r join users reporter on reporter.id=r.reporter_id join users reported on reported.id=r.reported_user_id
+        join pet_threads t on t.id=r.thread_id join pets p on p.id=t.pet_id
+        order by case when r.status='nouveau' then 0 else 1 end,r.created_at desc limit 200`))).rows;
+      res.json({ rows });
+    } catch (error) { next(error); }
+  });
+  router.patch('/pet-reports/:id', requireAdmin('users.support'), async (req, res, next) => {
+    try {
+      if (!/^[0-9a-f-]{36}$/i.test(req.params.id) || !['nouveau','traite'].includes(req.body?.status)) return res.status(400).json({ error: 'État invalide.' });
+      const row = (await withClient((c) => c.query(`update pet_reports set status=$2,reviewed_at=case when $2='traite' then now() else null end where id=$1 returning id,status`, [req.params.id, req.body.status]))).rows[0];
+      if (!row) return res.status(404).json({ error: 'Signalement introuvable.' });
+      res.json(row);
+    } catch (error) { next(error); }
+  });
   router.patch('/support-requests/:id', requireAdmin('users.support'), async (req, res, next) => {
     try {
       if (!['nouveau', 'en_cours', 'traite'].includes(req.body?.status) || !/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'État invalide.' });

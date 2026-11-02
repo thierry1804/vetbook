@@ -522,6 +522,27 @@ create table if not exists pet_messages (
   created_at timestamptz not null default now()
 );
 create index if not exists pet_messages_thread_idx on pet_messages (thread_id, created_at);
+create index if not exists pet_messages_page_idx on pet_messages (thread_id, created_at desc, id desc);
+
+create table if not exists pet_blocks (
+  user_id uuid not null references users(id) on delete cascade,
+  blocked_user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, blocked_user_id),
+  check (user_id <> blocked_user_id)
+);
+
+create table if not exists pet_reports (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references pet_threads(id) on delete cascade,
+  reporter_id uuid not null references users(id) on delete cascade,
+  reported_user_id uuid not null references users(id) on delete cascade,
+  reason text not null check (char_length(reason) between 10 and 1000),
+  status text not null default 'nouveau' check (status in ('nouveau', 'traite')),
+  created_at timestamptz not null default now(),
+  reviewed_at timestamptz,
+  unique (thread_id, reporter_id)
+);
 
 -- Médaille : un jeton stable par animal. Il est conservé en clair pour que
 -- la même médaille puisse être réimprimée ; sa longueur le rend non devinable.
@@ -531,3 +552,14 @@ create table if not exists identity_tags (
   token text not null unique,
   created_at timestamptz not null default now()
 );
+alter table identity_tags add column if not exists show_phone boolean not null default false;
+alter table identity_tags add column if not exists show_chip boolean not null default false;
+alter table identity_tags add column if not exists show_owner_name boolean not null default true;
+alter table identity_tags add column if not exists show_photo boolean not null default true;
+alter table identity_tags add column if not exists show_species boolean not null default true;
+alter table identity_tags add column if not exists show_race boolean not null default true;
+alter table identity_tags add column if not exists show_sex boolean not null default true;
+alter table identity_tags add column if not exists show_dob boolean not null default true;
+alter table identity_tags add column if not exists show_color boolean not null default true;
+alter table identity_tags add column if not exists show_sterilise boolean not null default true;
+alter table identity_tags add column if not exists show_weight boolean not null default true;

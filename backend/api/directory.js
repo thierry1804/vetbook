@@ -142,7 +142,8 @@ export async function directoryPets(req, res) {
   const sex = SEXES.has(req.query.sex) ? req.query.sex : '';
   const sterilise = STERILE.has(req.query.sterilise) ? req.query.sterilise : '';
   const q = String(req.query.q || '').trim().slice(0, 40);
-  const offset = Math.max(0, Math.min(80, Math.floor(Number(req.query.offset) || 0)));
+  const offset = Number(req.query.offset || 0);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return res.status(400).json({ error: 'Page invalide.' });
   if (!species && !sex && !sterilise && q.length < 2) {
     res.status(400).json({ error: 'Indiquez une espèce, un sexe, ou au moins deux lettres.' });
     return;
@@ -168,14 +169,14 @@ export async function directoryPets(req, res) {
            join users u on u.id = p.user_id
            left join owners o on o.user_id = u.id
           where ${where.join(' and ')}
-          order by p.updated_at desc
-          limit 20 offset $${params.length}`,
+          order by p.updated_at desc, p.id desc
+          limit 21 offset $${params.length}`,
         params)).rows;
       const visible = [];
-      for (const row of rows) {
+      for (const row of rows.slice(0, 20)) {
         if (await ownerVisible(row.user_id, enforced)) visible.push(card(row));
       }
-      return { pets: visible, next: rows.length === 20 ? offset + 20 : null };
+      return { pets: visible, next: rows.length > 20 ? offset + 20 : null };
     });
     res.status(200).json(pets);
   } catch (err) {

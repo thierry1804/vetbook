@@ -278,6 +278,22 @@
           <p class="identity-qr__lead">Coordonnées et infos utiles de votre compagnon.</p>
           <canvas id="qr-canvas" aria-label="QR code de la médaille d’identité" hidden></canvas>
           <p class="stitch-note identity-qr__note">Un scan ouvre la fiche publique et le bouton pour vous appeler.</p>
+          <button type="button" class="care-action care-action--primary" data-identity-create hidden>Créer une médaille</button>
+          <fieldset class="identity-qr__settings" aria-label="Informations visibles sur la médaille">
+            <legend>Informations visibles après le scan</legend>
+            <label><input type="checkbox" data-identity-setting="show_owner_name"> Nom du propriétaire</label>
+            <label><input type="checkbox" data-identity-setting="show_photo"> Photo</label>
+            <label><input type="checkbox" data-identity-setting="show_phone"> Téléphone</label>
+            <label><input type="checkbox" data-identity-setting="show_chip"> Numéro de puce</label>
+            <label><input type="checkbox" data-identity-setting="show_species"> Espèce</label>
+            <label><input type="checkbox" data-identity-setting="show_race"> Race</label>
+            <label><input type="checkbox" data-identity-setting="show_sex"> Sexe</label>
+            <label><input type="checkbox" data-identity-setting="show_dob"> Date de naissance</label>
+            <label><input type="checkbox" data-identity-setting="show_color"> Couleur</label>
+            <label><input type="checkbox" data-identity-setting="show_sterilise"> Stérilisation</label>
+            <label><input type="checkbox" data-identity-setting="show_weight"> Poids</label>
+          </fieldset>
+          <div class="identity-qr__actions"><button type="button" class="care-action" data-identity-save>Enregistrer la visibilité</button><button type="button" class="care-action" data-identity-rotate>Créer un nouveau lien</button><button type="button" class="care-action" data-identity-revoke>Révoquer le lien</button></div>
           <button type="button" class="care-action care-action--primary care-action--icon" data-stitch-action="download-qr" aria-label="Télécharger le QR code" title="Télécharger le QR code"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
         </article>
         <article class="stitch-card" id="identity-owner"></article>

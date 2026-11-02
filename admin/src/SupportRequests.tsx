@@ -10,6 +10,7 @@ type Request = {
   id: string; email: string; subject: string; description: string; status: string;
   created_at: string; updated_at: string; account_linked: boolean; matching_account: boolean; replies: Reply[];
 };
+type PetReport = { id: string; pet_name: string; reporter_email: string; reported_email: string; reason: string; status: string; created_at: string; messages: { body: string; author: string; created_at: string }[] };
 const states = [{ value: 'nouveau', label: 'Nouveau' }, { value: 'en_cours', label: 'En cours' }, { value: 'traite', label: 'Close' }];
 const labelOf = (status: string) => states.find((state) => state.value === status)?.label || status;
 const when = (value: string) => new Date(value).toLocaleString('fr-FR');
@@ -28,6 +29,13 @@ export function SupportRequests() {
   const [sending, setSending] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
   const query = useQuery({ queryKey: ['support-requests'], queryFn: async () => (await api<{ rows: Request[] }>('/support-requests')).json, refetchInterval: 30000 });
+  const reports = useQuery({ queryKey: ['pet-reports'], queryFn: async () => (await api<{ rows: PetReport[] }>('/pet-reports')).json, refetchInterval: 30000 });
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const report = reports.data?.rows.find((row) => row.id === selectedReport);
+  async function reviewReport(row: PetReport) {
+    try { await api(`/pet-reports/${row.id}`, { method: 'PATCH', body: { status: row.status === 'nouveau' ? 'traite' : 'nouveau' } }); await cache.invalidateQueries({ queryKey: ['pet-reports'] }); message.success('Signalement mis à jour.'); }
+    catch (error) { message.error(error instanceof Error ? error.message : 'Modification impossible.'); }
+  }
   const rows = query.data?.rows || [];
   const selected = rows.find((row) => row.id === selectedId) || null;
   const canReply = !!selected && (selected.account_linked || selected.matching_account);
@@ -56,6 +64,19 @@ export function SupportRequests() {
 
   return <div style={{ padding: 24 }}>
     <PageHeader title="Demandes de support" subtitle="Ouvrez une demande pour lire l’échange et répondre dans le compte." />
+    <Typography.Title level={4}>Signalements de conversations</Typography.Title>
+    <Table<PetReport> rowKey="id" loading={reports.isLoading} dataSource={reports.data?.rows || []} pagination={{ pageSize: 10, showSizeChanger: false }} scroll={{ x: 760 }} onRow={(row) => ({ onClick: () => setSelectedReport(row.id), style: { cursor: 'pointer' } })} columns={[
+      { title: 'Reçu le', dataIndex: 'created_at', width: 170, render: when },
+      { title: 'Animal', dataIndex: 'pet_name' },
+      { title: 'Signalé par', dataIndex: 'reporter_email' },
+      { title: 'Compte signalé', dataIndex: 'reported_email' },
+      { title: 'État', dataIndex: 'status', width: 100, render: labelOf },
+      { title: '', key: 'open', width: 100, render: (_: unknown, row: PetReport) => <Button onClick={(event) => { event.stopPropagation(); setSelectedReport(row.id); }}>Examiner</Button> },
+    ]} />
+    <Drawer title={report ? `Signalement · ${report.pet_name}` : 'Signalement'} open={!!report} onClose={() => setSelectedReport(null)} width="min(640px, 100vw)" extra={report ? <Button onClick={() => reviewReport(report)}>{report.status === 'nouveau' ? 'Marquer traité' : 'Rouvrir'}</Button> : null}>
+      {report ? <div style={{ display: 'grid', gap: 12 }}><Typography.Text>{report.reporter_email} signale {report.reported_email}</Typography.Text><Message who="Motif" at={when(report.created_at)} body={report.reason} /><Typography.Title level={5}>Derniers messages</Typography.Title>{report.messages.map((m, index) => <Message key={index} who={m.author === 'reporter' ? 'Auteur du signalement' : 'Compte signalé'} at={when(m.created_at)} body={m.body} />)}</div> : null}
+    </Drawer>
+    <Typography.Title level={4}>Autres demandes</Typography.Title>
     <Table<Request>
       rowKey="id"
       loading={query.isLoading}
