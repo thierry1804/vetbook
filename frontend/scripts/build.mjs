@@ -49,9 +49,11 @@ async function main() {
   await cp(path.join(root, 'vendor'), path.join(dist, 'vendor'), { recursive: true });
 
   // Pages autonomes (carnet partagé, mentions légales) : feuille de styles copiée telle quelle, script minifié.
-  for (const page of ['share.html', 'legal.html', 'pages.css']) await cp(path.join(root, page), path.join(dist, page));
+  for (const page of ['share.html', 'identite.html', 'legal.html', 'pages.css']) await cp(path.join(root, page), path.join(dist, page));
   const shareJs = await transform(await readFile(path.join(root, 'share.js'), 'utf8'), { loader: 'js', minify: true, target: 'es2019' });
   await writeFile(path.join(dist, 'share.js'), shareJs.code);
+  const identiteJs = await transform(await readFile(path.join(root, 'identite.js'), 'utf8'), { loader: 'js', minify: true, target: 'es2019' });
+  await writeFile(path.join(dist, 'identite.js'), identiteJs.code);
 
   const configPath = path.join(root, 'config.js');
   const hasConfig = await access(configPath).then(() => true).catch(() => false);

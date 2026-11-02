@@ -492,3 +492,42 @@ alter table share_links add column if not exists include_photos boolean not null
 -- le pedigree reprend alors automatiquement les grands-parents de l'animal lié.
 alter table pedigree add column if not exists sire_pet_local_id bigint;
 alter table pedigree add column if not exists dam_pet_local_id bigint;
+
+-- Recherche entre abonnés : éteint par défaut, jamais recopié par la synchro.
+alter table pets add column if not exists discoverable boolean not null default false;
+alter table pets add column if not exists avatar_server_id uuid;
+create index if not exists pets_discoverable_idx on pets (species, sex) where discoverable;
+
+-- Une conversation par animal et par personne. La clôture fige le fil.
+create table if not exists pet_threads (
+  id uuid primary key default gen_random_uuid(),
+  pet_id uuid not null references pets(id) on delete cascade,
+  owner_id uuid not null references users(id) on delete cascade,
+  requester_id uuid not null references users(id) on delete cascade,
+  closed_at timestamptz,
+  closed_by uuid references users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  last_message_at timestamptz,
+  unique (pet_id, requester_id),
+  check (owner_id <> requester_id)
+);
+create index if not exists pet_threads_owner_idx on pet_threads (owner_id, last_message_at desc);
+create index if not exists pet_threads_requester_idx on pet_threads (requester_id, last_message_at desc);
+
+create table if not exists pet_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references pet_threads(id) on delete cascade,
+  author_id uuid not null references users(id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+create index if not exists pet_messages_thread_idx on pet_messages (thread_id, created_at);
+
+-- Médaille : un jeton stable par animal. Il est conservé en clair pour que
+-- la même médaille puisse être réimprimée ; sa longueur le rend non devinable.
+create table if not exists identity_tags (
+  pet_id uuid primary key references pets(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  token text not null unique,
+  created_at timestamptz not null default now()
+);

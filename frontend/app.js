@@ -1468,6 +1468,9 @@
     } else if (route.view === 'directory') {
       showDirectory();
       return;
+    } else if (route.view === 'pets') {
+      if (route.thread) showPetThread(route.thread); else showPets();
+      return;
     } else if (route.view === 'community') {
       showCommunity(route.panel);
       return;
@@ -1586,6 +1589,7 @@
   }
 
   async function putPhotoBlob(photoId, blob, mimeType) {
+    var uploadedId = null;
     var db = await openPhotoDb();
     await new Promise(function (resolve, reject) {
       var tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
@@ -1603,6 +1607,7 @@
           if (petLocalId != null) {
             var uploaded = await window.cloudSync.uploadPhoto(petLocalId, photoId, blob, {});
             if (uploaded && uploaded.id) {
+              uploadedId = uploaded.id;
               var wrap = state.animals.find(function (a) { return a.id === petLocalId; });
               if (wrap && Array.isArray(wrap.photos)) {
                 var photoMeta = wrap.photos.find(function (p) { return p && p.id === photoId; });
@@ -1615,6 +1620,7 @@
     } catch (err) {
       console.warn('App\'lika: upload MinIO différé', err);
     }
+    return uploadedId;
   }
 
   async function getPhotoRecord(photoId) {
@@ -1653,19 +1659,34 @@
     return null;
   }
 
+  function portraitServerUrl(serverId) {
+    if (!serverId || !window.cloudSync || !window.cloudSync.getPhotoUrl) return '';
+    return window.cloudSync.getPhotoUrl(serverId);
+  }
+
   async function resolvePortraitUrl(wrap) {
     var animal = (wrap && wrap.animal) || {};
     var key = portraitKey(animal.avatar);
-    if (key == null && typeof animal.avatar === 'string' && animal.avatar) return animal.avatar;
+    if (key == null && typeof animal.avatar === 'string' && animal.avatar.indexOf('http') === 0) return animal.avatar;
     if (key != null) {
       var own = await getPhotoObjectUrl(key);
       if (own) return own;
     }
+    // Même portrait sur tous les appareils : l'identifiant serveur, puis la photo qui porte la même clé.
+    var shared = portraitServerUrl(animal.avatarServerId);
+    if (shared) return shared;
     var photos = (wrap && wrap.photos) || [];
+    if (key != null) {
+      for (var j = 0; j < photos.length; j++) {
+        var match = photos[j];
+        if (!match || Number(match.id) !== key) continue;
+        if (match.serverId) return portraitServerUrl(match.serverId) || await getPhotoObjectUrl(match.id) || '';
+      }
+    }
     for (var i = photos.length - 1; i >= 0; i--) {
       var photo = photos[i];
       if (!photo) continue;
-      if (photo.serverId && window.cloudSync && window.cloudSync.getPhotoUrl) return window.cloudSync.getPhotoUrl(photo.serverId);
+      if (photo.serverId) return portraitServerUrl(photo.serverId);
       if (photo.id != null) {
         var url = await getPhotoObjectUrl(photo.id);
         if (url) return url;
@@ -1689,6 +1710,111 @@
       img.onerror = function () { if (el.isConnected) el.innerHTML = ico(species === 'Féline' ? 'cat' : 'paw', iconSize); };
       img.src = url;
       el.replaceChildren(img);
+    }).catch(function () {});
+  }
+
+  var sharedPetStamp = 0;
+
+  function publishPortrait(localId, serverId) {
+    if (!serverId || !window.cloudSync || !window.cloudSync.api) return Promise.resolve(false);
+    return window.cloudSync.api('/api/me/pets/' + localId + '/portrait', {
+      method: 'POST',
+      body: JSON.stringify({ serverId: serverId })
+    }).then(function () { return true; }).catch(function () { return false; });
+  }
+
+  function repaintPortraits() {
+    document.querySelectorAll('[data-portrait]').forEach(function (el) {
+      var id = Number(el.getAttribute('data-portrait'));
+      var wrap = state.animals.find(function (a) { return a.id === id; });
+      if (wrap) paintPortrait(el, wrap, 28);
+    });
+    var current = getCurrent();
+    ['dossier-avatar', 'hero-avatar', 'edit-avatar-preview'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && current) paintPortrait(el, current, 28);
+    });
+  }
+
+  async function ensureServerPortraits() {
+    if (!window.cloudSync || !window.cloudSync.uploadPhoto || !window.cloudSync.getSession) return;
+    var session = await window.cloudSync.getSession();
+    if (!session || !session.user) return;
+    var changed = false;
+    var pushed = false;
+    for (var i = 0; i < state.animals.length; i++) {
+      var wrap = state.animals[i];
+      var animal = wrap && wrap.animal;
+      var key = animal && portraitKey(animal.avatar);
+      if (!animal || key == null || animal.avatarServerId) continue;
+      var rec = await getPhotoRecord(key).catch(function () { return null; });
+      if (!rec || !rec.blob) continue;
+      var uploaded = await window.cloudSync.uploadPhoto(wrap.id, key, rec.blob, {}).catch(function () { return null; });
+      if ((!uploaded || !uploaded.id) && !pushed && window.cloudSync.pushAllToCloud) {
+        pushed = true;
+        await window.cloudSync.pushAllToCloud().catch(function () {});
+        uploaded = await window.cloudSync.uploadPhoto(wrap.id, key, rec.blob, {}).catch(function () { return null; });
+      }
+      if (!uploaded || !uploaded.id) continue;
+      var published = await publishPortrait(wrap.id, uploaded.id);
+      if (!published) continue;
+      animal.avatarServerId = uploaded.id;
+      changed = true;
+    }
+    if (changed) saveState();
+  }
+
+  function syncSharedPetState() {
+    if (!window.cloudSync || !window.cloudSync.api || !window.cloudSync.getSession) return Promise.resolve();
+    var stamp = sharedPetStamp;
+    return window.cloudSync.getSession().then(function (session) {
+      if (!session || !session.user) return null;
+      return ensureServerPortraits();
+    }).then(function (ready) {
+      if (ready === null || stamp !== sharedPetStamp) return null;
+      return window.cloudSync.api('/api/sync/pull', { method: 'GET' });
+    }).then(function (res) {
+      if (!res || !res.found || !res.state || stamp !== sharedPetStamp) return;
+      var remoteAnimals = res.state.animals || [];
+      var changed = false;
+      var added = false;
+      var known = {};
+      state.animals.forEach(function (animal) {
+        var id = Number(animal && animal.id);
+        if (Number.isFinite(id)) known[id] = true;
+      });
+      remoteAnimals.forEach(function (wrap) {
+        var id = Number(wrap && wrap.id);
+        if (!Number.isFinite(id) || known[id]) return;
+        state.animals.push(wrap);
+        known[id] = true;
+        if (id >= state.nextId) state.nextId = id + 1;
+        added = true;
+        changed = true;
+      });
+      if (res.state.nextId > state.nextId) state.nextId = res.state.nextId;
+      remoteAnimals.forEach(function (row) {
+        var wrap = state.animals.find(function (animal) { return Number(animal && animal.id) === Number(row && row.id); });
+        if (!wrap || !wrap.animal || !row.animal) return;
+        var visible = !!row.animal.discoverable;
+        if (!!wrap.animal.discoverable !== visible) { wrap.animal.discoverable = visible; changed = true; }
+        var serverPortrait = row.animal.avatarServerId || '';
+        if (serverPortrait && (wrap.animal.avatarServerId || '') !== serverPortrait) {
+          wrap.animal.avatarServerId = serverPortrait;
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      saveState();
+      var box = document.getElementById('pet-discoverable');
+      var current = getCurrent();
+      if (box && current) box.checked = !!current.animal.discoverable;
+      if (added) {
+        renderAnimalSelect();
+        renderDetailPetsRow();
+        if (state.viewMode === 'home') renderHome();
+        else refreshAll();
+      } else repaintPortraits();
     }).catch(function () {});
   }
 
@@ -2545,7 +2671,7 @@
 
   // Serene Pet Care shell — shares the existing routes and persisted records.
   var careLinks = [
-    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital'], ['assistant', 'Assistant IA', 'sparkle']]],
+    ['Vue d’ensemble', [['home', 'Tableau de bord', 'clipboard'], ['calendar', 'Agenda & rappels', 'calendar'], ['directory', 'Annuaire & urgences', 'hospital'], ['animals', 'Recherche d’animaux', 'paw'], ['assistant', 'Assistant IA', 'sparkle']]],
     ['Carnet de santé', [['historique', 'Frise du carnet', 'clipboard'], ['profil', 'Fiche & passeport', 'paw'], ['vaccins', 'Vaccins', 'vaccine'], ['medications', 'Traitements', 'pill'], ['deworming', 'Déparasitage', 'pill'], ['hygiene', 'Hygiène & soins', 'droplet'], ['consultations', 'Consultations & budget', 'stethoscope'], ['photos', 'Album photos', 'camera']]],
     ['Suivi quotidien', [['poids', 'Courbe de poids', 'scale'], ['nutrition', 'Nutrition & repas', 'utensils'], ['activites', 'Activités & balades', 'activity'], ['chaleurs', 'Chaleurs & cycles', 'heart'], ['reproduction', 'Reproduction', 'heart'], ['suivi', 'Journal quotidien', 'fileText'], ['checkup', 'Check-up', 'check']]],
     ['À vos côtés', [['events', 'Événements', 'calendar'], ['tips', 'Astuces & conseils', 'lightbulb'], ['help', 'Centre d’aide', 'info'], ['account', 'Compte & paramètres', 'user']]]
@@ -2890,6 +3016,8 @@
       stitchInfo('Puce électronique', a.chip, 'qr') + stitchInfo('Registre / pedigree', [pedigree.registry, pedigree.registryNumber].filter(Boolean).join(' · '), 'fileText') +
       stitchInfo('Date de naissance', a.dob ? fmtDate(a.dob) : '', 'calendar') + stitchInfo('Stérilisation', a.sterilise, 'heart') +
       stitchInfo('Clinique référente', o.clinic, 'hospital') +
+      '<label class="pet-visible" data-feature="pet_directory"><input type="checkbox" id="pet-discoverable"' + (a.discoverable ? ' checked' : '') + '><span>Visible dans la recherche</span></label>' +
+      '<p class="stitch-note">Les autres abonnés voient le nom, la race, l’âge, la photo et votre prénom.</p>' +
       '<div class="identity-passport__actions">' +
         '<button type="button" class="care-action" data-stitch-action="editAnimal">Compléter sa fiche</button>' +
         '<button type="button" class="care-action care-action--icon" data-stitch-action="editPedigree" aria-label="Modifier le pedigree" title="Modifier le pedigree">' + ico('edit', 16) + '</button>' +
@@ -2899,6 +3027,26 @@
             ico(breedLink.isPdf ? 'download' : 'fileText', 16) +
             '<span>' + (breedLink.isPdf ? 'Standard de la race (PDF)' : 'Standard de la race') + '</span></a>'
         : '');
+    var discoverBox = document.getElementById('pet-discoverable');
+    if (discoverBox) discoverBox.addEventListener('change', function () {
+      sharedPetStamp++;
+      var want = discoverBox.checked;
+      var current = getCurrent();
+      if (!current || !window.cloudSync || !window.cloudSync.api) {
+        discoverBox.checked = !want;
+        showToast('Connectez-vous et sauvegardez le carnet pour rendre cet animal visible.', 'error');
+        return;
+      }
+      discoverBox.disabled = true;
+      window.cloudSync.api('/api/me/pets/' + current.id + '/discoverable', { method: 'POST', body: JSON.stringify({ enabled: want }) }).then(function () {
+        current.animal.discoverable = want;
+        saveState();
+        showToast(want ? 'Animal visible dans la recherche.' : 'Animal retiré de la recherche.', 'success');
+      }).catch(function (err) {
+        discoverBox.checked = !want;
+        showToast((err && err.message) || 'Modification impossible.', 'error');
+      }).finally(function () { discoverBox.disabled = false; });
+    });
     document.getElementById('identity-owner').innerHTML =
       '<div class="identity-owner__head"><h2>Fiche propriétaire</h2>' +
       '<button type="button" class="care-action care-action--icon" data-stitch-action="editOwner" aria-label="Modifier mes coordonnées" title="Modifier mes coordonnées">' + ico('edit', 16) + '</button></div>' +
@@ -3259,7 +3407,8 @@
   }
 
   function hideAppViews() {
-    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-notifications', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire', 'view-assistant'].forEach(function (id) {
+    stopPetPoll();
+    ['view-home', 'view-detail', 'view-community', 'view-user-profile', 'view-notifications', 'view-favorites', 'view-help', 'view-agenda', 'view-annuaire', 'view-assistant', 'view-pets'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -3341,6 +3490,202 @@
       sub.textContent = n + ' praticien' + (n > 1 ? 's' : '') + ' · urgences';
     }
     saveRoute({ view: 'directory' });
+  }
+
+  var petFind = { mode: 'search', species: '', sex: '', sterilise: '', q: '', pets: [], next: null, card: null, threads: [], thread: null, messages: [], draft: '' };
+  var petPoll = null;
+  function stopPetPoll() { if (petPoll) { clearInterval(petPoll); petPoll = null; } }
+  function petApi(path, options) {
+    if (!window.cloudSync || !window.cloudSync.api || !window.cloudSync.getSession) return Promise.reject(new Error('Connectez-vous pour utiliser la recherche.'));
+    return window.cloudSync.getSession().then(function (session) {
+      if (!session || !session.user) throw new Error('Connectez-vous pour utiliser la recherche.');
+      return window.cloudSync.api(path, options);
+    });
+  }
+  function petSpeciesLabel(code) { return { Canine: 'Chien', Féline: 'Chat', Autre: 'Autre' }[code] || code || ''; }
+  function petPhoto(id, name) {
+    return '<img src="/api/directory/pets/' + encodeURIComponent(id) + '/photo" alt="' + escapeHtml((name || '?').charAt(0).toUpperCase()) + '">';
+  }
+  function bindPetPhotos(root) {
+    if (!root) return;
+    root.querySelectorAll('img').forEach(function (img) {
+      img.addEventListener('error', function () {
+        var span = document.createElement('span');
+        span.className = 'pet-hit__ph';
+        span.textContent = img.alt || '?';
+        img.replaceWith(span);
+      });
+    });
+  }
+  function renderPetFind() {
+    var title = document.getElementById('pets-title');
+    var sub = document.getElementById('pets-sub');
+    var body = document.getElementById('pets-body');
+    var swap = document.getElementById('pets-switch');
+    if (!body) return;
+    stopPetPoll();
+    if (swap) swap.textContent = petFind.mode === 'threads' || petFind.mode === 'thread' ? 'Recherche' : 'Messages';
+    if (petFind.mode === 'threads') {
+      if (title) title.textContent = 'Messages';
+      if (sub) sub.textContent = 'Conversations avec d’autres propriétaires.';
+      body.innerHTML = petFind.threads.length ? '<div class="pet-find">' + petFind.threads.map(function (t) {
+        return '<button type="button" class="pet-thread-row" data-pet-thread="' + escapeHtml(t.id) + '"><span><strong>' + escapeHtml(t.petName || 'Animal') + '</strong> · ' + escapeHtml(t.otherName || 'Propriétaire') + (t.closed ? ' · close' : '') + '<br><span class="table-muted">' + escapeHtml(t.preview || 'Aucun message') + '</span></span></button>';
+      }).join('') + '</div>' : '<p class="global-view__sub">Aucune conversation pour le moment.</p>';
+      return;
+    }
+    if (petFind.mode === 'card' && petFind.card) {
+      var c = petFind.card;
+      if (title) title.textContent = c.name || 'Animal';
+      if (sub) sub.textContent = [petSpeciesLabel(c.species), c.race, c.sex, c.age].filter(Boolean).join(' · ');
+      body.innerHTML = '<div class="pet-find"><button type="button" class="care-action" data-pet-back>Retour</button><article class="pet-hit">' + petPhoto(c.id, c.name) + '<span><strong>' + escapeHtml(c.name || 'Animal') + '</strong><br>' + escapeHtml([c.color, c.sterilise === 'Oui' ? 'Stérilisé' : ''].filter(Boolean).join(' · ')) + (c.ownerName ? '<br>Propriétaire : ' + escapeHtml(c.ownerName) : '') + '</span></article><button type="button" class="care-action care-action--primary" data-pet-write="' + escapeHtml(c.id) + '" data-feature="pet_messages">Écrire au propriétaire</button></div>';
+      bindPetPhotos(body);
+      return;
+    }
+    if (petFind.mode === 'thread' && petFind.thread) {
+      var t = petFind.thread;
+      if (title) title.textContent = t.petName || 'Conversation';
+      if (sub) sub.textContent = (t.otherName || 'Propriétaire') + (t.closed ? ' · conversation close' : '');
+      var canWrite = hasFeature('pet_messages') && !t.closed;
+      body.innerHTML = '<div class="pet-thread"><button type="button" class="care-action" data-pet-messages>Messages</button><div class="pet-thread__log">' + (petFind.messages.length ? petFind.messages.map(function (m) {
+        return '<div class="pet-bubble ' + (m.mine ? 'is-mine' : 'is-theirs') + '">' + escapeHtml(m.body) + '</div>';
+      }).join('') : '<p class="global-view__sub">Écrivez le premier message.</p>') + '</div>' +
+        (canWrite ? '<form class="pet-thread__form" data-pet-send><input id="pet-draft" maxlength="2000" placeholder="Votre message" value="' + escapeHtml(petFind.draft || '') + '"><button type="submit" class="care-action care-action--primary">Envoyer</button></form><button type="button" class="care-action" data-pet-close="' + escapeHtml(t.id) + '">Clore la conversation</button>' : '<p class="stitch-note">' + (t.closed ? 'Cette conversation est close. Les messages restent lisibles.' : 'L’envoi de messages est réservé aux formules payantes.') + '</p>') + '</div>';
+      var log = body.querySelector('.pet-thread__log');
+      if (log) log.scrollTop = log.scrollHeight;
+      petPoll = setInterval(function () { if (petFind.mode === 'thread' && petFind.thread) loadPetThread(petFind.thread.id, true); }, 8000);
+      return;
+    }
+    if (title) title.textContent = 'Recherche d’animaux';
+    if (sub) sub.textContent = 'Nom, race, âge et photo. Le téléphone et le carnet restent privés.';
+    body.innerHTML = '<form class="pet-find" data-pet-search><div class="pet-find__bar"><select name="species" aria-label="Espèce"><option value="">Espèce</option><option value="Canine"' + (petFind.species === 'Canine' ? ' selected' : '') + '>Chien</option><option value="Féline"' + (petFind.species === 'Féline' ? ' selected' : '') + '>Chat</option><option value="Autre"' + (petFind.species === 'Autre' ? ' selected' : '') + '>Autre</option></select><select name="sex" aria-label="Sexe"><option value="">Sexe</option><option' + (petFind.sex === 'Mâle' ? ' selected' : '') + '>Mâle</option><option' + (petFind.sex === 'Femelle' ? ' selected' : '') + '>Femelle</option></select><select name="sterilise" aria-label="Stérilisation"><option value="">Stérilisation</option><option' + (petFind.sterilise === 'Oui' ? ' selected' : '') + '>Oui</option><option' + (petFind.sterilise === 'Non' ? ' selected' : '') + '>Non</option></select><input name="q" type="search" placeholder="Nom ou race" value="' + escapeHtml(petFind.q) + '"><button type="submit" class="care-action care-action--primary">Chercher</button></div></form><div class="pet-find" id="pet-results">' + (petFind.pets.length ? petFind.pets.map(function (p) {
+      return '<button type="button" class="pet-hit" data-pet-open="' + escapeHtml(p.id) + '">' + petPhoto(p.id, p.name) + '<span><strong>' + escapeHtml(p.name || 'Animal') + '</strong><br>' + escapeHtml([petSpeciesLabel(p.species), p.race, p.sex, p.age].filter(Boolean).join(' · ')) + (p.ownerName ? '<br>' + escapeHtml(p.ownerName) : '') + '</span></button>';
+    }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<p class="global-view__sub">Lancez une recherche pour voir les animaux visibles.</p>') + '</div>';
+    bindPetPhotos(body);
+  }
+  function loadPetSearch(offset) {
+    var params = new URLSearchParams();
+    if (petFind.species) params.set('species', petFind.species);
+    if (petFind.sex) params.set('sex', petFind.sex);
+    if (petFind.sterilise) params.set('sterilise', petFind.sterilise);
+    if (petFind.q) params.set('q', petFind.q);
+    if (offset) params.set('offset', String(offset));
+    return petApi('/api/directory/pets?' + params.toString()).then(function (res) {
+      if (state.viewMode !== 'pets') return;
+      petFind.pets = offset ? petFind.pets.concat(res.pets || []) : (res.pets || []);
+      petFind.next = res.next;
+      petFind.mode = 'search';
+      renderPetFind();
+    });
+  }
+  function loadPetThread(id, silent) {
+    return petApi('/api/pet-threads/' + encodeURIComponent(id)).then(function (res) {
+      if (state.viewMode !== 'pets') return;
+      var prev = petFind.messages[petFind.messages.length - 1];
+      var next = (res.messages || [])[res.messages.length - 1];
+      petFind.thread = res.thread;
+      petFind.messages = res.messages || [];
+      petFind.mode = 'thread';
+      if (silent && prev && next && prev.id === next.id) return;
+      renderPetFind();
+    });
+  }
+  function showPets(opts) {
+    opts = opts || {};
+    if (opts.thread) { showPetThread(opts.thread); return; }
+    if (!hasFeature('pet_directory')) { showFeatureLocked('pet_directory'); return; }
+    state.viewMode = 'pets';
+    hideAppViews();
+    var view = document.getElementById('view-pets');
+    if (view) view.hidden = false;
+    document.getElementById('fab-container').hidden = true;
+    document.getElementById('animal-select').hidden = true;
+    setBottomNavActive('animals');
+    bindPetFind();
+    if (!opts.keep) petFind.mode = 'search';
+    renderPetFind();
+    saveRoute({ view: 'pets' });
+  }
+  function showPetThread(id) {
+    state.viewMode = 'pets';
+    hideAppViews();
+    var view = document.getElementById('view-pets');
+    if (view) view.hidden = false;
+    document.getElementById('fab-container').hidden = true;
+    document.getElementById('animal-select').hidden = true;
+    setBottomNavActive('animals');
+    bindPetFind();
+    petFind.mode = 'thread';
+    petFind.draft = '';
+    saveRoute({ view: 'pets', thread: id });
+    loadPetThread(id, false).catch(function (err) {
+      petFind.mode = 'threads';
+      renderPetFind();
+      showToast((err && err.message) || 'Conversation introuvable.', 'error');
+    });
+  }
+  function bindPetFind() {
+    var view = document.getElementById('view-pets');
+    if (!view || view.dataset.bound) return;
+    view.dataset.bound = '1';
+    view.addEventListener('click', function (e) {
+      var open = e.target.closest('[data-pet-open]');
+      var write = e.target.closest('[data-pet-write]');
+      var back = e.target.closest('[data-pet-back]');
+      var messages = e.target.closest('[data-pet-messages]');
+      var thread = e.target.closest('[data-pet-thread]');
+      var more = e.target.closest('[data-pet-more]');
+      var close = e.target.closest('[data-pet-close]');
+      var swap = e.target.closest('#pets-switch');
+      if (swap) {
+        if (petFind.mode === 'threads' || petFind.mode === 'thread') showPets();
+        else petApi('/api/pet-threads').then(function (res) { petFind.threads = res.threads || []; petFind.mode = 'threads'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
+        return;
+      }
+      if (back) { petFind.mode = 'search'; renderPetFind(); return; }
+      if (messages) {
+        petApi('/api/pet-threads').then(function (res) { petFind.threads = res.threads || []; petFind.mode = 'threads'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
+        return;
+      }
+      if (more) { loadPetSearch(Number(more.getAttribute('data-pet-more'))).catch(function (err) { showToast((err && err.message) || 'Recherche impossible.', 'error'); }); return; }
+      if (open) {
+        var id = open.getAttribute('data-pet-open');
+        petApi('/api/directory/pets/' + encodeURIComponent(id)).then(function (card) { petFind.card = card; petFind.mode = 'card'; renderPetFind(); }).catch(function (err) { showToast((err && err.message) || 'Fiche indisponible.', 'error'); });
+        return;
+      }
+      if (thread) { showPetThread(thread.getAttribute('data-pet-thread')); return; }
+      if (write) {
+        if (!hasFeature('pet_messages')) { showFeatureLocked('pet_messages'); return; }
+        petApi('/api/pet-threads', { method: 'POST', body: JSON.stringify({ petId: write.getAttribute('data-pet-write') }) }).then(function (res) { showPetThread(res.id); }).catch(function (err) { showToast((err && err.message) || 'Conversation impossible.', 'error'); });
+        return;
+      }
+      if (close) {
+        if (close.dataset.confirm !== '1') { close.dataset.confirm = '1'; close.textContent = 'Confirmer la clôture'; return; }
+        petApi('/api/pet-threads/' + encodeURIComponent(close.getAttribute('data-pet-close')) + '/close', { method: 'POST', body: '{}' }).then(function () { return loadPetThread(close.getAttribute('data-pet-close'), false); }).catch(function (err) { showToast((err && err.message) || 'Clôture impossible.', 'error'); });
+      }
+    });
+    view.addEventListener('submit', function (e) {
+      var search = e.target.closest('[data-pet-search]');
+      var send = e.target.closest('[data-pet-send]');
+      if (search) {
+        e.preventDefault();
+        var data = new FormData(search);
+        petFind.species = String(data.get('species') || '');
+        petFind.sex = String(data.get('sex') || '');
+        petFind.sterilise = String(data.get('sterilise') || '');
+        petFind.q = String(data.get('q') || '').trim();
+        loadPetSearch(0).catch(function (err) { showToast((err && err.message) || 'Recherche impossible.', 'error'); });
+        return;
+      }
+      if (send && petFind.thread) {
+        e.preventDefault();
+        var input = document.getElementById('pet-draft');
+        var text = input ? input.value.trim() : '';
+        if (!text) return;
+        petFind.draft = '';
+        petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '/messages', { method: 'POST', body: JSON.stringify({ body: text }) }).then(function () { return loadPetThread(petFind.thread.id, false); }).catch(function (err) { petFind.draft = text; showToast((err && err.message) || 'Message non envoyé.', 'error'); });
+      }
+    });
+    view.addEventListener('input', function (e) { if (e.target && e.target.id === 'pet-draft') petFind.draft = e.target.value; });
   }
 
   function showDetail(opts) {
@@ -3603,58 +3948,92 @@
     draw();
   }
 
+  var identityUrlCache = {};
+
+  function paintQRCode(canvas, text) {
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    var modules = qr.getModuleCount();
+    var cellSize = Math.max(6, Math.floor(300 / modules));
+    var margin = cellSize * 4;
+    var totalSize = cellSize * modules + margin * 2;
+    canvas.width = totalSize;
+    canvas.height = totalSize;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, totalSize, totalSize);
+    ctx.fillStyle = '#000000';
+    for (var r = 0; r < modules; r++) {
+      for (var c = 0; c < modules; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
   function renderQRCode(data) {
     var section = document.getElementById('qr-section');
     var canvas = document.getElementById('qr-canvas');
     if (!section || !canvas || !data) { if (section) section.hidden = true; return; }
 
-    var a = data.animal;
-    var o = getOwner();
+    var a = data.animal || {};
+    var note = section.querySelector('.identity-qr__note');
+    var downloadBtn = section.querySelector('[data-stitch-action="download-qr"]');
     if (!a.name && !a.chip) { section.hidden = true; return; }
     if (typeof qrcode === 'undefined') { section.hidden = true; return; }
 
     section.hidden = false;
-    // Plain text with all animal info
-    var lines = [];
-    if (a.name) lines.push('Nom: ' + a.name);
-    if (a.species) lines.push('Espece: ' + a.species);
-    if (a.race) lines.push('Race: ' + a.race);
-    if (a.sex) lines.push('Sexe: ' + a.sex);
-    if (a.dob) lines.push('Naissance: ' + fmtDate(a.dob));
-    if (a.weight) lines.push('Poids: ' + uW(a.weight));
-    if (a.color) lines.push('Couleur: ' + a.color);
-    if (a.chip) lines.push('Puce: ' + a.chip);
-    if (a.sterilise && a.sterilise !== 'Non') lines.push('Sterilise: ' + a.sterilise);
-    if (a.notes) lines.push('Notes: ' + a.notes);
-    if (o && o.name) lines.push('Proprietaire: ' + o.name);
-    if (o && o.phone) lines.push('Tel: ' + o.phone);
-    var text = lines.join('\n');
+    var seq = (Number(section.dataset.seq) || 0) + 1;
+    section.dataset.seq = String(seq);
+    function current() { return section.dataset.seq === String(seq); }
+    function setNote(message) { if (note) note.textContent = message; }
+    function setReady(ready) { if (downloadBtn) downloadBtn.disabled = !ready; }
 
-    try {
-      var qr = qrcode(0, 'M');
-      qr.addData(text);
-      qr.make();
-      var modules = qr.getModuleCount();
-      var cellSize = Math.max(6, Math.floor(300 / modules));
-      var margin = cellSize * 4;
-      var totalSize = cellSize * modules + margin * 2;
-      canvas.width = totalSize;
-      canvas.height = totalSize;
-      var ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, totalSize, totalSize);
-      ctx.fillStyle = '#000000';
-      for (var r = 0; r < modules; r++) {
-        for (var c = 0; c < modules; c++) {
-          if (qr.isDark(r, c)) {
-            ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
-          }
-        }
+    var cached = identityUrlCache[data.id];
+    if (cached) {
+      try {
+        paintQRCode(canvas, cached);
+        canvas.hidden = false;
+        setReady(true);
+        setNote('Un scan ouvre la fiche publique de ' + (a.name || 'votre compagnon') + ' et le bouton pour vous appeler. Le lien reste le même si vous réimprimez la médaille.');
+      } catch (e) {
+        canvas.hidden = true;
+        setReady(false);
+        setNote('Le QR code ne peut pas être affiché.');
       }
-    } catch (e) {
-      console.warn('App\'lika: QR generation failed', e);
-      section.hidden = true;
+      return;
     }
+
+    canvas.hidden = true;
+    canvas.width = 0;
+    canvas.height = 0;
+    setReady(false);
+    setNote('Préparation de la médaille…');
+    if (!window.cloudSync || !window.cloudSync.api || !window.cloudSync.getSession) {
+      setNote('Connectez-vous et sauvegardez le carnet pour activer la médaille.');
+      return;
+    }
+    window.cloudSync.getSession().then(function (session) {
+      if (!current()) return null;
+      if (!session || !session.user) {
+        setNote('Connectez-vous et sauvegardez le carnet pour activer la médaille.');
+        return null;
+      }
+      return window.cloudSync.api('/api/identity', { method: 'POST', body: JSON.stringify({ petLocalId: data.id }) });
+    }).then(function (res) {
+      if (!current() || !res || !res.token) return;
+      var url = location.origin + '/identite.html?t=' + encodeURIComponent(res.token);
+      identityUrlCache[data.id] = url;
+      paintQRCode(canvas, url);
+      canvas.hidden = false;
+      setReady(true);
+      setNote('Un scan ouvre la fiche publique de ' + (a.name || 'votre compagnon') + ' et le bouton pour vous appeler. Le lien reste le même si vous réimprimez la médaille.');
+    }).catch(function (err) {
+      if (!current()) return;
+      canvas.hidden = true;
+      setReady(false);
+      setNote((err && err.message) || 'La médaille ne peut pas être préparée.');
+    });
   }
 
   // ——— Animal select ——————————————————————————————————————
@@ -4329,18 +4708,25 @@
     var submit = document.querySelector('#form-add-animal [type=submit]');
     submit.disabled = true;
     var photo = document.getElementById('aa-photo').files[0];
+    var prepared = null;
     if (photo) {
       try {
-        var blob = await resizeImageToBlob(photo, 320, 'image/jpeg', 0.85);
-        var photoKey = state.nextId++;
-        await putPhotoBlob(photoKey, blob, blob.type);
-        newAnimal.animal.avatar = photoKey;
+        prepared = await resizeImageToBlob(photo, 320, 'image/jpeg', 0.85);
       } catch (err) { uiState.addingAnimal = false; submit.disabled = false; showToast('La photo n’a pas pu être ajoutée. Choisissez une autre image.', 'error'); return; }
     }
     uiState.addingAnimal = false;
     submit.disabled = false;
     state.animals.push(newAnimal);
     state.currentAnimalId = newAnimal.id;
+    if (prepared) {
+      var photoKey = state.nextId++;
+      var serverId = await putPhotoBlob(photoKey, prepared, prepared.type);
+      newAnimal.animal.avatar = photoKey;
+      if (serverId) {
+        newAnimal.animal.avatarServerId = serverId;
+        publishPortrait(newAnimal.id, serverId);
+      }
+    }
     closeModal('addAnimal');
     document.getElementById('form-add-animal').reset();
     saveState();
@@ -4362,8 +4748,12 @@
 
     resizeImageToBlob(file, 320, 'image/jpeg', 0.85).then(function (blob) {
       return putPhotoBlob(inputKey, blob, blob.type);
-    }).then(function () {
+    }).then(function (serverId) {
       data.animal.avatar = inputKey;
+      if (serverId) {
+        data.animal.avatarServerId = serverId;
+        publishPortrait(data.id, serverId);
+      }
       var prev = document.getElementById('edit-avatar-preview');
       if (prev) {
         prev.innerHTML = '';
@@ -8730,6 +9120,7 @@
     acym_lookup: 'Recherche ACYM (LOMAD)', breed_standard: 'Standard de race', calendar_agenda: 'Agenda et rappels', push_reminders: 'Rappels push',
     email_reminders: 'Rappels par e-mail', sms_reminders: 'Rappels par SMS', monthly_summary: 'Résumé mensuel', vet_directory: 'Annuaire et urgences',
     community_events: 'Événements', community_tips: 'Astuces et conseils', vet_share: 'Lien de partage vétérinaire', qr_identity: 'Carte d\'identité et QR code',
+    pet_directory: 'Recherche d’animaux', pet_messages: 'Messages entre propriétaires',
     export_pdf_ics: 'Export PDF et .ics', cloud_sync: 'Synchronisation cloud', practice_portal: 'Portail vétérinaire', ai_assistant: 'Assistant IA'
   };
   var QUOTA_LABELS = {
@@ -8960,7 +9351,7 @@
     medications: 'medications', consultations: 'consultations', hygiene: 'hygiene_care', suivi: 'journal_notes', journal: 'journal_notes',
     poids: 'weight_tracking', nutrition: 'nutrition_plan', activites: 'activities', checkup: 'health_checkup', chaleurs: 'heat_cycles',
     reproduction: 'reproduction', alertes: 'calendar_agenda', calendrier: 'calendar_agenda', calendar: 'calendar_agenda',
-    annuaire: 'vet_directory', directory: 'vet_directory', events: 'community_events', tips: 'community_tips', assistant: 'ai_assistant'
+    annuaire: 'vet_directory', directory: 'vet_directory', animals: 'pet_directory', events: 'community_events', tips: 'community_tips', assistant: 'ai_assistant'
   };
   var FAB_FEATURES = { weight: 'weight_tracking', vaccin: 'health_records', deworming: 'health_records', consult: 'consultations', hygiene: 'hygiene_care', note: 'journal_notes', meal: 'nutrition_plan', activity: 'activities' };
   var ACTION_FEATURES = { editPedigree: 'pedigree_edit', 'export-ics': 'export_pdf_ics', 'download-qr': 'qr_identity' };
@@ -9075,7 +9466,9 @@
         state.currentAnimalId = def.id;
         saveState();
       }
-      restoreRoute();
+      var openedThread = new URLSearchParams(location.search).get('pets') === 'thread' ? new URLSearchParams(location.search).get('thread') : '';
+      if (openedThread && /^[0-9a-f-]{36}$/i.test(openedThread)) showPetThread(openedThread);
+      else restoreRoute();
     }
 
     registerSW();
@@ -9086,9 +9479,12 @@
     // Préremplit le profil propriétaire depuis le compte cloud connecté
     // (nom/email Google ou lien magique) s'il est vide localement.
     if (window.cloudSync && window.cloudSync.isConfigured()) {
-      window.cloudSync.getSession().then(fillOwnerFromCloudSession);
+      window.cloudSync.getSession().then(function (session) { fillOwnerFromCloudSession(session); syncSharedPetState(); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') syncSharedPetState();
+      });
       window.cloudSync.onAuthChange(function (event, session) {
-        if (event === 'SIGNED_IN') { fillOwnerFromCloudSession(session); refreshEntitlements(); }
+        if (event === 'SIGNED_IN') { fillOwnerFromCloudSession(session); refreshEntitlements(); syncSharedPetState(); }
         if (event === 'SIGNED_OUT') { try { localStorage.removeItem(ENT_KEY); } catch (e) { /* rien */ } var sb = document.getElementById('suspended-banner'); if (sb) sb.remove(); }
         // Ré-émet un beacon pour la vue courante : la vue elle-même n'a pas changé, mais l'identité si.
         lastTrackedRouteKey = null;
@@ -9513,7 +9909,9 @@
       else if (key === 'export-json') exportBackupJson().catch(function () { showToast('Export impossible.', 'error'); });
       else if (key === 'export-ics') exportUpcomingRemindersIcs().catch(function () { showToast('Export impossible.', 'error'); });
       else if (key === 'download-qr') {
-        var link = document.createElement('a'); link.download = 'applika-identite.png'; link.href = document.getElementById('qr-canvas').toDataURL('image/png'); link.click();
+        var qrCanvas = document.getElementById('qr-canvas');
+        if (!qrCanvas || !qrCanvas.width) { showToast('La médaille n’est pas encore prête.', 'error'); return; }
+        var link = document.createElement('a'); link.download = 'applika-identite.png'; link.href = qrCanvas.toDataURL('image/png'); link.click();
       } else openModal(key);
     });
     document.addEventListener('click', function (e) {
@@ -9523,6 +9921,7 @@
       if (route === 'home') showHome();
       else if (route === 'calendar') showAgenda();
       else if (route === 'directory') showDirectory();
+      else if (route === 'animals') showPets();
       else if (route === 'help') { showHelp(); markCareRoute(route); }
       else if (route === 'account') { showUserProfile(); markCareRoute(route); }
       else if (route === 'events' || route === 'tips') { showCommunity(route); markCareRoute(route); }
@@ -9857,6 +10256,7 @@
       openModal: openModal,
       showUserProfile: showUserProfile,
       showNotifications: showNotifications,
+      showPetThread: showPetThread,
       showHelp: showHelp,
       showOnboarding: showOnboarding,
       setTheme: setTheme,

@@ -52,6 +52,9 @@ td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pg-photos figcaption { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .pg-chart { width: 100%; height: auto; display: block; }
 .pg-foot { margin-top: 28px; color: var(--muted); font-size: 13px; text-align: center; }
+.pg-medal { max-width: 480px; margin: 0 auto; }
+.pg-call { display: flex; align-items: center; justify-content: center; min-height: 48px; margin-top: 12px; padding: 0 16px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+.pg-call:hover { filter: brightness(0.96); }
 .pg-error { max-width: 520px; margin: 12vh auto; padding: 28px; text-align: center; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
 .pg-doc h1 { font-size: clamp(28px, 5vw, 40px); letter-spacing: -.03em; line-height: 1.1; }
 .pg-doc h2 { margin-top: 36px; font-size: 22px; letter-spacing: -.02em; }

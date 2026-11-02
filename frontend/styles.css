@@ -8855,3 +8855,26 @@ html[data-contrast="high"] :focus-visible { outline-width: 3px; }
   .acc-plan { display: grid; grid-template-rows: subgrid; grid-row: span 6; }
   .acc-plan__title, .acc-plan__sub, .acc-plan__price, .acc-plan__savings, .acc-plan__actions, .acc-plan__benefits { align-self: start; }
 }
+
+.pet-visible { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-weight: 600; }
+.pet-find { display: grid; gap: 12px; }
+.pet-find__bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.pet-find__bar select, .pet-find__bar input, .pet-thread__form input {
+  min-height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px;
+  background: var(--card-bg); color: var(--text); font: inherit;
+}
+.pet-find__bar input, .pet-thread__form input { min-width: 180px; }
+.pet-hit, .pet-thread-row {
+  display: flex; gap: 12px; align-items: center; width: 100%; text-align: left;
+  padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card-bg); color: inherit; cursor: pointer;
+}
+.pet-hit img, .pet-hit__ph { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--warm-gray); display: grid; place-items: center; flex: none; font-weight: 700; }
+.pet-thread { display: grid; gap: 8px; max-width: 640px; }
+.pet-thread__log { display: grid; gap: 8px; }
+.pet-bubble { max-width: 80%; padding: 8px 12px; border-radius: 8px; white-space: pre-wrap; }
+.pet-bubble.is-mine { justify-self: end; background: var(--deep-green); color: #fff; }
+.pet-bubble.is-theirs { justify-self: start; background: var(--card-bg); border: 1px solid var(--border); }
+.pet-thread__form { display: flex; gap: 8px; }
+.pet-thread__form input { flex: 1; }
+.pets-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }

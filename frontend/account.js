@@ -790,7 +790,11 @@
       if (action === 'push' || action === 'push-off') { withBusy(button, function () { return configureInboxPush(action === 'push'); }).then(function () { inboxPushActive = action === 'push'; renderInboxSurfaces(); }).catch(function (e) { toast(e.message, 'error'); }); return; }
       var row = (inboxPopover && inboxPopover.contains(button) ? inboxPreviewRows : inbox.rows).filter(function (n) { return n.id === id; })[0];
       withBusy(button, function () { return cs().api('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(action === 'read-all' ? { before: inbox.checkedAt } : { id: id }) }).then(function () {
-        if (action === 'open' && row) { var target = accountTarget(row.href); if (target) { closeInbox(); acc.panel = target.panel; acc.supportFocus = target.request; acc.supportOpen = target.request; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        if (action === 'open' && row) {
+          var threadId = threadTarget(row.href);
+          if (threadId && ctx() && ctx().showPetThread) { closeInbox(); ctx().showPetThread(threadId); }
+          else { var target = accountTarget(row.href); if (target) { closeInbox(); acc.panel = target.panel; acc.supportFocus = target.request; acc.supportOpen = target.request; acc.mobileOpen = true; if (ctx()) ctx().showUserProfile(); else render(); } }
+        }
         return Promise.all([loadInbox(), loadInboxPreview()]);
       }); }).catch(function (e) { toast(e.message, 'error'); });
   }
@@ -1000,6 +1004,13 @@
     if (!supportRequests) return 'Échanges avec le support';
     var n = supportRequests.reduce(function (sum, request) { return sum + (request.replies || []).length; }, 0);
     return n ? n + ' réponse' + (n > 1 ? 's' : '') + ' du support' : 'Échanges avec le support';
+  }
+  function threadTarget(href) {
+    try {
+      var url = new URL(href, location.origin);
+      var id = url.searchParams.get('pets') === 'thread' ? (url.searchParams.get('thread') || '') : '';
+      return /^[0-9a-f-]{36}$/i.test(id) ? id : '';
+    } catch (e) { return ''; }
   }
   function accountTarget(href) {
     try {
