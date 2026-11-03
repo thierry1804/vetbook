@@ -3,7 +3,7 @@
 import { requireUser } from '../_lib/auth.js';
 import { guardAiAssistant } from '../_lib/entitlements.js';
 import { withClient } from '../_lib/db.js';
-import { getAiConfig, resolveApiKey, callOpenRouter, buildMessages } from '../_lib/ai.js';
+import { getAiConfig, resolveApiKey, streamOpenRouter, buildMessages } from '../_lib/ai.js';
 
 function ageLabel(dob) {
   if (!dob) return null;
@@ -12,8 +12,10 @@ function ageLabel(dob) {
   return `${Math.floor(years)} an(s)`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function petContextFor(userId, animalId) {
-  if (!animalId) return null;
+  if (!animalId || !UUID_RE.test(animalId)) return null;
   const row = (await withClient((c) => c.query(
     'select name, species, race, sex, dob, weight, notes from pets where id = $1 and user_id = $2', [animalId, userId]
   ))).rows[0];
@@ -42,13 +44,30 @@ export default async function handler(req, res) {
   const apiKey = resolveApiKey(cfg);
   if (!apiKey) { res.status(503).json({ error: "L'assistant IA n'est pas configuré." }); return; }
 
+  let petContext, messages;
   try {
-    const petContext = await petContextFor(session.userId, body.animalId);
-    const messages = buildMessages({ systemPrompt: cfg.systemPrompt, petContext, history: body.history, userMessage: message });
-    const reply = await callOpenRouter({ apiKey, model: cfg.model, messages });
-    res.json({ reply });
+    petContext = await petContextFor(session.userId, body.animalId);
+    messages = buildMessages({ systemPrompt: cfg.systemPrompt, petContext, history: body.history, userMessage: message });
   } catch (err) {
-    if (err.status === 429) { res.set('Retry-After', String(err.retryAfter || 60)); res.status(429).json({ error: 'Assistant très sollicité, réessaie dans une minute.' }); return; }
-    res.status(err.status && err.status < 500 ? 400 : 502).json({ error: "L'assistant est momentanément indisponible." });
+    console.error('ai/chat prepare', err);
+    res.status(500).json({ error: "L'assistant est momentanément indisponible." });
+    return;
   }
+
+  // Diffusion au fil de l'eau (SSE) : le premier fragment arrive en 1-2s, bien avant qu'une réponse
+  // longue (parfois 10-40s au total, non streamée côté modèle) ait une chance de dépasser un timeout
+  // proxy — c'est ce qui causait des 502 intermittents en attente de la réponse complète.
+  res.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'private, no-store', 'X-Accel-Buffering': 'no', Connection: 'keep-alive' });
+  res.flushHeaders();
+  try {
+    await streamOpenRouter({
+      apiKey, model: cfg.model, messages,
+      onDelta: (text) => { res.write(`event: delta\ndata: ${JSON.stringify({ text })}\n\n`); },
+    });
+    res.write('event: done\ndata: {}\n\n');
+  } catch (err) {
+    const message = err.status === 429 ? 'Assistant très sollicité, réessaie dans une minute.' : "L'assistant est momentanément indisponible.";
+    res.write(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`);
+  }
+  res.end();
 }

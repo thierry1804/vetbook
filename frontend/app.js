@@ -10316,8 +10316,9 @@
       return;
     }
     box.innerHTML = aiChatHistory.map(function (m) {
-      var cls = m.role === 'user' ? 'ai-chat__msg--user' : m.role === 'error' ? 'ai-chat__msg--error' : m.role === 'pending' ? 'ai-chat__msg--pending' : 'ai-chat__msg--ai';
-      return '<div class="ai-chat__msg ' + cls + '">' + escapeHtml(m.content) + '</div>';
+      var waiting = m.streaming && !m.content;
+      var cls = m.role === 'user' ? 'ai-chat__msg--user' : m.role === 'error' ? 'ai-chat__msg--error' : waiting ? 'ai-chat__msg--pending' : 'ai-chat__msg--ai';
+      return '<div class="ai-chat__msg ' + cls + '">' + escapeHtml(waiting ? 'L’assistant réfléchit…' : m.content) + '</div>';
     }).join('');
     box.scrollTop = box.scrollHeight;
   }
@@ -10345,18 +10346,57 @@
 
   function sendAiChatMessage(text) {
     aiChatHistory.push({ role: 'user', content: text });
-    aiChatHistory.push({ role: 'pending', content: 'L’assistant réfléchit…' });
+    var history = aiChatHistory.filter(function (m) { return m.role === 'user' || m.role === 'assistant'; }).slice(0, -1);
+    var pendingMsg = { role: 'assistant', content: '', streaming: true };
+    aiChatHistory.push(pendingMsg);
     renderAiChat();
     var sendBtn = document.getElementById('ai-chat-send');
     if (sendBtn) sendBtn.disabled = true;
     var pet = getCurrent();
-    var history = aiChatHistory.filter(function (m) { return m.role === 'user' || m.role === 'assistant'; }).slice(0, -1);
-    window.cloudSync.api('/api/ai/chat', {
+    var streamError = null;
+    // Réponse diffusée au fil de l'eau (SSE) : le premier fragment arrive vite même si la génération
+    // complète prend du temps, ce qui évite d'attendre dans le vide jusqu'à un éventuel timeout.
+    fetch(window.cloudSync.apiUrl('/api/ai/chat'), {
       method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, animalId: pet ? pet.id : undefined, history: history }),
     }).then(function (res) {
-      aiChatHistory.pop();
-      aiChatHistory.push({ role: 'assistant', content: res.reply });
+      if (!res.ok || !res.body) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          throw new Error(body.error || 'Assistant indisponible pour le moment.');
+        });
+      }
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          buf += decoder.decode(r.value, { stream: true });
+          var parts = buf.split('\n\n');
+          buf = parts.pop();
+          parts.forEach(function (chunk) {
+            var evMatch = chunk.match(/^event:\s*(\S+)/m);
+            var dataMatch = chunk.match(/^data:\s*(.*)$/m);
+            if (!dataMatch) return;
+            var data; try { data = JSON.parse(dataMatch[1]); } catch (e) { return; }
+            var ev = evMatch ? evMatch[1] : 'message';
+            if (ev === 'delta' && data.text) { pendingMsg.content += data.text; renderAiChat(); }
+            else if (ev === 'error') { streamError = data.error || 'Assistant indisponible pour le moment.'; }
+          });
+          return pump();
+        });
+      }
+      return pump();
+    }).then(function () {
+      if (streamError && !pendingMsg.content) {
+        aiChatHistory.pop();
+        aiChatHistory.push({ role: 'error', content: streamError });
+      } else {
+        if (streamError) pendingMsg.content += '\n\n(Réponse interrompue : ' + streamError + ')';
+        pendingMsg.streaming = false;
+      }
       renderAiChat();
     }).catch(function (err) {
       aiChatHistory.pop();

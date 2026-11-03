@@ -323,6 +323,10 @@
     return apiBase + '/api/files/' + serverId;
   }
 
+  function apiUrl(path) {
+    return apiBase + path;
+  }
+
   window.cloudSync = {
     isConfigured: isConfigured,
     register: register,
@@ -341,6 +345,7 @@
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
     getPhotoUrl: getPhotoUrl,
+    apiUrl: apiUrl,
     getReference: getReference,
     getEntitlements: getEntitlements,
     getPublicConfig: getPublicConfig,
