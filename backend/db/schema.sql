@@ -520,11 +520,20 @@ create table if not exists pet_messages (
   id uuid primary key default gen_random_uuid(),
   thread_id uuid not null references pet_threads(id) on delete cascade,
   author_id uuid not null references users(id) on delete cascade,
-  body text not null check (char_length(body) between 1 and 2000),
+  body text check (body is null or char_length(body) between 1 and 2000),
   created_at timestamptz not null default now()
 );
 create index if not exists pet_messages_thread_idx on pet_messages (thread_id, created_at);
 create index if not exists pet_messages_page_idx on pet_messages (thread_id, created_at desc, id desc);
+
+-- Photo jointe à un message (facultative) : stockée à part des photos du carnet (cycle de vie et
+-- confidentialité différents — contenu de conversation entre deux comptes, pas le dossier santé).
+alter table pet_messages add column if not exists photo_path text;
+alter table pet_messages add column if not exists photo_content_type text;
+alter table pet_messages alter column body drop not null;
+alter table pet_messages drop constraint if exists pet_messages_body_check;
+alter table pet_messages add constraint pet_messages_body_check
+  check ((body is not null and char_length(body) between 1 and 2000) or photo_path is not null);
 
 create table if not exists pet_blocks (
   user_id uuid not null references users(id) on delete cascade,

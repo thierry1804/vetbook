@@ -12,6 +12,12 @@ import rateLimit from 'express-rate-limit';
 import { ensureSchema } from './api/_lib/schema.js';
 import { ensureBucket } from './api/_lib/minio.js';
 
+// Filet de sécurité : une erreur async non rattrapée dans une route (ex. un paramètre mal formé qui
+// fait échouer une requête SQL) fait planter TOUT le process Node par défaut depuis Node 15 — coupant
+// toutes les connexions en cours, pas seulement celle en cause. Un bug de route reste un bug de route
+// à corriger, mais ceci évite qu'il devienne une coupure totale du service pour tout le monde.
+process.on('unhandledRejection', (reason) => { console.error('unhandledRejection', reason); });
+
 import register from './api/auth/register.js';
 import login from './api/auth/login.js';
 import logout from './api/auth/logout.js';
@@ -32,7 +38,7 @@ import userStorage from './api/user/storage.js';
 import { shareLinks, sharePublic, sharePublicPhoto } from './api/share/index.js';
 import { identityMint, identityManage, identityPublic, identityPublicPhoto } from './api/identity.js';
 import { petDiscoverable, petDeviceState, petPortrait, directoryPets, directoryPet, directoryPhoto } from './api/directory.js';
-import { petThreadList, petThreadOpen, petThreadRead, petThreadMessage, petThreadClose, petThreadBlock, petThreadReport } from './api/pet-messages.js';
+import { petThreadList, petThreadOpen, petThreadRead, petThreadMessage, petThreadPhoto, petThreadMessagePhoto, petThreadClose, petThreadBlock, petThreadReport } from './api/pet-messages.js';
 import { household } from './api/household/index.js';
 import syncPush from './api/sync/push.js';
 import syncPull from './api/sync/pull.js';
@@ -125,6 +131,8 @@ app.get('/api/pet-threads', petThreadList);
 app.post('/api/pet-threads', petThreadOpen);
 app.get('/api/pet-threads/:id', petThreadRead);
 app.post('/api/pet-threads/:id/messages', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de messages. Réessayez dans un moment.' } }), petThreadMessage);
+app.post('/api/pet-threads/:id/photo', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop d’envois. Réessayez dans un moment.' } }), petThreadPhoto);
+app.get('/api/pet-threads/:id/messages/:mid/photo', petThreadMessagePhoto);
 app.post('/api/pet-threads/:id/close', petThreadClose);
 app.all('/api/pet-threads/:id/block', sensitiveLimiter, petThreadBlock);
 app.post('/api/pet-threads/:id/report', sensitiveLimiter, petThreadReport);

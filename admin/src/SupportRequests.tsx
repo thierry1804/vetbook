@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Drawer, Input, Popconfirm, Table, Typography, message } from 'antd';
-import { api } from './api';
+import { api, API } from './api';
 import { useAuth } from './auth';
 import { PageHeader } from './ui';
 
@@ -10,7 +10,7 @@ type Request = {
   id: string; email: string; subject: string; description: string; status: string;
   created_at: string; updated_at: string; account_linked: boolean; matching_account: boolean; replies: Reply[];
 };
-type PetReport = { id: string; pet_name: string; reporter_email: string; reported_email: string; reason: string; status: string; created_at: string; messages: { body: string; author: string; created_at: string }[] };
+type PetReport = { id: string; pet_name: string; reporter_email: string; reported_email: string; reason: string; status: string; created_at: string; messages: { id: string; body: string; hasPhoto: boolean; author: string; created_at: string }[] };
 const states = [{ value: 'nouveau', label: 'Nouveau' }, { value: 'en_cours', label: 'En cours' }, { value: 'traite', label: 'Close' }];
 const labelOf = (status: string) => states.find((state) => state.value === status)?.label || status;
 const when = (value: string) => new Date(value).toLocaleString('fr-FR');
@@ -74,7 +74,7 @@ export function SupportRequests() {
       { title: '', key: 'open', width: 100, render: (_: unknown, row: PetReport) => <Button onClick={(event) => { event.stopPropagation(); setSelectedReport(row.id); }}>Examiner</Button> },
     ]} />
     <Drawer title={report ? `Signalement · ${report.pet_name}` : 'Signalement'} open={!!report} onClose={() => setSelectedReport(null)} width="min(640px, 100vw)" extra={report ? <Button onClick={() => reviewReport(report)}>{report.status === 'nouveau' ? 'Marquer traité' : 'Rouvrir'}</Button> : null}>
-      {report ? <div style={{ display: 'grid', gap: 12 }}><Typography.Text>{report.reporter_email} signale {report.reported_email}</Typography.Text><Message who="Motif" at={when(report.created_at)} body={report.reason} /><Typography.Title level={5}>Derniers messages</Typography.Title>{report.messages.map((m, index) => <Message key={index} who={m.author === 'reporter' ? 'Auteur du signalement' : 'Compte signalé'} at={when(m.created_at)} body={m.body} />)}</div> : null}
+      {report ? <div style={{ display: 'grid', gap: 12 }}><Typography.Text>{report.reporter_email} signale {report.reported_email}</Typography.Text><Message who="Motif" at={when(report.created_at)} body={report.reason} /><Typography.Title level={5}>Derniers messages</Typography.Title>{report.messages.map((m, index) => <Message key={index} who={m.author === 'reporter' ? 'Auteur du signalement' : 'Compte signalé'} at={when(m.created_at)} body={m.body} photoUrl={m.hasPhoto ? `${API}/pet-reports/${report.id}/messages/${m.id}/photo` : null} />)}</div> : null}
     </Drawer>
     <Typography.Title level={4}>Autres demandes</Typography.Title>
     <Table<Request>
@@ -119,9 +119,10 @@ export function SupportRequests() {
   </div>;
 }
 
-function Message({ who, at, body }: { who: string; at: string; body: string }) {
+function Message({ who, at, body, photoUrl }: { who: string; at: string; body: string | null; photoUrl?: string | null }) {
   return <div className="admin-panel" style={{ padding: 12 }}>
     <Typography.Text type="secondary" style={{ fontSize: 12 }}>{who} · {at}</Typography.Text>
-    <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{body}</Typography.Paragraph>
+    {body ? <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{body}</Typography.Paragraph> : null}
+    {photoUrl ? <img src={photoUrl} alt="Photo jointe au message" style={{ maxWidth: 240, maxHeight: 240, borderRadius: 8, marginTop: 6, display: 'block' }} /> : null}
   </div>;
 }

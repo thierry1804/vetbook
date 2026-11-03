@@ -3509,6 +3509,47 @@
       });
     });
   }
+
+  // ——— Fil de discussion façon messagerie : horodatage, séparateurs de date, groupes de bulles ———
+  function petMsgTime(iso) { return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+  function petMsgDayKey(iso) { var d = new Date(iso); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+  function petMsgDateLabel(iso) {
+    var d = new Date(iso); var today = new Date(); var yest = new Date(); yest.setDate(today.getDate() - 1);
+    if (petMsgDayKey(iso) === petMsgDayKey(today.toISOString())) return 'Aujourd’hui';
+    if (petMsgDayKey(iso) === petMsgDayKey(yest.toISOString())) return 'Hier';
+    return fmtDate(d);
+  }
+  function petPhotoMsgUrl(threadId, msgId) { return '/api/pet-threads/' + encodeURIComponent(threadId) + '/messages/' + encodeURIComponent(msgId) + '/photo'; }
+  function renderPetThreadLog(threadId, messages) {
+    if (!messages.length) return '<p class="global-view__sub">Écrivez le premier message.</p>';
+    var html = ''; var lastDay = null; var lastMine = null;
+    messages.forEach(function (m) {
+      var day = petMsgDayKey(m.createdAt);
+      if (day !== lastDay) { html += '<div class="pet-thread__date"><span>' + escapeHtml(petMsgDateLabel(m.createdAt)) + '</span></div>'; lastDay = day; lastMine = null; }
+      var grouped = lastMine === m.mine;
+      var content = m.hasPhoto
+        ? '<button type="button" class="pet-bubble__photo" data-pet-photo-open="' + escapeHtml(petPhotoMsgUrl(threadId, m.id)) + '"><img src="' + escapeHtml(petPhotoMsgUrl(threadId, m.id)) + '" alt="Photo partagée" loading="lazy" onerror="this.closest(\'.pet-bubble\').classList.add(\'pet-bubble--broken\')"></button>'
+        : escapeHtml(m.body || '');
+      html += '<div class="pet-bubble ' + (m.mine ? 'is-mine' : 'is-theirs') + (m.hasPhoto ? ' has-photo' : '') + (grouped ? ' is-grouped' : '') + '">' + content + '<span class="pet-bubble__time">' + petMsgTime(m.createdAt) + '</span></div>';
+      lastMine = m.mine;
+    });
+    return html;
+  }
+  function openPetLightbox(url) {
+    closePetLightbox();
+    var overlay = document.createElement('div');
+    overlay.className = 'pet-lightbox'; overlay.id = 'pet-lightbox';
+    overlay.innerHTML = '<button type="button" class="pet-lightbox__close" aria-label="Fermer">' + ico('x', 22) + '</button><img src="' + escapeHtml(url) + '" alt="Photo partagée en grand">';
+    overlay.addEventListener('click', function (e) { if (e.target === overlay || e.target.closest('.pet-lightbox__close')) closePetLightbox(); });
+    document.addEventListener('keydown', petLightboxEsc);
+    document.body.appendChild(overlay);
+  }
+  function petLightboxEsc(e) { if (e.key === 'Escape') closePetLightbox(); }
+  function closePetLightbox() {
+    var el = document.getElementById('pet-lightbox');
+    if (el) el.remove();
+    document.removeEventListener('keydown', petLightboxEsc);
+  }
   function renderPetFind() {
     var title = document.getElementById('pets-title');
     var sub = document.getElementById('pets-sub');
@@ -3529,7 +3570,7 @@
       var c = petFind.card;
       if (title) title.textContent = c.name || 'Animal';
       if (sub) sub.textContent = [petSpeciesLabel(c.species), c.race, c.sex, c.age].filter(Boolean).join(' · ');
-      body.innerHTML = '<div class="pet-find"><button type="button" class="care-action" data-pet-back>Retour</button><article class="pet-hit">' + petPhoto(c.id, c.name) + '<span><strong>' + escapeHtml(c.name || 'Animal') + '</strong><br>' + escapeHtml([c.color, c.sterilise === 'Oui' ? 'Stérilisé' : ''].filter(Boolean).join(' · ')) + (c.ownerName ? '<br>Propriétaire : ' + escapeHtml(c.ownerName) : '') + '</span></article><button type="button" class="care-action care-action--primary" data-pet-write="' + escapeHtml(c.id) + '" data-feature="pet_messages">Écrire au propriétaire</button></div>';
+      body.innerHTML = '<div class="pet-find"><button type="button" class="care-action" data-pet-back>Retour</button><article class="pet-card__hero">' + petPhoto(c.id, c.name) + '<div><h2 class="pet-card__name">' + escapeHtml(c.name || 'Animal') + '</h2><p class="pet-card__meta">' + escapeHtml([petSpeciesLabel(c.species), c.race, c.sex, c.age].filter(Boolean).join(' · ')) + '</p>' + (c.color || c.sterilise === 'Oui' ? '<p class="pet-card__meta">' + escapeHtml([c.color, c.sterilise === 'Oui' ? 'Stérilisé(e)' : ''].filter(Boolean).join(' · ')) + '</p>' : '') + (c.ownerName ? '<p class="pet-card__owner">Propriétaire : ' + escapeHtml(c.ownerName) + '</p>' : '') + '</div></article><button type="button" class="care-action care-action--primary" data-pet-write="' + escapeHtml(c.id) + '" data-feature="pet_messages">Écrire au propriétaire</button></div>';
       bindPetPhotos(body);
       return;
     }
@@ -3538,10 +3579,11 @@
       if (title) title.textContent = t.petName || 'Conversation';
       if (sub) sub.textContent = (t.otherName || 'Propriétaire') + (t.closed ? ' · conversation close' : '');
       var canWrite = hasFeature('pet_messages') && !t.closed && !t.blocked;
-      body.innerHTML = '<div class="pet-thread"><button type="button" class="care-action" data-pet-messages>Messages</button>' + (petFind.nextBefore ? '<button type="button" class="care-action" data-pet-older>Charger les messages précédents</button>' : '') + '<div class="pet-thread__log" role="log" aria-label="Messages de la conversation" aria-live="off">' + (petFind.messages.length ? petFind.messages.map(function (m) {
-        return '<div class="pet-bubble ' + (m.mine ? 'is-mine' : 'is-theirs') + '">' + escapeHtml(m.body) + '</div>';
-      }).join('') : '<p class="global-view__sub">Écrivez le premier message.</p>') + '</div>' +
-        (canWrite ? '<form class="pet-thread__form" data-pet-send><input id="pet-draft" maxlength="2000" aria-label="Votre message" placeholder="Votre message" value="' + escapeHtml(petFind.draft || '') + '"><button type="submit" class="care-action care-action--primary">Envoyer</button></form><button type="button" class="care-action" data-pet-close="' + escapeHtml(t.id) + '">Clore la conversation</button>' : '<p class="stitch-note">' + (t.blocked ? 'Contact bloqué.' : t.closed ? 'Cette conversation est close. Les messages restent lisibles.' : 'L’envoi de messages est réservé aux formules payantes.') + '</p>') + '<div class="pet-thread__safety"><button type="button" class="care-action" data-pet-block="' + escapeHtml(t.id) + '">' + (t.blockedByMe ? 'Débloquer ce contact' : 'Bloquer ce contact') + '</button><button type="button" class="care-action" data-pet-report="' + escapeHtml(t.id) + '">Signaler la conversation</button></div>' + (petFind.reportOpen ? '<form data-pet-report-form><label for="pet-report-reason">Motif du signalement</label><textarea id="pet-report-reason" minlength="10" maxlength="1000" required rows="4" placeholder="Décrivez le problème pour le support">' + escapeHtml(petFind.reportDraft) + '</textarea><button type="submit" class="care-action care-action--primary">Envoyer au support</button></form>' : '') + '</div>';
+      body.innerHTML = '<div class="pet-thread"><div class="pet-thread__top"><button type="button" class="care-action" data-pet-messages>Messages</button><div class="pet-thread__safety"><button type="button" class="care-action" data-pet-block="' + escapeHtml(t.id) + '">' + (t.blockedByMe ? 'Débloquer' : 'Bloquer') + '</button><button type="button" class="care-action" data-pet-report="' + escapeHtml(t.id) + '">Signaler</button></div></div>' +
+        (petFind.nextBefore ? '<button type="button" class="care-action pet-thread__older" data-pet-older>Charger les messages précédents</button>' : '') +
+        '<div class="pet-thread__log" role="log" aria-label="Messages de la conversation" aria-live="off">' + renderPetThreadLog(t.id, petFind.messages) + '</div>' +
+        (canWrite ? '<form class="pet-thread__form" data-pet-send enctype="multipart/form-data"><input type="file" id="pet-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden><button type="button" class="pet-thread__attach" data-pet-attach aria-label="Joindre une photo">' + ico('camera', 20) + '</button><input id="pet-draft" maxlength="2000" aria-label="Votre message" placeholder="Votre message" value="' + escapeHtml(petFind.draft || '') + '"><button type="submit" class="pet-thread__send care-action care-action--primary" aria-label="Envoyer">Envoyer</button></form><button type="button" class="care-action" data-pet-close="' + escapeHtml(t.id) + '">Clore la conversation</button>' : '<p class="stitch-note">' + (t.blocked ? 'Contact bloqué.' : t.closed ? 'Cette conversation est close. Les messages restent lisibles.' : 'L’envoi de messages est réservé aux formules payantes.') + '</p>') +
+        (petFind.reportOpen ? '<form data-pet-report-form><label for="pet-report-reason">Motif du signalement</label><textarea id="pet-report-reason" minlength="10" maxlength="1000" required rows="4" placeholder="Décrivez le problème pour le support">' + escapeHtml(petFind.reportDraft) + '</textarea><button type="submit" class="care-action care-action--primary">Envoyer au support</button></form>' : '') + '</div>';
       var log = body.querySelector('.pet-thread__log');
       if (log) log.scrollTop = log.scrollHeight;
       petPoll = setInterval(function () { if (petFind.mode === 'thread' && petFind.thread) loadPetThread(petFind.thread.id, true); }, 8000);
@@ -3549,9 +3591,13 @@
     }
     if (title) title.textContent = 'Recherche d’animaux';
     if (sub) sub.textContent = 'Nom, race, âge et photo. Le téléphone et le carnet restent privés.';
+    var emptyIcon = ico(petFind.searched ? 'search' : 'paw', 24);
+    var emptyText = petFind.searched
+      ? 'Aucun animal ne correspond pour l’instant. Peu de propriétaires ont encore activé la visibilité — reviens plus tard, ou élargis les critères.'
+      : 'Choisis une espèce ou des lettres du nom/de la race, puis lance la recherche.';
     body.innerHTML = '<form class="pet-find" data-pet-search><div class="pet-find__bar"><select name="species" aria-label="Espèce"><option value="">Espèce</option><option value="Canine"' + (petFind.species === 'Canine' ? ' selected' : '') + '>Chien</option><option value="Féline"' + (petFind.species === 'Féline' ? ' selected' : '') + '>Chat</option><option value="Autre"' + (petFind.species === 'Autre' ? ' selected' : '') + '>Autre</option></select><select name="sex" aria-label="Sexe"><option value="">Sexe</option><option' + (petFind.sex === 'Mâle' ? ' selected' : '') + '>Mâle</option><option' + (petFind.sex === 'Femelle' ? ' selected' : '') + '>Femelle</option></select><select name="sterilise" aria-label="Stérilisation"><option value="">Stérilisation</option><option' + (petFind.sterilise === 'Oui' ? ' selected' : '') + '>Oui</option><option' + (petFind.sterilise === 'Non' ? ' selected' : '') + '>Non</option></select><input name="q" type="search" aria-label="Nom ou race" placeholder="Nom ou race" value="' + escapeHtml(petFind.q) + '"><button type="submit" class="care-action care-action--primary">Chercher</button></div></form><div class="pet-find" id="pet-results" aria-live="polite">' + (petFind.pets.length ? petFind.pets.map(function (p) {
-      return '<button type="button" class="pet-hit" data-pet-open="' + escapeHtml(p.id) + '">' + petPhoto(p.id, p.name) + '<span><strong>' + escapeHtml(p.name || 'Animal') + '</strong><br>' + escapeHtml([petSpeciesLabel(p.species), p.race, p.sex, p.age].filter(Boolean).join(' · ')) + (p.ownerName ? '<br>' + escapeHtml(p.ownerName) : '') + '</span></button>';
-    }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<p class="global-view__sub">' + (petFind.searched ? 'Aucun animal ne correspond pour l’instant. Peu de propriétaires ont encore activé la visibilité — reviens plus tard, ou élargis les critères.' : 'Choisis une espèce ou des lettres du nom/de la race, puis lance la recherche.') + '</p>') + '</div>';
+      return '<button type="button" class="pet-hit" data-pet-open="' + escapeHtml(p.id) + '">' + petPhoto(p.id, p.name) + '<span class="pet-hit__body"><span class="pet-hit__name">' + escapeHtml(p.name || 'Animal') + '</span><span class="pet-hit__meta">' + escapeHtml([petSpeciesLabel(p.species), p.race, p.sex, p.age].filter(Boolean).join(' · ')) + '</span>' + (p.ownerName ? '<span class="pet-hit__owner">' + escapeHtml(p.ownerName) + '</span>' : '') + '</span></button>';
+    }).join('') + (petFind.next != null ? '<button type="button" class="care-action" data-pet-more="' + petFind.next + '">Résultats suivants</button>' : '') : '<div class="pet-find__empty"><span class="pet-find__empty-icon">' + emptyIcon + '</span><p>' + emptyText + '</p></div>') + '</div>';
     bindPetPhotos(body);
   }
   function loadPetSearch(offset) {
@@ -3651,7 +3697,11 @@
       var olderThreads = e.target.closest('[data-pet-threads-more]');
       var block = e.target.closest('[data-pet-block]');
       var report = e.target.closest('[data-pet-report]');
+      var attach = e.target.closest('[data-pet-attach]');
+      var photoOpen = e.target.closest('[data-pet-photo-open]');
       var swap = e.target.closest('#pets-switch');
+      if (attach) { var photoInput = document.getElementById('pet-photo-input'); if (photoInput) photoInput.click(); return; }
+      if (photoOpen) { openPetLightbox(photoOpen.getAttribute('data-pet-photo-open')); return; }
       if (swap) {
         if (petFind.mode === 'threads' || petFind.mode === 'thread') showPets();
         else loadPetThreads(null).catch(function (err) { showToast((err && err.message) || 'Messages indisponibles.', 'error'); });
@@ -3698,6 +3748,23 @@
         if (close.dataset.confirm !== '1') { close.dataset.confirm = '1'; close.textContent = 'Confirmer la clôture'; return; }
         petApi('/api/pet-threads/' + encodeURIComponent(close.getAttribute('data-pet-close')) + '/close', { method: 'POST', body: '{}' }).then(function () { return loadPetThread(close.getAttribute('data-pet-close'), false); }).catch(function (err) { showToast((err && err.message) || 'Clôture impossible.', 'error'); });
       }
+    });
+    view.addEventListener('change', function (e) {
+      var input = e.target.closest('#pet-photo-input');
+      if (!input || !petFind.thread) return;
+      var file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      var formData = new FormData();
+      formData.append('file', file);
+      var sendBtn = document.querySelector('.pet-thread__send');
+      var attachBtn = document.querySelector('[data-pet-attach]');
+      if (sendBtn) sendBtn.disabled = true;
+      if (attachBtn) attachBtn.disabled = true;
+      petApi('/api/pet-threads/' + encodeURIComponent(petFind.thread.id) + '/photo', { method: 'POST', body: formData })
+        .then(function () { return loadPetThread(petFind.thread.id, false); })
+        .catch(function (err) { showToast((err && err.message) || 'Photo non envoyée.', 'error'); })
+        .finally(function () { if (sendBtn) sendBtn.disabled = false; if (attachBtn) attachBtn.disabled = false; });
     });
     view.addEventListener('submit', function (e) {
       var search = e.target.closest('[data-pet-search]');

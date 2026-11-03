@@ -7,6 +7,7 @@ import express from 'express';
 import argon2 from 'argon2';
 import rateLimit from 'express-rate-limit';
 import { withClient, withTransaction } from '../_lib/db.js';
+import { getObject } from '../_lib/minio.js';
 import {
   requireAdmin, auditFallback, audit, requireReason, signAdminToken, setAdminCookie, clearAdminCookie,
   loadAdmin, clientIp, ADMIN_SESSION_HOURS, MAX_FAILED_LOGINS, LOCK_MINUTES,
@@ -57,12 +58,27 @@ export function buildAdminRouter() {
     try {
       const rows = (await withClient((c) => c.query(`select r.id,r.thread_id,r.reason,r.status,r.created_at,r.reviewed_at,
         reporter.email as reporter_email,reported.email as reported_email,p.name as pet_name,
-        coalesce((select json_agg(json_build_object('body',m.body,'created_at',m.created_at,'author',case when m.author_id=r.reporter_id then 'reporter' else 'reported' end) order by m.created_at,m.id)
+        coalesce((select json_agg(json_build_object('id',m.id,'body',m.body,'hasPhoto',m.photo_path is not null,'created_at',m.created_at,'author',case when m.author_id=r.reporter_id then 'reporter' else 'reported' end) order by m.created_at,m.id)
           from (select * from pet_messages where thread_id=r.thread_id order by created_at desc,id desc limit 50) m),'[]'::json) as messages
         from pet_reports r join users reporter on reporter.id=r.reporter_id join users reported on reported.id=r.reported_user_id
         join pet_threads t on t.id=r.thread_id join pets p on p.id=t.pet_id
         order by case when r.status='nouveau' then 0 else 1 end,r.created_at desc limit 200`))).rows;
       res.json({ rows });
+    } catch (error) { next(error); }
+  });
+  router.get('/pet-reports/:reportId/messages/:messageId/photo', requireAdmin('users.support'), async (req, res, next) => {
+    try {
+      if (!/^[0-9a-f-]{36}$/i.test(req.params.reportId) || !/^[0-9a-f-]{36}$/i.test(req.params.messageId)) { res.status(400).json({ error: 'Identifiant invalide.' }); return; }
+      const photo = await withClient((c) => c.query(
+        `select m.photo_path, m.photo_content_type from pet_reports r
+           join pet_messages m on m.thread_id = r.thread_id
+          where r.id = $1 and m.id = $2 and m.photo_path is not null`,
+        [req.params.reportId, req.params.messageId])).then((r) => r.rows[0]);
+      if (!photo) { res.status(404).json({ error: 'Photo introuvable.' }); return; }
+      const obj = await getObject(photo.photo_path);
+      res.setHeader('Content-Type', photo.photo_content_type || obj.ContentType || 'image/jpeg');
+      res.setHeader('Cache-Control', 'private, no-store');
+      obj.Body.pipe(res);
     } catch (error) { next(error); }
   });
   router.patch('/pet-reports/:id', requireAdmin('users.support'), async (req, res, next) => {
