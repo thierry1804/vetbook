@@ -4653,7 +4653,7 @@
     if (isNaN(w) || w <= 0) { showToast('Veuillez saisir un poids valide (kg).', 'error'); return; }
 
     data.animal.weightHistory.push({ id: state.nextId++, date: date, weight: w });
-    data.animal.weight = w;
+    syncAnimalWeightFromHistory(data);
     closeModal('addWeight');
     saveState();
     refreshAll();
@@ -8385,8 +8385,10 @@
   }
 
   function refreshAll() {
+    renderCareDashboard();
     renderProfile();
     renderDossierHeader();
+    redrawChartsForTheme(); // redessine les courbes poids/taille et sparklines actuellement affichées
     renderFicheV1();
     renderAnimalRail(document.getElementById('animal-rail-search') && document.getElementById('animal-rail-search').value);
     renderAnimalSelect();
