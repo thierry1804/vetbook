@@ -259,15 +259,60 @@ function groupFields(fields: Field[]): { title?: string; fields: Field[] }[] {
 }
 const WIDE_TYPES = new Set(['json', 'longtext', 'texts', 'html', 'kvnum', 'regex', 'checkupLevels', 'listMeta', 'discount']);
 
+// ── Pré-remplit un nouvel événement à partir d'un lien externe (page Facebook, site d'une
+// association…) : la page est lue côté serveur et résumée par l'IA (titre/description/date/lieu).
+// Ne fait que remplir le formulaire — l'admin relit, corrige si besoin, puis enregistre normalement.
+function EventLinkImport({ form, onImported }: { form: ReturnType<typeof Form.useForm>[0]; onImported: () => void }) {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const run = async () => {
+    if (!url.trim()) return;
+    setLoading(true); setError('');
+    try {
+      const { json } = await api<{ title: string; description: string; location: string; link: string; date: string | null }>('/events/extract', { method: 'POST', body: { url: url.trim() } });
+      const patch: Record<string, any> = { title: json.title, description: json.description, location: json.location, link: json.link };
+      if (json.date) { patch.recurring = false; patch.event_date = dayjs(json.date); patch.month = null; patch.day = null; }
+      form.setFieldsValue(patch);
+      onImported();
+      message.success(json.date ? 'Champs pré-remplis — vérifie la date avant d’enregistrer.' : 'Champs pré-remplis — aucune date trouvée, à compléter.');
+    } catch (e: any) { setError(e.message || 'Import impossible.'); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, padding: 16, background: 'var(--ant-color-fill-tertiary)' }}>
+      <Typography.Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Importer depuis un lien</Typography.Text>
+      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 10 }}>
+        Colle le lien d'un événement Facebook ou d'un site — l'IA propose titre, description, date et lieu. À relire avant d'enregistrer.
+      </Typography.Text>
+      <Space.Compact style={{ width: '100%' }}>
+        <Input placeholder="https://www.facebook.com/events/…" value={url} onChange={(e) => setUrl(e.target.value)} onPressEnter={run} disabled={loading} />
+        <Button type="primary" loading={loading} onClick={run}>Extraire avec l'IA</Button>
+      </Space.Compact>
+      {error ? <Alert type="error" showIcon style={{ marginTop: 10 }} message={error} /> : null}
+    </div>
+  );
+}
+
 function FieldGroup({ title, fields, isEdit, res, countries, species, changed = [] }: { title?: string; fields: Field[]; isEdit: boolean; res: Res; countries: { value: string; label: string }[]; species: { value: string; label: string }[]; changed?: string[] }) {
+  const form = Form.useFormInstance();
   return (
     <div>
       {title ? <div style={{ fontSize: 11, fontWeight: 650, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--ant-color-text-secondary)', margin: '0 0 12px' }}>{title}</div> : null}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 20px' }} className="field-grid">
         {fields.filter((fl) => !fl.hidden).map((fl) => (
           <Form.Item className={changed.includes(fl.name) ? 'changed-field' : undefined} key={fl.name} name={fl.name} label={label(fl)} valuePropName={fl.type === 'bool' ? 'checked' : 'value'}
+            dependencies={fl.conditionalRequired ? [fl.conditionalRequired.field] : undefined}
             rules={[
               ...(fl.required ? [{ required: true, message: `${label(fl)} est requis` }] : []),
+              ...(fl.conditionalRequired ? [{
+                validator: async (_: unknown, value: unknown) => {
+                  const other = form.getFieldValue(fl.conditionalRequired!.field);
+                  if (other === fl.conditionalRequired!.equals && (value === undefined || value === null || value === '')) {
+                    throw new Error(`${label(fl)} est requis`);
+                  }
+                },
+              }] : []),
               ...(fl.urlCheck ? [{ type: 'url' as const, message: 'URL invalide (doit commencer par http:// ou https://)' }] : []),
             ]}
             extra={fl.help} style={WIDE_TYPES.has(fl.type || '') ? { gridColumn: '1 / -1' } : undefined}>
@@ -286,10 +331,16 @@ const LABELS_MONTH = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'ju
 
 function ContentPreview({ kind, v }: { kind: 'tip' | 'page' | 'event'; v: any }) {
   const month = LABELS_MONTH[Number(v?.month) - 1];
+  const oneOff = v?.recurring === false;
+  const eventDateLabel = oneOff && v?.event_date ? new Date(v.event_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
   return (
     <div style={{ border: '1px solid var(--ant-color-border)', borderRadius: 6, padding: 16, background: 'var(--ant-color-fill-tertiary)' }}>
       {kind === 'tip' && v?.category ? <Pill label={CAT[v.category] || v.category} /> : null}
-      {kind === 'event' ? <div style={{ color: 'var(--ant-color-primary)', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{v?.day || '?'} {month || ''}{v?.recurring ? ' · chaque année' : ''}</div> : null}
+      {kind === 'event' ? (
+        <div style={{ color: 'var(--ant-color-primary)', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
+          {oneOff ? (eventDateLabel || 'Date à préciser') : <>{v?.day || '?'} {month || ''} · chaque année</>}
+        </div>
+      ) : null}
       <div style={{ fontWeight: 700, fontSize: 15, marginTop: kind === 'tip' && v?.category ? 8 : 0 }}>{v?.title || 'Titre'}</div>
       {kind === 'event' ? <div style={{ marginTop: 4, fontSize: 13.5 }}>{v?.description}</div>
         : <div className="cms-preview" style={{ marginTop: 4, fontSize: 14 }} dangerouslySetInnerHTML={{ __html: sanitizeRich(v?.body || '') }} />}
@@ -692,6 +743,7 @@ export function makeResource(res: Res, perms: string[]) {
           <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', alignItems: 'start' }} className="resource-form-grid">
             <div style={{ display: 'grid', gap: 24 }}>
               {res.reason ? <Form.Item name="reason" label="Motif (journalisé)" rules={[{ required: true, message: 'Motif requis' }]}><Input.TextArea autoSize={{ minRows: 2 }} /></Form.Item> : null}
+              {res.name === 'events' && !isEdit ? <EventLinkImport form={form} onImported={() => onValuesChange({})} /> : null}
               {groups.map((g, i) => <FieldGroup key={i} title={g.title} fields={g.fields} isEdit={isEdit} res={res} countries={countries} species={species} changed={changed} />)}
             </div>
             <aside className="record-aside">

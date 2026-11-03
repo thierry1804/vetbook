@@ -1,7 +1,7 @@
 // Description des ressources du backoffice (champs, droits, groupes). Les écrans sont générés dans content.tsx.
 // Type de champ : text | longtext | html (WYSIWYG) | int | num | bool | json | date | ts | texts | select | country
 export type Choice = string | { id: string | number; name: string };
-export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string; hidden?: boolean; urlCheck?: boolean };
+export type Field = { name: string; type?: string; label?: string; choices?: Choice[]; required?: boolean; list?: boolean; readOnly?: boolean; help?: string; side?: boolean; short?: string; lenient?: boolean; section?: string; hidden?: boolean; urlCheck?: boolean; conditionalRequired?: { field: string; equals: boolean } };
 export type Res = {
   name: string; label: string; perm: string; write?: string; fields: Field[]; readOnly?: boolean; deletable?: boolean;
   pk?: string; search?: boolean; group: string; createPk?: boolean; reason?: boolean; section?: string; defaults?: Record<string, any>; excerpt?: string; filters?: string[]; preview?: 'tip' | 'page' | 'event';
@@ -25,12 +25,10 @@ export const RES: Res[] = [
   { name: 'events', label: 'Événements', group: 'Contenus', section: 'events', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'event',
     defaults: { status: 'brouillon', recurring: true, country: 'ALL' }, filters: ['country'], fields: [
     f('title', 'text', { required: true, list: true, section: 'Contenu' }), f('description', 'longtext'),
-    // event_date (date précise, événement ponctuel) existe en base mais n'est lu nulle part côté app — le
-    // calendrier n'affiche que mois+jour, chaque année. Le montrer dans le formulaire ferait croire qu'il a
-    // un effet ; masqué tant que ce n'est pas réellement pris en charge.
-    f('month', 'select', { choices: MONTHS, list: true, required: true, section: 'Date', help: "Affiché chaque année à cette date (l'app ne gère pas encore les événements ponctuels à date unique)." }),
-    f('day', 'int', { list: true, required: true }), f('event_date', 'date', { hidden: true }),
-    f('recurring', 'bool', { hidden: true }),
+    f('recurring', 'bool', { list: true, short: 'Récurrent', section: 'Date', help: "Coché : affiché chaque année à la même date. Décoché : événement ponctuel à une date précise (une fois passée, il disparaît)." }),
+    f('event_date', 'date', { label: 'Date précise', conditionalRequired: { field: 'recurring', equals: false }, help: 'Requis pour un événement ponctuel (recurring décoché).' }),
+    f('month', 'select', { choices: MONTHS, list: true, conditionalRequired: { field: 'recurring', equals: true }, help: 'Requis pour un événement récurrent.' }),
+    f('day', 'int', { list: true, conditionalRequired: { field: 'recurring', equals: true } }),
     f('status', 'select', { choices: STATUS_CONTENT, list: true, section: 'Classement' }), f('country', 'country', { list: true }),
     f('location', 'text', { section: 'Lieu et lien' }), f('link', 'text', { urlCheck: true, help: 'URL complète (https://…).' })] },
   { name: 'pages', label: 'Pages (aide, CGU…)', group: 'Contenus', section: 'pages', perm: 'contents.read', write: 'contents.write', deletable: true, search: true, preview: 'page', excerpt: 'body',

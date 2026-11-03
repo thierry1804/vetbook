@@ -18,6 +18,7 @@ import { mountAdminUsers } from './admins.js';
 import { mountMeta } from './meta.js';
 import { mountImport } from './import.js';
 import { mountAi } from './ai.js';
+import { mountEventsImport } from './events-import.js';
 import { mountSettingsTyped } from './settings-typed.js';
 import { mountOperations } from './operations.js';
 import { mountJobs } from './jobs.js';
@@ -456,6 +457,7 @@ export function buildAdminRouter() {
   mountMeta(router);
   mountImport(router);
   mountAi(router);
+  mountEventsImport(router);
   mountSettingsTyped(router);
   mountJobs(router);
   mountOperations(router);

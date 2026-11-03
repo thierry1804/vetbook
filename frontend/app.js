@@ -9176,6 +9176,12 @@
     }
 
     DEFAULT_DOG_EVENTS.forEach(function (evt) {
+      if (evt.date) {
+        var oneOffDt = new Date(evt.date + 'T00:00:00');
+        if (oneOffDt < from || oneOffDt > to) return;
+        events.push({ uid: 'vetbook-dogevent-' + evt.id, summary: evt.title, desc: evt.description || '', isoDate: evt.date });
+        return;
+      }
       for (var ey = from.getFullYear() - 1; ey <= to.getFullYear() + 1; ey++) {
         var edt = new Date(ey, evt.month - 1, evt.day);
         if (edt < from || edt > to) continue;
@@ -9277,7 +9283,13 @@
       }
       if (filled(c.events)) {
         var evs = c.events.filter(refCountryOk);
-        DEFAULT_DOG_EVENTS = evs.length ? evs.map(function (e, i) { return { id: e.id || i + 1, title: e.title, month: e.month, day: e.day, description: e.description || '', recurring: e.recurring !== false }; }) : EMBEDDED.events;
+        var todayIsoForEvents = new Date().toISOString().slice(0, 10);
+        DEFAULT_DOG_EVENTS = evs.length ? evs.map(function (e, i) {
+          var oneOff = e.recurring === false && e.date;
+          var m = e.month, d = e.day;
+          if (oneOff) { var p = e.date.split('-'); m = parseInt(p[1], 10); d = parseInt(p[2], 10); }
+          return { id: e.id || i + 1, title: e.title, month: m, day: d, description: e.description || '', recurring: !oneOff, date: oneOff ? e.date : null };
+        }).filter(function (e) { return !e.date || e.date >= todayIsoForEvents; }) : EMBEDDED.events;
       }
       var R = c.registries || {};
       [['LOF', function (re) { LOF_PATTERN = re; }], ['LOMAD', function (re) { LOMAD_PATTERN = re; }]].forEach(function (pair) {
