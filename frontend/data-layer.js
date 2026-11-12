@@ -266,6 +266,11 @@
     if (!configured) return Promise.reject(new Error('API non configurée.'));
     if (!currentSession) return Promise.reject(new Error('Non connecté.'));
     var state = readLocal();
+    // L'animal vide créé au lancement quand il n'y a encore aucune donnée (app.js, init) n'est qu'un support
+    // d'affichage local : pets.name est NOT NULL côté serveur, l'envoyer ferait échouer toute la synchro.
+    if (state && Array.isArray(state.animals)) {
+      state.animals = state.animals.filter(function (w) { return w && w.animal && String(w.animal.name || '').trim(); });
+    }
     var hasAnimals = state && Array.isArray(state.animals) && state.animals.length > 0;
     var hasOwner = !!(state && state.owner && Object.keys(state.owner).some(function (k) { return state.owner[k]; }));
     if (!hasAnimals && !hasOwner) {
