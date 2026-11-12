@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build.mjs",
-    "test:browser": "npm run build && node tests/accessibility-smoke.mjs",
+    "test:browser": "npm run build && node tests/accessibility-smoke.mjs && node tests/booklet-scan-smoke.mjs",
     "lint": "eslint .",
     "test:e2e": "node tests/e2e-stack.mjs"
   },

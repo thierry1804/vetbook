@@ -440,6 +440,7 @@
               </div>
             </div>
           </div>
+          <button type="button" class="btn-scan" id="btn-scan-booklet-vaccins" data-feature="booklet_scan" onclick="app.scanBooklet()"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
           <button type="button" class="btn-add" onclick="app.openModal('addVaccin')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="vaccine-cards"></div>
@@ -478,6 +479,7 @@
               </div>
             </div>
           </div>
+          <button type="button" class="btn-scan" id="btn-scan-booklet-deworming" data-feature="booklet_scan" onclick="app.scanBooklet()"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
           <button type="button" class="btn-add" onclick="app.openModal('addDeworming')"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="deworming-cards"></div>
@@ -910,6 +912,7 @@
             <button type="button" class="qa__item" data-fab="deworming"><span class="qa__icon" data-ico="pill"></span><span class="qa__label">Déparasitage</span></button>
             <button type="button" class="qa__item" data-fab="consult"><span class="qa__icon" data-ico="stethoscope"></span><span class="qa__label">Consultation</span></button>
             <button type="button" class="qa__item" data-fab="hygiene"><span class="qa__icon" data-ico="droplet"></span><span class="qa__label">Hygiène</span></button>
+            <button type="button" class="qa__item" data-fab="scan"><span class="qa__icon" data-ico="camera"></span><span class="qa__label">Scanner le carnet</span></button>
           </div>
         </section>
         <section class="qa__group" aria-labelledby="qa-g2">
@@ -1398,6 +1401,14 @@
   </div>
 
   <!-- Hygiene modals -->
+  <div class="modal-overlay" id="modal-scanBooklet" aria-hidden="true" role="dialog" aria-labelledby="modal-scanBooklet-title">
+    <div class="modal modal--booklet" role="document">
+      <h2 class="modal-title" id="modal-scanBooklet-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</h2>
+      <input type="file" id="booklet-file" accept="image/*" capture="environment" hidden>
+      <div id="booklet-body" aria-live="polite"></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-addHygiene" aria-hidden="true" role="dialog" aria-labelledby="modal-addHygiene-title">
     <div class="modal" role="document">
       <h2 class="modal-title" id="modal-addHygiene-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg> Ajouter un Soin d'Hygiène</h2>

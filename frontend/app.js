@@ -4650,6 +4650,7 @@
   var modalLastFocused = null;
 
   function closeModal(name) {
+    if (name === 'scanBooklet') abortBookletScan();
     var overlay = document.getElementById('modal-' + name);
     if (overlay) {
       overlay.classList.remove('open');
@@ -8652,7 +8653,7 @@
   // Un seul panneau (#quick-add) pour deux déclencheurs : le bouton flottant
   // « Ajouter » (desktop ≥ 1024 px) et le « + » central de la barre basse
   // (mobile/tablette). Le CSS choisit popover ou feuille du bas.
-  var QUICK_ADD_TAB = { vaccin: 'vaccins', deworming: 'deworming', hygiene: 'hygiene', consult: 'consultations', weight: 'poids', meal: 'nutrition', activity: 'activites', note: 'suivi', photo: 'photos' };
+  var QUICK_ADD_TAB = { scan: 'vaccins', vaccin: 'vaccins', deworming: 'deworming', hygiene: 'hygiene', consult: 'consultations', weight: 'poids', meal: 'nutrition', activity: 'activites', note: 'suivi', photo: 'photos' };
   var QUICK_ADD_MODAL = { vaccin: 'addVaccin', deworming: 'addDeworming', hygiene: 'addHygiene', consult: 'addConsult', weight: 'addWeight', meal: 'addMeal', activity: 'addActivity', note: 'addNote' };
 
   function setupFAB() {
@@ -8696,6 +8697,7 @@
         // sinon l'enregistrement se ferait sans que l'on voie où il atterrit.
         if (state.viewMode !== 'detail') showDetail({ tab: QUICK_ADD_TAB[action] || 'profil', nav: 'pets' });
         if (action === 'photo') triggerPhotoUpload();
+        else if (action === 'scan') startBookletScan();
         else if (QUICK_ADD_MODAL[action]) openModal(QUICK_ADD_MODAL[action]);
       });
     });
@@ -9534,9 +9536,9 @@
     reproduction: 'reproduction', alertes: 'calendar_agenda', calendrier: 'calendar_agenda', calendar: 'calendar_agenda',
     annuaire: 'vet_directory', directory: 'vet_directory', animals: 'pet_directory', events: 'community_events', tips: 'community_tips', assistant: 'ai_assistant'
   };
-  var FAB_FEATURES = { weight: 'weight_tracking', vaccin: 'health_records', deworming: 'health_records', consult: 'consultations', hygiene: 'hygiene_care', note: 'journal_notes', meal: 'nutrition_plan', activity: 'activities' };
+  var FAB_FEATURES = { scan: 'booklet_scan', weight: 'weight_tracking', vaccin: 'health_records', deworming: 'health_records', consult: 'consultations', hygiene: 'hygiene_care', note: 'journal_notes', meal: 'nutrition_plan', activity: 'activities' };
   var ACTION_FEATURES = { editPedigree: 'pedigree_edit', 'export-ics': 'export_pdf_ics', 'download-qr': 'qr_identity' };
-  var ID_FEATURES = { 'btn-export-ics': 'export_pdf_ics', 'btn-monthly-summary': 'monthly_summary', 'btn-ped-acym': 'acym_lookup', 'btn-ped-acym-open': 'acym_lookup', 'btn-add-tip': 'community_tips', 'btn-push-toggle': 'push_reminders', 'pet-tile-nutrition-go': 'nutrition_plan' };
+  var ID_FEATURES = { 'btn-scan-booklet-vaccins': 'booklet_scan', 'btn-scan-booklet-deworming': 'booklet_scan', 'btn-export-ics': 'export_pdf_ics', 'btn-monthly-summary': 'monthly_summary', 'btn-ped-acym': 'acym_lookup', 'btn-ped-acym-open': 'acym_lookup', 'btn-add-tip': 'community_tips', 'btn-push-toggle': 'push_reminders', 'pet-tile-nutrition-go': 'nutrition_plan' };
   var GATED_MODALS = {
     addVaccin: 'health_records', editVaccin: 'health_records', addDeworming: 'health_records', editDeworming: 'health_records',
     addWeight: 'weight_tracking', editWeight: 'weight_tracking', addHeight: 'weight_tracking', editHeight: 'weight_tracking',
@@ -9544,7 +9546,7 @@
     addNote: 'journal_notes', editNote: 'journal_notes', addHygiene: 'hygiene_care', editHygiene: 'hygiene_care',
     addHeatCycle: 'heat_cycles', editHeatCycle: 'heat_cycles', addMating: 'reproduction', editMating: 'reproduction',
     addMeal: 'nutrition_plan', editMeal: 'nutrition_plan', editNutritionPlan: 'nutrition_plan', addActivity: 'activities', editActivity: 'activities',
-    monthlySummary: 'monthly_summary', pushSettings: 'push_reminders', addTip: 'community_tips'
+    scanBooklet: 'booklet_scan', monthlySummary: 'monthly_summary', pushSettings: 'push_reminders', addTip: 'community_tips'
   };
   var GATED_TABS = ROUTE_FEATURES;
   // Pose data-feature sur toutes les entrées concernées, y compris celles créées dynamiquement.
@@ -10286,6 +10288,7 @@
 
     // Setup features
     setupFAB();
+    setupBookletScan();
     setupSnoozePicker();
     setupQuickDateButtons();
     setupSortableHeaders();
@@ -10474,8 +10477,232 @@
     });
   }
 
+  // ——— Lecture du carnet par photo ———————————————————————————————
+  // La photo part au modèle de vision (POST /api/ai/booklet-scan), qui ne renvoie que des propositions :
+  // rien n'est enregistré tant que le propriétaire n'a pas validé l'écran de vérification. Tout le
+  // parcours écrit dans l'animal ouvert au départ (booklet.animalId), même si l'affichage change entre-temps.
+  var BOOKLET_GROUPS = [
+    { kind: 'vaccine', label: 'Vaccins' }, { kind: 'deworming', label: 'Déparasitage' },
+    { kind: 'hygiene', label: 'Hygiène' }, { kind: 'weight', label: 'Poids' }
+  ];
+  var BOOKLET_MAX_SIDE = 1600;
+  var booklet = { animalId: null, controller: null, entries: [], result: null };
+
+  function bookletKey(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function isIsoDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+
+  function resizeBookletPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, BOOKLET_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function (blob) { if (blob) resolve(blob); else reject(new Error('FORMAT')); }, 'image/jpeg', 0.8);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('FORMAT')); };
+      img.src = url;
+    });
+  }
+
+  function markBookletDuplicates(entries, wrap) {
+    var existing = {
+      vaccine: (wrap.vaccines || []).map(function (v) { return v.date + '|' + bookletKey(v.name); }),
+      deworming: (wrap.dewormings || []).map(function (d) { return d.date + '|' + bookletKey(d.name); }),
+      hygiene: (wrap.hygiene || []).map(function (h) { return h.date + '|' + bookletKey(h.type); })
+    };
+    var weights = (wrap.animal && wrap.animal.weightHistory) || [];
+    return entries.map(function (e) {
+      var dup = e.kind === 'weight'
+        ? weights.some(function (w) { return w.date === e.date && Math.abs(Number(w.weight) - Number(e.weightKg)) <= 0.1; })
+        : (existing[e.kind] || []).indexOf(e.date + '|' + bookletKey(e.name)) !== -1;
+      return Object.assign({}, e, { duplicate: dup });
+    });
+  }
+
+  function saveBookletEntries(animalId, entries) {
+    var wrap = state.animals.find(function (a) { return a.id === animalId; });
+    if (!wrap) return 0;
+    ['vaccines', 'dewormings', 'hygiene'].forEach(function (k) { if (!Array.isArray(wrap[k])) wrap[k] = []; });
+    if (!Array.isArray(wrap.animal.weightHistory)) wrap.animal.weightHistory = [];
+    var added = 0;
+    entries.forEach(function (e) {
+      var freq = e.frequencyDays ? Number(e.frequencyDays) : '';
+      if (e.kind === 'vaccine') wrap.vaccines.push({ id: state.nextId++, date: e.date, name: e.name, next: e.next || '', frequencyDays: freq, vet: e.vet || '' });
+      else if (e.kind === 'deworming') wrap.dewormings.push({ id: state.nextId++, date: e.date, name: e.name, next: e.next || '', frequencyDays: freq, type: e.type || 'interne' });
+      else if (e.kind === 'hygiene') wrap.hygiene.push({ id: state.nextId++, type: e.name, date: e.date, next: e.next || '', frequencyDays: freq, notes: '' });
+      else if (e.kind === 'weight') wrap.animal.weightHistory.push({ id: state.nextId++, date: e.date, weight: Number(e.weightKg) });
+      else return;
+      added++;
+    });
+    if (entries.some(function (e) { return e.kind === 'weight'; })) syncAnimalWeightFromHistory(wrap);
+    return added;
+  }
+
+  function bookletBody(html) { document.getElementById('booklet-body').innerHTML = html; }
+  var BOOKLET_PRIVACY = '<p class="booklet__privacy">La photo est envoyée à notre service de lecture puis n’est pas conservée.</p>';
+
+  function renderBookletPick(message) {
+    var wrap = state.animals.find(function (a) { return a.id === booklet.animalId; });
+    bookletBody(
+      (message ? '<p class="booklet__error" role="alert">' + escapeHtml(message) + '</p>' : '<p class="booklet__intro">Photographie une page du carnet de <strong>' + escapeHtml(wrap ? wrap.animal.name : '') + '</strong> : vaccins, déparasitages, soins et pesées. Tu vérifieras tout avant l’enregistrement.</p>')
+      + BOOKLET_PRIVACY
+      + '<div class="modal-actions"><button type="button" class="btn-cancel" data-booklet-cancel>Annuler</button>'
+      + '<button type="button" class="btn-primary" data-booklet-shoot>' + (message ? 'Reprendre la photo' : 'Prendre la photo') + '</button></div>'
+    );
+  }
+
+  function renderBookletLoading() {
+    bookletBody('<div class="booklet__loading" role="status"><span class="booklet__spinner" aria-hidden="true"></span>Lecture du carnet…</div>'
+      + '<div class="modal-actions"><button type="button" class="btn-cancel" data-booklet-cancel>Annuler</button></div>');
+  }
+
+  function bookletField(e, i, field, type, label) {
+    var value = field === 'weightKg' ? e.weightKg : (e[field] || '');
+    var doubt = (e.uncertain || []).indexOf(field) !== -1;
+    var inputType = type === 'date' && !isIsoDate(value) && value ? 'text' : type;
+    return '<label class="booklet__kv"><span>' + label + '</span><input class="booklet__input' + (doubt ? ' is-doubt' : '') + '" type="' + inputType + '"'
+      + (type === 'number' ? ' step="0.1" min="0.1" max="150" inputmode="decimal"' : '')
+      + ' data-booklet-field="' + field + '" data-i="' + i + '" value="' + escapeHtml(value) + '">'
+      + (doubt ? '<span class="booklet__tag booklet__tag--doubt">à vérifier</span>' : '') + '</label>';
+  }
+
+  function bookletRow(e, i) {
+    var title = e.kind === 'weight' ? bookletField(e, i, 'weightKg', 'number', 'Poids (kg)')
+      : bookletField(e, i, 'name', 'text', e.kind === 'hygiene' ? 'Soin' : 'Produit');
+    var fields = bookletField(e, i, 'date', 'date', e.kind === 'weight' ? 'Pesé le' : 'Fait le');
+    if (e.kind === 'deworming') {
+      fields += '<label class="booklet__kv"><span>Type</span><select class="booklet__input" data-booklet-field="type" data-i="' + i + '">'
+        + ['interne', 'externe'].map(function (t) { return '<option value="' + t + '"' + (e.type === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>';
+    }
+    if (e.kind !== 'weight') {
+      fields += bookletField(e, i, 'next', 'date', 'Rappel')
+        + (e.next ? '<span class="booklet__tag">' + (e.nextEstimated ? 'estimé : ' + e.frequencyDays + ' j' : 'écrit sur le carnet') + '</span>' : '');
+    }
+    if (e.kind === 'vaccine') fields += bookletField(e, i, 'vet', 'text', 'Vétérinaire');
+    return '<div class="booklet__row' + (e.duplicate ? ' is-off' : '') + '">'
+      + '<input type="checkbox" class="booklet__check" data-booklet-check="' + i + '"' + (e.duplicate ? '' : ' checked') + ' aria-label="Garder cette ligne">'
+      + '<div class="booklet__fields">' + title + fields + (e.duplicate ? '<span class="booklet__tag booklet__tag--dup">déjà enregistré</span>' : '') + '</div></div>';
+  }
+
+  function renderBookletReview() {
+    var e = booklet.entries;
+    var wrap = state.animals.find(function (a) { return a.id === booklet.animalId; });
+    var html = '<div data-booklet-review>';
+    if (booklet.result.mismatch) {
+      html += '<p class="booklet__warn" data-booklet-mismatch>Cette page semble concerner « ' + escapeHtml(booklet.result.petName || '?') + ' », pas ' + escapeHtml(wrap ? wrap.animal.name : '') + '.</p>';
+    }
+    if (e.some(function (x) { return x.uncertain && x.uncertain.length; })) {
+      html += '<p class="booklet__warn">Certaines valeurs sont difficiles à lire : elles sont surlignées. Vérifie-les sur le carnet.</p>';
+    }
+    BOOKLET_GROUPS.forEach(function (g) {
+      var rows = e.map(function (x, i) { return x.kind === g.kind && !x.duplicate ? bookletRow(x, i) : ''; }).join('');
+      if (rows) html += '<section class="booklet__group" data-booklet-group="' + g.kind + '"><h3>' + g.label + '</h3>' + rows + '</section>';
+    });
+    var dups = e.map(function (x, i) { return x.duplicate ? bookletRow(x, i) : ''; }).join('');
+    if (dups) html += '<section class="booklet__group" data-booklet-group="duplicate"><h3>Déjà dans l’app</h3>' + dups + '</section>';
+    html += '</div>' + BOOKLET_PRIVACY + '<div class="modal-actions"><button type="button" class="btn-cancel" data-booklet-shoot>Reprendre la photo</button>'
+      + '<button type="button" class="btn-primary" data-booklet-save></button></div>';
+    bookletBody(html);
+    updateBookletCount();
+  }
+
+  function bookletChecked() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-booklet-check]')).filter(function (c) { return c.checked; })
+      .map(function (c) { return Number(c.getAttribute('data-booklet-check')); });
+  }
+  function updateBookletCount() {
+    var n = bookletChecked().length;
+    var btn = document.querySelector('[data-booklet-save]');
+    if (!btn) return;
+    btn.textContent = 'Enregistrer ' + n + ' élément' + (n > 1 ? 's' : '');
+    btn.disabled = n === 0;
+  }
+
+  function startBookletScan() {
+    if (!hasFeature('booklet_scan')) { showFeatureLocked('booklet_scan'); return; }
+    if (!getCurrent()) return;
+    booklet.animalId = state.currentAnimalId;
+    renderBookletPick();
+    openModal('scanBooklet');
+  }
+
+  function abortBookletScan() {
+    if (booklet.controller) booklet.controller.abort();
+    booklet.controller = null;
+  }
+
+  function analyseBookletPhoto(file) {
+    var controller = new AbortController();
+    abortBookletScan();
+    booklet.controller = controller;
+    renderBookletLoading();
+    resizeBookletPhoto(file).then(function (blob) {
+      return window.cloudSync.scanBooklet(booklet.animalId, blob, controller.signal);
+    }).then(function (result) {
+      if (booklet.controller !== controller) return;
+      booklet.controller = null;
+      var wrap = state.animals.find(function (a) { return a.id === booklet.animalId; });
+      booklet.result = result;
+      booklet.entries = markBookletDuplicates(result.entries || [], wrap);
+      renderBookletReview();
+    }).catch(function (err) {
+      if (booklet.controller !== controller || (err && err.name === 'AbortError')) return;
+      booklet.controller = null;
+      if (err && err.status === 402) { closeModal('scanBooklet'); showFeatureLocked('booklet_scan'); return; }
+      var msg = err && err.message === 'FORMAT' ? 'Ce format de photo n’est pas pris en charge. Prends la photo avec l’appareil, ou choisis un JPEG ou un PNG.'
+        : err && err.message === 'Non connecté.' ? 'Connecte-toi pour utiliser la lecture du carnet.'
+        : (err && err.message) || 'La lecture du carnet a échoué.';
+      renderBookletPick(msg);
+    });
+  }
+
+  function saveBookletReview() {
+    var out = bookletChecked().map(function (i) {
+      var e = Object.assign({}, booklet.entries[i]);
+      document.querySelectorAll('[data-booklet-field][data-i="' + i + '"]').forEach(function (el) {
+        var f = el.getAttribute('data-booklet-field');
+        e[f] = f === 'weightKg' ? parseFloat(String(el.value).replace(',', '.')) : el.value.trim();
+      });
+      return e;
+    });
+    var bad = out.find(function (e) { return !isIsoDate(e.date) || (e.kind === 'weight' ? !(e.weightKg > 0 && e.weightKg <= 150) : !e.name); });
+    if (bad) { showToast(bad.kind === 'weight' && isIsoDate(bad.date) ? 'Corrige le poids avant d’enregistrer.' : 'Corrige la date ou le nom surligné avant d’enregistrer.', 'error'); return; }
+    var wrap = state.animals.find(function (a) { return a.id === booklet.animalId; });
+    var n = saveBookletEntries(booklet.animalId, out);
+    closeModal('scanBooklet');
+    saveState(); refreshAll();
+    showToast(n + ' élément' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : '') + ' au carnet de ' + (wrap ? wrap.animal.name : ''), 'success');
+  }
+
+  function setupBookletScan() {
+    var input = document.getElementById('booklet-file');
+    var body = document.getElementById('booklet-body');
+    if (!input || !body) return;
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      input.value = '';
+      if (file) analyseBookletPhoto(file);
+    });
+    body.addEventListener('click', function (e) {
+      if (e.target.closest('[data-booklet-shoot]')) input.click();
+      else if (e.target.closest('[data-booklet-cancel]')) closeModal('scanBooklet');
+      else if (e.target.closest('[data-booklet-save]')) saveBookletReview();
+    });
+    body.addEventListener('change', function (e) {
+      if (!e.target.matches('[data-booklet-check]')) return;
+      e.target.closest('.booklet__row').classList.toggle('is-off', !e.target.checked);
+      updateBookletCount();
+    });
+  }
+
   window.app = {
     openModal: openModal,
+    scanBooklet: startBookletScan,
     closeModal: closeModal,
     switchTab: switchTab,
     showCommunity: showCommunity,
@@ -10489,6 +10716,9 @@
     // Contexte pour account.js (page « Compte & paramètres »).
     _ctx: {
       getState: function () { return state; },
+      resizeBookletPhoto: resizeBookletPhoto,
+      markBookletDuplicates: markBookletDuplicates,
+      saveBookletEntries: saveBookletEntries,
       getOwner: getOwner,
       saveState: saveState,
       showToast: showToast,

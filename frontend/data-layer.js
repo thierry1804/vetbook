@@ -324,6 +324,15 @@
     return apiFetch('/api/files', { method: 'POST', body: fd, headers: {} });
   }
 
+  // Lecture d'une page du carnet par le modèle de vision : renvoie des propositions, rien n'est enregistré.
+  function scanBooklet(petLocalId, blob, signal) {
+    if (!configured || !currentSession) return Promise.reject(new Error('Non connecté.'));
+    var fd = new FormData();
+    fd.append('petLocalId', String(petLocalId));
+    fd.append('photo', blob, 'carnet.jpg');
+    return apiFetch('/api/ai/booklet-scan', { method: 'POST', body: fd, headers: {}, signal: signal });
+  }
+
   function getPhotoUrl(serverId) {
     return apiBase + '/api/files/' + serverId;
   }
@@ -349,6 +358,7 @@
     getDogEventsReminderPref: getDogEventsReminderPref,
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
+    scanBooklet: scanBooklet,
     getPhotoUrl: getPhotoUrl,
     apiUrl: apiUrl,
     getReference: getReference,
