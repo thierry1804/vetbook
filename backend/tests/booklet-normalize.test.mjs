@@ -89,3 +89,26 @@ test('le prompt décrit le contrat JSON et les quatre types', () => {
   for (const k of BOOKLET_KINDS) assert.ok(p.includes(k));
   assert.ok(p.includes('AAAA-MM-JJ') && p.includes('uncertain') && p.includes('Rex'));
 });
+
+test('kind lu en majuscules ou avec des espaces est accepté', () => {
+  const r = normalizeBookletResult({ entries: [{ kind: ' Vaccine ', date: '2026-09-12', name: 'Nobivac' }, { kind: 'WEIGHT', date: '2026-09-12', weightKg: 12 }] }, { today });
+  assert.deepEqual(r.entries.map((e) => e.kind), ['vaccine', 'weight']);
+});
+
+test('un poids négatif ou précédé d’un signe moins n’est pas lu comme positif', () => {
+  const r = normalizeBookletResult({ entries: [{ kind: 'weight', date: '2026-09-12', weightKg: '-5' }, { kind: 'weight', date: '2026-09-12', weightKg: -5 }, { kind: 'weight', date: '2026-09-12', weightKg: '12,4 kg' }] }, { today });
+  assert.deepEqual(r.entries.map((e) => e.weightKg), [12.4]);
+});
+
+test('une année sur deux chiffres dans le futur lointain est lue au siècle précédent', () => {
+  assert.equal(parseBookletDate('12/09/98').iso, '1998-09-12');
+  assert.equal(parseBookletDate('12/09/26').iso, '2026-09-12');
+  assert.equal(parseBookletDate('12/09/04').iso, '2004-09-12');
+});
+
+test('un mois abrégé ambigu n’est pas deviné', () => {
+  assert.equal(parseBookletDate('12 jui 2026').iso, null);
+  assert.equal(parseBookletDate('12 juil 2026').iso, '2026-07-12');
+  assert.equal(parseBookletDate('12 juin 2026').iso, '2026-06-12');
+  assert.equal(parseBookletDate('12 sept. 2026').iso, '2026-09-12');
+});

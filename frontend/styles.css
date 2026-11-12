@@ -8975,7 +8975,7 @@ form.pet-find + .pet-find { margin-top: 14px; } /* formulaire et résultats sont
 @media (prefers-reduced-motion: reduce) { .booklet__spinner { animation: none; } }
 .booklet__group { margin-top: 14px; }
 .booklet__group h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-label); margin: 0 0 6px; }
-.booklet__row { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.booklet__row { display: flex; gap: 10px; align-items: flex-start; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
 .booklet__row.is-off { background: var(--warm-gray); opacity: .7; }
 .booklet__check { width: 20px; height: 20px; margin-top: 4px; flex: none; accent-color: var(--brand); }
 .booklet__fields { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; min-width: 0; flex: 1; }

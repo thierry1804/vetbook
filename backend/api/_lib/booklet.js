@@ -77,20 +77,24 @@ export function parseBookletDate(raw) {
   if (m) { out.iso = isoIfValid(+m[1], +m[2], +m[3]); return out; }
   m = src.match(/^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{2}|\d{4})$/);
   if (m) {
-    const year = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+    let year = Number(m[3]);
+    // Année sur deux chiffres : 20xx, sauf si cela tombe dans le futur lointain (98 → 1998, pas 2098).
+    if (m[3].length === 2) year = 2000 + year > new Date().getUTCFullYear() + 1 ? 1900 + year : 2000 + year;
     out.iso = isoIfValid(year, +m[2], +m[1]);
     return out;
   }
   m = fold(src).match(/^(\d{1,2})(?:er)?\s+([a-z]+)\.?\s+(\d{4})$/);
   if (m) {
-    const month = m[2].length >= 3 ? MONTHS.findIndex((name) => name.startsWith(m[2])) : -1;
-    if (month !== -1) out.iso = isoIfValid(+m[3], month + 1, +m[1]);
+    // Un préfixe qui convient à deux mois (« jui » : juin ou juillet) n'est pas deviné : la date reste à vérifier.
+    const candidates = m[2].length >= 3 ? MONTHS.filter((name) => name.startsWith(m[2])) : [];
+    if (candidates.length === 1) out.iso = isoIfValid(+m[3], MONTHS.indexOf(candidates[0]) + 1, +m[1]);
   }
   return out;
 }
 
 function parseWeight(v) {
-  const n = typeof v === 'number' ? v : Number(String(v || '').replace(',', '.').replace(/[^\d.]/g, ''));
+  // « -5 » n'est pas un poids de 5 kg : on ne retire que le texte autour du nombre, jamais le signe.
+  const n = typeof v === 'number' ? v : (/^\s*-/.test(String(v || '')) ? NaN : Number(String(v || '').replace(',', '.').replace(/[^\d.]/g, '')));
   return Number.isFinite(n) && n >= WEIGHT_MIN && n <= WEIGHT_MAX ? Math.round(n * 100) / 100 : null;
 }
 
@@ -105,8 +109,10 @@ function matchHygiene(name, types) {
   return best || name;
 }
 
-function normalizeEntry(e, today, hygieneTypes) {
-  if (!e || typeof e !== 'object' || !BOOKLET_KINDS.includes(e.kind)) return null;
+function normalizeEntry(raw, today, hygieneTypes) {
+  if (!raw || typeof raw !== 'object') return null;
+  const e = { ...raw, kind: typeof raw.kind === 'string' ? raw.kind.trim().toLowerCase() : raw.kind };
+  if (!BOOKLET_KINDS.includes(e.kind)) return null;
   const uncertain = new Set(Array.isArray(e.uncertain) ? e.uncertain.filter((f) => UNCERTAIN_FIELDS.includes(f)) : []);
   const parsed = parseBookletDate(e.date);
   const date = parsed.iso || parsed.raw;

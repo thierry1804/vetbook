@@ -5,6 +5,7 @@ import { withTransaction } from '../_lib/db.js';
 import { requireAdmin, audit, requireReason } from '../_lib/admin-auth.js';
 import { getAiUsage } from '../_lib/ai-usage.js';
 import { encryptSecret } from '../_lib/crypto.js';
+import { extractJson } from '../_lib/booklet.js';
 import { DEFAULT_MODEL, DEFAULT_VISION_MODEL, DEFAULT_SYSTEM_PROMPT, getAiConfig, resolveApiKey, callOpenRouter, buildMessages } from '../_lib/ai.js';
 
 // Carré turquoise 16×16 (PNG) pour le test de lecture d'image du backoffice.
@@ -64,11 +65,13 @@ export function mountAi(router) {
       if (req.body?.vision === true) {
         // Image d'essai embarquée : vérifie que le modèle choisi accepte bien les images.
         const visionModel = (typeof req.body?.visionModel === 'string' && req.body.visionModel.trim()) || cfg.visionModel;
-        const reply = await callOpenRouter({ apiKey, model: visionModel, timeoutMs: 30000, source: 'admin', messages: [{ role: 'user', content: [
-          { type: 'text', text: "Décris cette image en une phrase, en français." },
+        // Même forme d'appel que la vraie lecture (réponse JSON demandée) : un modèle qui refuse response_format échoue ici aussi.
+        const content = await callOpenRouter({ apiKey, model: visionModel, timeoutMs: 30000, source: 'admin', temperature: 0, maxTokens: 300, responseFormat: { type: 'json_object' }, messages: [{ role: 'user', content: [
+          { type: 'text', text: 'Décris cette image en une phrase, en français. Réponds uniquement par un objet JSON : {"description":"ta phrase"}.' },
           { type: 'image_url', image_url: { url: `data:image/png;base64,${TEST_IMAGE_PNG}` } },
         ] }] });
-        res.json({ ok: true, reply });
+        const parsed = extractJson(content);
+        res.json({ ok: true, reply: (parsed && typeof parsed.description === 'string' && parsed.description) || content });
         return;
       }
       const model = (typeof req.body?.model === 'string' && req.body.model.trim()) || cfg.model;

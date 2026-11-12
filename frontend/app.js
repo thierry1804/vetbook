@@ -4410,7 +4410,15 @@
       var hid = uiState.editHygieneId;
       var hEntry = Array.isArray(data.hygiene) ? data.hygiene.find(function (x) { return x.id === hid; }) : null;
       if (!hEntry) return;
-      document.getElementById('ehy-type').value = hEntry.type || HYGIENE_TYPES[0];
+      var ehyType = document.getElementById('ehy-type');
+      // Un soin hors liste (ex. ajouté par la lecture du carnet) reste sélectionnable : on l'ajoute au <select>.
+      Array.prototype.slice.call(ehyType.querySelectorAll('option[data-extra]')).forEach(function (o) { o.remove(); });
+      if (hEntry.type && !Array.prototype.some.call(ehyType.options, function (o) { return o.value === hEntry.type; })) {
+        var extra = document.createElement('option');
+        extra.value = hEntry.type; extra.textContent = hEntry.type; extra.setAttribute('data-extra', '');
+        ehyType.appendChild(extra);
+      }
+      ehyType.value = hEntry.type || HYGIENE_TYPES[0];
       document.getElementById('ehy-date').value = hEntry.date || '';
       document.getElementById('ehy-next').value = hEntry.next || '';
       document.getElementById('ehy-frequency').value = hEntry.frequencyDays != null ? String(hEntry.frequencyDays) : '';
@@ -10500,7 +10508,9 @@
     else {
       m = s.match(/^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{2}|\d{4})$/);
       if (!m) return '';
-      d = +m[1]; mo = +m[2]; y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+      d = +m[1]; mo = +m[2]; y = +m[3];
+      // Année sur deux chiffres : 20xx, sauf si cela tombe dans le futur lointain (98 → 1998, pas 2098).
+      if (m[3].length === 2) y = 2000 + y > new Date().getFullYear() + 1 ? 1900 + y : 2000 + y;
     }
     var t = new Date(Date.UTC(y, mo - 1, d));
     if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return '';
@@ -10532,10 +10542,15 @@
       hygiene: (wrap.hygiene || []).map(function (h) { return h.date + '|' + bookletKey(h.type); })
     };
     var weights = (wrap.animal && wrap.animal.weightHistory) || [];
+    // Une ligne lue deux fois dans la même analyse (page photographiée en double) compte aussi comme doublon.
+    var seen = [];
     return entries.map(function (e) {
+      var key = e.kind + '|' + e.date + '|' + (e.kind === 'weight' ? e.weightKg : bookletKey(e.name));
       var dup = e.kind === 'weight'
         ? weights.some(function (w) { return w.date === e.date && Math.abs(Number(w.weight) - Number(e.weightKg)) <= 0.1; })
         : (existing[e.kind] || []).indexOf(e.date + '|' + bookletKey(e.name)) !== -1;
+      if (!dup && seen.indexOf(key) !== -1) dup = true;
+      seen.push(key);
       return Object.assign({}, e, { duplicate: dup });
     });
   }
@@ -10670,7 +10685,8 @@
     }).catch(function (err) {
       if (booklet.controller !== controller || (err && err.name === 'AbortError')) return;
       booklet.controller = null;
-      if (err && err.status === 402) { closeModal('scanBooklet'); showFeatureLocked('booklet_scan'); return; }
+      // Le message « hors formule » est déjà affiché par l'événement applika:feature-locked (data-layer.js).
+      if (err && err.status === 402) { closeModal('scanBooklet'); return; }
       var msg = err instanceof TypeError ? 'Pas de connexion. Vérifie le réseau et réessaie.'
         : err && err.message === 'FORMAT' ? 'Ce format de photo n’est pas pris en charge. Prends la photo avec l’appareil, ou choisis un JPEG ou un PNG.'
         : err && err.message === 'Non connecté.' ? 'Connecte-toi pour utiliser la lecture du carnet.'

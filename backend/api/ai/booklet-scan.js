@@ -15,7 +15,7 @@ const NOTHING_READ = 'Aucun acte lisible sur cette photo. Essaie avec plus de lu
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_BYTES, files: 1 },
+  limits: { fileSize: MAX_BYTES, files: 1, fields: 5 },
   fileFilter(_req, file, cb) { cb(ALLOWED.has(file.mimetype) ? null : new Error('TYPE'), ALLOWED.has(file.mimetype)); },
 });
 const runMulter = (req, res) => new Promise((resolve, reject) => upload.single('photo')(req, res, (err) => (err ? reject(err) : resolve())));
@@ -45,7 +45,7 @@ export function makeBookletScan({ fetchImpl = fetch } = {}) {
     const pet = Number.isFinite(petLocalId) ? (await withClient((c) => c.query(
       'select name, species, chip from pets where user_id = $1 and local_id = $2', [session.userId, petLocalId]
     ))).rows[0] : null;
-    if (!pet) { res.status(404).json({ error: 'Animal introuvable.' }); return; }
+    if (!pet) { res.status(404).json({ error: 'Animal introuvable sur le serveur. S’il vient d’être ajouté, attends la synchronisation (quelques secondes) et réessaie.' }); return; }
 
     let content;
     const meta = {};

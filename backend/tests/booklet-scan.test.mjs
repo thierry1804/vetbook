@@ -44,6 +44,10 @@ const fakeFetch = async (_url, init) => {
   return new Response(JSON.stringify({ choices: [{ finish_reason: finishReason, message: { content: modelContent } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
 };
 
+// Le bouton de test du backoffice appelle fetch global : on intercepte seulement OpenRouter.
+const realFetch = globalThis.fetch;
+globalThis.fetch = (url, init) => (String(url).includes('openrouter.ai') ? fakeFetch(url, init) : realFetch(url, init));
+
 const adminRow = (await sql("insert into admin_users (email, name, password_hash, role_code) values ($1, 'QA', 'x', 'super_admin') returning id", [`${crypto.randomUUID()}@test.local`])).rows[0];
 const adminSession = (await sql("insert into admin_sessions (admin_id, expires_at) values ($1, now() + interval '1 hour') returning id", [adminRow.id])).rows[0];
 const adminCookie = `admin_session=${await signAdminToken(adminRow.id, adminSession.id)}`;
@@ -158,6 +162,32 @@ try {
     assert.equal(lastBody.model, 'fournisseur/modele-test');
     await admin('/ai-settings', { method: 'PUT', body: JSON.stringify({ enabled: true, visionModel: '', reason: 'Retour au défaut' }) });
     assert.equal((await admin('/ai-settings')).json.visionModel, DEFAULT_VISION_MODEL);
+  });
+
+  await test('animal inconnu du serveur : message qui parle de synchronisation', async () => {
+    const r = await scan(paid, { petLocalId: 999 });
+    assert.equal(r.status, 404);
+    assert.match(r.json.error, /synchronis/i);
+  });
+
+  await test('trop de champs dans l’envoi : refusé', async () => {
+    const form = new FormData();
+    form.append('petLocalId', '20');
+    for (let i = 0; i < 30; i++) form.append(`champ${i}`, 'x');
+    form.append('photo', new Blob([JPEG], { type: 'image/jpeg' }), 'carnet.jpg');
+    const before = calls;
+    const res = await realFetch(base + '/api/ai/booklet-scan', { method: 'POST', headers: { cookie: paid.cookie }, body: form });
+    assert.equal(res.status, 400);
+    assert.equal(calls, before);
+  });
+
+  await test('backoffice : le test de lecture d’image envoie response_format JSON et lit la description', async () => {
+    modelContent = '{"description":"Un petit carré rouge."}';
+    const res = await realFetch(base + '/api/admin/ai-settings/test', { method: 'POST', headers: { cookie: adminCookie, 'content-type': 'application/json' }, body: JSON.stringify({ vision: true }) });
+    const json = await res.json();
+    assert.equal(res.status, 200, JSON.stringify(json));
+    assert.deepEqual(lastBody.response_format, { type: 'json_object' });
+    assert.equal(json.reply, 'Un petit carré rouge.');
   });
 
   await test('IA désactivée : 503', async () => {

@@ -25,6 +25,7 @@ const SCAN = {
 let scanCalls = 0;
 let scanDelayMs = 0;
 let scanBody = SCAN;
+let scanStatus = 200;
 const json = (res, status, value) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); };
 const server = createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
@@ -37,7 +38,7 @@ const server = createServer(async (req, res) => {
   if (pathname === '/api/ai/booklet-scan') {
     scanCalls++;
     if (scanDelayMs) await new Promise((r) => setTimeout(r, scanDelayMs));
-    return json(res, 200, scanBody);
+    return scanStatus === 402 ? json(res, 402, { error: 'Non inclus dans ta formule.', feature: 'booklet_scan' }) : json(res, 200, scanBody);
   }
   if (pathname.startsWith('/api/')) return json(res, 404, { error: 'Non disponible dans le test.' });
   if (pathname === '/config.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); res.end('window.__SUPABASE_CONFIG__={apiBaseUrl:"",vapidPublicKey:"",googleClientId:""};'); return; }
@@ -224,5 +225,75 @@ try {
     assert.equal(await page.getByText('Failed to fetch', { exact: false }).count(), 0);
     await context.close();
     console.log('OK erreur réseau : message clair');
+  }
+
+  {
+    // 402 : un seul message « non inclus », pas deux.
+    scanStatus = 402;
+    const { context, page } = await open('paid');
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('.toast-undo').first().waitFor();
+    await page.waitForTimeout(400);
+    assert.equal(await page.locator('.toast-undo').count(), 1);
+    scanStatus = 200;
+    await context.close();
+    console.log('OK 402 : un seul message');
+  }
+
+  {
+    // Deux lignes identiques dans la même analyse : la seconde est proposée comme doublon, décochée.
+    const same = { kind: 'vaccine', date: '2026-09-12', name: 'Nobivac DHPPi', vet: '', next: '', nextEstimated: false, frequencyDays: '', uncertain: [] };
+    scanBody = { ...SCAN, entries: [same, { ...same }, { ...same, name: 'Rage' }] };
+    const { context, page, errors } = await open('paid');
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('[data-booklet-review]').waitFor();
+    assert.equal(await page.locator('[data-booklet-group="vaccine"] .booklet__row').count(), 2);
+    assert.equal(await page.locator('[data-booklet-group="duplicate"] .booklet__row').count(), 1);
+    assert.match(await page.locator('[data-booklet-save]').textContent(), /Enregistrer 2 éléments/);
+    scanBody = SCAN;
+    assert.deepEqual(errors, []);
+    await context.close();
+    console.log('OK doublon dans la même analyse : décoché');
+  }
+
+  {
+    // Année sur deux chiffres saisie à la main : 98 → 1998, pas 2098.
+    scanBody = { ...SCAN, entries: [{ kind: 'vaccine', date: '1?/09/98', name: 'Nobivac DHPPi', vet: '', next: '', nextEstimated: false, frequencyDays: '', uncertain: ['date'] }] };
+    const { context, page } = await open('paid');
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('[data-booklet-review]').waitFor();
+    await page.locator('[data-booklet-field="date"][data-i="0"]').fill('12/09/98');
+    await page.locator('[data-booklet-save]').click();
+    assert.deepEqual((await stored(page)).animals.find((a) => a.id === 20).vaccines.map((v) => v.date), ['1998-09-12']);
+    scanBody = SCAN;
+    await context.close();
+    console.log('OK année sur deux chiffres : 98 devient 1998');
+  }
+
+  {
+    // Un soin hors liste (ajouté par la lecture du carnet) doit rester modifiable.
+    const { context, page } = await open('paid');
+    await page.evaluate(() => {
+      const st = window.app._ctx.getState();
+      st.animals.find((a) => a.id === 20).hygiene.push({ id: 77, type: 'Pédicure', date: '2026-09-01', next: '', frequencyDays: '', notes: '' });
+      window.app._ctx.saveState();
+      window.app.switchTab('hygiene');
+    });
+    await page.locator('[data-action="edit"][data-hygiene-id="77"]').click();
+    assert.equal(await page.locator('#ehy-type').inputValue(), 'Pédicure');
+    await context.close();
+    console.log('OK soin hors liste : l’édition le conserve');
+  }
+
+  {
+    // Thème sombre : la ligne du carnet suit la couleur de carte, pas un blanc en dur.
+    const { context, page } = await open('paid');
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('[data-booklet-review]').waitFor();
+    const bg = await page.locator('.booklet__row:not(.is-off)').first().evaluate((el) => getComputedStyle(el).backgroundColor);
+    assert.notEqual(bg, 'rgb(255, 255, 255)');
+    await context.close();
+    console.log('OK thème sombre : ligne du carnet sans blanc en dur');
   }
 } finally { await browser.close(); await new Promise((done) => server.close(done)); }
