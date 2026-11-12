@@ -1,0 +1,7 @@
+# Tâches planifiées d'App'lika. Installation (utilisateur autorisé à lancer Docker) :
+#   sed "s#/chemin/vetbook#$(pwd)#g" infra/cron/applika.cron | crontab -      (remplace SA crontab : ajouter à la main si elle n'est pas vide)
+# Avant : définir BACKUP_REMOTE (et HEALTHCHECK_PING_URL) dans .env, voir docs/RUNBOOK.md.
+SHELL=/bin/bash
+15 3 * * *  cd /chemin/vetbook && bash scripts/backup.sh        >> /var/log/applika-backup.log 2>&1
+30 3 * * 0  cd /chemin/vetbook && bash scripts/restore-check.sh >> /var/log/applika-backup.log 2>&1
+* * * * *   cd /chemin/vetbook && set -a && . ./.env && set +a && bash scripts/healthcheck.sh >/dev/null 2>> /var/log/applika-health.log

@@ -8,7 +8,7 @@
     "build": "node scripts/build.mjs",
     "test:browser": "npm run build && node tests/accessibility-smoke.mjs && node tests/booklet-scan-smoke.mjs",
     "lint": "eslint .",
-    "test:e2e": "node tests/e2e-stack.mjs"
+    "test:e2e": "node tests/e2e-stack.mjs && node tests/csp-stack.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
