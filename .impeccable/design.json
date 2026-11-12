@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "title": "Design System: VetBook",
+  "extensions": {
+    "colorMeta": {
+      "teal": {
+        "role": "primary",
+        "displayName": "Teal Vif",
+        "canonical": "oklch(62% 0.12 180)",
+        "tonalRamp": ["#042f2e", "#0f4f4a", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1"]
+      },
+      "teal-dark": {
+        "role": "primary",
+        "displayName": "Teal Profond",
+        "canonical": "oklch(48% 0.09 180)",
+        "tonalRamp": ["#022c2a", "#064e45", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#f0fdfa"]
+      },
+      "accent-amber": {
+        "role": "secondary",
+        "displayName": "Ambre Action",
+        "canonical": "oklch(75% 0.16 75)",
+        "tonalRamp": ["#451a03", "#78350f", "#b45309", "#f59e0b", "#fbbf24", "#fcd34d", "#fde68a", "#fef3c7", "#fffbeb"]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Crème Papier",
+        "canonical": "oklch(98% 0.01 85)",
+        "tonalRamp": ["#292524", "#44403c", "#78716c", "#a8a29e", "#d6d3d1", "#e7e2dc", "#f5f0eb", "#fdfaf6", "#ffffff"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Encre",
+        "canonical": "oklch(15% 0.01 50)",
+        "tonalRamp": ["#0c0a09", "#1c1917", "#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1", "#fafaf9"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Titres de page et chiffres du tableau de bord."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres de section et modales."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texte courant, formulaires, tableaux."
+      }
+    },
+    "shadows": [
+      {
+        "name": "header-sticky",
+        "value": "0 2px 12px rgba(15, 118, 110, 0.3)",
+        "purpose": "Ancrage de l'en-tête teal sticky."
+      },
+      {
+        "name": "tab-active",
+        "value": "0 1px 6px rgba(0, 0, 0, 0.1)",
+        "purpose": "Onglet sélectionné dans la barre d'onglets."
+      },
+      {
+        "name": "card-ambient",
+        "value": "0 2px 12px rgba(15, 118, 110, 0.12)",
+        "purpose": "Élévation ponctuelle sur cartes interactives."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "ease-out",
+        "purpose": "Transitions d'état (hover, focus) sur 200ms."
+      },
+      {
+        "name": "fade-in-up",
+        "value": "fadeInUp 0.3s ease-out both",
+        "purpose": "Entrée des cartes et sections au chargement."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action confirmée dans modales et formulaires.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary { background: #0f766e; color: #fff; padding: 12px 16px; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s ease-out; } .ds-btn-primary:hover { background: #0d9488; } .ds-btn-primary:focus-visible { outline: 2px solid #14b8a6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Accent Add Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "CTA d'ajout (+ Animal) dans l'en-tête.",
+      "html": "<button class=\"ds-btn-accent\">+ Animal</button>",
+      "css": ".ds-btn-accent { background: #f59e0b; color: #1c1917; padding: 8px 16px; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; font-size: 13px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s ease-out; } .ds-btn-accent:hover { background: #fbbf24; } .ds-btn-accent:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Annulation ou action secondaire.",
+      "html": "<button class=\"ds-btn-ghost\">Annuler</button>",
+      "css": ".ds-btn-ghost { background: #f5f0eb; color: #1c1917; padding: 12px 16px; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s ease-out; } .ds-btn-ghost:hover { background: #e7e2dc; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Champ de formulaire standard.",
+      "html": "<label class=\"ds-label\">Nom de l'animal</label><input class=\"ds-input\" type=\"text\" placeholder=\"Rex\" />",
+      "css": ".ds-label { display: block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 11px; font-weight: 600; color: #78716c; margin-bottom: 4px; } .ds-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e7e2dc; border-radius: 10px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #1c1917; background: #fdfaf6; outline: none; transition: border-color 0.2s ease-out; } .ds-input:focus { border-color: #0d9488; }"
+    },
+    {
+      "name": "Info Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Carte de donnée profil (label + valeur).",
+      "html": "<div class=\"ds-card\"><span class=\"ds-card-label\">Poids</span><span class=\"ds-card-value\">12 kg</span></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid #e7e2dc; border-radius: 12px; padding: 16px; } .ds-card-label { display: block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 11px; font-weight: 600; color: #78716c; margin-bottom: 4px; } .ds-card-value { font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; color: #1c1917; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-ok",
+      "description": "Pastille de statut vaccin / rappel.",
+      "html": "<span class=\"ds-status ds-status-ok\">À jour</span>",
+      "css": ".ds-status { display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; font-weight: 600; } .ds-status-ok { background: #dcfce7; color: #16a34a; } .ds-status-soon { background: #fef9c3; color: #ca8a04; } .ds-status-overdue { background: #fee2e2; color: #dc2626; }"
+    },
+    {
+      "name": "Tab Navigation",
+      "kind": "nav",
+      "refersTo": "card-default",
+      "description": "Barre d'onglets principale de l'app.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab ds-tab-active\">Profil</button><button class=\"ds-tab\">Vaccins</button><button class=\"ds-tab\">Photos</button></nav>",
+      "css": ".ds-tabs { display: flex; gap: 4px; background: #f5f0eb; border-radius: 12px; padding: 4px; } .ds-tab { flex: 0 0 auto; padding: 10px 12px; border: none; border-radius: 9px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #78716c; background: transparent; cursor: pointer; transition: color 0.2s ease-out, background 0.2s ease-out, box-shadow 0.2s ease-out; } .ds-tab:hover { color: #1c1917; } .ds-tab-active { background: #fff; color: #0f766e; font-weight: 600; box-shadow: 0 1px 6px rgba(0,0,0,0.1); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Compagnon Quotidien",
+    "overview": "VetBook se présente comme un compagnon de confiance pour le suivi santé des animaux — simple, clair, proche des applications animaux grand public, sans infantilisation ni froideur clinique.",
+    "keyCharacteristics": [
+      "Teal profond en en-tête et actions principales",
+      "Ambre réservé aux CTA d'ajout",
+      "Playfair + DM Sans — contraste éditorial léger",
+      "Profondeur hybride : plat au repos, ombre sur état actif",
+      "Statuts santé codés par couleur fonctionnelle"
+    ],
+    "rules": [
+      { "name": "The Action Amber Rule", "body": "L'ambre n'apparaît que sur les actions d'ajout ou de création.", "section": "colors" },
+      { "name": "The Teal Header Rule", "body": "Le teal profond vit dans l'en-tête et les actions confirmées.", "section": "colors" },
+      { "name": "The Serif Ceiling Rule", "body": "Playfair Display est réservé aux titres et chiffres d'accent.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Les cartes n'ont pas d'ombre au repos.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do utiliser le teal pour l'en-tête, les actions confirmées et l'onglet actif.",
+      "Do réserver l'ambre aux actions d'ajout et de création.",
+      "Do garder Playfair pour les titres et DM Sans pour les données.",
+      "Do maintenir WCAG 2.1 AA et des libellés en français simple."
+    ],
+    "donts": [
+      "Don't reproduire un dashboard SaaS générique.",
+      "Don't basculer vers une UI enfantine.",
+      "Don't adopter une ambiance clinique froide.",
+      "Don't tomber dans le look template IA."
+    ]
+  }
+}
