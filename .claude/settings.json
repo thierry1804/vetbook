@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run build)",
+      "Bash(npm run test:*)",
+      "Bash(npm run build --prefix *)",
+      "Bash(npx eslint *)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-file.sh",
+            "timeout": 60,
+            "statusMessage": "ESLint du fichier modifié"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-before-stop.sh",
+            "timeout": 180,
+            "statusMessage": "Vérification rapide (lint, unitaires, typecheck)"
+          }
+        ]
+      }
+    ]
+  }
+}
