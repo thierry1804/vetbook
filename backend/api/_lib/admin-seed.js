@@ -39,6 +39,7 @@ const FEATURES = [
   ['cloud_sync', 'Sauvegarde et synchronisation cloud', 'boolean', 'Partage et données'],
   ['practice_portal', 'Portail vétérinaire', 'boolean', 'Professionnels'],
   ['ai_assistant', 'Assistant IA (conseils santé et bien-être)', 'boolean', 'Assistant IA'],
+  ['booklet_scan', 'Lecture du carnet par photo', 'boolean', 'Assistant IA'],
   ['pet_directory', 'Recherche d’animaux visibles', 'boolean', 'Annuaire et communauté'],
   ['pet_messages', 'Messages entre propriétaires', 'boolean', 'Annuaire et communauté'],
 ];
@@ -47,7 +48,7 @@ const SPLIT_TARGETS = new Set(['nutrition_plan', 'activities', 'health_checkup']
 const SPLIT = { nutrition_activity_checkup: ['nutrition_plan', 'activities', 'health_checkup'] };
 // Fonctionnalités fermées par formule (tout le reste est ouvert) — valeurs de départ, modifiables dans le backoffice.
 const CLOSED = {
-  gratuit: ['push_reminders', 'email_reminders', 'sms_reminders', 'monthly_summary', 'reproduction', 'pedigree_edit', 'acym_lookup', 'export_pdf_ics', 'practice_portal', 'ai_assistant', 'pet_directory', 'pet_messages'],
+  gratuit: ['push_reminders', 'email_reminders', 'sms_reminders', 'monthly_summary', 'reproduction', 'pedigree_edit', 'acym_lookup', 'export_pdf_ics', 'practice_portal', 'ai_assistant', 'booklet_scan', 'pet_directory', 'pet_messages'],
   premium: ['reproduction', 'sms_reminders', 'practice_portal'],
   eleveur: ['sms_reminders', 'practice_portal'],
   cabinet: ['sms_reminders', 'reproduction', 'pedigree_edit', 'acym_lookup', 'export_pdf_ics'],
@@ -169,6 +170,16 @@ export async function seedAdminDefaults() {
         await c.query('insert into plan_features (plan_code, feature_code, enabled, quota) values ($1,$2,$3,null) on conflict (plan_code, feature_code) do nothing', [p.code, 'ai_assistant', enabled]);
       }
       await c.query("insert into app_settings (key, value) values ('seed_feature_ai_assistant_v1', 'true') on conflict (key) do nothing");
+    }
+    // Migration unique : « booklet_scan » (lecture du carnet par photo), même règle que l'assistant IA.
+    if ((await c.query("select 1 from app_settings where key = 'seed_feature_booklet_scan_v1'")).rowCount === 0) {
+      const plans = (await c.query('select code from plans')).rows;
+      for (const p of plans) {
+        const base = p.code.replace(/_annuel$/, '');
+        const enabled = !(CLOSED[base] || []).includes('booklet_scan');
+        await c.query('insert into plan_features (plan_code, feature_code, enabled, quota) values ($1,$2,$3,null) on conflict (plan_code, feature_code) do nothing', [p.code, 'booklet_scan', enabled]);
+      }
+      await c.query("insert into app_settings (key, value) values ('seed_feature_booklet_scan_v1', 'true') on conflict (key) do nothing");
     }
     // Recherche d'animaux et messages : fermés sur le gratuit, ouverts sur les formules payantes.
     if ((await c.query("select 1 from app_settings where key = 'seed_feature_pet_social_v1'")).rowCount === 0) {

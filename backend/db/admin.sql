@@ -418,6 +418,9 @@ create table if not exists ai_usage_log (
   http_status integer
 );
 create index if not exists ai_usage_created_idx on ai_usage_log (created_at);
+-- Lecture du carnet par photo : source « booklet » (contrainte élargie à chaque démarrage, idempotent).
+alter table ai_usage_log drop constraint if exists ai_usage_log_source_check;
+alter table ai_usage_log add constraint ai_usage_log_source_check check (source in ('chat', 'admin', 'booklet'));
 
 -- Subscription access workflow: additive migration, existing periods are preserved.
 alter table subscriptions add column if not exists version integer not null default 1;

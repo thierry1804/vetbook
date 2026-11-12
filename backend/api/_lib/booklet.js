@@ -116,3 +116,21 @@ export function normalizeBookletResult(raw, { today, hygieneTypes = [] } = {}) {
   const entries = (Array.isArray(src.entries) ? src.entries : []).map((e) => normalizeEntry(e, today, types)).filter(Boolean);
   return { petName: text(src.petName), chip: text(src.chip), entries };
 }
+
+const productKey = (s) => fold(s).replace(/[^a-z0-9]/g, '');
+const addDays = (iso, days) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
+
+// Rappel absent du carnet : estimé depuis l'intervalle par défaut du produit dans les référentiels
+// du backoffice, jamais inventé par le modèle. Signalé nextEstimated pour que l'écran le dise.
+export async function estimateReminders(client, entries, species) {
+  const tables = { vaccine: 'ref_vaccines', deworming: 'ref_antiparasitics' };
+  const intervals = {};
+  for (const [kind, table] of Object.entries(tables)) {
+    const { rows } = await client.query(`select name, default_interval_days from ${table} where species_code = $1 and default_interval_days > 0`, [species || '']);
+    intervals[kind] = new Map(rows.map((r) => [productKey(r.name), r.default_interval_days]));
+  }
+  return entries.map((e) => {
+    const days = intervals[e.kind] && !e.next && /^\d{4}-\d{2}-\d{2}$/.test(e.date) ? intervals[e.kind].get(productKey(e.name)) : null;
+    return days ? { ...e, next: addDays(e.date, days), frequencyDays: days, nextEstimated: true } : e;
+  });
+}

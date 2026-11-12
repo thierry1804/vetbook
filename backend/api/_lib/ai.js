@@ -8,6 +8,9 @@ import { decryptSecret } from './crypto.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3.1:free';
+// Lecture du carnet par photo : il faut un modèle multimodal (DEFAULT_MODEL ne lit pas les images).
+// Gemini Flash : bon en lecture manuscrite, rapide, et quelques dixièmes de centime par page.
+export const DEFAULT_VISION_MODEL = 'google/gemini-2.5-flash';
 export const DEFAULT_SYSTEM_PROMPT = "Tu es l'assistant conseil d'App'lika, une application de carnet de santé pour animaux de compagnie. "
   + "Tu aides les propriétaires sur l'alimentation, le comportement, l'entretien, les races et le bien-être général de leur animal. "
   + "Réponds en français, de façon chaleureuse et concrète.";
@@ -22,9 +25,10 @@ export async function getAiConfig(client) {
     getSetting(c, 'ai_model', DEFAULT_MODEL),
     getSetting(c, 'ai_system_prompt', DEFAULT_SYSTEM_PROMPT),
     getSetting(c, 'ai_api_key_enc', null),
+    getSetting(c, 'ai_vision_model', DEFAULT_VISION_MODEL),
   ]);
-  const [enabled, model, systemPrompt, apiKeyEnc] = client ? await run(client) : await withClient(run);
-  return { enabled: enabled === true, model, systemPrompt, hasApiKey: !!apiKeyEnc, apiKeyEnc };
+  const [enabled, model, systemPrompt, apiKeyEnc, visionModel] = client ? await run(client) : await withClient(run);
+  return { enabled: enabled === true, model, systemPrompt, hasApiKey: !!apiKeyEnc, apiKeyEnc, visionModel };
 }
 
 export function resolveApiKey(cfg) {
@@ -39,7 +43,7 @@ function isTransient(error) {
   return error.name === 'AbortError' || error.message === 'Réponse vide du modèle.';
 }
 
-async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl }) {
+async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat }) {
   const attemptId = await reserveAiAttempt({ source, model });
   let httpStatus = null;
   const controller = new AbortController();
@@ -54,7 +58,7 @@ async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, f
         'HTTP-Referer': process.env.APP_URL || 'https://vetbook.boss-etech.net',
         'X-Title': "App'lika",
       },
-      body: JSON.stringify({ model, messages, temperature: 0.6, max_tokens: 450 }),
+      body: JSON.stringify({ model, messages, temperature, max_tokens: maxTokens, ...(responseFormat ? { response_format: responseFormat } : {}) }),
     });
     httpStatus = res.status;
     const json = await res.json().catch(() => ({}));
@@ -74,12 +78,13 @@ async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, f
   }
 }
 
-export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000, source = 'chat', fetchImpl = fetch }) {
+export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000, source = 'chat', fetchImpl = fetch, temperature = 0.6, maxTokens = 450, responseFormat }) {
+  const opts = { apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat };
   try {
-    return await attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl });
+    return await attemptOpenRouter(opts);
   } catch (error) {
     if (!isTransient(error)) throw error;
-    return attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl });
+    return attemptOpenRouter(opts);
   }
 }
 
