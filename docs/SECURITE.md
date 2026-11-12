@@ -38,7 +38,12 @@ Cette procédure n'a pas été exécutée de bout en bout : à essayer d'abord s
 
 ## Images Docker
 
-MinIO est épinglé (`RELEASE.2025-09-07T16-13-09Z`, la version qui tournait) ; Dependabot (`docker`) propose les montées.
+MinIO reste sur `minio/minio:latest` : j'ai tenté de l'épingler (version `RELEASE.2025-09-07T16-13-09Z`, digest
+`sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e`, celle qui tourne ici) mais je n'ai **pas pu
+vérifier** depuis cette machine que ce tag ou ce digest se télécharge encore sur Docker Hub (le registre a refusé la
+requête, et MinIO a réduit la distribution de ses images). Un épinglage non vérifié casserait une nouvelle installation.
+À faire : sur une machine qui a accès au registre, `docker pull` du tag ci-dessus ; s'il existe, l'écrire dans
+`docker-compose.yml` ; sinon, copier l'image locale vers un registre à toi (`docker tag` puis `docker push`) et l'utiliser.
 Postgres reste sur `16-alpine` (version majeure fixe, correctifs mineurs automatiques).
 
 ## À faire (non traité ici)
