@@ -78,3 +78,20 @@ jobs:
       - name: Logs de la stack en cas d'échec
         if: failure()
         run: docker compose logs --tail 200
+
+  audit:
+    name: Audit des dépendances (production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Échoue sur une vulnérabilité haute ou critique des dépendances de production du backend, du front et de la racine.
+      # Le backoffice (admin/) est exclu : voir docs/SECURITE.md (tiptap, risque accepté, exploitable seulement par le personnel).
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: frontend
+

@@ -6446,7 +6446,7 @@
     var mer = rer * 1.6;
 
     // Plan card
-    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editNutritionPlan\')"') + '</div>' +
+    var planHtml = '<div class="nutrition-plan-card"><div class="card-header"><h3 class="section-title">' + ico('clipboard') + ' Plan nutritionnel</h3>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'data-open-modal="editNutritionPlan"') + '</div>' +
       '<div class="info-grid">' +
       '<div><span class="info-label">Marque aliment</span><span class="info-value">' + escapeHtml(plan.foodBrand || 'Non renseigné') + '</span></div>' +
       '<div><span class="info-label">Portion</span><span class="info-value">' + escapeHtml(plan.portionSize || 'Non renseigné') + '</span></div>' +
@@ -6564,7 +6564,7 @@
     var name = escapeHtml(data.animal.name || 'Animal');
     var chip = p.chipNumber || data.animal.chip || '';
 
-    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'onclick="app.openModal(\'editPedigree\')"') + '</div>';
+    var html = '<div class="card-header"><h2 class="section-title">' + ico('trophy', 18) + ' Pedigree</h2>' + iconOnlyBtn('btn-icon', 'edit', 'Modifier', 'data-open-modal="editPedigree"') + '</div>';
 
     if (p.registry && p.registry !== 'Non inscrit') {
       html += '<div class="pedigree-registry"><span class="badge">' + escapeHtml(p.registry) + '</span>';
@@ -9528,10 +9528,14 @@
   }
   // Premier lancement (ou pays jamais choisi) : écran de choix quand plusieurs pays sont ouverts.
   function maybePromptCountry(cfg) {
-    try { if (localStorage.getItem('vetbook_country_asked') || currentCountry()) return; } catch (e) { return; }
-    if (!cfg.countries || cfg.countries.length < 2 || !window.applikaAccount || !window.applikaAccount.chooseCountry) return;
-    if (!localStorage.getItem(ONBOARDING_KEY) && !state.animals.length) return; // l'introduction passe d'abord
-    window.applikaAccount.chooseCountry({ first: true });
+    // Sur un appareil neuf, on attend la fin de la restauration automatique : elle recharge la page.
+    var settled = window.cloudSync && window.cloudSync.whenStartupSettled ? window.cloudSync.whenStartupSettled() : Promise.resolve();
+    settled.then(function () {
+      try { if (localStorage.getItem('vetbook_country_asked') || currentCountry()) return; } catch (e) { return; }
+      if (!cfg.countries || cfg.countries.length < 2 || !window.applikaAccount || !window.applikaAccount.chooseCountry) return;
+      if (!localStorage.getItem(ONBOARDING_KEY) && !state.animals.length) return; // l'introduction passe d'abord
+      window.applikaAccount.chooseCountry({ first: true });
+    });
   }
 
   // Cadenas : les entrées d'une fonctionnalité hors formule sont marquées (le clic explique et propose les formules).
@@ -10297,6 +10301,7 @@
     // Setup features
     setupFAB();
     setupBookletScan();
+    setupInlineActions();
     setupSnoozePicker();
     setupQuickDateButtons();
     setupSortableHeaders();
@@ -10715,6 +10720,16 @@
     closeModal('scanBooklet');
     saveState(); refreshAll();
     showToast(n + ' élément' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : '') + ' au carnet de ' + (wrap ? wrap.animal.name : ''), 'success');
+  }
+
+  // Boutons déclarés dans le HTML : data-open-modal="nom" ouvre la fenêtre, data-scan-booklet lance la lecture du carnet.
+  // Pas d'attribut onclick en ligne : la politique de sécurité du contenu (CSP) interdit les scripts en ligne.
+  function setupInlineActions() {
+    document.addEventListener('click', function (e) {
+      var open = e.target.closest && e.target.closest('[data-open-modal]');
+      if (open) { openModal(open.getAttribute('data-open-modal')); return; }
+      if (e.target.closest && e.target.closest('[data-scan-booklet]')) startBookletScan();
+    });
   }
 
   // Corriger la date d'un acte recalcule le rappel tant qu'il est estimé ; le modifier à la main le fige.
