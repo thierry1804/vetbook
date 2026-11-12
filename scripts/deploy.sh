@@ -11,6 +11,7 @@ for f in ${COMPOSE_FILES:-docker-compose.yml docker-compose.prod.yml}; do FILES+
 compose() { docker compose "${FILES[@]}" "$@"; }
 
 previous="$(git rev-parse HEAD)"
+branch="$(git symbolic-ref -q --short HEAD || true)"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "Des modifications locales non commitées bloquent le déploiement." >&2; exit 1; }
 
 if [ "${SKIP_BACKUP:-0}" != "1" ]; then echo "› Sauvegarde avant déploiement"; bash scripts/backup.sh; fi
@@ -24,7 +25,9 @@ healthy() { compose up -d --build --wait && bash scripts/healthcheck.sh; }
 if healthy; then echo "OK déployé : $target"; exit 0; fi
 
 echo "! $target n'est pas sain : retour à ${previous:0:7}" >&2
-git checkout --quiet "$previous"
+# On rejoint la branche d'origine (jamais de HEAD détaché qui ferait échouer le prochain « git pull ») et on la
+# replace sur la version précédente.
+if [ -n "$branch" ]; then git checkout --quiet "$branch"; git reset --hard --quiet "$previous"; else git checkout --quiet "$previous"; fi
 if healthy; then echo "Retour effectué : ${previous:0:7} tourne. Une migration de base appliquée par $target n'est PAS annulée (voir docs/RUNBOOK.md)." >&2
 else echo "!! Le retour a échoué aussi : intervention manuelle (docs/RUNBOOK.md, « Incident »)." >&2; fi
 exit 1
