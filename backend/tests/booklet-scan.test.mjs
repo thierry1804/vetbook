@@ -9,6 +9,8 @@ import { signSessionToken } from '../api/_lib/auth.js';
 import { encryptSecret } from '../api/_lib/crypto.js';
 import { makeBookletScan } from '../api/ai/booklet-scan.js';
 import { DEFAULT_VISION_MODEL } from '../api/_lib/ai.js';
+import { signAdminToken } from '../api/_lib/admin-auth.js';
+import { buildAdminRouter } from '../api/admin/router.js';
 
 let count = 0;
 const test = async (name, fn) => { await fn(); console.log('OK', name); count++; };
@@ -41,8 +43,13 @@ const fakeFetch = async (_url, init) => {
   return new Response(JSON.stringify({ choices: [{ message: { content: modelContent } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
 };
 
+const adminRow = (await sql("insert into admin_users (email, name, password_hash, role_code) values ($1, 'QA', 'x', 'super_admin') returning id", [`${crypto.randomUUID()}@test.local`])).rows[0];
+const adminSession = (await sql("insert into admin_sessions (admin_id, expires_at) values ($1, now() + interval '1 hour') returning id", [adminRow.id])).rows[0];
+const adminCookie = `admin_session=${await signAdminToken(adminRow.id, adminSession.id)}`;
+
 const app = express();
 app.use(cookieParser());
+app.use('/api/admin', express.json(), buildAdminRouter());
 app.post('/api/ai/booklet-scan', makeBookletScan({ fetchImpl: fakeFetch }));
 const server = app.listen(0);
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -112,6 +119,25 @@ try {
     assert.equal(Number(written.n), 0);
     const usage = (await sql("select count(*)::int as n from ai_usage_log where source = 'booklet'")).rows[0];
     assert.ok(usage.n >= calls);
+  });
+
+  await test('backoffice : modèle de vision lu, modifié, audité et utilisé par l’analyse', async () => {
+    const admin = (path, init = {}) => fetch(base + '/api/admin' + path, { ...init, headers: { cookie: adminCookie, 'content-type': 'application/json' } })
+      .then(async (r) => ({ status: r.status, json: await r.json() }));
+    const before = await admin('/ai-settings');
+    assert.equal(before.status, 200);
+    assert.deepEqual([before.json.visionModel, before.json.defaultVisionModel], [DEFAULT_VISION_MODEL, DEFAULT_VISION_MODEL]);
+    const put = await admin('/ai-settings', { method: 'PUT', body: JSON.stringify({ enabled: true, visionModel: 'fournisseur/modele-test', reason: 'Test du modèle de vision' }) });
+    assert.equal(put.status, 200, JSON.stringify(put.json));
+    assert.equal((await admin('/ai-settings')).json.visionModel, 'fournisseur/modele-test');
+    const logged = (await sql("select before, after from admin_audit_log where action = 'ai.settings' order by id desc limit 1")).rows[0];
+    assert.equal(logged.after.visionModel, 'fournisseur/modele-test');
+    assert.equal(logged.before.visionModel, DEFAULT_VISION_MODEL);
+    modelContent = '{"entries":[{"kind":"weight","date":"12/09/2026","weightKg":12.4}]}';
+    assert.equal((await scan(paid)).status, 200);
+    assert.equal(lastBody.model, 'fournisseur/modele-test');
+    await admin('/ai-settings', { method: 'PUT', body: JSON.stringify({ enabled: true, visionModel: '', reason: 'Retour au défaut' }) });
+    assert.equal((await admin('/ai-settings')).json.visionModel, DEFAULT_VISION_MODEL);
   });
 
   await test('IA désactivée : 503', async () => {
