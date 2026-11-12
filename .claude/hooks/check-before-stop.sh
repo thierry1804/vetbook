@@ -4,7 +4,7 @@
 set -u
 input=$(cat)
 # Déjà relancé par ce hook : ne pas boucler, Claude a eu sa chance de corriger.
-[ "$(jq -r '.stop_hook_active // false' <<<"$input")" = "true" ] && exit 0
+grep -Eq '"stop_hook_active"[[:space:]]*:[[:space:]]*true' <<<"$input" && exit 0
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}" || exit 0
 git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 

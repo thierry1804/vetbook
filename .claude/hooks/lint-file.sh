@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PostToolUse (Edit|Write) : lint du fichier JS modifié. Exit 2 = erreurs renvoyées à Claude pour correction.
 set -u
-file=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty')
+# Node (prérequis du projet) plutôt que jq, absent de beaucoup de machines : sans lui le hook ne faisait rien en silence.
+file=$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{const j=JSON.parse(d);process.stdout.write((j.tool_input&&j.tool_input.file_path)||(j.tool_response&&j.tool_response.filePath)||"")}catch{}})')
 case "$file" in *.js|*.mjs) ;; *) exit 0 ;; esac
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}" || exit 0
 [ -f "$file" ] || exit 0
