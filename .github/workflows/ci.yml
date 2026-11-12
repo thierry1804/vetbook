@@ -88,10 +88,12 @@ jobs:
         with:
           node-version: 24
       # Échoue sur une vulnérabilité haute ou critique des dépendances de production du backend, du front et de la racine.
-      # Le backoffice (admin/) est exclu : voir docs/SECURITE.md (tiptap, risque accepté, exploitable seulement par le personnel).
+      # Seuil « high » : les 2 alertes modérées de react-router du backoffice sont un risque accepté (docs/SECURITE.md).
       - run: npm audit --omit=dev --audit-level=high
       - run: npm audit --omit=dev --audit-level=high
         working-directory: backend
       - run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: admin
 

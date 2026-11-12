@@ -31,10 +31,14 @@ Cette procédure n'a pas été exécutée de bout en bout : à essayer d'abord s
 
 ## Risque accepté
 
-- **Backoffice, `@tiptap/*` 2.x** (GHSA-cp6q-959q-f8rh, modéré) : `mergeAttributes()` transforme une clé `__proto__` en
-  attributs DOM exécutables. Le correctif exige tiptap 3 (changement majeur de l'éditeur). Exploitable seulement par une
-  personne qui édite du contenu dans le backoffice (personnel, hôte séparé, session isolée), pas par un utilisateur de l'app.
-  À reprendre avec la migration vers tiptap 3 ; l'audit CI exclut `admin/` pour cette raison seulement.
+- **Backoffice, `react-router` 6.x** (GHSA-wrjc-x8rr-h8h6, GHSA-337j-9hxr-rhxg, modérés) : redirection ouverte via une barre
+  oblique inverse dans `<Link>`/`useNavigate`, et injection au rendu serveur (SSR). Le backoffice n'a pas de SSR et ne
+  navigue pas vers des adresses fournies par un utilisateur ; l'hôte est séparé et réservé au personnel. Le correctif
+  exige react-router 7 (changement majeur) : à faire avec la prochaine montée de version du backoffice.
+  `npm audit` du backoffice remonte ces 2 alertes ; la CI les tolère (seuil « high »).
+
+*Historique : `@tiptap/*` 2.x (prototype pollution dans `mergeAttributes()`) a été remplacé par tiptap 3.33 ; l'éditeur riche
+a été vérifié dans un navigateur sur la vraie stack (gras, souligné, listes, titres, lien, citation, contenu existant).*
 
 ## Images Docker
 
@@ -50,4 +54,4 @@ Postgres reste sur `16-alpine` (version majeure fixe, correctifs mineurs automat
 
 - Test d'intrusion ou revue externe, avant toute communication publique.
 - Politique de mots de passe et authentification à deux facteurs pour le backoffice.
-- Double authentification (TOTP) du backoffice, test d'intrusion.
+- Test d'intrusion. (La double authentification TOTP du backoffice existe déjà : obligatoire, `scripts/create-admin.mjs`.)
