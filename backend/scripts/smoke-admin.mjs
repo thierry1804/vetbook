@@ -124,6 +124,8 @@ await t('référentiels : CRUD avec audit avant/après', async () => {
 
 await t('release : brouillon → quatre yeux → publication → GET /api/ref', async () => {
   await withClient((c) => c.query(`insert into content_tips (title, body, country, status) values ('Astuce ${tag}','Corps','MG','publie')`));
+  // Les quatre yeux sont un réglage (désactivé par défaut) : on l'active pour vérifier la règle.
+  await withClient((c) => c.query("insert into app_settings (key,value) values ('four_eyes_publish','true') on conflict (key) do update set value='true'"));
   const d = await call('POST', '/api/admin/releases', { cookie: rootC, body: { note: 'test' } });
   assert.equal(d.status, 201);
   const self = await call('POST', `/api/admin/releases/${d.json.version}/publish`, { cookie: rootC });

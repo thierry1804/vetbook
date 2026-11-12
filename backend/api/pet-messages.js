@@ -48,6 +48,7 @@ function firstName(value) {
 }
 
 function cleanBody(value) {
+  // eslint-disable-next-line no-control-regex -- Postgres refuse les octets nuls dans un text
   return String(value || '').replace(/\u0000/g, '').trim().slice(0, 2000);
 }
 

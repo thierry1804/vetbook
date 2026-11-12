@@ -237,7 +237,7 @@ r = await new Client().call('POST', '/api/auth/login', { email: emailA2, passwor
 ok('connexion impossible', r.status === 401);
 r = await new Client().call('GET', `/api/share/public/${r && shareToken}`);
 ok('liens de partage supprimés avec le compte', r.status === 404);
-for (const [cl, pw, em] of [[b, 'motdepasse2', emailB], [c, 'motdepasse3', `smoke-c-${stamp}@example.com`]]) {
+for (const [cl, pw] of [[b, 'motdepasse2'], [c, 'motdepasse3']]) {
   await cl.call('DELETE', '/api/user/account', { password: pw });
 }
 

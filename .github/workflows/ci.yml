@@ -1,0 +1,80 @@
+# CI App'lika : mêmes commandes qu'en local (voir CLAUDE.md, section « Vérifier son travail »).
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, unitaires, typecheck, front (navigateur)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: npm run install:all
+      - run: npm run test:fast
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:front
+      - run: npm run build --prefix admin
+
+  integration:
+    name: Intégration API (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: qa
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm run test:integration
+        env:
+          QA_PG_ADMIN_URL: postgres://qa:qa@127.0.0.1:5432/postgres
+
+  e2e:
+    name: Bout en bout (stack Docker complète)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: .env de test
+        run: |
+          sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 16)|" \
+              -e "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$(openssl rand -hex 16)|" \
+              -e "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env.example > .env
+      - run: docker compose up --build -d --wait
+      - run: npm ci --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        env:
+          BASE_URL: http://localhost:3080
+      - name: Logs de la stack en cas d'échec
+        if: failure()
+        run: docker compose logs --tail 200
