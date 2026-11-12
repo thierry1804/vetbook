@@ -174,4 +174,55 @@ try {
     await context.close();
     console.log('OK mismatch affiche l’avertissement');
   }
+
+  {
+    // Date illisible : le champ passe en texte, JJ/MM/AAAA est accepté et converti à l'enregistrement.
+    scanBody = { ...SCAN, entries: [{ kind: 'vaccine', date: '1?/09/2026', name: 'Nobivac DHPPi', vet: '', next: '', nextEstimated: false, frequencyDays: '', uncertain: ['date'] }] };
+    const { context, page, errors } = await open('paid');
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('[data-booklet-review]').waitFor();
+    const date = page.locator('[data-booklet-field="date"][data-i="0"]');
+    assert.equal(await date.getAttribute('type'), 'text');
+    assert.match(await date.getAttribute('placeholder'), /JJ\/MM\/AAAA/);
+    await date.fill('12/09/2026');
+    await page.locator('[data-booklet-save]').click();
+    const rex = (await stored(page)).animals.find((a) => a.id === 20);
+    assert.deepEqual(rex.vaccines.map((v) => v.date), ['2026-09-12']);
+    scanBody = SCAN;
+    assert.deepEqual(errors, []);
+    await context.close();
+    console.log('OK date illisible : saisie JJ/MM/AAAA acceptée');
+  }
+
+  {
+    // Rappel estimé : suit la date corrigée ; une fois modifié à la main, il n'est plus « estimé ».
+    scanBody = { ...SCAN, entries: [{ kind: 'deworming', date: '2026-09-11', name: 'Frontline', type: 'externe', next: '2026-10-11', nextEstimated: true, frequencyDays: 30, uncertain: [] }] };
+    const { context, page, errors } = await open('paid');
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.locator('[data-booklet-review]').waitFor();
+    await page.locator('[data-booklet-field="date"][data-i="0"]').fill('2026-09-20');
+    assert.equal(await page.locator('[data-booklet-field="next"][data-i="0"]').inputValue(), '2026-10-20');
+    assert.match(await page.locator('#modal-scanBooklet').textContent(), /estimé : 30 j/);
+    await page.locator('[data-booklet-field="next"][data-i="0"]').fill('2026-11-01');
+    assert.doesNotMatch(await page.locator('#modal-scanBooklet').textContent(), /estimé/);
+    await page.locator('[data-booklet-field="date"][data-i="0"]').fill('2026-09-25');
+    assert.equal(await page.locator('[data-booklet-field="next"][data-i="0"]').inputValue(), '2026-11-01', 'un rappel saisi à la main ne bouge plus');
+    await page.locator('[data-booklet-save]').click();
+    const d = (await stored(page)).animals.find((a) => a.id === 20).dewormings.find((x) => x.name === 'Frontline');
+    assert.deepEqual([d.date, d.next, d.frequencyDays], ['2026-09-25', '2026-11-01', '']);
+    scanBody = SCAN;
+    assert.deepEqual(errors, []);
+    await context.close();
+    console.log('OK rappel estimé recalculé, puis figé quand modifié à la main');
+  }
+
+  {
+    const { context, page } = await open('paid');
+    await page.route('**/api/ai/booklet-scan', (route) => route.abort());
+    await shoot(page, { name: 'carnet.png', mimeType: 'image/png', buffer: PNG });
+    await page.getByText('Pas de connexion', { exact: false }).waitFor();
+    assert.equal(await page.getByText('Failed to fetch', { exact: false }).count(), 0);
+    await context.close();
+    console.log('OK erreur réseau : message clair');
+  }
 } finally { await browser.close(); await new Promise((done) => server.close(done)); }

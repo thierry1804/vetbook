@@ -10490,6 +10490,22 @@
 
   function bookletKey(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function isIsoDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+  // Date saisie à la main dans l'écran de vérification : AAAA-MM-JJ ou JJ/MM/AAAA (/, . ou - ; année sur 2 chiffres = 20xx).
+  // Renvoie l'ISO, ou '' si la saisie n'est pas une vraie date.
+  function parseTypedDate(s) {
+    s = String(s || '').trim();
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var y, mo, d;
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else {
+      m = s.match(/^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{2}|\d{4})$/);
+      if (!m) return '';
+      d = +m[1]; mo = +m[2]; y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    }
+    var t = new Date(Date.UTC(y, mo - 1, d));
+    if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return '';
+    return t.toISOString().slice(0, 10);
+  }
 
   function resizeBookletPhoto(file) {
     return new Promise(function (resolve, reject) {
@@ -10566,6 +10582,7 @@
     var doubt = (e.uncertain || []).indexOf(field) !== -1;
     var inputType = type === 'date' && !isIsoDate(value) && value ? 'text' : type;
     return '<label class="booklet__kv"><span>' + label + '</span><input class="booklet__input' + (doubt ? ' is-doubt' : '') + '" type="' + inputType + '"'
+      + (inputType === 'text' && type === 'date' ? ' placeholder="JJ/MM/AAAA" inputmode="numeric"' : '')
       + (type === 'number' ? ' step="0.1" min="0.1" max="150" inputmode="decimal"' : '')
       + ' data-booklet-field="' + field + '" data-i="' + i + '" value="' + escapeHtml(value) + '">'
       + (doubt ? '<span class="booklet__tag booklet__tag--doubt">à vérifier</span>' : '') + '</label>';
@@ -10581,7 +10598,7 @@
     }
     if (e.kind !== 'weight') {
       fields += bookletField(e, i, 'next', 'date', 'Rappel')
-        + (e.next ? '<span class="booklet__tag">' + (e.nextEstimated ? 'estimé : ' + e.frequencyDays + ' j' : 'écrit sur le carnet') + '</span>' : '');
+        + (e.next ? '<span class="booklet__tag" data-booklet-nexttag="' + i + '">' + (e.nextEstimated ? 'estimé : ' + e.frequencyDays + ' j' : 'écrit sur le carnet') + '</span>' : '');
     }
     if (e.kind === 'vaccine') fields += bookletField(e, i, 'vet', 'text', 'Vétérinaire');
     return '<div class="booklet__row' + (e.duplicate ? ' is-off' : '') + '">'
@@ -10654,7 +10671,8 @@
       if (booklet.controller !== controller || (err && err.name === 'AbortError')) return;
       booklet.controller = null;
       if (err && err.status === 402) { closeModal('scanBooklet'); showFeatureLocked('booklet_scan'); return; }
-      var msg = err && err.message === 'FORMAT' ? 'Ce format de photo n’est pas pris en charge. Prends la photo avec l’appareil, ou choisis un JPEG ou un PNG.'
+      var msg = err instanceof TypeError ? 'Pas de connexion. Vérifie le réseau et réessaie.'
+        : err && err.message === 'FORMAT' ? 'Ce format de photo n’est pas pris en charge. Prends la photo avec l’appareil, ou choisis un JPEG ou un PNG.'
         : err && err.message === 'Non connecté.' ? 'Connecte-toi pour utiliser la lecture du carnet.'
         : (err && err.message) || 'La lecture du carnet a échoué.';
       renderBookletPick(msg);
@@ -10668,15 +10686,39 @@
         var f = el.getAttribute('data-booklet-field');
         e[f] = f === 'weightKg' ? parseFloat(String(el.value).replace(',', '.')) : el.value.trim();
       });
+      var rawNext = e.next;
+      e.date = parseTypedDate(e.date);
+      e.next = e.next ? parseTypedDate(e.next) : '';
+      e.nextInvalid = !!rawNext && !e.next;
       return e;
     });
-    var bad = out.find(function (e) { return !isIsoDate(e.date) || (e.kind === 'weight' ? !(e.weightKg > 0 && e.weightKg <= 150) : !e.name); });
-    if (bad) { showToast(bad.kind === 'weight' && isIsoDate(bad.date) ? 'Corrige le poids avant d’enregistrer.' : 'Corrige la date ou le nom surligné avant d’enregistrer.', 'error'); return; }
+    var bad = out.find(function (e) { return !isIsoDate(e.date) || e.nextInvalid || (e.kind === 'weight' ? !(e.weightKg > 0 && e.weightKg <= 150) : !e.name); });
+    if (bad) { showToast(bad.kind === 'weight' && isIsoDate(bad.date) ? 'Corrige le poids avant d’enregistrer.' : 'Corrige la date (JJ/MM/AAAA) ou le nom avant d’enregistrer.', 'error'); return; }
     var wrap = state.animals.find(function (a) { return a.id === booklet.animalId; });
     var n = saveBookletEntries(booklet.animalId, out);
     closeModal('scanBooklet');
     saveState(); refreshAll();
     showToast(n + ' élément' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : '') + ' au carnet de ' + (wrap ? wrap.animal.name : ''), 'success');
+  }
+
+  // Corriger la date d'un acte recalcule le rappel tant qu'il est estimé ; le modifier à la main le fige.
+  function onBookletDateEdited(el) {
+    var i = Number(el.getAttribute('data-i'));
+    var entry = booklet.entries[i];
+    if (!entry) return;
+    var tag = document.querySelector('[data-booklet-nexttag="' + i + '"]');
+    if (el.getAttribute('data-booklet-field') === 'date') {
+      var iso = parseTypedDate(el.value);
+      if (!(entry.nextEstimated && entry.frequencyDays && iso)) return;
+      var next = addDaysISO(iso, entry.frequencyDays);
+      var nextInput = document.querySelector('[data-booklet-field="next"][data-i="' + i + '"]');
+      if (nextInput) nextInput.value = next;
+      entry.next = next;
+    } else {
+      entry.nextEstimated = false;
+      entry.frequencyDays = '';
+      if (tag) tag.textContent = el.value ? 'saisi par toi' : '';
+    }
   }
 
   function setupBookletScan() {
@@ -10694,6 +10736,7 @@
       else if (e.target.closest('[data-booklet-save]')) saveBookletReview();
     });
     body.addEventListener('change', function (e) {
+      if (e.target.matches('[data-booklet-field="date"], [data-booklet-field="next"]')) { onBookletDateEdited(e.target); return; }
       if (!e.target.matches('[data-booklet-check]')) return;
       e.target.closest('.booklet__row').classList.toggle('is-off', !e.target.checked);
       updateBookletCount();

@@ -43,7 +43,7 @@ function isTransient(error) {
   return error.name === 'AbortError' || error.message === 'Réponse vide du modèle.';
 }
 
-async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat }) {
+async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat, meta }) {
   const attemptId = await reserveAiAttempt({ source, model });
   let httpStatus = null;
   const controller = new AbortController();
@@ -68,6 +68,7 @@ async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, f
     }
     const content = json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
     if (!content) { const err = new Error('Réponse vide du modèle.'); err.status = 502; throw err; }
+    if (meta) meta.finishReason = json.choices[0].finish_reason || null;
     await finishAiAttempt(attemptId, 'success', httpStatus);
     return content;
   } catch (error) {
@@ -78,8 +79,9 @@ async function attemptOpenRouter({ apiKey, model, messages, timeoutMs, source, f
   }
 }
 
-export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000, source = 'chat', fetchImpl = fetch, temperature = 0.6, maxTokens = 450, responseFormat }) {
-  const opts = { apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat };
+// `meta` (optionnel) reçoit `finishReason` : « length » signale une réponse coupée par max_tokens.
+export async function callOpenRouter({ apiKey, model, messages, timeoutMs = 25000, source = 'chat', fetchImpl = fetch, temperature = 0.6, maxTokens = 450, responseFormat, meta }) {
+  const opts = { apiKey, model, messages, timeoutMs, source, fetchImpl, temperature, maxTokens, responseFormat, meta };
   try {
     return await attemptOpenRouter(opts);
   } catch (error) {

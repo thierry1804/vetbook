@@ -10,6 +10,7 @@ import { bookletPrompt, extractJson, normalizeBookletResult, estimateReminders }
 
 const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_BYTES = 8 * 1024 * 1024;
+const TOO_DENSE = 'La page est trop dense pour être lue d’un coup. Photographie-la en deux parties, bien à plat.';
 const NOTHING_READ = 'Aucun acte lisible sur cette photo. Essaie avec plus de lumière, la page bien à plat.';
 
 const upload = multer({
@@ -47,10 +48,11 @@ export function makeBookletScan({ fetchImpl = fetch } = {}) {
     if (!pet) { res.status(404).json({ error: 'Animal introuvable.' }); return; }
 
     let content;
+    const meta = {};
     try {
       content = await callOpenRouter({
         apiKey, model: cfg.visionModel, fetchImpl, source: 'booklet', timeoutMs: 45000,
-        temperature: 0, maxTokens: 1500, responseFormat: { type: 'json_object' },
+        temperature: 0, maxTokens: 4000, meta, responseFormat: { type: 'json_object' },
         messages: [{ role: 'user', content: [
           { type: 'text', text: bookletPrompt(pet.name, pet.species) },
           { type: 'image_url', image_url: { url: `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` } },
@@ -65,9 +67,12 @@ export function makeBookletScan({ fetchImpl = fetch } = {}) {
     try {
       const out = await withClient(async (c) => {
         const hygieneTypes = (await c.query("select label from ref_lists where list_type = 'hygiene' and active")).rows.map((r) => r.label);
-        const read = normalizeBookletResult(extractJson(content), { today: new Date().toISOString().slice(0, 10), hygieneTypes });
+        const parsed = extractJson(content);
+        if (!parsed && meta.finishReason === 'length') return { truncated: true };
+        const read = normalizeBookletResult(parsed, { today: new Date().toISOString().slice(0, 10), hygieneTypes });
         return { ...read, entries: await estimateReminders(c, read.entries, pet.species) };
       });
+      if (out.truncated) { res.status(422).json({ error: TOO_DENSE }); return; }
       if (!out.entries.length) { res.status(422).json({ error: NOTHING_READ }); return; }
       const mismatch = (!!out.petName && !sameName(out.petName, pet.name))
         || (!!digits(out.chip) && !!digits(pet.chip) && digits(out.chip) !== digits(pet.chip));

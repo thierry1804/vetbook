@@ -37,10 +37,11 @@ const free = await makeUser(false);
 // Faux OpenRouter : renvoie le contenu choisi par le test et garde le dernier corps envoyé.
 let modelContent = '{"entries":[]}';
 let calls = 0;
+let finishReason = 'stop';
 let lastBody = null;
 const fakeFetch = async (_url, init) => {
   calls++; lastBody = JSON.parse(init.body);
-  return new Response(JSON.stringify({ choices: [{ message: { content: modelContent } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify({ choices: [{ finish_reason: finishReason, message: { content: modelContent } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
 };
 
 const adminRow = (await sql("insert into admin_users (email, name, password_hash, role_code) values ($1, 'QA', 'x', 'super_admin') returning id", [`${crypto.randomUUID()}@test.local`])).rows[0];
@@ -111,6 +112,25 @@ try {
       assert.equal(r.status, 422);
       assert.match(r.json.error, /lumière/);
     }
+  });
+
+  await test('JSON suivi de texte avec accolades : lu normalement', async () => {
+    modelContent = '{"petName":"Rex","entries":[{"kind":"weight","date":"12/09/2026","weightKg":12.4}]}\nNote {sans importance}.';
+    const r = await scan(paid);
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.equal(r.json.entries.length, 1);
+  });
+
+  await test('réponse coupée par max_tokens : message dédié, pas « plus de lumière »', async () => {
+    modelContent = '{"petName":"Rex","entries":[{"kind":"vaccine","date":"2026-0';
+    finishReason = 'length';
+    try {
+      const r = await scan(paid);
+      assert.equal(r.status, 422);
+      assert.match(r.json.error, /dense/);
+      assert.doesNotMatch(r.json.error, /lumière/);
+      assert.ok(lastBody.max_tokens >= 4000);
+    } finally { finishReason = 'stop'; }
   });
 
   await test('aucune écriture en base, usage compté en source booklet', async () => {

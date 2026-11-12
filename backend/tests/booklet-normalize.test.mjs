@@ -11,6 +11,20 @@ test('extractJson tolère les blocs de code et le texte autour', () => {
   assert.equal(extractJson('{ cassé'), null);
 });
 
+test('extractJson survit au texte avec accolades après (ou avant) le JSON', () => {
+  assert.deepEqual(extractJson('{"entries":[]}\nNote : le {vaccin} est valable un an.'), { entries: [] });
+  assert.deepEqual(extractJson('Format {attendu} : {"entries":[{"kind":"vaccine"}]}'), { entries: [{ kind: 'vaccine' }] });
+  assert.deepEqual(extractJson('{"note":"a } b { c","entries":[]} fin }'), { note: 'a } b { c', entries: [] });
+});
+
+test('extractJson préfère l’objet qui contient entries', () => {
+  assert.deepEqual(extractJson('{"meta":1} puis {"entries":[]}'), { entries: [] });
+});
+
+test('extractJson rend null pour une réponse coupée en plein milieu', () => {
+  assert.equal(extractJson('{"petName":"Rex","entries":[{"kind":"vaccine","date":"2026-0'), null);
+});
+
 test('parseBookletDate lit JJ/MM et les années sur deux chiffres', () => {
   assert.equal(parseBookletDate('03/04/2026', today).iso, '2026-04-03');
   assert.equal(parseBookletDate('12-09-26', today).iso, '2026-09-12');

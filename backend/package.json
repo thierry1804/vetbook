@@ -10,7 +10,7 @@
     "test:admin-workflow": "node tests/admin-workflow.test.mjs",
     "test:subscriptions": "node tests/subscription-workflow.test.mjs",
     "test:realtime": "node tests/realtime.test.mjs",
-    "test:unit": "node --test tests/admin-workflow.test.mjs tests/audit-remainder.test.mjs tests/booklet-normalize.test.mjs",
+    "test:unit": "node --test tests/admin-workflow.test.mjs tests/audit-remainder.test.mjs tests/booklet-normalize.test.mjs tests/rate-limit.test.mjs",
     "test:integration": "node scripts/test-integration.mjs"
   },
   "dependencies": {

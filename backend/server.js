@@ -59,6 +59,7 @@ import aiChat from './api/ai/chat.js';
 import aiBookletScan from './api/ai/booklet-scan.js';
 import support, { mySupportRequests, replyToMySupportRequest } from './api/support.js';
 import help from './api/help.js';
+import { perUserLimiter } from './api/_lib/rate-limit.js';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -170,10 +171,10 @@ app.post('/api/files', filesUpload);
 app.get('/api/files/:id', filesGet);
 app.delete('/api/files/:id', filesDelete);
 // Assistant IA : limite applicative dédiée (en plus du débit global côté serveur OpenRouter, voir _lib/ai.js).
-const aiChatLimiter = rateLimit({ windowMs: 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de messages. Réessaie dans une minute.' } });
+const aiChatLimiter = perUserLimiter({ windowMs: 60 * 1000, max: 8, message: 'Trop de messages. Réessaie dans une minute.' });
 app.post('/api/ai/chat', aiChatLimiter, trackAccess('ai.chat'), aiChat);
 // Lecture du carnet par photo : chaque analyse coûte un appel au modèle de vision.
-const bookletLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop d’analyses. Réessayez dans une heure.' } });
+const bookletLimiter = perUserLimiter({ windowMs: 60 * 60 * 1000, max: 20, message: 'Trop d’analyses. Réessaie dans une heure.' });
 app.post('/api/ai/booklet-scan', bookletLimiter, trackAccess('ai.booklet'), aiBookletScan);
 
 async function boot() {

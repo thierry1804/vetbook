@@ -33,12 +33,33 @@ export function bookletPrompt(petName, species) {
   ].join('\n');
 }
 
+// Les objets {…} équilibrés d'un texte, en ignorant les accolades qui sont dans des chaînes JSON.
+function balancedObjects(s) {
+  const found = [];
+  for (let start = s.indexOf('{'); start !== -1; start = s.indexOf('{', start + 1)) {
+    let depth = 0; let inString = false;
+    for (let i = start; i < s.length; i++) {
+      const ch = s[i];
+      if (inString) {
+        if (ch === '\\') i++;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') inString = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}' && --depth === 0) { found.push(s.slice(start, i + 1)); break; }
+    }
+  }
+  return found;
+}
+
+// Le modèle ajoute parfois du texte (avec ses propres accolades) avant ou après le JSON : on essaie
+// le texte entier, puis chaque objet équilibré, en préférant celui qui contient `entries`.
 export function extractJson(raw) {
-  const s = String(raw || '').replace(/```(?:json)?/gi, '');
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try { return JSON.parse(s.slice(start, end + 1)); } catch { return null; }
+  const s = String(raw || '').replace(/```(?:json)?/gi, '').trim();
+  const parse = (str) => { try { const v = JSON.parse(str); return v && typeof v === 'object' && !Array.isArray(v) ? v : null; } catch { return null; } };
+  const whole = parse(s);
+  if (whole) return whole;
+  const objects = balancedObjects(s).map(parse).filter(Boolean);
+  return objects.find((o) => 'entries' in o) || objects[0] || null;
 }
 
 function isoIfValid(y, m, d) {
