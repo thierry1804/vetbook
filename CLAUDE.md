@@ -34,6 +34,7 @@ Navigateur → nginx (:3080 en local)
 - `user_id` vient toujours de la session (`requireUser`), jamais du corps de la requête.
 - Synchro : `api/sync/push.js` / `pull.js` + `api/_lib/mapping.js` (correspondance camelCase ↔ snake_case). **Ajouter un champ synchronisé = l'ajouter dans `mapping.js` + une colonne dans `schema.sql`**, sinon il est perdu silencieusement au prochain pull.
 - Formules et droits : catalogue des fonctionnalités dans `api/_lib/admin-seed.js` (`FEATURES`), calcul dans `api/_lib/entitlements.js` (`guardFeature` côté route). Côté front, `ROUTE_FEATURES` dans `app.js` mappe écrans/boutons → fonctionnalité (cadenas). Une nouvelle fonctionnalité payante touche ces trois endroits.
+- Lecture du carnet par photo : `api/ai/booklet-scan.js` (route) + `api/_lib/booklet.js` (prompt, normalisation pure de la sortie du modèle, rappels estimés depuis les référentiels). **Rien n'est écrit en base** : le front (`app.js`, section « Lecture du carnet ») enregistre seulement les lignes validées par le propriétaire. Modèle de vision : réglage `ai_vision_model`.
 - Backoffice CRUD générique : `api/admin/resources.js` (liste blanche de colonnes, audit avant/après automatique).
 - Les réglages (`app_settings`) se lisent via `getSetting` ; certaines règles en dépendent (ex. `four_eyes_publish`, `subscriptions_enforced`, tous deux désactivés par défaut).
 

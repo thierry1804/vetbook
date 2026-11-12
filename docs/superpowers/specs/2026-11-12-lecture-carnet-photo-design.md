@@ -1,6 +1,8 @@
 # Lecture du carnet de santé par photo — conception
 
-Date : 2026-11-12 · Statut : à valider
+Date : 2026-11-12 · Statut : implémenté (branche `feature/lecture-carnet-photo`) ; vérification avec de vraies photos et un vrai modèle **en attente** (clé OpenRouter et photos à fournir).
+
+Écarts à l'implémentation : le réglage `ai_vision_model` vit dans `api/admin/ai.js` et l'écran Assistant IA (pas `settings-typed.js`) ; modèle par défaut `google/gemini-2.5-flash`, à confirmer par un vrai appel ; la contrainte `ai_usage_log.source` accepte `booklet` ; la modale s'ouvre sur un écran « Prendre la photo » qui affiche la mention de confidentialité avant tout envoi.
 
 ## Intention
 
