@@ -28,3 +28,6 @@ frontend/config.js
 .impeccable/critique/
 admin/node_modules
 admin/dist
+
+# Maquettes de brainstorming (compagnon visuel)
+.superpowers/
