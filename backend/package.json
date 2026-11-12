@@ -10,11 +10,12 @@
     "test:admin-workflow": "node tests/admin-workflow.test.mjs",
     "test:subscriptions": "node tests/subscription-workflow.test.mjs",
     "test:realtime": "node tests/realtime.test.mjs",
-    "test:unit": "node --test tests/admin-workflow.test.mjs tests/audit-remainder.test.mjs tests/booklet-normalize.test.mjs tests/rate-limit.test.mjs",
+    "test:unit": "node --test tests/admin-workflow.test.mjs tests/audit-remainder.test.mjs tests/booklet-normalize.test.mjs tests/rate-limit.test.mjs tests/observability.test.mjs",
     "test:integration": "node scripts/test-integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
+    "@sentry/node": "^11.12.0",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
