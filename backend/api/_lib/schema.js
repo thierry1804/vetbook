@@ -32,4 +32,8 @@ export async function ensureSchema() {
       for (const stmt of splitSql(raw)) await client.query(stmt);
     }
   });
+  // Import tardif : migrations.js dépend de splitSql, défini plus haut dans ce fichier.
+  const { runMigrations } = await import('./migrations.js');
+  const applied = await runMigrations();
+  if (applied.length) console.log('Migrations appliquées :', applied.join(', '));
 }
