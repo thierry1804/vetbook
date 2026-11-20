@@ -58,6 +58,26 @@ docker compose -p applika-staging --env-file .env.staging down -v   # pour tout 
 Projet Compose distinct = volumes, réseau et base distincts de la production. Vérifié : démarrage sur base vierge. À
 faire : un second hôte côté tunnel pour l'exposer, et ne **jamais** y copier de vraies données sans les anonymiser.
 
+## Corriger une faille nginx
+
+nginx tourne dans l'image `nginx/Dockerfile` (`FROM nginx:<version>-alpine`), version **épinglée** : une faille ne se
+corrige donc jamais toute seule, il faut changer le tag et reconstruire.
+
+1. Repérer la version en service : `docker exec applika-nginx-1 nginx -v`.
+2. Lire l'avis sur https://nginx.org/en/security_advisories.html : versions touchées, versions corrigées. Les branches
+   anciennes ne reçoivent pas de correctif, il faut passer à la branche stable (1.30.x) ou principale (1.31.x) corrigée.
+3. Vérifier que le tag existe : `docker manifest inspect nginx:<version>-alpine`.
+4. Sur une branche (jamais `master`) : changer le `FROM` de `nginx/Dockerfile` et committer
+   (`Exploitation : nginx <version> (corrige CVE-…)`). Une faille touche toutes les branches longues : refaire le même
+   commit sur chacune (`develop`, branches de fonctionnalité ouvertes) pour qu'une fusion ne remette pas l'ancienne version.
+5. Reconstruire et relancer : `docker compose up -d --build nginx` (le front est compilé dans cette image).
+6. Contrôler : `nginx -v` (nouvelle version), `nginx -t` (config valide), état `healthy` dans `docker compose ps`, puis
+   `npm run test:e2e`.
+7. Préproduction : même reconstruction avec `docker compose -p applika-staging --env-file .env.staging up -d --build nginx`.
+8. Production : `bash scripts/deploy.sh` (retour arrière automatique si le contrôle de santé échoue).
+
+Historique : 1.27.5 → 1.30.6 le 20 nov. 2026, 5 CVE de l'avis du 14 oct. 2026.
+
 ## Surveillance
 
 - `GET /api/health` : le processus répond. `GET /api/ready` : la base répond (503 sinon). Docker utilise le premier.
