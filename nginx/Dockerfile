@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN if [ ! -f config.js ]; then cp config.example.js config.js; fi
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.30.6-alpine
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 EXPOSE 80
