@@ -7,8 +7,5 @@ services:
     environment:
       COOKIE_SECURE: "true"
 
-  nginx:
-    ports:
-      - "80:80"
-      # Décommente et monte tes certificats pour du TLS direct :
-      # - "443:443"
+  # Le port d'écoute vient de docker-compose.yml (HTTP_PORT, défaut 3080). Ne pas ajouter "80:80" ici : les ports des
+  # fichiers Compose s'additionnent, et le 80 est déjà pris par un autre nginx sur cet hôte.
