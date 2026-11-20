@@ -242,6 +242,12 @@
   // sans aucun animal (juste un profil propriétaire, pris pour « des données trouvées ») rechargeait en boucle :
   // pull → found=true (profil seul) → reload → nouveau module → pull → found=true → reload → ...
   var autoPullDone = false;
+  // « Démarrage réglé » : la session est connue et, sur un appareil vide, la restauration automatique est terminée.
+  // Tant qu'une restauration réussie va recharger la page, rien d'interactif (ex. choix du pays) ne doit s'afficher :
+  // le rechargement le détruirait sous les doigts de l'utilisateur.
+  var autoPullInFlight = false;
+  var settleStartup;
+  var startupSettled = new Promise(function (resolve) { settleStartup = resolve; });
   var AUTO_PULL_ONCE_KEY = 'vetbook_auto_pull_once';
   function maybeAutoPull() {
     if (autoPullDone || !currentSession || !syncAllowed()) return;
@@ -252,12 +258,16 @@
     autoPullDone = true;
     try { sessionStorage.setItem(AUTO_PULL_ONCE_KEY, '1'); } catch (e) { /* stockage indisponible */ }
     emitSync('auto-pulling');
+    autoPullInFlight = true;
     pullAllFromCloud().then(function (found) {
       if (found) {
         emitSync('auto-pulled');
         window.setTimeout(function () { window.location.reload(); }, 400);
-      }
+        // Filet : si le rechargement n'a pas lieu, ne pas bloquer l'interface indéfiniment.
+        window.setTimeout(function () { autoPullInFlight = false; settleStartup(); }, 4000);
+      } else { autoPullInFlight = false; settleStartup(); }
     }).catch(function (err) {
+      autoPullInFlight = false; settleStartup();
       emitSync('error', err);
     });
   }
@@ -359,6 +369,7 @@
     setDogEventsReminderPref: setDogEventsReminderPref,
     uploadPhoto: uploadPhoto,
     scanBooklet: scanBooklet,
+    whenStartupSettled: function () { return startupSettled; },
     getPhotoUrl: getPhotoUrl,
     apiUrl: apiUrl,
     getReference: getReference,
@@ -532,7 +543,10 @@
         currentSession = null;
         writeSession(null);
       }
+      if (!autoPullInFlight) settleStartup();
     });
+  } else {
+    settleStartup();
   }
 
   if (document.readyState === 'loading') {

@@ -60,11 +60,15 @@ import aiBookletScan from './api/ai/booklet-scan.js';
 import support, { mySupportRequests, replyToMySupportRequest } from './api/support.js';
 import help from './api/help.js';
 import { perUserLimiter } from './api/_lib/rate-limit.js';
+import { withClient } from './api/_lib/db.js';
+import { log, requestLogger, errorHandler, readyHandler } from './api/_lib/observability.js';
+import { initErrorTracking, captureError, flushErrors } from './api/_lib/error-tracking.js';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.set('trust proxy', 1);
+app.use(requestLogger());
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
 app.use(cookieParser());
 app.use(express.json({ limit: '2mb' }));
@@ -96,6 +100,7 @@ const publicLimiter = rateLimit({
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
+app.get('/api/ready', readyHandler({ check: () => withClient((c) => c.query('select 1')) }));
 app.all('/api/support', rateLimit({ windowMs: 15 * 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false }), support);
 app.get('/api/me/support-requests', mySupportRequests);
 app.post('/api/me/support-requests/:id/replies', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Trop de messages. Réessayez dans un moment.' } }), replyToMySupportRequest);
@@ -177,24 +182,38 @@ app.post('/api/ai/chat', aiChatLimiter, trackAccess('ai.chat'), aiChat);
 const bookletLimiter = perUserLimiter({ windowMs: 60 * 60 * 1000, max: 20, message: 'Trop d’analyses. Réessaie dans une heure.' });
 app.post('/api/ai/booklet-scan', bookletLimiter, trackAccess('ai.booklet'), aiBookletScan);
 
+// Dernier recours des routes qui lèvent une exception synchrone (Express 4 n'attrape pas les rejets asynchrones :
+// ceux-là sont journalisés par le garde de processus plus bas).
+app.use(errorHandler({ onError: captureError }));
+
+for (const [event, label] of [['uncaughtException', 'exception non attrapée'], ['unhandledRejection', 'promesse rejetée non gérée']]) {
+  process.on(event, async (err) => {
+    log.error(label, { err });
+    captureError(err);
+    await flushErrors();
+    process.exit(1);
+  });
+}
+
 async function boot() {
+  await initErrorTracking();
   if (!process.env.JWT_SECRET) {
-    console.error('JWT_SECRET manquant.');
+    log.error('JWT_SECRET manquant.');
     process.exit(1);
   }
   if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL manquant.');
+    log.error('DATABASE_URL manquant.');
     process.exit(1);
   }
 
-  console.log('Application du schéma Postgres...');
+  log.info('Application du schéma Postgres');
   await ensureSchema();
   await seedAdminDefaults();
-  console.log('Vérification du bucket MinIO...');
+  log.info('Vérification du bucket MinIO');
   await ensureBucket();
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`API App'lika sur http://0.0.0.0:${PORT}`);
+    log.info('API démarrée', { port: PORT });
     startRealtime();
     const inboxTimer=setInterval(()=>runInboxPush().catch(error=>console.error('inbox push',error.message)),5000);inboxTimer.unref();
     const subscriptionTimer=setInterval(()=>{ runSubscriptionNotifications().catch((error)=>console.error('subscription notifications',error.message)); },5000);
@@ -203,6 +222,6 @@ async function boot() {
 }
 
 boot().catch((err) => {
-  console.error('Démarrage impossible:', err);
+  log.error('Démarrage impossible', { err });
   process.exit(1);
 });

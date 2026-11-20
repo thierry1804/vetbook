@@ -25,12 +25,13 @@ Navigateur → nginx (:3080 en local)
 - `app.js` (~10 000 lignes) : toute l'app dans une IIFE. L'état vit dans `state` et est persisté dans `localStorage['vetbook_data']` (`loadState`/`saveState`). API publique minimale exposée sur `window.app` (utilisée par les tests).
 - `data-layer.js` : `window.cloudSync` — session, `sync/push` (envoi différé de 4 s après chaque sauvegarde) et `sync/pull`. **Le serveur est la source de vérité dès qu'on est connecté.**
 - `account.js` : écrans du compte (`window.applikaAccount`), préférences (`window.applikaPrefs`).
+- **Pas de script en ligne** (CSP) : jamais d'attribut `onclick="…"` ; utiliser `data-open-modal` / `data-scan-booklet` ou un écouteur.
 - Pas de `import`/`export` : tout passe par des globals `window.*`. Les nouveaux fichiers JS doivent être ajoutés à `scripts/build.mjs` **et** à `eslint.config.js`.
 - Textes : français, tutoiement. `t(key)` pour les chaînes traduites.
 
 ### API (`backend/`)
 - `server.js` déclare **toutes** les routes (un fichier handler par route sous `api/`), avec les limiteurs de débit. Routeurs dédiés : `api/admin/router.js` (backoffice), `api/me/*`.
-- Schéma : `db/schema.sql` + `db/admin.sql`, **réappliqués à chaque démarrage** (`ensureSchema`). Toute modification doit rester idempotente : `create table if not exists`, `alter table … add column if not exists`. Pas d'outil de migration.
+- Schéma : `db/schema.sql` + `db/admin.sql`, **réappliqués à chaque démarrage** (`ensureSchema`) : tout ajout y reste idempotent (`create table if not exists`, `alter table … add column if not exists`). Ce qui ne se rejoue pas (renommer, supprimer, convertir des données) va dans `db/migrations/NNNN_nom.sql` : appliqué une fois, en transaction, avec somme de contrôle (voir `db/migrations/README.md`).
 - `user_id` vient toujours de la session (`requireUser`), jamais du corps de la requête.
 - Synchro : `api/sync/push.js` / `pull.js` + `api/_lib/mapping.js` (correspondance camelCase ↔ snake_case). **Ajouter un champ synchronisé = l'ajouter dans `mapping.js` + une colonne dans `schema.sql`**, sinon il est perdu silencieusement au prochain pull.
 - Formules et droits : catalogue des fonctionnalités dans `api/_lib/admin-seed.js` (`FEATURES`), calcul dans `api/_lib/entitlements.js` (`guardFeature` côté route). Côté front, `ROUTE_FEATURES` dans `app.js` mappe écrans/boutons → fonctionnalité (cadenas). Une nouvelle fonctionnalité payante touche ces trois endroits.
@@ -57,7 +58,7 @@ npm run dev --prefix admin    # backoffice en Vite :5175, proxy /api → stack :
 | `npm run test:front` | build du front + smoke Playwright (API simulée, a11y, mobile) | ~20 s | Chromium Playwright |
 | `npm run test:integration` | chaque fichier de `backend/tests/` + `scripts/smoke-admin.mjs`, **une base Postgres vierge par fichier** | ~1 min | Docker (ou `QA_PG_ADMIN_URL`) |
 | `npm test` | les trois ci-dessus | ~1 min 20 | idem |
-| `npm run test:e2e` | navigateur → nginx → API → Postgres, sans simulation : inscription, ajout d'animal, synchro, second appareil | ~15 s | stack Docker lancée (`BASE_URL`, défaut :3080) |
+| `npm run test:e2e` | navigateur → nginx → API → Postgres, sans simulation : inscription, ajout d'animal, synchro, second appareil, puis CSP (`csp-stack.mjs`) | ~25 s | stack Docker lancée (`BASE_URL`, défaut :3080) |
 
 - Un **hook Stop** (`.claude/hooks/check-before-stop.sh`) lance `test:fast` avant de rendre la main s'il y a des changements de code non vérifiés ; un **hook PostToolUse** lint chaque fichier JS modifié. Ne pas les contourner : corriger.
 - La CI (`.github/workflows/ci.yml`) lance tout, e2e compris, sur chaque PR.
@@ -67,11 +68,21 @@ npm run dev --prefix admin    # backoffice en Vite :5175, proxy /api → stack :
 - Nouveau test d'intégration : un fichier `.mjs` dans `backend/tests/` est ramassé automatiquement ; il reçoit `DATABASE_URL` (base `applika_qa` jetable), `JWT_SECRET`, `ADMIN_JWT_SECRET`, sans SMTP ni push. Les tests sans base peuvent aussi rejoindre `test:unit` dans `backend/package.json`.
 - Comptes créés par les tests e2e : `*@example.invalid`, supprimés en fin de test.
 
+## Exploitation
+
+Sauvegarde, restauration, déploiement avec retour arrière, surveillance, incident : `docs/RUNBOOK.md` ; sécurité et risques acceptés : `docs/SECURITE.md`.
+
+```bash
+bash scripts/backup.sh && bash scripts/restore-check.sh   # sauvegarde puis preuve de restauration
+bash scripts/deploy.sh                                     # déploiement avec retour automatique
+```
+
 ## Pièges connus
 
 - **Ne jamais pousser vers le serveur un animal sans nom** : `pets.name` est `NOT NULL` et un seul rejet annule toute la transaction de `sync/push`. L'app crée un animal vide local au lancement quand il n'y a pas de données (`init` dans `app.js`) ; `pushAllToCloud` le filtre.
 - Les fichiers de test laissent des réglages en base : ne pas enchaîner deux fichiers sur la même base (le lanceur s'en charge).
 - Les identifiants Postgres `bigint` arrivent en chaînes côté JS : comparer avec `String(a) === String(b)` ou `Number()`.
+- Journaux : `log` (`api/_lib/observability.js`) plutôt que `console.*` dans le code neuf ; jamais de jeton, de mot de passe ni de contenu de carnet dans un journal ou une erreur.
 - Pas plus d'une requête concurrente sur un même client `pg` (`withClient`) : utiliser des requêtes séquentielles ou plusieurs clients.
 
 ## Conventions

@@ -231,7 +231,7 @@
           <div class="dossier-header__status" id="dossier-status"></div>
         </div>
         <div class="dossier-header__actions">
-          <button type="button" class="dossier-btn dossier-btn--ghost dossier-btn--icon" onclick="app.openModal('editAnimal')" aria-label="Modifier" title="Modifier"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+          <button type="button" class="dossier-btn dossier-btn--ghost dossier-btn--icon" data-open-modal="editAnimal" aria-label="Modifier" title="Modifier"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
           <button type="button" class="dossier-btn dossier-btn--danger" id="dossier-urgence">Urgence</button>
         </div>
       </header>
@@ -440,8 +440,8 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-scan" id="btn-scan-booklet-vaccins" data-feature="booklet_scan" onclick="app.scanBooklet()"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
-          <button type="button" class="btn-add" onclick="app.openModal('addVaccin')"><span aria-hidden="true">+</span> Ajouter</button>
+          <button type="button" class="btn-scan" id="btn-scan-booklet-vaccins" data-feature="booklet_scan" data-scan-booklet><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
+          <button type="button" class="btn-add" data-open-modal="addVaccin"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="vaccine-cards"></div>
       </div>
@@ -479,8 +479,8 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-scan" id="btn-scan-booklet-deworming" data-feature="booklet_scan" onclick="app.scanBooklet()"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
-          <button type="button" class="btn-add" onclick="app.openModal('addDeworming')"><span aria-hidden="true">+</span> Ajouter</button>
+          <button type="button" class="btn-scan" id="btn-scan-booklet-deworming" data-feature="booklet_scan" data-scan-booklet><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Scanner le carnet</button>
+          <button type="button" class="btn-add" data-open-modal="addDeworming"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="deworming-cards"></div>
       </div>
@@ -499,7 +499,7 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-add" onclick="app.openModal('addConsult')"><span aria-hidden="true">+</span> Ajouter</button>
+          <button type="button" class="btn-add" data-open-modal="addConsult"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="consult-summary" id="consult-summary" hidden>
           <div class="consult-summary__item">
@@ -529,7 +529,7 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-add" onclick="app.openModal('addMedication')"><span aria-hidden="true">+</span> Ajouter</button>
+          <button type="button" class="btn-add" data-open-modal="addMedication"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="medication-cards"></div>
       </div>
@@ -567,7 +567,7 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn-add" onclick="app.openModal('addHygiene')"><span aria-hidden="true">+</span> Ajouter</button>
+          <button type="button" class="btn-add" data-open-modal="addHygiene"><span aria-hidden="true">+</span> Ajouter</button>
         </div>
         <div class="medical-cards" id="hygiene-cards"></div>
       </div>
@@ -586,7 +586,7 @@
           <div class="table-header-left">
             <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Activités Physiques</h2>
           </div>
-          <button type="button" class="btn-icon" onclick="app.openModal('addActivity')">+ Ajouter</button>
+          <button type="button" class="btn-icon" data-open-modal="addActivity">+ Ajouter</button>
         </div>
         <div class="table-scroll">
           <table>
@@ -609,7 +609,7 @@
             <div class="table-header-left">
               <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Historique des cycles enregistrés</h2>
             </div>
-            <button type="button" class="btn-icon" onclick="app.openModal('addHeatCycle')">+ Ajouter</button>
+            <button type="button" class="btn-icon" data-open-modal="addHeatCycle">+ Ajouter</button>
           </div>
           <div id="heat-table" class="stitch-record-list"></div>
         </div>
@@ -628,7 +628,7 @@
             <div class="table-header-left">
               <h2 class="section-title"><svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Saillies enregistrées</h2>
             </div>
-            <button type="button" class="btn-icon" onclick="app.openModal('addMating')">+ Ajouter</button>
+            <button type="button" class="btn-icon" data-open-modal="addMating">+ Ajouter</button>
           </div>
           <div id="mating-list" class="stitch-record-list"></div>
         </div>
@@ -657,7 +657,7 @@
             </select>
           </div>
         </div>
-        <button type="button" class="btn-icon" onclick="app.openModal('addNote')">+ Ajouter</button>
+        <button type="button" class="btn-icon" data-open-modal="addNote">+ Ajouter</button>
       </div>
       <div id="journal-cards" class="journal-cards"></div>
       <div id="journal-empty" class="empty-state-illustrated" hidden>
@@ -728,7 +728,7 @@
       <div class="annuaire-header">
         <div class="annuaire-header__top">
           <h2 class="section-title">Annuaire Vétérinaires</h2>
-          <button type="button" class="btn-icon" onclick="app.openModal('addVetContact')">+ Ajouter</button>
+          <button type="button" class="btn-icon" data-open-modal="addVetContact">+ Ajouter</button>
         </div>
         <div class="annuaire-search-row">
           <div class="annuaire-search">
@@ -838,7 +838,7 @@
           <h1 class="global-view__title">Urgences &amp; annuaire</h1>
           <p class="global-view__sub" id="annuaire-sub" style="margin-bottom:0">Praticiens et urgences</p>
         </div>
-        <button type="button" class="dossier-btn dossier-btn--primary" onclick="app.openModal('addVetContact')">+ Ajouter</button>
+        <button type="button" class="dossier-btn dossier-btn--primary" data-open-modal="addVetContact">+ Ajouter</button>
       </div>
       <article class="stitch-sos"><div><h2>Urgence vétérinaire</h2><p>Un contact direct pour être orienté vers un vétérinaire de garde.</p></div><a href="tel:3115">Composer le 3115 <span>France</span></a></article>
       <h2 class="stitch-section-title">Contacts d’urgence enregistrés</h2><div id="annuaire-emergency-slot"></div><h2 class="stitch-section-title">Cliniques &amp; proximité</h2>

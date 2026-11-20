@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
+import { Placeholder } from '@tiptap/extensions';
 import { Button, Select, Tooltip } from 'antd';
 import {
   BoldOutlined, ItalicOutlined, UnderlineOutlined, ClearOutlined, UnorderedListOutlined, OrderedListOutlined,
@@ -15,17 +13,19 @@ import {
 export function RichTextEditor({ value, onChange }: { value?: string; onChange?: (html: string) => void }) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3, 4] } }),
-      Link.configure({ openOnClick: false, autolink: true }),
+      // Tiptap 3 : le lien et le souligné font partie du StarterKit (les ajouter à part les déclarerait en double) ;
+      // trailingNode ajouterait un paragraphe vide après chaque liste dans le contenu enregistré (absent en 2.x).
+      StarterKit.configure({ heading: { levels: [2, 3, 4] }, trailingNode: false, link: { openOnClick: false, autolink: true } }),
       Placeholder.configure({ placeholder: 'Écris le contenu ici…' }),
-      Underline,
     ],
+    // Tiptap 3 ne redessine plus le composant à chaque transaction : la barre d'outils (isActive) en a besoin.
+    shouldRerenderOnTransaction: true,
     content: value || '',
     onUpdate: ({ editor: e }) => onChange?.(e.getHTML()),
   });
 
   useEffect(() => {
-    if (editor && value !== undefined && value !== editor.getHTML()) editor.commands.setContent(value || '', false);
+    if (editor && value !== undefined && value !== editor.getHTML()) editor.commands.setContent(value || '', { emitUpdate: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 

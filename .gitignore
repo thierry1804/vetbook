@@ -31,3 +31,6 @@ admin/dist
 
 # Maquettes de brainstorming (compagnon visuel)
 .superpowers/
+
+# Sauvegardes locales (scripts/backup.sh)
+backups/
